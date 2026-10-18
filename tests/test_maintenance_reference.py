@@ -8,6 +8,9 @@ from unittest.mock import patch
 from maintenance_heater import ThermalResult
 from maintenance_reference import request
 from test_maintenance_ui_services import DeferredWorker
+from test_capabilities import display,snapshot
+from maintenance_experience import Choice
+from unittest.mock import Mock
 
 
 def result(rate=1.,**conditions):
@@ -21,6 +24,24 @@ def result(rate=1.,**conditions):
 
 
 class ReferenceTests(unittest.TestCase):
+    def test_ui_requires_condition_confirmation_and_explicit_threshold(self):
+        view=display(snapshot());view._maintenance_init();view.checkkey=view.MaintenanceMenu
+        outcome=result()
+        view._maintenance_result=outcome;view._maintenance_page='result'
+        self.assertTrue(any(c.action=='reference' for c in view._maintenance_screen().choices))
+        future=__import__('concurrent.futures',fromlist=['Future']).Future()
+        view.pd.maintenance_reference=Mock(return_value=future)
+        view._maintenance_dispatch(Choice('Reference','reference',outcome))
+        view._maintenance_dispatch(Choice('Compare','reference_limit',outcome))
+        view.pd.maintenance_reference.assert_not_called()
+        view._maintenance_dispatch(view._maintenance_screen().choices[0])
+        self.assertEqual(view._maintenance_page,'reference_confirm')
+        self.assertIn('Same heater',str(view._maintenance_screen()))
+        view.pd.maintenance_reference.assert_not_called()
+        view._maintenance_dispatch(view._maintenance_screen().choices[1])
+        view.pd.maintenance_reference.assert_called_once_with('compare',outcome,relative_limit=.2,confirmed=True)
+        self.assertEqual(view._maintenance_page,'reference_wait')
+
     def test_reference_is_deferred_explicit_and_survives_worker_requests(self):
         with tempfile.TemporaryDirectory() as folder,patch('maintenance_reference.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();state=NS(settings={})

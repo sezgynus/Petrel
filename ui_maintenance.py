@@ -34,6 +34,7 @@ class MaintenanceViewMixin:
             self._maintenance_records_identity=None
             self._maintenance_records_request_identity=None
             self._maintenance_record_errors=0
+            self._maintenance_reference_future=None
             self._maintenance_records_return='service'
 
     def Enter_Maintenance_Menu(self):
@@ -155,7 +156,41 @@ class MaintenanceViewMixin:
                           and r.feature_id in ('H02','H03','H04')),None)
                 if row is not None:
                     choices.append(Choice('Review PID calibration','prepare',row))
+            from maintenance_reference import heating_observation
+            try: heating_observation(outcome)
+            except (ValueError,TypeError,AttributeError): pass
+            else: choices.append(Choice('Heating speed reference','reference',outcome))
             return Screen('Check result',heading,lines,tuple(choices),tone=tone)
+        if page=='reference':
+            from maintenance_reference import heating_observation
+            item=heating_observation(context)
+            choices=[back]
+            if item.status=='PASSED_USER':
+                choices.append(Choice('Save as reference','reference_confirm',('save',context,None)))
+            choices.extend((Choice('Compare with reference','reference_limit',context),
+                Choice('Hardware changed: remove','reference_confirm',('clear',context,None))))
+            return Screen('Heating speed reference',device_name(item.device),
+                ('A reference is one measured response.','It does not certify hardware life.',
+                 'Comparison needs the same setup.'),tuple(choices))
+        if page=='reference_limit':
+            outcome,percent=context
+            return Screen('Choose your review limit',str(percent)+'% change',
+                ('Turn to change the review limit.','This is your chosen threshold,',
+                 'not a manufacturer wear limit.'),
+                (Choice('Review comparison','reference_confirm',('compare',outcome,percent/100)),))
+        if page=='reference_confirm':
+            operation,outcome,limit=context
+            lines=(('Same heater and nozzle hardware?','Same cooling setup during check?',
+                    'If changed, remove the reference.','Your review limit: %.0f%%'%(limit*100))
+                   if operation=='compare' else
+                   ('Only use known-working hardware.','Fan start state was recorded.',
+                    'Save this measured heating speed?') if operation=='save' else
+                   ('Remove the old device reference.','Run a new check after replacement.'))
+            return Screen('Confirm reference action',{'save':'Accept this reference?',
+                'compare':'Are comparison conditions true?','clear':'Hardware or setup changed?'}[operation],
+                lines,(back,Choice('Yes, continue','reference_run',context)),tone='attention')
+        if page=='reference_wait':
+            return Screen('Heating speed reference','Processing reference',('No hardware action is running.',),())
         if page=='details':
             lines=[]
             for text in result_details(context):
@@ -473,6 +508,19 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
+        if action=='reference': return self._maintenance_open('reference',value)
+        if action=='reference_limit': return self._maintenance_open('reference_limit',(value,20))
+        if action=='reference_confirm': return self._maintenance_open('reference_confirm',value)
+        if action=='reference_run':
+            if self._maintenance_reference_future is not None: return
+            operation,outcome,limit=value
+            try:
+                self._maintenance_reference_future=self.pd.maintenance_reference(
+                    operation,outcome,relative_limit=limit,confirmed=True)
+            except Exception:
+                return self._maintenance_open('notice',('Reference unavailable',
+                    ('Run a fresh compatible heating check.','No reference success is assumed.')))
+            return self._maintenance_open('reference_wait')
         if action=='historical_result':
             record=value
             outcome=SimpleNamespace(feature_id=record.get('feature'),device=record.get('device'),
@@ -608,6 +656,12 @@ class MaintenanceViewMixin:
             days=max(1,min(3650,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
             self._maintenance_context=(device,task,days)
             self.Draw_Maintenance_Menu();self.lcd.update();return
+        if self._maintenance_page=='reference_limit' and event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            outcome,percent=self._maintenance_context
+            steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
+            percent=max(1,min(100,percent+(steps if event==self.ENCODER_DIFF_CW else -steps)))
+            self._maintenance_context=(outcome,percent)
+            self.Draw_Maintenance_Menu();self.lcd.update();return
         choices=self._maintenance_screen().choices
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
@@ -629,6 +683,20 @@ class MaintenanceViewMixin:
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
+        reference=self._maintenance_reference_future
+        if reference is not None and reference.done():
+            self._maintenance_reference_future=None
+            try:
+                answer=reference.result()
+                if not self.pd.accept_maintenance_reference(answer):
+                    raise ValueError('reference_measurement_stale')
+                notice=(answer.heading,answer.lines)
+            except Exception:
+                notice=('Reference unavailable',('Conditions, session or storage changed.',
+                    'No successful comparison is assumed.'))
+            if visible and active_page=='reference_wait':
+                self._maintenance_context=notice
+                self._maintenance_show('notice')
         book=getattr(self.pd,'maintenance_book',None)
         poll_records=getattr(book,'poll_records',None)
         if callable(poll_records): poll_records()
