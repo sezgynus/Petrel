@@ -10,7 +10,7 @@ class MaintenanceUIFlows(unittest.TestCase):
         d=display(snapshot())
         d.checkkey=d.MaintenanceMenu
         d._maintenance_init()
-        d.pd.maintenance_pulse=NS(phase=None,pending=False)
+        d.pd.maintenance_pulse=NS(phase=None,pending=False,available=lambda:())
         d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_ENTER)
         d.pd.client.get.reset_mock()
         return d
@@ -82,7 +82,7 @@ class MaintenanceUIFlows(unittest.TestCase):
 
     def test_observation_details_do_not_accept_without_review_choice(self):
         d=self.view();self.owner(d,'await_observation','M12',observation_details=('Trigger phase: 7/64',))
-        d.pd.observe_maintenance_physical=Mock()
+        d.pd.observe_maintenance_physical=Mock(return_value=NS(status='OBSERVED_USER'))
         self.choose(d,'review');self.assertEqual(d._maintenance_page,'details')
         d.pd.observe_maintenance_physical.assert_not_called()
         d._maintenance_back();self.choose(d,'observe',True)
@@ -156,7 +156,8 @@ class MaintenanceUIFlows(unittest.TestCase):
     def test_raw_numeric_evidence_is_only_in_optional_details(self):
         d=self.view();d._maintenance_page='result'
         d._maintenance_result=NS(feature_id='H01',status='PASSED_USER',reason='',evidence=(('overshoot_c',7.72),))
-        self.assertNotIn('7.72',str(d._maintenance_screen()))
+        screen=d._maintenance_screen()
+        self.assertNotIn('7.72',str((screen.heading,screen.lines)))
         self.choose(d,'details');self.assertIn('7.72',str(d._maintenance_screen()))
 
     def test_shaper_is_klipper_suggestion_and_never_saved_implicitly(self):

@@ -86,7 +86,7 @@ class MaintenanceViewMixin:
                 choices=tuple(Choice(label(r),'prepare',r,device_name(r.device)) for r in rows)
             elif page=='diagnostics':
                 title='System information'
-                choices=tuple(Choice(label(r),'read',r,device_name(r.device)) for r in reads)
+                choices=tuple(Choice(label(r),'read',r,device_name(getattr(r,'device',None))) for r in reads)
             else:
                 calibration=page=='calibrations'
                 title='Calibrations' if calibration else 'Check printer'
@@ -375,14 +375,15 @@ class MaintenanceViewMixin:
         if action=='start' or action=='read':
             self._maintenance_origin=(self._maintenance_page,self._maintenance_selection,self._maintenance_context)
             row=value
+            device=getattr(row, 'device', None)
             if action=='start':
-                accepted,reason=self.pd.start_maintenance_physical(row.feature_id,row.device)
+                accepted,reason=self.pd.start_maintenance_physical(row.feature_id,device)
             else:
-                accepted,reason=self.pd.start_maintenance_read(row.feature_id,device=row.device) if row.device is not None else self.pd.start_maintenance_read(row.feature_id)
+                accepted,reason=self.pd.start_maintenance_read(row.feature_id,device=device) if device is not None else self.pd.start_maintenance_read(row.feature_id)
             if accepted:
                 self._maintenance_show('pulse' if action=='start' else 'reading')
             else:
-                self._maintenance_complete(SimpleNamespace(feature_id=row.feature_id,device=row.device,status='BLOCKED',reason=reason))
+                self._maintenance_complete(SimpleNamespace(feature_id=row.feature_id,device=device,status='BLOCKED',reason=reason))
             return
         if action=='confirm':
             accepted,reason=self.pd.confirm_maintenance_physical()

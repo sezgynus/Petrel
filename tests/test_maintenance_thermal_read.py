@@ -32,7 +32,12 @@ class ThermalReadTests(unittest.TestCase):
             self.assertEqual(entries[feature].method, INFORMATION)
 
     def test_ui_keeps_device_optional_for_legacy_global_rows(self):
-        from pathlib import Path
-        source = (Path(__file__).resolve().parents[1] / 'ui_maintenance.py').read_text()
-        self.assertIn("getattr(item, 'device', None)", source)
-        self.assertIn("getattr(row, 'device', None)", source)
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from test_capabilities import display,snapshot
+        from maintenance_experience import Choice
+        d=display(snapshot());d._maintenance_init()
+        row=SimpleNamespace(feature_id='S01')
+        d.pd.start_maintenance_read=Mock(return_value=(True,'queued'))
+        d._maintenance_dispatch(Choice('Host','read',row))
+        d.pd.start_maintenance_read.assert_called_once_with('S01')
