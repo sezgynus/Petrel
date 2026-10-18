@@ -1,6 +1,7 @@
 """CI-only reference persistence and compatibility, with explicit operator consent."""
 import tempfile
 import unittest
+from concurrent.futures import Future
 from pathlib import Path
 from dataclasses import replace
 from types import SimpleNamespace as NS
@@ -29,7 +30,7 @@ class ReferenceTests(unittest.TestCase):
         outcome=result()
         view._maintenance_result=outcome;view._maintenance_page='result'
         self.assertTrue(any(c.action=='reference' for c in view._maintenance_screen().choices))
-        future=__import__('concurrent.futures',fromlist=['Future']).Future()
+        future=Future()
         view.pd.maintenance_reference=Mock(return_value=future)
         view._maintenance_dispatch(Choice('Reference','reference',outcome))
         view._maintenance_dispatch(Choice('Compare','reference_limit',outcome))
@@ -76,3 +77,16 @@ class ReferenceTests(unittest.TestCase):
                 worker.run();f.result()
             f=request(worker,'compare',result(),state,confirmed=True,relative_limit=.2,current=lambda:True)
             worker.run();self.assertEqual(f.result().heading,'No compatible reference')
+
+    def test_new_measurement_invalidates_the_prior_comparison_finding(self):
+        from maintenance_assessment_service import MaintenanceAssessment
+        from maintenance_assessment_model import Finding
+        from maintenance_discovery import MaintenanceSnapshot
+        state=NS(epoch=1,settings={})
+        snapshot=MaintenanceSnapshot(1,config_marker=id(state.settings))
+        api=MaintenanceAssessment();api.ingest(result(),1,state)
+        finding=Finding('trend.H05','extruder','attention','trend.changed_review_conditions',('H05',))
+        self.assertTrue(api.accept_trend(snapshot,'operation',finding))
+        self.assertTrue(api._trends)
+        api.ingest(result(.8),1,state)
+        self.assertFalse(api._trends)

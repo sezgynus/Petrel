@@ -243,6 +243,8 @@ class MaintenanceBook:
                         if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k) and safe_scalar(v) is not None]
                     records.append(record)
             write_json('maintenance-report.json',{'version':1,'generated_at':time(),'records':records,
+                'sampled_print_s':safe_scalar(usage.get('sampled_print_s')),
+                'usage_counter_id':safe_scalar(usage.get('counter_id')),
                 'usage':{k:v for k,v in usage.get('sampled_on_s',{}).items()
                          if safe_scalar(k) and number(v) and v>=0},
                 'coverage':'sampled_lower_bound_not_lifetime'})

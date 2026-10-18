@@ -17,6 +17,7 @@ class ReferenceResult:
     lines: tuple
     operation_id: str
     finding: Finding | None = None
+    reset_device: str | None = None
 
 
 def heating_observation(result):
@@ -57,13 +58,14 @@ def request(worker,operation,result,state,*,confirmed=False,relative_limit=None,
         key='heating-speed:'+str(evidence.device)
         if operation=='clear':
             store.invalidate_device(evidence.device)
-            return ReferenceResult('Reference removed',('Run a new check after hardware changes.',),evidence.operation_id)
+            return ReferenceResult('Reference removed',('Run a new check after hardware changes.',),
+                evidence.operation_id,reset_device=evidence.device)
         if operation=='save':
             value=next(m.value for m in evidence.measurements if m.key=='heating_c_per_s')
             if value<=0: raise ValueError('reference_requires_positive_heating_rate')
             store.set_baseline(key,evidence,confirmed=True)
             return ReferenceResult('Heating reference saved',('Only the measured heating speed is a reference.',
-                'Hardware health and remaining life are not certified.'),evidence.operation_id)
+                'Hardware health and remaining life are not certified.'),evidence.operation_id,reset_device=evidence.device)
         baseline=store.baseline(key,evidence)
         if baseline is None or not comparable(evidence,baseline):
             return ReferenceResult('No compatible reference',('Target, duration, start-temperature band,',

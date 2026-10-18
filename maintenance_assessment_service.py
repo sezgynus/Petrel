@@ -34,6 +34,8 @@ class MaintenanceAssessment:
         now = self._clock()
         for item in observations(result,method):
             key = (item.feature,item.device)
+            self._trends=OrderedDict((k,value) for k,value in self._trends.items()
+                if not (value[1].device==item.device and item.feature in value[1].evidence_features))
             self._latest.pop(key,None)
             self._latest[key] = (now,item)
             while len(self._latest)>self.capacity:
@@ -61,6 +63,10 @@ class MaintenanceAssessment:
         self._trends[key]=(self._clock(),finding)
         while len(self._trends)>self.capacity: self._trends.popitem(last=False)
         return True
+
+    def invalidate_trends(self,device):
+        self._trends=OrderedDict((key,value) for key,value in self._trends.items()
+                                 if value[1].device!=device)
 
     def report(self,snapshot,rows):
         evidence = self._evidence(snapshot)

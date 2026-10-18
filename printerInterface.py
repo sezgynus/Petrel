@@ -600,6 +600,10 @@ class PrinterData:
             relative_limit=relative_limit,confirmed=confirmed,current=current)
 
     def accept_maintenance_reference(self,result):
+        if not self.maintenance_assessment.current_operation(self.maintenance.snapshot,result.operation_id):
+            return False
+        if result.reset_device is not None:
+            self.maintenance_assessment.invalidate_trends(result.reset_device)
         if result.finding is None: return True
         return self.maintenance_assessment.accept_trend(
             self.maintenance.snapshot,result.operation_id,result.finding)
