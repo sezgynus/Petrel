@@ -78,7 +78,15 @@ class MaintenanceUISafety(unittest.TestCase):
         d=self.view();d._maintenance_page='root'
         findings=(Finding('check.H07','extruder','attention','thermal.overshoot_review'),
                   Finding('check.H08','extruder','attention','thermal.stability_review'))
+        d.pd.maintenance_assessment.has_current_evidence=Mock(return_value=True)
         d.pd.maintenance_assessment_details=Mock(return_value=NS(findings=findings,trends=()))
         self.assertEqual(d._maintenance_screen().heading,'1 device needs review')
         d.pd.maintenance_assessment_details.return_value=NS(findings=(),trends=())
         self.assertEqual(d._maintenance_screen().heading,'Start with a guided check')
+
+    def test_empty_evidence_home_never_builds_a_report_or_plan(self):
+        d=self.view();d._maintenance_page='root'
+        d.pd.maintenance_assessment_details=Mock(side_effect=AssertionError('unexpected planning'))
+        d.pd.maintenance=NS(snapshot=NS(epoch=1,config_marker=123))
+        self.assertEqual(d._maintenance_screen().heading,'Start with a guided check')
+        d.pd.maintenance_assessment_details.assert_not_called()

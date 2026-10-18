@@ -85,8 +85,9 @@ class MaintenanceViewMixin:
         context=self._maintenance_context
         back=Choice('Back','back')
         if page=='root':
-            report=self.pd.maintenance_assessment_details()
-            subjects={f.device for f in report.findings+report.trends if f.state in ('attention','issue')}
+            evidence=self.pd.maintenance_assessment.has_current_evidence(self.pd.maintenance.snapshot)
+            report=self.pd.maintenance_assessment_details() if evidence else None
+            subjects={f.device for f in report.findings+report.trends if f.state in ('attention','issue')} if report else set()
             heading=('%d device%s need%s review' % (len(subjects),'s' if len(subjects)!=1 else '',
                      '' if len(subjects)!=1 else 's')) if subjects else 'Start with a guided check'
             return Screen('Maintenance',heading,('Choose a guided check.',),(

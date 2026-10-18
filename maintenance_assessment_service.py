@@ -45,6 +45,9 @@ class MaintenanceAssessment:
         return tuple(item for stamp,item in self._latest.values()
                      if 0 <= now-stamp <= self._max_age)
 
+    def has_current_evidence(self,snapshot):
+        return bool(self._evidence(snapshot))
+
     def report(self,snapshot,rows):
         evidence = self._evidence(snapshot)
         plan = assessment_plan(snapshot,rows)
@@ -95,3 +98,4 @@ class MaintenanceAssessment:
     def clear(self):
         self._latest.clear()
         self._identity = None
+
