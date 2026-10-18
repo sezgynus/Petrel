@@ -6,6 +6,24 @@ import unittest
 from unittest.mock import Mock, patch
 from maintenance_workflow import FirmwareWorkflow, SafetyViolation
 from maintenance_filament import MaintenanceFilamentController
+from maintenance_test_trace import PrinterProxy
+
+
+class TraceTransportTests(unittest.TestCase):
+    def test_pulse_json_keyword_survives_recording_proxy(self):
+        future = Future()
+        target = NS(subscription=NS(),postREST=Mock(return_value=future))
+        trace = NS(context=lambda:{},emit=Mock(),dropped=0)
+        proxy = PrinterProxy(target,trace)
+        payload = {'script':'M106 S191\nG4 P950\nM106 S0'}
+        guard = lambda:True
+        result = proxy.postREST('/printer/gcode/script',json=payload,
+            report_error=False,dispatch_guard=guard,request_timeout=9.)
+        self.assertIs(result,future)
+        target.postREST.assert_called_once_with('/printer/gcode/script',payload,
+            report_error=False,dispatch_guard=guard,request_timeout=9.)
+        future.set_result('ok')
+        self.assertEqual(trace.dropped,0)
 
 
 class RuntimeSafetyTests(unittest.TestCase):

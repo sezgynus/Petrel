@@ -575,5 +575,6 @@ class PrinterProxy(Proxy):
     def __init__(self,target,trace):
         super().__init__(target,trace)
         self.subscription = SubscriptionProxy(target.subscription,trace)
-    def postREST(self,path,payload,*args,**kwargs):
-        return traced_request(self._trace,self._target.postREST,path,payload,args,kwargs)
+    def postREST(self,path,json,*args,**kwargs):
+        return traced_request(self._trace,self._target.postREST,path,json,args,kwargs)
+
