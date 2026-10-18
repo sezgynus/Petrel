@@ -51,7 +51,7 @@ class BootSplashTests(unittest.TestCase):
                 self.assertTrue(290 <= y <= 339)
             elif frame[1] == 0x11:
                 self.assertEqual(int.from_bytes(frame[9:11], 'big'), 322)
-                self.assertIn(b'Waiting for printer...', frame)
+                self.assertIn(b'Connecting to printer...', frame)
 
     def test_boot_animation_uses_stock_frames_and_stops_before_main_screen(self):
         v = self.view()

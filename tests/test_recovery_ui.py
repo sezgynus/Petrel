@@ -168,13 +168,13 @@ class BootConnectionGraceTests(unittest.TestCase):
                 view._boot_active = True
                 view.pd.recovery.state = RecoveryState(kind, 'Waiting')
                 view.Draw_Recovery = Mock()
-                with patch('ui_recovery.monotonic', return_value=100):
+                with patch.dict(view._poll_recovery_ui.__func__.__globals__, {'monotonic': lambda: 100}):
                     self.assertFalse(view._poll_recovery_ui())
-                with patch('ui_recovery.monotonic', return_value=129.9):
+                with patch.dict(view._poll_recovery_ui.__func__.__globals__, {'monotonic': lambda: 129.9}):
                     self.assertFalse(view._poll_recovery_ui())
                 self.assertTrue(view._boot_active)
                 view.Draw_Recovery.assert_not_called()
-                with patch('ui_recovery.monotonic', return_value=130):
+                with patch.dict(view._poll_recovery_ui.__func__.__globals__, {'monotonic': lambda: 130}):
                     self.assertTrue(view._poll_recovery_ui())
                 self.assertFalse(view._boot_active)
                 self.assertIn('taking longer', ' '.join(view._recovery_lines()))
@@ -210,7 +210,7 @@ class BootConnectionGraceTests(unittest.TestCase):
         view._boot_active = True
         view._boot_connection_started = 0
         view.pd.recovery.state = RecoveryState('disconnected', 'Waiting')
-        with patch('ui_recovery.monotonic', return_value=31):
+        with patch.dict(view._poll_recovery_ui.__func__.__globals__, {'monotonic': lambda: 31}):
             self.enter(view)
         view.pd.connection_error = None
         view.Goto_MainMenu = Mock()
