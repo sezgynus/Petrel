@@ -32,7 +32,7 @@ Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretm
 
 ## Teşhis sunumu ve ortak görseller
 
-Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; bilinmeyen alanlarda birim uydurmak yerine destek raporuna yönlendirilir. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Eski 156–163 kutu ikonları SVG/JPEG kaynaklarından ve paketten kaldırılır; Maintenance master ikonları 13, 45 ve 218 kullanır. Eşleşen çıktı/manifest 9 bloktur (288 KiB); önceki bakım UI paketinden bir blok küçüktür.
+Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Eski 156–163 kutu ikonları SVG/JPEG kaynaklarından ve paketten kaldırılır; Maintenance master ikonları 13, 45 ve 218 kullanır. Eşleşen çıktı/manifest 9 bloktur (288 KiB); önceki bakım UI paketinden bir blok küçüktür.
 
 ## Tüm alt menülerde artımlı güncelleme
 
@@ -45,3 +45,9 @@ Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recomme
 ## Salt okunur raporlar
 
 Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler bilgiyi işlemlerden ayırır. Raporlar durum başlığı, sakin açıklama, iki sütunda etiketli ölçümler ve açık Previous/Next page işlemleri kullanır. Sayısal veriler seçilebilir satır olmaz. Tüm metin ortak dashboard üzerindeki sınırlı sayfalardan erişilebilir kalır. Odak yalnız işlem seçim çizgilerini; değişen ölçüm yalnız kendi değer alanını yeniden çizer. CI artımlı rapor piksellerini temiz çizimle karşılaştırır ve güncel Maintenance dokümantasyon görsellerini üretim arayüzünden oluşturur. Örnek ekran görüntüleri fiziksel test kanıtı değildir.
+
+## Diagnostik alan kapsamı
+
+Kayıtlı her bilgi okuyucusunun artık adlandırılmış LCD raporu ve açık alan sunumu vardır. Sürücü register yanıtları anlaşılır uyarı, duruş, sürüş modu ve akım ölçeği değerlerini gösterir; bilinmeyen çip düzenlerinde register değeri korunur, temiz durum uydurulmaz. Motor etkinliği/akımı, home edilmiş eksenler/komut koordinatları, carriage modları, çevresel okumalar, MCU zamanlaması, CAN sayaçları, UART/enkoder sayaçları, panel kaynakları, kayıtlı geçmiş, örneklenmiş kullanım ve bileşen bazında güncelleme bilgileri LCD'de gösterilir. Sıfır sayaçlar ve false durumlar da sunulur. Önceki genel destek raporuna yönlendirme mesajı kaldırılmıştır.
+
+MCU ortalama/değişkenlik değerleri saniyeden mikrosaniyeye çevrilir; yapılandırılmış sürücü akımları amperdir. Klipper BME çevresel basıncı hPa, gaz direnci ohm birimindedir. Kayıtlı kullanım süreleri okunabilir zaman aralıklarıdır; örneklenmiş kapsam açıkça alt sınır olarak belirtilir. Eksik veya geçersiz okuma yerine değer uydurulmaz. İç olay zamanları ve bilinmeyen backend kayıt alanları ölçüm olarak sunulmaz. CI her kayıtlı okuyucuyu, gerçek TMC/MCU/hareket ayrıştırıcılarını ve yerel panel/kullanım/geçmiş çıktı sözleşmelerini kapsar.

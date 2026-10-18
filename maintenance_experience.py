@@ -12,6 +12,15 @@ FAMILY = dict(F='cooling',H='thermal',M='motion',P='geometry',R='vibration',E='f
 LEVELING = frozenset(('P05','P07','P08','P11'))
 THERMAL_COMPONENTS = frozenset(('H05','H06','H07','H08','H09','H13'))
 LABELS = {
+ 'H11':'Heater output','H14':'Sensor temperature','H16':'Environment readings',
+ 'M08':'Driver temperature','M09':'Motor current settings','M11':'Motor enable states',
+ 'M13':'Angle sensor temperature','M14':'Position and motion limits','M16':'Carriage modes',
+ 'E13':'Recorded material use','E15':'Chamber humidity',
+ 'S04':'Storage capacity','S05':'Network counters','S06':'MCU timing',
+ 'S07':'CAN bus status','S08':'Klipper status and warnings','S09':'Recent printer events',
+ 'S11':'Saved check history','S12':'Recorded component usage','S13':'Recorded axis travel',
+ 'S14':'Display link diagnostics','S15':'Encoder activity','S16':'Panel resources',
+ 'S19':'Software versions and updates','S20':'Diagnostic report export','O05':'Ambient temperature',
  'F01':'Fan rotation','F02':'Fan speed response','F12':'Fan startup threshold',
  'H01':'Heating and cooling','H02':'Tune hotend PID','H03':'Tune bed PID','H04':'Tune heater PID',
  'M01':'Endstop response','M03':'Reference the axes','M04':'Motor movement','M05':'Axis movement',
@@ -21,7 +30,7 @@ LABELS = {
  'R04':'Tune Input Shaper','E01':'Filament extrusion','E02':'Measure filament feed',
  'E03':'Filament presence sensor','E07':'Observe filament path',
  'S01':'Host load and memory','S02':'Host temperature','S03':'Power and throttling',
- 'S10':'Recorded print usage','S15':'Encoder response','S16':'Display colours',
+ 'S10':'Recorded print usage',
  'S17':'Backlight response','S18':'Audible signal','O03':'Auxiliary output',
  'O04':'LED colours','O06':'Guided servicing'}
 
@@ -54,6 +63,9 @@ def device_name(name):
            'stepper_x':'X axis','stepper_y':'Y axis','stepper_z':'Z axis'}
     if name in known:
         return known[name]
+    chip,separator,stepper=name.partition(' ')
+    if separator and chip.startswith('tmc') and stepper.startswith('stepper_'):
+        return device_name(stepper)+' / '+chip.upper()
     if name.startswith('extruder') and name[8:].isdigit():
         return 'Hotend '+name[8:]
     return name.partition(' ')[2] or name.replace('_',' ')

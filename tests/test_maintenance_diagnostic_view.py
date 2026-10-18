@@ -21,7 +21,7 @@ class DiagnosticPresentation(unittest.TestCase):
             self.assertNotIn(internal,text)
         self.assertIn('7.72 C',text)
         self.assertIn('Previous state not confirmed',text)
-        self.assertIn('support report',text)
+        self.assertNotIn('support report',text)
 
     def test_pi_bitmask_is_explained_and_does_not_claim_psu_failure(self):
         lines=evidence_lines('S03',(('throttled_bits',0x10001),))

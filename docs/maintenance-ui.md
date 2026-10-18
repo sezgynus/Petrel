@@ -32,7 +32,7 @@ The empty-evidence root does not build an assessment report or controller plan. 
 
 ## Diagnostic presentation and shared artwork
 
-Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; unknown fields remain in the support report instead of guessing units. Long text wraps and full instructions remain reachable. Retired tile IDs 156–163 are removed from SVG/JPEG sources and the packed library; Maintenance uses master icons 13, 45 and 218. The matching export/manifest is 9 blocks (288 KiB), one block smaller than the former Maintenance UI.
+Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Retired tile IDs 156–163 are removed from SVG/JPEG sources and the packed library; Maintenance uses master icons 13, 45 and 218. The matching export/manifest is 9 blocks (288 KiB), one block smaller than the former Maintenance UI.
 
 ## Incremental updates across all submenus
 
@@ -45,3 +45,9 @@ Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recomm
 ## Read-only reports
 
 Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions separate information from actions. Reports use a status heading, muted explanation, two-column labeled measurements and explicit Previous/Next page actions. Numeric facts never become selectable rows. All text remains reachable through bounded pages above the shared dashboard. Focus redraws only action cursor strips; a changed measurement repaints only its value field. CI compares incremental report pixels with clean frames and renders current Maintenance documentation scenes through the production UI. Example screenshots are not physical test evidence.
+
+## Diagnostic field coverage
+
+Every registered information reader now has a named LCD report and explicit field presentation. Driver register replies show readable alerts, standstill, drive mode and current-scale readings; unknown chip layouts retain the register value without inventing a clean status. Motor enable/current, homed axes/commanded coordinates, carriage modes, environmental readings, MCU timing, CAN counters, UART/encoder counters, panel resources, saved history, sampled usage and component-specific update information remain on the LCD. Zero counters and false states are displayed. The former generic support-report redirect is removed.
+
+MCU average/variation values are converted from seconds to microseconds; configured driver currents are amperes. Klipper BME environmental pressure is hPa and gas resistance is ohms. Recorded usage durations are readable time spans, and sampled coverage is explicitly a lower bound. Missing or invalid readings are not replaced by fabricated values. Internal event timestamps and unknown backend bookkeeping do not become measurements. CI covers every registered reader, the actual TMC/MCU/motion parsers and local panel/usage/history output contracts.

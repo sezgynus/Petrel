@@ -1,6 +1,7 @@
 """User-facing bounded diagnostic facts; raw transport codes stay in reports."""
 import math
 import re
+from maintenance_diagnostic_fields import diagnostic_lines
 
 FIELDS={
  'samples':('Samples',''),'span_s':('Measured span','s'),'rise_c':('Temperature rise','C'),
@@ -39,8 +40,14 @@ def _format(value,unit=''):
 def evidence_lines(feature,evidence):
     """Bounded whitelist: no raw flag/status/reason names in the user interface."""
     lines=[]
-    omitted=False
-    for key,value in tuple(evidence)[:32]:
+    for pair in tuple(evidence)[:64]:
+        if not isinstance(pair,(tuple,list)) or len(pair)!=2 or not isinstance(pair[0],str):
+            continue
+        key,value=pair
+        extra=diagnostic_lines(feature,key,value)
+        if extra is not None:
+            lines.extend(extra)
+            continue
         if key in FIELDS and _number(value):
             name,unit=FIELDS[key]
             lines.append(name+': '+_format(value,unit))
@@ -62,6 +69,10 @@ def evidence_lines(feature,evidence):
             lines.append('Host power / throttling')
             lines.append('Current warning: '+('yes' if value&15 else 'none'))
             lines.append('Earlier warning: '+('recorded' if value&0xF0000 else 'none recorded'))
+            causes=('Undervoltage','Frequency limited','Throttled','Temperature limit')
+            for title,shift in (('Current causes',0),('Earlier causes',16)):
+                active=[label for bit,label in enumerate(causes) if value&(1<<(bit+shift))]
+                if active: lines.append(title+': '+', '.join(active))
         elif key=='last_error_code' and value in ERRORS:
             lines.append(ERRORS[value])
         elif key=='webhooks_state' and value in ('ready','startup','error','shutdown'):
@@ -71,9 +82,9 @@ def evidence_lines(feature,evidence):
         elif key=='axis' and isinstance(value,str) and value.upper() in ('X','Y','Z','E'):
             lines.append('Axis: '+value.upper())
         elif key.endswith('.available') and type(value) is bool:
-            lines.append('Update '+('available' if value else 'not pending'))
+            lines.append(key[:-10].replace('_',' ')+' update: '+('Available' if value else 'Not pending'))
         elif key.endswith('.current') and isinstance(value,str) and re.fullmatch(r'[A-Za-z0-9.+_-]{1,48}',value):
-            lines.append(key[:-8].replace('_',' ')[:18]+': '+value)
+            lines.append(key[:-8].replace('_',' ')+': '+value)
         elif key.endswith(('.rx_bytes','.tx_bytes')) and _number(value):
             interface,_,direction=key.rpartition('.')
             lines.append(interface[:10]+(' received: ' if direction=='rx_bytes' else ' sent: ')+_format(value/1024,'KiB'))
@@ -83,13 +94,9 @@ def evidence_lines(feature,evidence):
             lines.append(value)
         elif key in ('saved','authoritative_source','eventtime_s','klipper_eventtime_s'):
             continue
-        else:
-            omitted=True
-    if omitted:
-        lines.append('More evidence in support report.')
     if not lines:
-        lines.append('No displayable measurement.')
-    return tuple(lines[:48])
+        lines.append('No readings available.')
+    return tuple(lines)
 
 
 def outcome_text(status):
