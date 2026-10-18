@@ -1,5 +1,5 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
-from graphite_theme import show_icon as show_theme_icon
+from graphite_theme import show_icon as show_theme_icon, draw_scrollbar
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
@@ -3072,10 +3072,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._info_update_render = None
             self._info_update_message = None
             self.lcd.move_area(1, self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
-                               distance, self.lcd.Color_Bg_Black, 0, 90, 271, 355)
+                               distance, self.lcd.Color_Bg_Black, 0, 90, 255, 355)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 90, 255, 91)
             # Scroll indicators belong to the fixed frame, not the moving list.
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 256, 92, 271, 359)
             if (previous == max_scroll) != (self._info_scroll == max_scroll):
                 self.Erase_Menu_Cursor(0)
                 if self._info_scroll < max_scroll:
@@ -3122,11 +3121,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             # Clear old QR fragments here, including those from earlier renders.
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
                                     0, 356, 255, self.STATUS_Y - 1)
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 256, 76, 271, 89)
-            if self._info_scroll:
-                self._draw_menu_text('^', 256, 76)
-            if self._info_scroll < max_scroll:
-                self._draw_menu_text('v', 256, 328)
+        if not stationary:
+            draw_scrollbar(self.lcd, self._info_scroll, max_scroll + 11, 11)
         self._info_render_scroll = self._info_scroll
         self._info_render_items = items
         self._info_render_lcd = self.lcd

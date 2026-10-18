@@ -4,7 +4,7 @@ No discovery, disk or network operations. Reuses the master menu font, icons,
 header and thin cursor. Encoder focus changes paint only cursor strips.
 """
 import textwrap
-from graphite_theme import show_icon
+from graphite_theme import show_icon, draw_scrollbar
 from lcd_resources import ICON_LIBRARY_ID, ICON_MAINTENANCE_CARE
 from maintenance_icons import icon_for
 
@@ -100,13 +100,7 @@ def _move_viewport(v,prefix,old_start,start,visible,height,top,first=1):
 
 def _scroll(v,start,total,visible,y=90,height=253):
     if _cached(v,'scrollbar',(start,total,visible,y,height)):
-        v.lcd.draw_rectangle(1,BG,264,84,268,355)
-        if total>visible:
-            h=max(10,height*visible//total)
-            top=y+(height-h)*start//(total-visible)
-            v.lcd.draw_rectangle(1,LINE,265,y,267,y+height-1)
-            v.lcd.draw_rectangle(1,ACCENT,265,top,267,top+h-1)
-
+        draw_scrollbar(v.lcd,start,total,visible,y,height)
 
 def _bar(v,key,item,x,y,width):
     fill=None if item.progress is None else int(width*item.progress)

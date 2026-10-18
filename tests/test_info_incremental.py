@@ -79,10 +79,30 @@ class InfoIncrementalTests(unittest.TestCase):
             reference._info_render_scroll = None
             view.Draw_Info_Menu(); view.lcd.update()
             reference.Draw_Info_Menu(); reference.lcd.update()
-            actual = view.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
-            expected = reference.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
+            actual = view.framebuffer.snapshot()[0].crop((0, 90, 272, 356))
+            expected = reference.framebuffer.snapshot()[0].crop((0, 90, 272, 356))
             self.assertIsNone(ImageChops.difference(actual, expected).getbbox(),
                               (step, scroll))
+
+    def test_scrollbar_matches_maintenance_and_stays_outside_moving_content(self):
+        from graphite_theme import draw_scrollbar
+        view = self.view()
+        maximum = len(view._info_items()) + extra_info_rows() - 11
+        for scroll in (0, maximum // 2, maximum, 0):
+            view.lcd.reset_mock()
+            view._info_scroll = scroll
+            view.Draw_Info_Menu()
+            expected = Mock()
+            draw_scrollbar(expected, scroll, maximum + 11, 11)
+            for call in expected.draw_rectangle.call_args_list:
+                self.assertIn(call, view.lcd.draw_rectangle.call_args_list)
+            if view.lcd.move_area.called:
+                self.assertEqual(view.lcd.move_area.call_args.args[-2], 255)
+            self.assertFalse(any(call.args[-1] in ('^', 'v')
+                                 for call in view.lcd.draw_text.call_args_list))
+        view.lcd.reset_mock()
+        view.Draw_Info_Menu()
+        view.lcd.draw_rectangle.assert_not_called()
 
     def test_new_lcd_forces_complete_render(self):
         view = self.view()
