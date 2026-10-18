@@ -1,32 +1,29 @@
 # Bakım kullanıcı deneyimi
 
-Nihai UI feature/maintenance-ui-ux dalında geçici test UI'sından bağımsız geliştirilir. Saf deneyim modeli kayıtlı capability'leri amaç ve cihaz bazında gruplar; keşif veya donanım eylemi yapmaz. Birleşik termal kontrol yedi ayrı girişin yerini alır. Leveling offset, mesh ve vida akışları kopyalanmaz. Kalibrasyon işlev kontrollerinden ayrılır. Özetler ölçüm başarısızlığı, kullanıcı gözlemi, bilgi ve tamamlanamayan yürütmeyi ayırır. Sayısal kanıt ve geri yükleme bilgisi isteğe bağlı ayrıntıda kalır.
+Maintenance; master ile aynı Graphite başlığı, bitmap menü fontunu, ortak çizgi ikonları, ince turkuaz enkoder seçim çizgisini ve dashboard'u kullanır. Yalnızca y=360 üzeri çizilir. Onaylanan giriş ekranında dört sabit hedef vardır: Care schedule, Check printer, Diagnostics ve Recommendations (adet). Plan, cihaz veya öneri sayısı arttığında ana ekrana satır eklenmez; başka bir giriş yerinden oynamaz.
 
-## Enkoder etkileşimi
+## Bakım takvimi
 
-Maintenance dört Graphite kutucuk açar: Check printer, Findings, Service plan ve More. Gruplar ve cihaz örnekleri kayıtlı controller planlarından gelir. Hazırlık donanımı sürmez; controller preflight ardından ayrı Start onayı vardır. Kullanıcı gözlemi, sensör geçişleri, harici ölçüm, F12 tam duruş ve workflow adımları açık seçimlerle ilerler. Back aynı cihaza döner. Bilgi okumaları istek üzerinedir. Recovery ekranı Maintenance'ı örttüğünde aktif işlemler poll edilmeye devam eder. Güvenlik durdurma metinleri ısıtıcı shutdown ile normal gezinmeyi ayırır.
+Sabit özet en fazla iki kayıtlı hatırlatıcı gösterir: önce zamanı gelenler, ardından bilinen en yakın takvim tarihi, sonra kapsamı bilinmeyenler. Tüm takvim ayrı, enkoderle kayan bir görünümdür; üç satır ve konum çubuğu görünür. Beş veya daha fazla plana ulaşılabilir. Add reminder ve Refresh records aynı görünümde erişilebilir kalır. İlerleme, tanımlanan bakım aralığının geçen kısmıdır; aşınma, donanım sağlığı veya kalan ömür değildir.
 
-Normal durum şeridi korunur. Kök kutucuklar yönetilen metinsiz 156–163 ikonlarını kullanır; alt ekranlar sınırlı kısmi çizilir. Sayısal kanıt isteğe bağlı kaydırılan Details ekranındadır. Destek kaydı ana ekranda değil More altındadır. Lokal test/emülatör gerekmez; yeni gezinmeyi Actions regresyon paketi doğrular.
+Maintenance açıldığında kayıtlı politikalar mevcut worker üzerinde yüklenir. Çizim ve enkoder gezinmesi disk, keşif veya ağ işi yapmaz. Yükleme test başlatmaz, bakım yapılmış saymaz. Arka plan sonucu kullanıcının açtığı başka bir ekranı değiştirmez. Depolama hatası görünür kalır; Care schedule içinde açıkça yeniden denenir. READY/yapılandırma kimliği değiştiğinde önbellek geçersizleşir.
 
-## Bakım hatırlatıcıları ve geçmiş
+Plan, bakım aralığı veya son bakım tarihi uydurulmaz. Eksik veya gelecekteki takvim tarihi için çubuk doldurulmaz. Örneklenen sayaç aralığın dolduğunu kanıtlayabilir; sınır altındayken kesin kalan süreyi kanıtlayamaz. Kaldırılmış cihazlar dışlanır. Hatırlatıcı için desteklenen cihaz, iş, sayaç temeli ve aralık seçilir; inceleme ve kayıt ayrıca onaylanır. Gerçek bakımın tamamlanması ayrı bir onaydır. Ancak bundan sonra bakım tarihi/sayaç başlangıcı yazılır.
 
-Bakım kayıtları yalnız açık istekle yüklenir ve mevcut worker üzerinde işlenir. Hatırlatıcı eklerken desteklenen cihaz, görev ve temel seçilir: takvim günü, örneklenmiş baskı saati veya desteklenen bileşenlerde örneklenmiş açık kalma saati. Aralık kullanıcı tarafından belirlenir. Editörün ilk değeri kurulu politika değildir; kayıt inceleme ve açık onay gerektirir. Hatırlatıcı kaydı bakım yapıldığı anlamına gelmez. Gerçek tamamlanma ayrıca onaylanır. Son bakım tarihi yoksa bilinmeyen kalır. Kaldırılan cihazlar gizlenir ve yeni tamamlanma kaydı alamaz. Aşınma veya kalan ömür tahmini çıkarılmaz.
+## Öngörülebilir hedefler
 
-Son kontrol geçmişi ayrıca yüklenir ve tarihsel olarak işaretlenir. Baskı kullanımı, örneklenmiş kullanım ve ayıklanmış rapor aktarımı istek üzerine bilgi okumalarıdır. Kullanıcı tek termal kontrol çalıştırsa da Findings bağımsız termal alt sonuçları içerir. Maintenance girişinde çizim önbelleği geçersiz kılınır; diğer ekranlardan kalıntı kalmaz.
+Check printer kabiliyetlerden üretilen işlev gruplarını ve cihaz örneklerini içerir. Isıtma bileşenleri birleşik kalır; günlük ofset, vida ve mesh işlevleri Leveling içinde tutulur. Diagnostics ana ekrandan doğrudan erişilir ve kayıtlı salt okunur bilgi akışlarını amaca göre gruplar. Kullanım/geçmiş ve destek kaydı/dışa aktarım buradadır. Recommendations güncel dikkat/sorun bulgularını cihaz bazında toplar; yenileri yalnızca adedi ve bölüm içeriğini değiştirir. Kalibrasyon mevcut ek araçlar üzerinden erişilebilir kalır.
 
-## Son etkileşim korumaları
+Testi hazırlamak donanım çalıştırmaz. Controller ön kontrolü ve açık Start onayı ayrı kalır. Gözlem, sensör geçişi, dış ölçüm, F12 fiziksel tam duruşu ve iş akışı seçimlerinde controller yetkisi korunur; kullanıcı yanıtına zaman aşımı uygulanmaz. Sonuçlar ölçümü, kullanıcı gözlemini ve tamamlanamayan işlemi ayırır. İsteğe bağlı ayrıntılar kayıtlı kanıtı korur; geçmiş açıkça tarihsel olarak belirtilir. Kalibrasyon ayarları otomatik kaydedilmez.
 
-Eylemler değişmişse yakalanan ENTER komut göndermek yerine ekranı yeniler. Controller faz değişimi odağı güvenli ilk eyleme döndürür. Uzun controller talimatları ayrı kaydırılan sayfadan okunur. Aynı cihazın bulguları gruplanır; açıklamalar korunur. Çizimler normal durum şeridinin üstünde kalır ve değişmeyen ekranlar yeni çizim paketi üretmez. Fiziksel backend'ler yetkili kalır; CI UI entegrasyonunu doğrular, yeni ekran düzeninin fiziksel kabulü değildir.
+## Çizim ve etkileşim
 
-İptal edilen global güç penceresi dönüşünde Maintenance yüzeyi yeniden çizilir; kontrol tekrarlanmaz. Harici ölçüm hazırlığında ölçü aleti ve açık hareket yolu özellikle belirtilir.
+Back satırı master ile aynı y=31–83 alanındadır. Önceki seçim/cihaza döner; kökteki Back ana menüde Maintenance kutusunu geri seçer. Ana satırlar sabit kalırken bakım alt görünümü kayar. Eski büyük Maintenance kutuları yerine mevcut küçük Graphite ikonları yeniden kullanılır. Girişte büyük yazıcı çizimi yer kaplamaz.
 
+Metin, çubuk ve seçim çizgisi ayrı imzalarla önbelleklenir. Değişmeyen seçimler arasında enkoder yalnızca eski/yeni ince seçim çizgisini çizer; ikon ve metni tekrar göndermez, tüm ekranı temizlemez. Görünür pencere değiştiğinde yalnızca dashboard üzerindeki içerik yenilenir. Çubuk imzası panel pikseline yuvarlanır. Eylem kimliği değişmiş ENTER yanlış hedefi çalıştırmak yerine yeniden çizer. Controller aşaması değişince güvenli ilk seçim geri gelir. Genel güç/kurtarma ve etkin işlem polling davranışı korunur.
 
-## Ölçülen ısınma hızı referansı
+## Referans ve kayıtlar
 
-Koşulları eksiksiz H01 sonucunda Heating speed reference açılır. Kullanıcı çalışan donanımla yapılan H05 ölçümünü ayrı onayla referans kaydeder. Compare ekranında yüzde değişim sınırını seçip aynı heater/nozzle ve soğutma kurulumunu doğrular. Hedef, süre, 5 °C başlangıç bandı, fan başlangıç durumu, firmware veya config uyuşmazsa karşılaştırma yapılmaz. Eski veya eksik koşullu kayıt referans yapılmaz. Donanım değiştiğinde eski referans açık onayla kaldırılır. Sonuç, ölçülen değişimi ve kontrol edilecek koşulları açıklar; heater cartridge arızası veya kalan ömür teşhisi koymaz. Sayılar isteğe bağlı ayrıntıda kalır.
+Tam H01 sonucundan Heating speed reference açılır. Bilinen sağlam donanım ve açık onay olmadan referans kaydedilmez. Karşılaştırma, seçilmiş inceleme sınırı ve aynı donanım/soğutma koşullarını gerektirir. Hedef, süre, ilk sıcaklık bandı, fan durumu, firmware/yapılandırma farkı ve eski kanıt geçersiz karşılaştırmayı önler. Donanım değişiminde referans açıkça silinir. Isıtıcı eskimesi veya kalan ömür tanısı konmaz.
 
-## Güncel kayıtlar ve kullanım kapsamı
-
-Takvim vadesi görünüm üretilirken güncel zamandan hesaplanır. Discovery değişikliği kayıt görünümünü geçersiz kılar; Refresh records mevcut worker üzerinde yeniler. Örneklenmiş sayaçlar yalnız gözlenen kesintisiz kısa aralıkları toplar ve alt sınırdır. Yeni hatırlatıcı bakım yapılmış sayılmaz; gerçek bakım sonrası tamamlandı onayı o andaki sayaç başlangıcını kaydeder. Sayaç kimliği değişirse önceki başlangıçla kıyas yapılmaz. Kullanım eşiğinin altında kalmak bakım gerekmediğini kanıtlamaz. Yüklenmiş kayıtlarda vadesi gelen hatırlatıcılar kök ekranda da belirtilir. Kayıt kuyruğu/disk hataları ekranda uyarılır.
-
-Moonraker geçmiş toplamları kesin ömür veya sıfırlanmayacağı kanıtlanmış bakım sayacı olarak varsayılmaz. Doğrulanmış sürekliliği olmayan hareket mesafesi bakım ölçütüne dönüştürülmez. Bu kaynaklar bilgi ekranında kalır; mevcut fiziksel kabul yeni UI düzeninin kabulü sayılmaz.
+Regresyonlar her imzalı commit için GitHub Actions'ta çalışır. Yerel test veya geliştirme emülatörü çalıştırılmaz. CI arayüz entegrasyonunu ve sınırlı çizimi doğrular; fiziksel panel kabulünün yerine geçmez.

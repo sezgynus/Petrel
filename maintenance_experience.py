@@ -40,6 +40,7 @@ class Screen:
     choices: tuple = ()
     kind: str = 'detail'
     tone: str = 'normal'
+    care: tuple = ()
 
 
 def device_name(name):

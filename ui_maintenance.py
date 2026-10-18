@@ -9,7 +9,8 @@ import textwrap
 from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details)
 from graphite_theme import show_icon
-from lcd_resources import ICON_LIBRARY_ID, ICON_MAINTENANCE_CHECK
+from maintenance_care_view import care_items
+from maintenance_layout import draw_maintenance
 
 
 class MaintenanceViewMixin:
@@ -36,6 +37,8 @@ class MaintenanceViewMixin:
             self._maintenance_record_errors=0
             self._maintenance_reference_future=None
             self._maintenance_records_return='service'
+            self._maintenance_records_background=False
+            self._maintenance_records_failed=False
 
     def Enter_Maintenance_Menu(self):
         self._maintenance_init()
@@ -45,6 +48,29 @@ class MaintenanceViewMixin:
         self._maintenance_frame=None
         self._maintenance_regions={}
         self._maintenance_show('root')
+        self._maintenance_prefetch_records()
+
+    def _maintenance_prefetch_records(self):
+        if self._maintenance_records_future is not None:
+            return
+        if self._maintenance_records_ready and self._maintenance_records_identity==self._maintenance_identity():
+            return
+        self._maintenance_records_ready=False
+        try:
+            self._maintenance_records_future=self.pd.maintenance_ui_records('load',policy=None,history=False)
+            self._maintenance_records_request_identity=self._maintenance_identity()
+            self._maintenance_records_background=True
+            self._maintenance_records_failed=False
+        except Exception:
+            self._maintenance_records_failed=True
+        self.Draw_Maintenance_Menu();self.lcd.update()
+
+    def _maintenance_care(self):
+        if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():
+            return ()
+        snapshot=getattr(self.pd.maintenance,'snapshot',None)
+        devices={d.name for d in getattr(snapshot,'devices',())}
+        return care_items(self._maintenance_records_data[0],devices,time())
 
     def _maintenance_back_home(self):
         self._maintenance_history=[]
@@ -89,19 +115,29 @@ class MaintenanceViewMixin:
         context=self._maintenance_context
         back=Choice('Back','back')
         if page=='root':
-            evidence=self.pd.maintenance_assessment.has_current_evidence(self.pd.maintenance.snapshot)
-            report=self.pd.maintenance_assessment_details() if evidence else None
-            subjects={f.device for f in report.findings+report.trends if f.state in ('attention','issue')} if report else set()
-            heading=('%d device%s need%s review' % (len(subjects),'s' if len(subjects)!=1 else '',
-                     '' if len(subjects)!=1 else 's')) if subjects else 'Start with a guided check'
-            due=self._maintenance_service_due_count()
-            if not subjects and due:
-                heading='%d service reminder%s due'%(due,'s' if due!=1 else '')
-            return Screen('Maintenance',heading,('Choose a guided check.',),(
-
-                Choice('Back','home'),Choice('Check printer','open','groups'),
-                Choice('Findings','findings'),Choice('Service plan','service'),
-                Choice('More','open','more')),'home')
+            report=self.pd.maintenance_assessment_details()
+            findings=tuple(f for f in report.findings+report.trends if f.state in ('attention','issue'))
+            items=self._maintenance_care()
+            heading=('Care records unavailable' if self._maintenance_records_failed else
+                     ('Loading care schedule' if self._maintenance_records_future is not None else 'Load saved care plans') if not self._maintenance_records_ready else
+                     'No care plans' if not items else '%d plans / %d due'%(len(items),sum(i.state=='due' for i in items)))
+            return Screen('Maintenance',heading,(),(
+                Choice('Back','home'),Choice('Care schedule','service'),
+                Choice('Check printer','open','groups'),Choice('Diagnostics','open','diagnostic_groups'),
+                Choice('Recommendations (%d)'%len(findings),'findings')),'home',care=items[:2])
+        if page=='diagnostic_groups':
+            _,reads=self._maintenance_options()
+            groups=grouped(reads)
+            return Screen('Diagnostics',choices=(back,)+tuple(
+                Choice(title,'diagnostic_topic',key) for key,title,rows in groups)+(
+                Choice('Usage and history','history'),Choice('Support tools','open','support')),kind='list')
+        if page=='diagnostic_topic':
+            _,reads=self._maintenance_options()
+            groups=grouped(reads)
+            rows=next((rows for key,title,rows in groups if key==context),())
+            title=next((title for key,title,rows in groups if key==context),'Diagnostics')
+            return Screen(title,choices=(back,)+tuple(Choice(label(r),'read',r,
+                device_name(getattr(r,'device',None))) for r in rows),kind='list')
         if page in ('groups','calibrations','diagnostics','targets'):
             physical,reads=self._maintenance_options()
             if page=='targets':
@@ -111,13 +147,15 @@ class MaintenanceViewMixin:
                 title=next((title for key,title,rows in groups if key==topic),'Checks')
                 choices=tuple(Choice(label(r),'prepare',r,device_name(r.device)) for r in rows)
             elif page=='diagnostics':
-                title='System information'
+                title='Diagnostics'
                 choices=tuple(Choice(label(r),'read',r,device_name(getattr(r,'device',None))) for r in reads)
             else:
                 calibration=page=='calibrations'
                 title='Calibrations' if calibration else 'Check printer'
                 choices=tuple(Choice(title,'targets',(calibration,key),str(len(rows))+' available checks')
                               for key,title,rows in grouped(physical,calibration))
+            if page=='groups' and grouped(physical,True):
+                choices=choices+(Choice('Calibrations','open','calibrations'),)
             if not choices:
                 return Screen(title,'No supported checks',('Only installed, supported','functions are shown.'),(back,))
             return Screen(title,choices=(back,)+choices,kind='list')
@@ -203,12 +241,12 @@ class MaintenanceViewMixin:
             report=self.pd.maintenance_assessment_details()
             findings=tuple(f for f in report.findings+report.trends if f.state in ('attention','issue'))
             if not findings:
-                return Screen('Findings','No current alerts recorded',('This does not prove all hardware','is healthy. Start a check to','collect current evidence.'),
+                return Screen('Recommendations','No current alerts recorded',('This does not prove all hardware','is healthy. Start a check to','collect current evidence.'),
                               (back,Choice('Check printer','open','groups')))
             subjects={}
             for finding in findings:
                 subjects.setdefault(finding.device,[]).append(finding)
-            return Screen('Findings',choices=(back,)+tuple(Choice(device_name(device),'finding',tuple(items),
+            return Screen('Recommendations',choices=(back,)+tuple(Choice(device_name(device),'finding',tuple(items),
                 '%d finding%s to review' % (len(items),'s' if len(items)!=1 else ''))
                 for device,items in subjects.items()),kind='list')
         if page=='finding':
@@ -230,7 +268,7 @@ class MaintenanceViewMixin:
             lines=tuple(part for explanation in explanations for part in textwrap.wrap(explanation,30))
             if len(lines)>7:
                 choices.append(Choice('Read all findings','instructions',lines))
-            return Screen('Finding',device_name(findings[0].device),lines[:7],tuple(choices),tone='attention')
+            return Screen('Recommendation',device_name(findings[0].device),lines[:7],tuple(choices),tone='attention')
         if page=='instructions':
             lines=tuple(part for value in context for part in (textwrap.wrap(str(value),30) or ['']))
             return Screen('Full instructions',choices=(back,)+tuple(Choice(line,'none') for line in lines),kind='list')
@@ -352,20 +390,16 @@ class MaintenanceViewMixin:
             if self._maintenance_records_identity!=self._maintenance_identity():
                 self._maintenance_records_ready=False
             if not self._maintenance_records_ready:
-                return Screen('Service plan','No interval assumed',('Load your saved reminders.','Intervals require an explicit','manufacturer or user policy.'),
-                    (back,Choice('Load service tasks','load_services')))
-            tasks=self._maintenance_records_data[0]
-            physical,reads=self._maintenance_options()
-            devices={r.device for r in physical+reads}
-            choices=[back,Choice('Add calendar reminder','service_add'),Choice('Refresh records','load_services')]
-            for policy,last,due in tasks:
-                if policy.device not in devices: continue
-                due=self._maintenance_policy_due(policy,last,due)
-                detail={'due':'Service is due','not_due':'Within your interval','unknown':'Not proven due / refresh'}[due]
-                choices.append(Choice(TASKS.get(policy.task_id,policy.task_id),'service_task',(policy,last,due),device_name(policy.device)+' / '+detail))
-            if not tasks:
-                return Screen('Service plan','No reminders configured',('Choose the device and task.','No interval or last-service date','will be invented.'),tuple(choices))
-            return Screen('Service plan',choices=tuple(choices),kind='list')
+                loading=self._maintenance_records_future is not None
+                return Screen('Care schedule','Loading care records' if loading else 'No interval assumed',
+                    ('Saved policies load in the background.' if loading else 'Load or retry your saved reminders.',
+                     'No service date is invented.'),
+                    (back,) if loading else (back,Choice('Load care plans','load_services')))
+            items=self._maintenance_care()
+            choices=(back,)+tuple(Choice(item.label,'service_task',(item.policy,item.last,item.state),
+                {'due':'Service is due','not_due':'Within your interval','unknown':'Service date or coverage unknown'}[item.state]) for item in items)+(
+                Choice('Add reminder','service_add'),Choice('Refresh records','load_services'))
+            return Screen('Care schedule',choices=choices,kind='care',care=items)
         if page=='service_devices':
             physical,reads=self._maintenance_options()
             devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
@@ -456,83 +490,8 @@ class MaintenanceViewMixin:
     def Draw_Maintenance_Menu(self):
         self._maintenance_init()
         screen=self._maintenance_screen()
-        choices=screen.choices
-        self._maintenance_selection=max(0,min(self._maintenance_selection,max(0,len(choices)-1)))
-        selection=self._maintenance_selection
-        page=self._maintenance_page
-        frame=(id(self.lcd),page,screen.kind,screen.title,len(choices))
-        if frame!=self._maintenance_frame:
-            self._maintenance_frame=frame
-            self._maintenance_regions={}
-            self._maintenance_scroll=0
-            self._list_render=None
-            self.lcd.draw_rectangle(1,0x2125,0,0,271,359)
-            self.Draw_Title(screen.title)
-        self._maintenance_drawn_choices=tuple((c.action,c.value) for c in choices)
-        if screen.kind=='home':
-            self._maintenance_button('back',choices[0],8,37,256,30,selection==0)
-            self._maintenance_text('hero',screen.heading,17,83,30)
-            self._maintenance_text('hero_sub','Some records could not be saved' if self._maintenance_storage_errors()
-                else 'Guided checks and reminders',17,106,39,True,color=0x9CD3)
-            for i in range(4):
-                x=17 if i%2==0 else 145
-                y=130 if i<2 else 246
-                active=selection==i+1
-                sig=(active,choices[i+1].label)
-                if self._maintenance_regions.get(('tile',i))!=sig:
-                    self._maintenance_regions[('tile',i)]=sig
-                    # Managed text-free Graphite tiles, matching Petrel's home.
-                    show_icon(self.lcd,ICON_LIBRARY_ID,ICON_MAINTENANCE_CHECK+i*2+int(active),x,y)
-                    label_text=choices[i+1].label
-                    self.lcd.draw_text(False,False,self.lcd.font8x16,0xE75E,0x19E9 if active else 0x2967,
-                        x+max(2,(110-8*len(label_text))//2),y+78,label_text)
-        elif screen.kind=='list':
-            start=getattr(self,'_maintenance_scroll',0)
-            start=max(0,min(start,selection),selection-5)
-            if start!=getattr(self,'_maintenance_scroll',0):
-                self._maintenance_regions={}
-                self.lcd.draw_rectangle(1,0x2125,0,31,271,359)
-            self._maintenance_scroll=start
-            for i,choice in enumerate(choices[start:start+6]):
-                self._maintenance_button(('row',i),choice,8,37+i*52,250,48,selection==start+i,bool(choice.detail))
-            if len(choices)>6:
-                self.lcd.draw_rectangle(1,0x39C8,265,37,267,346)
-                h=max(10,310*6//len(choices));y=37+(310-h)*start//(len(choices)-6)
-                self.lcd.draw_rectangle(1,0x063B,265,y,267,y+h-1)
-        else:
-            for i,part in enumerate((textwrap.wrap(screen.heading,30)+['',''])[:2]):
-                self._maintenance_text(('heading',i),part,12,45+i*18,31,color=0xFF0F if screen.tone in ('attention','danger') else 0xE75E)
-            lines=[]
-            for text in screen.lines:
-                lines.extend(textwrap.wrap(str(text),30) or [''])
-            notice=getattr(self,'_maintenance_notice','')
-            if notice:
-                lines=(textwrap.wrap(notice.replace('_',' '),30)[:2])+lines[:5]
-            # The long version is available under Details; never paint into actions.
-            for i in range(7):
-                text=lines[i] if i<len(lines) else ''
-                self._maintenance_text(('line',i),text,12,81+i*18,31,True,color=0x9CD3)
-            visible=3
-            start=max(0,min(getattr(self,'_maintenance_scroll',0),selection),selection-visible+1)
-            if start!=getattr(self,'_maintenance_scroll',0):
-                self._maintenance_regions={k:v for k,v in self._maintenance_regions.items() if not isinstance(k,tuple) or k[0]!='action'}
-                self.lcd.draw_rectangle(1,0x2125,8,229,267,357)
-            self._maintenance_scroll=start
-            for i in range(visible):
-                if start+i<len(choices):
-                    self._maintenance_button(('action',i),choices[start+i],8,231+i*41,256,37,selection==start+i)
-            if len(choices)>visible:
-                self._maintenance_text('choices_count','%d/%d' % (selection+1,len(choices)),218,209,8,True)
-        owner=getattr(self.pd,'maintenance_pulse',None)
-        color=getattr(owner,'display_color',None) if page=='pulse' else None
-        # Diagnostic colour patch stays below instruction text and above buttons.
-        color_sig=(color,page)
-        previous_color=self._maintenance_regions.get('color',(None,None))[0]
-        if self._maintenance_regions.get('color')!=color_sig:
-            self._maintenance_regions['color']=color_sig
-            if color is not None or previous_color is not None:
-                self.lcd.draw_rectangle(1,color if color is not None else 0x2125,16,199,255,222)
-        self._trace_maintenance_ui('draw',title=screen.title,entries=tuple((c.label,) for c in choices))
+        draw_maintenance(self,screen)
+        self._trace_maintenance_ui('draw',title=screen.title,entries=tuple((c.label,) for c in screen.choices))
 
     def _maintenance_complete(self,result):
         if result is None:
@@ -564,7 +523,7 @@ class MaintenanceViewMixin:
                 evidence=tuple(record.get('evidence',())),restore_verified=record.get('restore_verified'))
             return self._maintenance_open('details',outcome)
         if action=='service_discard':
-            self._maintenance_history=[('root',3,None)]
+            self._maintenance_history=[('root',1,None)]
             self._maintenance_context=None
             return self._maintenance_show('service')
         if action=='service_add': return self._maintenance_open('service_devices')
@@ -585,6 +544,7 @@ class MaintenanceViewMixin:
         if action=='home': return self._maintenance_back_home()
         if action=='back': return self._maintenance_back()
         if action=='open': return self._maintenance_open(value)
+        if action=='diagnostic_topic': return self._maintenance_open('diagnostic_topic',value)
         if action=='targets': return self._maintenance_open('targets',value)
         if action=='prepare': return self._maintenance_open('prepare',value)
         if action=='details': return self._maintenance_open('details',value)
@@ -669,6 +629,7 @@ class MaintenanceViewMixin:
         self._maintenance_records_return='history_records' if history else 'service'
         # A write is already explicitly authorized. Leaving this wait view does
         # not replay or duplicate it; its Future remains owned until completion.
+        self._maintenance_records_background=False
         self._maintenance_open('storage')
 
     def _maintenance_storage_action(self,action,value):
@@ -756,11 +717,19 @@ class MaintenanceViewMixin:
                 target=self._maintenance_records_return
             except Exception:
                 target='notice'
-                self._maintenance_context=('Record operation failed',('Review storage and retry explicitly.','No success is assumed.'))
-            if visible and active_page=='storage':
+                if not self._maintenance_records_background:
+                    self._maintenance_context=('Record operation failed',('Review storage and retry explicitly.','No success is assumed.'))
+            background=self._maintenance_records_background
+            self._maintenance_records_background=False
+            self._maintenance_records_failed=target=='notice'
+            if background:
+                if target=='notice': self._maintenance_notice='Care records unavailable: retry in Care schedule'
+                if visible and active_page in ('root','service'):
+                    self.Draw_Maintenance_Menu();self.lcd.update()
+            elif visible and active_page=='storage':
                 if target!='notice':
                     self._maintenance_context=None
-                    if target=='service': self._maintenance_history=[('root',3,None)]
+                    if target=='service': self._maintenance_history=[('root',1,None)]
                     elif self._maintenance_history: self._maintenance_history.pop()
                 self._maintenance_show(target)
         if getattr(owner,'pending',False):

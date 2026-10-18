@@ -29,10 +29,10 @@ class MaintenanceUIFlows(unittest.TestCase):
         d._maintenance_selection=index
         d.HMI_Maintenance_Menu()
 
-    def test_root_has_purpose_tiles_and_no_io(self):
+    def test_root_has_stable_destinations_and_no_io(self):
         d=self.view();d.Draw_Maintenance_Menu()
         self.assertEqual([c.label for c in d._maintenance_screen().choices],
-            ['Back','Check printer','Findings','Service plan','More'])
+            ['Back','Care schedule','Check printer','Diagnostics','Recommendations (0)'])
         d.pd.client.get.assert_not_called()
 
     def test_capability_checks_require_preparation_and_second_confirmation(self):
