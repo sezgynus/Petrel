@@ -127,14 +127,20 @@ class AuxiliaryWorkflowTests(unittest.TestCase):
         self.assertEqual(self.commands,[])
 
     def test_manual_service_requires_every_step_and_never_reports_sensor_health(self):
+        from ui_maintenance import MaintenanceViewMixin
+        view = MaintenanceViewMixin()
+        view.pd = SimpleNamespace(maintenance_pulse=self.owner)
         self.arm('O06')
         self.dispatch()
         self.local_complete()
         self.owner.choose(0)
+        self.assertEqual(view._maintenance_pulse_screen().title,'Next step')
         self.owner.choose(0)
         self.assertEqual(self.owner.phase,'workflow')
+        self.assertEqual(view._maintenance_pulse_screen().title,'Next step')
         self.owner.choose(0)
         self.assertEqual(self.owner.phase,'await_observation')
+        self.assertEqual(view._maintenance_pulse_screen().title,'Your observation')
         result = self.owner.observe(True)
         self.assertEqual(result.status,'OBSERVED_USER')
         self.assertEqual(dict(result.evidence)['acknowledged_steps'],2)
@@ -149,3 +155,4 @@ class AuxiliaryWorkflowTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

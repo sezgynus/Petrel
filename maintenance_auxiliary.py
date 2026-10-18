@@ -135,6 +135,8 @@ class MaintenanceAuxiliaryController(FirmwareWorkflow):
         if self.feature_id=='O02':
             return ('Clear entire servo path','Only declared safe angles')
         if self._task is not None:
+            if self._index >= len(self._task['steps']):
+                return ('All service steps acknowledged','Review before confirming completion')
             return tuple(textwrap.wrap(self._task['steps'][self._index],26))
         return ('Cold heaters / motors OFF','User-performed maintenance')
 
@@ -296,3 +298,4 @@ class MaintenanceAuxiliaryController(FirmwareWorkflow):
             self._schedule('restore',True)
             return None
         return super().cancel()
+
