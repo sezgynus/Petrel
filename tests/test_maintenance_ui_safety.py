@@ -73,3 +73,12 @@ class MaintenanceUISafety(unittest.TestCase):
         row=NS(feature_id='M06',method=4)
         self.assertIn('ruler',' '.join(preparation(row)))
         self.assertIn('travel path',' '.join(preparation(row)))
+
+    def test_home_counts_devices_with_findings_without_claiming_global_health(self):
+        d=self.view();d._maintenance_page='root'
+        findings=(Finding('check.H07','extruder','attention','thermal.overshoot_review'),
+                  Finding('check.H08','extruder','attention','thermal.stability_review'))
+        d.pd.maintenance_assessment_details=Mock(return_value=NS(findings=findings,trends=()))
+        self.assertEqual(d._maintenance_screen().heading,'1 device needs review')
+        d.pd.maintenance_assessment_details.return_value=NS(findings=(),trends=())
+        self.assertEqual(d._maintenance_screen().heading,'Start with a guided check')

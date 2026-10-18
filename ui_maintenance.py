@@ -85,7 +85,12 @@ class MaintenanceViewMixin:
         context=self._maintenance_context
         back=Choice('Back','back')
         if page=='root':
-            return Screen('Maintenance','Care for your printer',('Choose a guided check.',),(
+            report=self.pd.maintenance_assessment_details()
+            subjects={f.device for f in report.findings+report.trends if f.state in ('attention','issue')}
+            heading=('%d device%s need%s review' % (len(subjects),'s' if len(subjects)!=1 else '',
+                     '' if len(subjects)!=1 else 's')) if subjects else 'Start with a guided check'
+            return Screen('Maintenance',heading,('Choose a guided check.',),(
+
                 Choice('Back','home'),Choice('Check printer','open','groups'),
                 Choice('Findings','findings'),Choice('Service plan','service'),
                 Choice('More','open','more')),'home')

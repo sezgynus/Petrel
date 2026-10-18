@@ -181,11 +181,16 @@ Press an audio setting, rotate to adjust it and press again to save. Volume uses
 
 ## Maintenance (experimental feature branch)
 
-**Home → Maintenance** is the tile before Info. Its **Diagnostics** menu reads supported host/Klipper information on demand, while **Self Tests** shows only discovered, explicitly permitted part fan, generic fan, case light, LED or buzzer targets. No command runs merely by opening a menu.
+**Home → Maintenance** opens four Graphite tiles:
 
-Select a physical test, allow the safety/baseline check, deliberately choose **Run short pulse** (the default is Cancel), and wait for the original setting to be verified after the pulse. Only then can you report **Yes, observed** or **Not observed**; this user-observed result is not measured RPM or an automatic hardware PASS. An unknown output or failed restore remains blocked or inconclusive.
+- **Check printer:** guided checks grouped by purpose and installed hardware. Select the device, review preparation, then explicitly confirm Start. No physical command runs on menu entry. A combined heating check captures heating, control and cooling evidence in one operation.
+- **Findings:** understandable current alerts grouped by device. Numeric evidence is optional under **Details**. No alerts does not imply all hardware is healthy. User observations, measured criteria, incomplete checks and information remain distinct.
+- **Service plan:** load saved reminders or add a calendar reminder for a supported device. Choose your own interval from maintenance guidance, review it and save explicitly. The editor's initial value is not an installed default. Record actual completed maintenance separately; creating a reminder does not claim work was done.
+- **More:** supported calibrations, on-demand system information, recorded usage/history and support recording/report export. Offset, mesh and screw adjustment stay in Leveling.
 
-The older placeholder screenshot is preserved in the [gallery](screenshots.md) as a historical reference, **not** a depiction of the current menu. See [safe output profile registration](maintenance-profiles.md), [LCD interaction](maintenance-ui.md), and [real Raspberry Pi acceptance](maintenance-stage8-acceptance.md). Real actuator tests are not yet physically accepted.
+Follow the instructions for sensor transitions, measured distances and physical observations. There is no timeout for a user's answer. Fan startup checks require a confirmed full stop between rounds. Cancelling active heating requests a Klipper safety shutdown; read the stop action before pressing. Back returns to the originating device. Calibration does not automatically issue SAVE_CONFIG.
+
+History entries are explicitly historical, not current health. Usage covers only the recorded period; sampled component ON time is a lower bound. Missing reference conditions or service dates are not invented. The [gallery](screenshots.md) may include older test/placeholder views and does not illustrate this new layout. See [LCD interaction](maintenance-ui.md), [safe output profiles](maintenance-profiles.md), and the [target-specific physical acceptance ledger](maintenance-reference-printer-acceptance.md). Earlier backend acceptance does not constitute physical acceptance of this new UI.
 
 ## Info and updates
 

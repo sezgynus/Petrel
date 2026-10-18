@@ -181,11 +181,16 @@ Ses ayarına basın, çevirmeyle değiştirin ve tekrar basarak kaydedin. Ses se
 
 ## Maintenance (deneysel feature dalı)
 
-**Home → Maintenance**, Info’dan önceki menüdür. **Diagnostics** bölümü desteklenen host/Klipper bilgilerini istek üzerine okur. **Self Tests** yalnız keşfedilen ve açıkça izin verilen part fan, generic fan, case light, LED veya buzzer hedeflerini gösterir. Menüye giriş asla komut çalıştırmaz.
+**Home → Maintenance** dört Graphite kutucuk açar:
 
-Fiziksel testi seç, güvenlik/başlangıç durumunun kontrol edilmesini bekle, varsayılan Cancel yerine bilinçli olarak **Run short pulse** seç ve pulse sonrası başlangıç değerinin doğrulanmasını bekle. Ancak bundan sonra **Yes, observed** veya **Not observed** ile gözlemini bildir; bu ölçülmüş RPM veya otomatik donanım PASS değildir. Bilinmeyen çıkış veya başarısız geri alma BLOCKED ya da INCONCLUSIVE kalır.
+- **Check printer:** kurulu donanıma ve amaca göre gruplanmış kılavuzlu kontroller. Cihazı seçin, hazırlığı okuyun ve Start ile açıkça onaylayın. Menüye giriş fiziksel komut göndermez. Birleşik termal kontrol tek işlemde ısınma, sıcaklık kontrolü ve soğuma kanıtlarını toplar.
+- **Findings:** cihaz bazında gruplanmış anlaşılır güncel uyarılar. Sayısal kanıt **Details** altında isteğe bağlıdır. Uyarı bulunmaması tüm donanımın sağlıklı olduğunu göstermez. Kullanıcı gözlemi, ölçüm ölçütü, tamamlanamayan kontrol ve bilgi ayrı tutulur.
+- **Service plan:** kayıtlı hatırlatıcıları yükleyin veya desteklenen bir cihaz için takvim hatırlatıcısı ekleyin. Bakım rehberinize göre aralığı seçin, inceleyin ve açıkça kaydedin. Editörün ilk değeri kurulmuş varsayılan değildir. Gerçek bakımın tamamlanmasını ayrıca kaydedin; hatırlatıcı oluşturmak işin yapıldığı anlamına gelmez.
+- **More:** desteklenen kalibrasyonlar, istek üzerine sistem bilgisi, kayıtlı kullanım/geçmiş ve destek kaydı/rapor aktarımı. Offset, mesh ve vida ayarı Leveling'de kalır.
 
-Eski placeholder görüntüsü [galeride](screenshots_TR.md) tarihsel referans olarak korunmuştur; **güncel menüyü temsil etmez**. [Güvenli çıkış profilini](maintenance-profiles_TR.md), [LCD etkileşimini](maintenance-ui_TR.md) ve [gerçek Pi kabulünü](maintenance-stage8-acceptance_TR.md) incele. Gerçek aktüatör testleri henüz fiziksel olarak kabul edilmedi.
+Sensör geçişleri, ölçülen mesafe ve fiziksel gözlem talimatlarını izleyin. Kullanıcı yanıtında zaman aşımı yoktur. Fan başlangıç kontrolünde turlar arasında tam duruş onayı gerekir. Aktif ısıtmayı iptal etmek Klipper güvenlik shutdown isteği gönderir; basmadan önce durdurma eylemini okuyun. Back başlangıçtaki cihaza döner. Kalibrasyon otomatik SAVE_CONFIG göndermez.
+
+Geçmiş girdileri güncel sağlık değil, tarihsel kayıttır. Kullanım yalnız kaydedilen dönemi kapsar; örneklenmiş açık kalma süresi alt sınırdır. Eksik referans koşulları ve bakım tarihleri uydurulmaz. [Galeri](screenshots_TR.md) eski test/placeholder ekranları içerebilir ve yeni düzeni göstermez. [LCD etkileşimini](maintenance-ui_TR.md), [güvenli çıkış profillerini](maintenance-profiles_TR.md) ve [hedef bazlı fiziksel kabul çizelgesini](maintenance-reference-printer-acceptance_TR.md) inceleyin. Önceki backend kabulü bu yeni UI'nın fiziksel kabulü değildir.
 
 ## Info ve güncellemeler
 
