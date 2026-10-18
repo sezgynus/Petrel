@@ -607,7 +607,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CW)
         result.HMI_Info()
         result.lcd.move_area.assert_called_once_with(1, result.DWIN_SCROLL_UP, 24,
-                                                   result.lcd.Color_Bg_Black, 0, 90, 271, 355)
+                                                   result.lcd.Color_Bg_Black, 0, 90, 255, 355)
         result.Clear_Main_Window.assert_not_called()
         result.Draw_Title.assert_not_called()
         rows = [call.args for call in result.lcd.draw_text.call_args_list
@@ -617,7 +617,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CCW)
         result.HMI_Info()
         result.lcd.move_area.assert_called_once_with(1, result.DWIN_SCROLL_DOWN, 24,
-                                                   result.lcd.Color_Bg_Black, 0, 90, 271, 355)
+                                                   result.lcd.Color_Bg_Black, 0, 90, 255, 355)
 
     def test_info_value_change_preserves_scroll_and_screen_clear_invalidates_cache(self):
         result = display(snapshot())
