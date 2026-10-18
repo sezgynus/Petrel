@@ -1,5 +1,6 @@
 """Dedicated Klipper error panel with fixed recovery controls."""
 import textwrap
+from time import monotonic
 from t5uic1_driver import T5UIC1Display
 
 
@@ -14,6 +15,7 @@ def error_lines(message, width=30):
 
 
 class RecoveryViewMixin:
+    BOOT_CONNECTION_GRACE = 30.0
     RecoveryScreen = 50
     RECOVERY_TEXT_TOP = 56
     RECOVERY_TEXT_ROWS = 12
@@ -26,17 +28,26 @@ class RecoveryViewMixin:
                   'service': 'Restart Klipper service'}
         return tuple((a, labels[a]) for a in recovery.state.actions) + (('refresh', 'Refresh connection'),)
 
+    def _recovery_lines(self):
+        state = self.pd.recovery.state
+        delayed = (getattr(self, '_boot_connection_delayed', False)
+                   and state.kind not in ('error', 'shutdown'))
+        return error_lines(('Printer is taking longer to connect.\n' if delayed else '')
+                           + state.message)
+
     def Draw_Recovery(self):
         recovery = self.pd.recovery
         buttons = self._recovery_buttons()
         selected = max(-1, min(getattr(self, '_recovery_selection', len(buttons)-1), len(buttons)-1))
         self._recovery_selection = selected
-        lines = error_lines(recovery.state.message)
+        delayed = (getattr(self, '_boot_connection_delayed', False)
+                   and recovery.state.kind not in ('error', 'shutdown'))
+        lines = self._recovery_lines()
         offset = max(0, min(getattr(self, '_recovery_scroll', 0),
                             max(0, len(lines)-self.RECOVERY_TEXT_ROWS)))
         self._recovery_scroll = offset
         self.Clear_Popup_Area()
-        self.Draw_Title(recovery.state.title)
+        self.Draw_Title('Printer connection' if delayed else recovery.state.title)
         lcd = self.lcd
         # Error text is plain text, never a selectable menu row or icon list.
         for i, line in enumerate(lines[offset:offset+self.RECOVERY_TEXT_ROWS]):
@@ -76,8 +87,17 @@ class RecoveryViewMixin:
             return False
         if getattr(self, '_relay_status', None) == 'off':
             return False
-        if getattr(self, '_boot_active', False) and recovery.state.kind == 'checking':
-            return False
+        if getattr(self, '_boot_active', False):
+            if recovery.state.kind not in ('error', 'shutdown'):
+                now = monotonic()
+                started = getattr(self, '_boot_connection_started', None)
+                if started is None:
+                    started = self._boot_connection_started = now
+                if now - started < self.BOOT_CONNECTION_GRACE:
+                    return False
+                self._boot_connection_delayed = True
+            else:
+                self._boot_connection_delayed = False
         first = getattr(self, 'checkkey', None) != self.RecoveryScreen
         if first:
             if getattr(self, '_boot_animation_running', False):
@@ -113,7 +133,7 @@ class RecoveryViewMixin:
         selected = getattr(self, '_recovery_selection', len(buttons)-1)
         if kind == 'rotate':
             if selected == -1:
-                lines = error_lines(recovery.state.message)
+                lines = self._recovery_lines()
                 self._recovery_scroll = max(0, min(
                     max(0, len(lines)-self.RECOVERY_TEXT_ROWS),
                     getattr(self, '_recovery_scroll', 0)-event.value))

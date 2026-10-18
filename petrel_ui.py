@@ -334,6 +334,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._uart_start_signal = None
         self._uart_probe_failures = 0
         self._boot_active = True
+        self._boot_connection_started = None
+        self._boot_connection_delayed = False
         self._boot_files_started = (None, 0)
         self._boot_progress = -1
         self.encoder = self.button = self.lcd = self.pd = None
@@ -439,6 +441,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         """A relay cycle starts a new UI session; never replay old input/actions."""
         self.checkkey = self.MainMenu
         self._boot_active = True
+        self._boot_connection_started = None
+        self._boot_connection_delayed = False
         self._boot_files_started = (None, 0)
         self._boot_progress = -1
         for name in self.SELECTIONS:
@@ -717,7 +721,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if snapshot['state'] != 'ready':
             self.pd.update_variable()
             if not self._poll_recovery_ui():
-                self._draw_boot_progress(70)
+                kind = getattr(getattr(self.pd, 'recovery', None), 'state', None)
+                message = ('Starting Klipper...' if getattr(kind, 'kind', None) == 'startup'
+                           else 'Connecting to printer...')
+                self._draw_boot_progress(70, message=message)
             return
         self._draw_boot_progress(80)
         self.pd.update_variable()

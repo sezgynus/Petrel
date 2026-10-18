@@ -36,3 +36,6 @@ confirmation, scrolling, cold boot and recovery navigation. CI only; no local
 test suite or emulator was run. Physical acceptance remains pending.
 
 The error is a plain multiline text panel, with fixed buttons below it. Turn left past the first button to focus error text, turn to scroll, and press to return to buttons. Newlines are split before LCD ASCII conversion, so they do not become question marks. Restart endpoints send an empty JSON object, never null. A failed request shows its sanitized transport error. No extra confirmation menu is opened.
+
+
+At cold boot and after a relay power cycle, expected connection/startup states keep the splash for up to 30 seconds. The status reads Connecting to printer or Starting Klipper. Explicit Klipper error/shutdown states open recovery immediately. After the grace period a neutral Printer connection panel explains that connection is taking longer; polling continues without automatic restart. Runtime disconnects open recovery immediately.

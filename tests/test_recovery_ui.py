@@ -1,7 +1,7 @@
 """CI-only end-to-end encoder routing and dedicated error panel layout."""
 from types import SimpleNamespace
 from threading import Lock
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import unittest
 
 from klipper_recovery import RecoveryState
@@ -156,3 +156,63 @@ class RecoveryUITests(unittest.TestCase):
         view = self.view()
         view._relay_status = 'off'
         self.assertFalse(view._poll_recovery_ui())
+
+
+class BootConnectionGraceTests(unittest.TestCase):
+    view = RecoveryUITests.view
+    enter = RecoveryUITests.enter
+    def test_expected_startup_states_keep_splash_until_deadline(self):
+        for kind in ('checking', 'unavailable', 'disconnected', 'startup', 'ready'):
+            with self.subTest(kind=kind):
+                view = self.view()
+                view._boot_active = True
+                view.pd.recovery.state = RecoveryState(kind, 'Waiting')
+                view.Draw_Recovery = Mock()
+                with patch('ui_recovery.monotonic', return_value=100):
+                    self.assertFalse(view._poll_recovery_ui())
+                with patch('ui_recovery.monotonic', return_value=129.9):
+                    self.assertFalse(view._poll_recovery_ui())
+                self.assertTrue(view._boot_active)
+                view.Draw_Recovery.assert_not_called()
+                with patch('ui_recovery.monotonic', return_value=130):
+                    self.assertTrue(view._poll_recovery_ui())
+                self.assertFalse(view._boot_active)
+                self.assertIn('taking longer', ' '.join(view._recovery_lines()))
+                view.pd.recovery.request.assert_not_called()
+
+    def test_explicit_error_and_shutdown_bypass_startup_wait(self):
+        for kind in ('error', 'shutdown'):
+            view = self.view()
+            view._boot_active = True
+            view.pd.recovery.state = RecoveryState(kind, 'Actual fault', ('restart', 'firmware'))
+            self.enter(view)
+            self.assertNotIn('taking longer', ' '.join(view._recovery_lines()))
+
+    def test_runtime_disconnect_has_no_startup_grace(self):
+        view = self.view()
+        view.pd.recovery.state = RecoveryState('disconnected', 'Lost connection')
+        self.enter(view)
+        self.assertNotIn('taking longer', ' '.join(view._recovery_lines()))
+
+    def test_waiting_boot_uses_neutral_status_without_restart(self):
+        for kind, message in (('startup', 'Starting Klipper...'),
+                              ('disconnected', 'Connecting to printer...')):
+            view = self.view()
+            view._boot_active = True
+            view.pd.recovery.state = RecoveryState(kind, 'Waiting')
+            view._draw_boot_progress = Mock()
+            view._poll_boot()
+            view._draw_boot_progress.assert_called_once_with(70, message=message)
+            view.pd.recovery.request.assert_not_called()
+
+    def test_delayed_recovery_returns_home_when_connection_recovers(self):
+        view = self.view()
+        view._boot_active = True
+        view._boot_connection_started = 0
+        view.pd.recovery.state = RecoveryState('disconnected', 'Waiting')
+        with patch('ui_recovery.monotonic', return_value=31):
+            self.enter(view)
+        view.pd.connection_error = None
+        view.Goto_MainMenu = Mock()
+        self.assertFalse(view._poll_recovery_ui())
+        view.Goto_MainMenu.assert_called_once_with()

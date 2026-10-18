@@ -33,3 +33,6 @@ kurtarma gezinmesini kapsar. Yalnız CI kullanılır; lokal test veya emülatör
 çalıştırılmadı. Fiziksel kabul bekliyor.
 
 Hata düz çok satırlı metin alanında, düğmeler sabit alt bölümde gösterilir. İlk düğmenin soluna dönerek hata metnine odaklanılır; encoder kaydırır, basış düğmelere döndürür. Satır sonları LCD ASCII dönüşümünden önce ayrılır; soru işaretine dönüşmez. Restart uçlarına null yerine boş JSON nesnesi gönderilir. Başarısız isteğin temizlenmiş transport hatası gösterilir. Ek onay menüsü açılmaz.
+
+
+İlk açılışta ve röle güç çevriminden sonra olağan bağlantı/başlatma durumlarında boot ekranı 30 saniyeye kadar korunur. Connecting to printer veya Starting Klipper durum metni gösterilir. Açık Klipper error/shutdown durumları kurtarma ekranını hemen açar. Süre aşılırsa nötr Printer connection başlığı altında bağlantının uzadığı açıklanır; otomatik restart yapılmadan durum okunmaya devam edilir. Normal kullanım sırasındaki kopmalar kurtarma ekranını hemen açar.
