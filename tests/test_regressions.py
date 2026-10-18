@@ -187,7 +187,7 @@ class BackendConnectionTests(unittest.TestCase):
         with patch.object(backend, 'MoonrakerClient'), patch.object(backend, 'MoonrakerSubscription'), patch.object(backend, 'ReadWorker', ImmediateReadWorker):
             printer = backend.PrinterData()
         printer.check_command_results = Mock()
-        printer.getREST = Mock(side_effect=AssertionError('status must not poll HTTP'))
+        printer.getREST = Mock(return_value={'result': {'estimated_time': 3600}})
         printer.subscription.snapshot.return_value = {
             'state': 'ready', 'file_revision': 1,
             'objects': ['extruder', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard'],
@@ -208,7 +208,9 @@ class BackendConnectionTests(unittest.TestCase):
         self.assertFalse(printer.absolute_extrude)
         self.assertFalse(printer.current_position.home_z)
         self.assertEqual(printer.thermalManager['temp_hotend'][0]['target'], 205)
-        printer.getREST.assert_not_called()
+        # Only the once-per-file metadata read uses HTTP; live status stays subscribed.
+        printer.update_variable()
+        printer.getREST.assert_called_once_with('/server/files/metadata?filename=test.gcode')
 
     def test_unhomed_axes_clear_previous_flags(self):
         with patch.object(backend, 'MoonrakerClient'), patch.object(backend, 'MoonrakerSubscription'), patch.object(backend, 'ReadWorker', ImmediateReadWorker):

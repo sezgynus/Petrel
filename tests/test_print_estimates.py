@@ -46,6 +46,7 @@ class PrintEstimateTests(unittest.TestCase):
 
     def test_total_elapsed_preserves_print_only_fallback_and_terminal_stats(self):
         p = printer(snapshot())
+        p.job_Info = {key: dict(value) for key, value in p.job_Info.items()}
         for state in ('printing','paused','complete','cancelled','error'):
             p.job_Info['print_stats'].update(state=state,print_duration=600,total_duration=900)
             self.assertEqual(p.duration(),900)
@@ -56,6 +57,7 @@ class PrintEstimateTests(unittest.TestCase):
 
     def test_metadata_is_async_cached_bounded_and_invalidated_by_file_identity(self):
         p = printer(snapshot())
+        p.job_Info = {key: dict(value) for key, value in p.job_Info.items()}
         p.job_Info['print_stats'].update(state='printing',filename='folder/a b.gcode')
         first, second = Future(), Future()
         p._read_worker = Mock()
@@ -84,6 +86,7 @@ class PrintEstimateTests(unittest.TestCase):
 
     def test_print_screen_displays_total_elapsed_separate_eta_and_unknown_values(self):
         v,_=test_print_focus.PrintFocusTests().view()
+        v.pd.job_Info = {key: dict(value) for key, value in v.pd.job_Info.items()}
         v.pd.job_Info['print_stats'].update(print_duration=600,total_duration=900,filament_used=200)
         v.pd.job_Info['virtual_sdcard']['progress']=.1
         v.pd._print_metadata_stamp=(v.pd.state.epoch,v.pd.state.file_revision,'part.gcode')
