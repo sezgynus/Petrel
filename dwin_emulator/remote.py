@@ -11,12 +11,13 @@ from ipaddress import IPv4Address, IPv4Network
 import json
 import logging
 import re
+import socket
 import subprocess
-from threading import Lock, Thread
+from threading import Lock, Thread, BoundedSemaphore
 from time import monotonic
 
 # Inline page is an immutable asset; no JS libraries or CDN requests required.
-PAGE = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Petrel Remote Display</title>\n<style>\n  :root { color-scheme: dark; font-family: system-ui, sans-serif; }\n  body { background:#151719; color:#e8e8e8; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:12px; }\n  header { padding:18px 12px 0; text-align:center; }\n  h1 { font-size:20px; font-weight:600; margin:0; }\n  p { font-size:13px; color:#a5acb1; margin:8px 0 0; }\n  #screen { display:block; width:min(272px, calc((100dvh - 216px)*272/480), calc(100vw - 32px)); height:auto; aspect-ratio:272/480; background:#090909; border:3px solid #555e68; border-radius:5px; object-fit:contain; image-rendering:auto; user-select:none; -webkit-user-drag:none; }\n  #status { font-size:12px; min-height:17px; color:#a5acb1; }\n  .view { display:flex; flex-direction:column; align-items:center; gap:9px; outline:none; touch-action:none; }\n  .controls { display:flex; gap:8px; width:min(272px, calc(100vw - 32px)); }\n  .controls button { flex:1; min-height:44px; border:1px solid #697580; border-radius:6px; background:#29313a; color:#e8e8e8; font:inherit; cursor:pointer; touch-action:manipulation; }\n  .controls button:hover { background:#394653; }\n  .controls button:active { background:#4b5e70; }\n  .controls button:focus-visible { outline:2px solid #8fc9ff; outline-offset:2px; }\n</style>\n</head>\n<body>\n<header><h1>Petrel Remote Display</h1>\n<p>Mouse wheel / CCW / CW = rotate · Middle click / Enter = press</p><p><a href=\"/maintenance-report.json\" download=\"maintenance-report.json\" style=\"color:#8fc9ff\">Download last diagnostic report</a> · <a href=\"/maintenance-test-trace.zip\" download=\"maintenance-test-trace.zip\" style=\"color:#8fc9ff\">Download test recording</a></p></header>\n<main id=\"view\" class=\"view\" tabindex=\"0\" aria-label=\"Virtual LCD\">\n<img id=\"screen\" alt=\"Petrel LCD live view\" draggable=\"false\" />\n<div class=\"controls\" role=\"group\" aria-label=\"Encoder controls\">\n<button type=\"button\" data-kind=\"rotate\" data-value=\"1\" aria-label=\"Rotate counterclockwise\">CCW</button>\n<button type=\"button\" data-kind=\"press\" aria-label=\"Press encoder\">Enter</button>\n<button type=\"button\" data-kind=\"rotate\" data-value=\"-1\" aria-label=\"Rotate clockwise\">CW</button>\n</div>\n<span id=\"status\" role=\"status\">Connecting…</span>\n</main>\n<script>\n(() => {\n  \"use strict\";\n  const view = document.getElementById(\"view\");\n  const screen = document.getElementById(\"screen\");\n  const status = document.getElementById(\"status\");\n  let wheel = 0, pending = 0, sending = false;\n  let alive = true;\n  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }\n  async function send(kind, value) {\n    try {\n      const response = await fetch(\"/input\", {\n        method:\"POST\", cache:\"no-store\", credentials:\"same-origin\",\n        headers:{\"Content-Type\":\"application/json\",\"X-Petrel-Remote\":\"1\"},\n        body:JSON.stringify(kind === \"press\" ? {kind} : {kind,value})\n      });\n      if (!response.ok) status.textContent = \"Input rejected (\"+response.status+\")\";\n    } catch {\n      status.textContent = \"Remote connection unavailable\";\n    }\n  }\n  async function drain() {\n    if (sending) return;\n    sending = true;\n    while (pending !== 0 && alive) {\n      const step = Math.max(-6, Math.min(6, pending));\n      pending -= step;\n      await send(\"rotate\", step);\n      await delay(35);\n    }\n    sending = false;\n  }\n  document.querySelectorAll(\".controls button\").forEach(button => {\n    button.addEventListener(\"click\", () => {\n      if (button.dataset.kind === \"press\") {\n        void send(\"press\");\n      } else {\n        pending = Math.max(-24, Math.min(24, pending + Number(button.dataset.value)));\n        void drain();\n      }\n    });\n  });\n  view.addEventListener(\"wheel\", event => {\n    event.preventDefault();\n    const pixels = event.deltaY * (event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 500 : 1);\n    wheel += pixels;\n    const steps = Math.trunc(wheel / 100);\n    if (steps) {\n      wheel -= steps * 100;\n      pending = Math.max(-24, Math.min(24, pending - steps));\n      void drain();\n    }\n  }, {passive:false});\n  view.addEventListener(\"mousedown\", event => {\n    if (event.button !== 1) return;\n    event.preventDefault();\n    void send(\"press\");\n  });\n  view.addEventListener(\"auxclick\", event => {\n    if (event.button === 1) event.preventDefault();\n  });\n  view.addEventListener(\"contextmenu\", event => event.preventDefault());\n  async function refresh() {\n    if (!alive) return;\n    if (document.hidden) { setTimeout(refresh, 850); return; }\n    const frame = new Image();\n    frame.onload = () => {\n      screen.src = frame.src;\n      status.textContent = \"Live · mouse wheel / middle click\";\n      setTimeout(refresh, 250);\n    };\n    frame.onerror = () => {\n      status.textContent = \"Waiting for LCD frame…\";\n      setTimeout(refresh, 800);\n    };\n    frame.src = \"/frame.jpg?t=\" + Date.now();\n  }\n  window.addEventListener(\"pagehide\", () => { alive = false; pending = 0; });\n  refresh();\n})();\n</script>\n</body>\n</html>"
+PAGE = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Petrel Remote Display</title>\n<style>\n  :root { color-scheme: dark; font-family: system-ui, sans-serif; }\n  body { background:#151719; color:#e8e8e8; margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:12px; }\n  header { padding:18px 12px 0; text-align:center; }\n  h1 { font-size:20px; font-weight:600; margin:0; }\n  p { font-size:13px; color:#a5acb1; margin:8px 0 0; }\n  #screen { display:block; width:min(272px, calc((100dvh - 216px)*272/480), calc(100vw - 32px)); height:auto; aspect-ratio:272/480; background:#090909; border:3px solid #555e68; border-radius:5px; object-fit:contain; image-rendering:auto; user-select:none; -webkit-user-drag:none; }\n  #status { font-size:12px; min-height:17px; color:#a5acb1; }\n  .view { display:flex; flex-direction:column; align-items:center; gap:9px; outline:none; touch-action:none; }\n  .controls { display:flex; gap:8px; width:min(272px, calc(100vw - 32px)); }\n  .controls button { flex:1; min-height:44px; border:1px solid #697580; border-radius:6px; background:#29313a; color:#e8e8e8; font:inherit; cursor:pointer; touch-action:manipulation; }\n  .controls button:hover { background:#394653; }\n  .controls button:active { background:#4b5e70; }\n  .controls button:focus-visible { outline:2px solid #8fc9ff; outline-offset:2px; }\n</style>\n</head>\n<body>\n<header><h1>Petrel Remote Display</h1>\n<p>Mouse wheel / CCW / CW = rotate · Middle click / Enter = press</p><p><a href=\"/maintenance-report.json\" download=\"maintenance-report.json\" style=\"color:#8fc9ff\">Download last diagnostic report</a> · <a href=\"/maintenance-test-trace.zip\" download=\"maintenance-test-trace.zip\" style=\"color:#8fc9ff\">Download test recording</a></p></header>\n<main id=\"view\" class=\"view\" tabindex=\"0\" aria-label=\"Virtual LCD\">\n<img id=\"screen\" alt=\"Petrel LCD live view\" draggable=\"false\" />\n<div class=\"controls\" role=\"group\" aria-label=\"Encoder controls\">\n<button type=\"button\" data-kind=\"rotate\" data-value=\"1\" aria-label=\"Rotate counterclockwise\">CCW</button>\n<button type=\"button\" data-kind=\"press\" aria-label=\"Press encoder\">Enter</button>\n<button type=\"button\" data-kind=\"rotate\" data-value=\"-1\" aria-label=\"Rotate clockwise\">CW</button>\n</div>\n<span id=\"status\" role=\"status\">Connecting…</span>\n</main>\n<script>\n(() => {\n  \"use strict\";\n  const view = document.getElementById(\"view\");\n  const screen = document.getElementById(\"screen\");\n  const status = document.getElementById(\"status\");\n  let wheel = 0, pending = 0, sending = false;\n  let alive = true;\n  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }\n  async function send(kind, value) {\n    try {\n      const response = await fetch(\"/input\", {\n        method:\"POST\", cache:\"no-store\", credentials:\"same-origin\",\n        headers:{\"Content-Type\":\"application/json\",\"X-Petrel-Remote\":\"1\"},\n        body:JSON.stringify(kind === \"press\" ? {kind} : {kind,value})\n      });\n      if (!response.ok) status.textContent = \"Input rejected (\"+response.status+\")\";\n    } catch {\n      status.textContent = \"Remote connection unavailable\";\n    }\n  }\n  async function drain() {\n    if (sending) return;\n    sending = true;\n    while (pending !== 0 && alive) {\n      const step = Math.max(-6, Math.min(6, pending));\n      pending -= step;\n      await send(\"rotate\", step);\n      await delay(35);\n    }\n    sending = false;\n  }\n  document.querySelectorAll(\".controls button\").forEach(button => {\n    button.addEventListener(\"click\", () => {\n      if (button.dataset.kind === \"press\") {\n        void send(\"press\");\n      } else {\n        pending = Math.max(-24, Math.min(24, pending + Number(button.dataset.value)));\n        void drain();\n      }\n    });\n  });\n  view.addEventListener(\"keydown\", event => {\n    if (event.key !== \"Enter\" || event.repeat || event.target.closest(\"button, input, textarea, select, [contenteditable]\")) return;\n    event.preventDefault();\n    void send(\"press\");\n  });\n  view.addEventListener(\"wheel\", event => {\n    event.preventDefault();\n    const pixels = event.deltaY * (event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 500 : 1);\n    wheel += pixels;\n    const steps = Math.trunc(wheel / 100);\n    if (steps) {\n      wheel -= steps * 100;\n      pending = Math.max(-24, Math.min(24, pending - steps));\n      void drain();\n    }\n  }, {passive:false});\n  view.addEventListener(\"mousedown\", event => {\n    if (event.button !== 1) return;\n    event.preventDefault();\n    void send(\"press\");\n  });\n  view.addEventListener(\"auxclick\", event => {\n    if (event.button === 1) event.preventDefault();\n  });\n  view.addEventListener(\"contextmenu\", event => event.preventDefault());\n  async function refresh() {\n    if (!alive) return;\n    if (document.hidden) { setTimeout(refresh, 850); return; }\n    const frame = new Image();\n    frame.onload = () => {\n      screen.src = frame.src;\n      status.textContent = \"Live · mouse wheel / middle click\";\n      setTimeout(refresh, 250);\n    };\n    frame.onerror = () => {\n      status.textContent = \"Waiting for LCD frame…\";\n      setTimeout(refresh, 800);\n    };\n    frame.src = \"/frame.jpg?t=\" + Date.now();\n  }\n  window.addEventListener(\"pagehide\", () => { alive = false; pending = 0; });\n  refresh();\n})();\n</script>\n</body>\n</html>"
 DEFAULT_PORT = 8088
 DEFAULT_HOST = "0.0.0.0"
 MAX_EVENT_BYTES = 96
@@ -50,6 +51,34 @@ def resolve_bind_host(host):
 class _HTTP(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+    request_queue_size = 8
+    MAX_CONNECTIONS = 8
+    READ_TIMEOUT = 2.0
+
+    def __init__(self, *args, **kwargs):
+        self._slots = BoundedSemaphore(self.MAX_CONNECTIONS)
+        super().__init__(*args, **kwargs)
+
+    def get_request(self):
+        connection, address = super().get_request()
+        connection.settimeout(self.READ_TIMEOUT)
+        return connection, address
+
+    def process_request(self, request, client_address):
+        if not self._slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
 
 
 class RemoteDisplayServer:
@@ -66,6 +95,8 @@ class RemoteDisplayServer:
         self.report_provider = report_provider
         self.trace_provider = trace_provider
         self._event_lock = Lock()
+        self._frame_lock = Lock()
+        self._frame_token = self._jpeg = None
         self._last_event = 0.0
         self._closed = False
         parent = self
@@ -148,10 +179,7 @@ class RemoteDisplayServer:
                     try:
                         # A snapshot is copied under the emulator's lock. JPEG
                         # encoding runs outside that lock and off the UI thread.
-                        image, _sequence = parent.emulator.snapshot()
-                        output = BytesIO()
-                        image.convert("RGB").save(output, "JPEG", quality=80)
-                        self.reply(200, output.getvalue(), "image/jpeg")
+                        self.reply(200, parent.frame_bytes(), "image/jpeg")
                     except (RuntimeError, OSError, ValueError):
                         self.reply(503, b"LCD framebuffer unavailable")
                 else:
@@ -176,8 +204,25 @@ class RemoteDisplayServer:
                     self.reply(413, b"Invalid input length")
                     return
                 try:
-                    value = json.loads(self.rfile.read(length))
+                    deadline = monotonic() + parent.http.READ_TIMEOUT
+                    body = bytearray()
+                    while len(body) < length:
+                        remaining = deadline - monotonic()
+                        if remaining <= 0:
+                            raise TimeoutError('Remote body deadline')
+                        self.connection.settimeout(remaining)
+                        chunk = self.rfile.read1(length - len(body))
+                        if not chunk:
+                            raise ValueError('Incomplete input body')
+                        body.extend(chunk)
+                    self.connection.settimeout(parent.http.READ_TIMEOUT)
+                    value = json.loads(body)
+                except (OSError, TimeoutError):
+                    self.close_connection = True
+                    self.reply(408, b"Input timeout")
+                    return
                 except (ValueError, UnicodeError):
+                    self.close_connection = True
                     self.reply(400, b"Invalid JSON")
                     return
                 if not isinstance(value, dict) or not (
@@ -209,6 +254,25 @@ class RemoteDisplayServer:
                              daemon=True, name="petrel-remote-http")
         self.thread.start()
         logging.info("Petrel Remote Display available on http://%s:%d", self.host, self.port)
+
+    def frame_bytes(self):
+        """One bounded JPEG shared by viewers, refreshed for animation changes."""
+        with self._frame_lock:
+            try:
+                reader = getattr(self.emulator, 'snapshot_if_changed', None)
+                if callable(reader):
+                    image, token = reader(self._frame_token)
+                else:
+                    image, token = self.emulator.snapshot()
+                if image is not None or self._jpeg is None:
+                    output = BytesIO()
+                    image.convert('RGB').save(output, 'JPEG', quality=80)
+                    self._jpeg = output.getvalue()
+                self._frame_token = token
+                return self._jpeg
+            except Exception:
+                self._jpeg = self._frame_token = None
+                raise
 
     def close(self):
         if self._closed:

@@ -118,7 +118,7 @@ All states use the real UI/driver with example data and no physical printer conn
 
 ## Optional live Remote Display (port 8088)
 
-Petrel can serve its live LCD framebuffer over a small HTTP server and accept virtual encoder input: mouse wheel rotates the encoder; middle click sends ENTER. The on-screen **CCW**, **Enter**, and **CW** buttons provide the same inputs, including on touchscreens. Each rotation button click moves one encoder step. The physical LCD and encoder keep working.
+Petrel can serve its live LCD framebuffer over a small HTTP server and accept virtual encoder input: mouse wheel rotates the encoder; middle click or keyboard Enter sends ENTER. The on-screen **CCW**, **Enter**, and **CW** buttons provide the same inputs, including on touchscreens. Each rotation button click moves one encoder step. The physical LCD and encoder keep working.
 
 Enable it in `~/.config/Petrel/Petrel.env`:
 
@@ -126,6 +126,8 @@ Enable it in `~/.config/Petrel/Petrel.env`:
 PETREL_REMOTE=1
 PETREL_REMOTE_PORT=8088
 ```
+
+The server admits at most 8 simultaneous connections, closes idle reads after 2 seconds and gives input bodies a 2-second total deadline. One JPEG is shared between viewers until the displayed content or animation frame changes. Keyboard Enter works while the viewer has focus; focused buttons retain their normal keyboard behavior.
 
 The default bind address is now **`0.0.0.0:8088`**, all IPv4 network interfaces. `PETREL_REMOTE_HOST=0.0.0.0` is optional (the default). Once the feature version is running, open either **`http://<PI_LAN_IP>:8088`** on the local network or **`http://<PI_TAILSCALE_IP>:8088`** from the tailnet. SSH tunneling and Tailscale Serve are not required. Use `tailscale ip -4` to see the Tailscale address.
 
