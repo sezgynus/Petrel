@@ -9,6 +9,17 @@ from maintenance_filament import MaintenanceFilamentController
 
 
 class RuntimeSafetyTests(unittest.TestCase):
+    def test_old_workflow_stop_cannot_dispatch_into_a_new_epoch(self):
+        life = {'epoch':12,'state':'ready'}
+        subscription = NS(request=Mock(return_value=Future()),lifecycle=lambda:life)
+        owner = FirmwareWorkflow(NS(subscription=subscription), None, None)
+        owner._row = NS(epoch=12)
+        owner._shutdown('workflow_lifecycle_changed')
+        guard = subscription.request.call_args.kwargs['guard']
+        self.assertTrue(guard())
+        life['epoch'] = 13
+        self.assertFalse(guard())
+
     def test_positive_safety_violation_never_uses_queue_retry_grace(self):
         owner = FirmwareWorkflow(NS(), None, None)
         owner._phase = 'running'

@@ -271,7 +271,10 @@ class FirmwareWorkflow:
         self._stop_reason = reason
         self._phase, self._deadline = 'stopping', monotonic()+8
         try:
-            self._command = self._printer.subscription.request('printer.emergency_stop')
+            epoch = self._row.epoch
+            self._command = self._printer.subscription.request(
+                'printer.emergency_stop',
+                guard=lambda: self._printer.subscription.lifecycle().get('epoch') == epoch)
         except Exception:
             self._command = None
         return None
