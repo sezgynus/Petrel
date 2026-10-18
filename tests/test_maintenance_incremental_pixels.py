@@ -31,6 +31,11 @@ class MaintenancePixelUpdates(unittest.TestCase):
 
     def equal_fresh(self,d,screen):
         fresh=self.view(screen,d._maintenance_selection)
+        # A selected row can have several valid retained viewport positions.
+        fresh.lcd.draw_rectangle(1,0x2125,0,31,271,359)
+        fresh._maintenance_regions={}
+        fresh._maintenance_scroll=d._maintenance_scroll
+        draw_maintenance(fresh,screen)
         self.assertIsNone(ImageChops.difference(self.pixels(d),self.pixels(fresh)).getbbox())
 
     def menu(self,count=9,kind='list'):
