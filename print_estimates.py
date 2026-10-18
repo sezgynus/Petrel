@@ -51,4 +51,4 @@ def finish_text(now, remaining):
     finish = now + remaining
     current, target = time.localtime(now), time.localtime(finish)
     days = (date(*target[:3]) - date(*current[:3])).days
-    return 'Finish ~' + time.strftime('%H:%M', target) + (' +%d' % days if days > 0 else '')
+    return 'Finish ' + time.strftime('%H:%M', target) + (' +%d' % days if days > 0 else '')

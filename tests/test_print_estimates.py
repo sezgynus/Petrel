@@ -40,9 +40,9 @@ class PrintEstimateTests(unittest.TestCase):
 
     def test_finish_labels_calendar_day_difference(self):
         now = time.mktime((2026,10,18,23,30,0,0,0,-1))
-        self.assertEqual(finish_text(now, 600), 'Finish ~23:40')
-        self.assertEqual(finish_text(now, 7200), 'Finish ~01:30 +1')
-        self.assertEqual(finish_text(now, 26*3600), 'Finish ~01:30 +2')
+        self.assertEqual(finish_text(now, 600), 'Finish 23:40')
+        self.assertEqual(finish_text(now, 7200), 'Finish 01:30 +1')
+        self.assertEqual(finish_text(now, 26*3600), 'Finish 01:30 +2')
 
     def test_total_elapsed_preserves_print_only_fallback_and_terminal_stats(self):
         p = printer(snapshot())
