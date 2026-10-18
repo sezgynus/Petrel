@@ -4,7 +4,7 @@ Presentation is separate from the trusted controllers. Only an explicit action
 advances a workflow; observations have no timeout. No I/O in drawing/navigation.
 """
 from types import SimpleNamespace
-from time import monotonic, strftime, localtime
+from time import monotonic, strftime, localtime, time
 import textwrap
 from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details)
@@ -31,6 +31,8 @@ class MaintenanceViewMixin:
             self._maintenance_records_future=None
             self._maintenance_records_data=((),())
             self._maintenance_records_ready=False
+            self._maintenance_records_identity=None
+            self._maintenance_records_request_identity=None
             self._maintenance_records_return='service'
 
     def Enter_Maintenance_Menu(self):
@@ -275,18 +277,28 @@ class MaintenanceViewMixin:
         stop='Cancel preparation' if phase=='preflight' else 'Stop: Klipper shutdown' if feature.startswith('H') else 'Stop / cancel check'
         return Screen(title,heading,live or ('Waiting for verified evidence.',),(Choice(stop,'cancel'),),tone='attention' if feature.startswith('H') else 'normal')
 
+    def _maintenance_identity(self):
+        snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
+        return (getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
+
     def _maintenance_service_screen(self):
         from maintenance_ui_records import TASKS
-        from maintenance_assessment_store import ServicePolicy
+        from maintenance_assessment_store import ServicePolicy, service_due
         page=self._maintenance_page
         back=Choice('Back','back')
         if page=='service':
+            if self._maintenance_records_identity!=self._maintenance_identity():
+                self._maintenance_records_ready=False
             if not self._maintenance_records_ready:
                 return Screen('Service plan','No interval assumed',('Load your saved reminders.','Intervals require an explicit','manufacturer or user policy.'),
                     (back,Choice('Load service tasks','load_services')))
             tasks=self._maintenance_records_data[0]
-            choices=[back,Choice('Add calendar reminder','service_add')]
+            physical,reads=self._maintenance_options()
+            devices={r.device for r in physical+reads}
+            choices=[back,Choice('Add calendar reminder','service_add'),Choice('Refresh records','load_services')]
             for policy,last,due in tasks:
+                if policy.device not in devices: continue
+                due=service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
                 detail={'due':'Service is due','not_due':'Within your interval','unknown':'No reliable service date'}[due]
                 choices.append(Choice(TASKS.get(policy.task_id,policy.task_id),'service_task',(policy,last,due),device_name(policy.device)+' / '+detail))
             if not tasks:
@@ -314,6 +326,10 @@ class MaintenanceViewMixin:
                 (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
         if page=='service_task':
             policy,last,due=self._maintenance_context
+            physical,reads=self._maintenance_options()
+            if policy.device not in {r.device for r in physical+reads}:
+                return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),(back,))
+            due=service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
             date=strftime('%Y-%m-%d',localtime(last['timestamp'])) if last and type(last.get('timestamp')) in (int,float) else 'Not recorded'
             return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
                 (device_name(policy.device),'Last service: '+date,
@@ -554,6 +570,7 @@ class MaintenanceViewMixin:
         except Exception:
             return self._maintenance_open('notice',('Records unavailable',('The request could not be queued.','No maintenance was recorded.')))
         self._maintenance_records_future=future
+        self._maintenance_records_request_identity=self._maintenance_identity()
         self._maintenance_records_return='history_records' if history else 'service'
         # A write is already explicitly authorized. Leaving this wait view does
         # not replay or duplicate it; its Future remains owned until completion.
@@ -609,7 +626,8 @@ class MaintenanceViewMixin:
             self._maintenance_records_future=None
             try:
                 self._maintenance_records_data=future.result()
-                self._maintenance_records_ready=True
+                self._maintenance_records_identity=self._maintenance_records_request_identity
+                self._maintenance_records_ready=self._maintenance_records_identity==self._maintenance_identity()
                 target=self._maintenance_records_return
             except Exception:
                 target='notice'

@@ -63,6 +63,27 @@ class MaintenanceServiceUI(unittest.TestCase):
         d.pd.maintenance_ui_records.assert_not_called()
         self.assertEqual(d._maintenance_context.interval,31*86400)
 
+    def test_calendar_due_is_recomputed_in_the_same_living_ui(self):
+        d=self.view();d._maintenance_page='service'
+        p=ServicePolicy('inspect_clean','fan','calendar_s',100,'user')
+        d._maintenance_options=Mock(return_value=((NS(device='fan'),),()))
+        d._maintenance_records_data=(((p,{'timestamp':10},'not_due'),),())
+        d._maintenance_records_identity=d._maintenance_identity()
+        d._maintenance_records_ready=True
+        with patch('ui_maintenance.time',return_value=50):
+            self.assertIn('Within your interval',str(d._maintenance_screen()))
+        with patch('ui_maintenance.time',return_value=110):
+            self.assertIn('Service is due',str(d._maintenance_screen()))
+        self.assertTrue(any(c.action=='load_services' for c in d._maintenance_screen().choices))
+
+    def test_discovery_change_invalidates_loaded_service_records(self):
+        d=self.view();d._maintenance_page='service'
+        d._maintenance_records_ready=True
+        d._maintenance_records_identity=('old',1)
+        screen=d._maintenance_screen()
+        self.assertFalse(d._maintenance_records_ready)
+        self.assertTrue(any(c.action=='load_services' for c in screen.choices))
+
     def test_failed_record_future_is_not_success(self):
         d=self.view();future=Future();future.set_exception(OSError('disk full'))
         d._maintenance_records_future=future;d._maintenance_page='storage'
@@ -87,3 +108,4 @@ class MaintenanceServiceUI(unittest.TestCase):
         d._maintenance_dispatch(Choice('Record','historical_result',r))
         self.assertEqual(d._maintenance_page,'details')
         self.assertIn('Historical',str(d._maintenance_screen()))
+
