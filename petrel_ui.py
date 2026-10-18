@@ -1176,7 +1176,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if self._closed:
             return
         self._closed = True
-        for resource in (getattr(self, '_remote_display', None),
+        for resource in (getattr(self, '_software_update', None),
+                         getattr(self, '_remote_display', None),
                          getattr(self, '_buzzer_player', None),
                          getattr(self, '_screenshot_server', None),
                          getattr(self, '_emulator', None),

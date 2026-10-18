@@ -4,7 +4,7 @@ The owner retains a compact immutable capability snapshot, not source state,
 HTTP replies, a client, worker, Future or a background polling task.
 """
 import logging
-from threading import Lock
+from threading import Lock, Event
 from maintenance_cache import MaintenanceCache
 from maintenance_profiles import read_profiles, approved_integrations
 
@@ -28,13 +28,14 @@ def idle(state):
 
 
 class MaintenanceDiscoveryManager:
-    __slots__ = ('cache', '_lock', '_generation', '_profile_path')
+    __slots__ = ('cache', '_lock', '_generation', '_profile_path', '_cancelled')
 
     def __init__(self, profile_path=None):
         self.cache = MaintenanceCache()
         self._profile_path = profile_path
         self._lock = Lock()
         self._generation = 0
+        self._cancelled = Event()
 
     @property
     def snapshot(self):
@@ -45,6 +46,7 @@ class MaintenanceDiscoveryManager:
         with self._lock:
             previous = self.cache.snapshot
             self._generation += 1
+            self._cancelled.set()
             self.cache.invalidate()
         if previous is not None:
             _log.info('Maintenance discovery: CLEAR epoch=%d', previous.epoch)
@@ -65,6 +67,8 @@ class MaintenanceDiscoveryManager:
                 return previous
             self._generation += 1
             generation = self._generation
+            self._cancelled.set()
+            self._cancelled = cancelled = Event()
             local_services = approved_integrations(
                 state, read_profiles(self._profile_path))
             local_services = tuple(set(local_services) | set(integrations))
@@ -82,7 +86,7 @@ class MaintenanceDiscoveryManager:
 
         def work():
             try:
-                services = tuple(set(probe(client)) | set(local_services))
+                services = tuple(set(probe(client, cancelled=cancelled)) | set(local_services))
                 current = latest()
                 if not current.ready or current.epoch != epoch or id(current.settings) != marker:
                     return

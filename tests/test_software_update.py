@@ -24,7 +24,7 @@ class UpdateTests(unittest.TestCase):
             except Exception as error: f.set_exception(error)
             return f
         worker.submit.side_effect = submit
-        updater = SoftwareUpdate(printer)
+        updater = SoftwareUpdate(printer, worker=worker)
         client = Mock()
         item = {'is_valid': True, 'is_dirty': False, 'current_hash': 'old', 'remote_hash': 'new'}
         client.get.return_value = {'result': {'version_info': {name: item}}}

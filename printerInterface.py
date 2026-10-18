@@ -506,8 +506,24 @@ class PrinterData:
         self.subscription.close()
         self._read_worker.close()
         self._maintenance_worker.close()
+        self.maintenance_book.close()
         self.spoolman_client.close()
-        self.client.close()
+        # Started HTTP reads cannot be forcibly cancelled. Release their shared
+        # transport only after BOTH workers have relinquished ownership.
+        workers = [w for w in (self._read_worker, self._maintenance_worker)
+                   if callable(getattr(type(w), 'on_stopped', None))]
+        remaining = len(workers)
+        release_lock = Lock()
+        def release():
+            nonlocal remaining
+            with release_lock:
+                remaining -= 1
+                if remaining == 0:
+                    self.client.close()
+        if not workers:
+            self.client.close()
+        for worker in workers:
+            worker.on_stopped(release)
         if trace is not None:
             trace.flush()
 
@@ -587,7 +603,7 @@ class PrinterData:
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
-        return bases+(('sampled_on_s',) if device in self.maintenance_book._names else ())
+        return bases+(('sampled_on_s',) if device in self.maintenance_book._observed else ())
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
         from maintenance_reference import request

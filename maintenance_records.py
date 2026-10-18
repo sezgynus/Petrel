@@ -48,6 +48,7 @@ class MaintenanceBook:
     def __init__(self,worker):
         self._worker = worker
         self._lock = Lock()
+        self._disk = Lock()
         self._usage = {}
         self._last = None
         self._flush_at = monotonic()+300
@@ -56,6 +57,7 @@ class MaintenanceBook:
         self._record_futures = []
         self._inventory_key = None
         self._names = ()
+        self._observed = set()
 
     def record(self,result,method,state,plan=None):
         self.poll_records()
@@ -130,6 +132,7 @@ class MaintenanceBook:
         active = {}
         key = (state.epoch,id(state.settings))
         if state.ready and key!=self._inventory_key:
+            self._observed.clear()
             self._names = tuple(name for name,cfg in state.settings.items()
                 if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan '))
                 or isinstance(cfg,Mapping) and 'heater_pin' in cfg)[:16]
@@ -144,10 +147,13 @@ class MaintenanceBook:
                       'speed' if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan ')) else None)
                 if key and number(values.get(key)):
                     active[name] = values[key]>0
+                    self._observed.add(name)
             active['@printing'] = (state.status.get('print_stats',{}).get('state')=='printing'
                 and state.status.get('virtual_sdcard',{}).get('is_active') is True
                 and state.status.get('pause_resume',{}).get('is_paused') is False)
         with self._lock:
+            for name in active:
+                if name != '@printing': self._usage.setdefault(name, 0.)
             previous = self._last
             if previous is not None and state.epoch==previous[0]:
                 dt = now-previous[1]
@@ -170,6 +176,10 @@ class MaintenanceBook:
             self._save = None
 
     def flush(self):
+        with self._disk:
+            self._flush_locked()
+
+    def _flush_locked(self):
         with self._lock:
             pending,self._usage = self._usage,{}
         try:
@@ -199,12 +209,18 @@ class MaintenanceBook:
                     self._usage[name] = self._usage.get(name,0.)+value
             raise
 
+    def close(self):
+        """Shutdown is outside drawing; preserve the final sampled tail."""
+        try:
+            self.flush()
+        except Exception:
+            self.errors += 1
+
     def service_counters(self):
         """Worker-only durable lower bounds, with a persisted ledger identity."""
         self.flush()
         data=read_json('maintenance-usage.json',{})
         counters=dict(data.get('sampled_on_s',{}))
-        for name in self._names: counters.setdefault(name,0.)
         return {'counter_id':data.get('counter_id'),'sampled_on_s':counters,
                 'sampled_print_s':data.get('sampled_print_s')}
 
