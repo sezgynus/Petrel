@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from dataclasses import replace
 from types import SimpleNamespace
 from maintenance_assessment import Observation, observations
@@ -27,8 +28,8 @@ class AssessmentBridgeTest(unittest.TestCase):
         runner=object.__new__(MaintenancePulseController)
         runner._row=SimpleNamespace(feature_id='F12',device='fan')
         runner._f12_bracket=SimpleNamespace(low=50,high=51)
-        runner._release=lambda:None
-        result=runner._finish('PASSED_USER','human-readable reason',True)
+        with patch.object(MaintenancePulseController,'_release'):
+            result=runner._finish('PASSED_USER','human-readable reason',True)
         fields=dict(observations(result,2)[0].evidence)
         self.assertEqual(fields['pwm_lower'],50)
         self.assertEqual(fields['pwm_upper'],51)
