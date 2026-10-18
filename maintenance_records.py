@@ -52,10 +52,15 @@ class MaintenanceBook:
         self._flush_at = monotonic()+300
         self._save = None
         self.errors = 0
+        self._record_futures = []
         self._inventory_key = None
         self._names = ()
 
     def record(self,result,method,state,plan=None):
+        self.poll_records()
+        if len(self._record_futures) >= 8:
+            self.errors += 1
+            return
         # A single thermal operation can produce seven independent feature
         # results. Persist them together in one bounded worker transaction.
         children = getattr(result, 'components', ())
@@ -97,12 +102,29 @@ class MaintenanceBook:
                 raise ValueError('maintenance_history_invalid')
             write_json('maintenance-history.json',{'version':1,'records':(records+items)[-64:]})
         try:
-            self._worker.submit(work,queue_timeout=8)
+            self._record_futures.append(self._worker.submit(work,queue_timeout=8))
+            self.poll_records()
         except Exception:
             self.errors += 1
 
+    def poll_records(self):
+        """Consume completed writes on the owner; never wait or retry a write."""
+        before = self.errors
+        pending = []
+        for future in self._record_futures:
+            if not future.done():
+                pending.append(future)
+                continue
+            try:
+                future.result()
+            except Exception:
+                self.errors += 1
+        self._record_futures = pending
+        return self.errors != before
+
     def note(self,state,now=None):
         """No I/O; bounded lower-bound sampled ON time, never exact lifetime."""
+        self.poll_records()
         now = monotonic() if now is None else now
         active = {}
         key = (state.epoch,id(state.settings))
@@ -209,3 +231,4 @@ class MaintenanceBook:
         if not path.is_file() or path.stat().st_size>65536:
             return None
         return path.read_bytes()
+

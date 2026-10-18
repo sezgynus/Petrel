@@ -9,6 +9,33 @@ from maintenance_filament import MaintenanceFilamentController
 from maintenance_test_trace import PrinterProxy
 from printerInterface import PrinterData
 from maintenance_physical import PhysicalResult
+from maintenance_records import MaintenanceBook
+
+
+class RecordWriteTests(unittest.TestCase):
+    def state(self):
+        return NS(settings={},epoch=1,software_version='test')
+
+    def test_failed_admission_future_is_counted_immediately(self):
+        future=Future();future.set_exception(OSError('queue full'))
+        book=MaintenanceBook(NS(submit=Mock(return_value=future)))
+        book.record(PhysicalResult('F01','fan','PASSED_USER','observed'),2,self.state())
+        self.assertEqual(book.errors,1)
+        self.assertFalse(book._record_futures)
+
+    def test_late_disk_error_is_consumed_once_and_pending_writes_are_bounded(self):
+        futures=[]
+        def submit(*args,**kwargs):
+            f=Future();futures.append(f);return f
+        book=MaintenanceBook(NS(submit=submit))
+        for _ in range(9):
+            book.record(PhysicalResult('F01','fan','PASSED_USER','observed'),2,self.state())
+        self.assertEqual(len(futures),8)
+        self.assertEqual(book.errors,1)
+        futures[0].set_exception(OSError('disk full'))
+        self.assertTrue(book.poll_records())
+        self.assertFalse(book.poll_records())
+        self.assertEqual(book.errors,2)
 
 
 class F12RecordingTests(unittest.TestCase):

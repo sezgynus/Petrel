@@ -33,6 +33,7 @@ class MaintenanceViewMixin:
             self._maintenance_records_ready=False
             self._maintenance_records_identity=None
             self._maintenance_records_request_identity=None
+            self._maintenance_record_errors=0
             self._maintenance_records_return='service'
 
     def Enter_Maintenance_Menu(self):
@@ -142,6 +143,8 @@ class MaintenanceViewMixin:
         if page=='result':
             outcome=getattr(self,'_maintenance_result',None)
             heading,lines,tone=result_summary(outcome)
+            if self._maintenance_storage_errors():
+                lines=tuple(lines)+('Some records could not be saved.','Review storage and history.')
             choices=[Choice('Back to checks','result_back'),Choice('Details','details',outcome)]
             # Offer only a currently registered PID flow for the same heater.
             failed=any(getattr(c,'feature_id',None) in ('H07','H08') and c.status=='FAILED_METRIC'
@@ -277,6 +280,10 @@ class MaintenanceViewMixin:
         stop='Cancel preparation' if phase=='preflight' else 'Stop: Klipper shutdown' if feature.startswith('H') else 'Stop / cancel check'
         return Screen(title,heading,live or ('Waiting for verified evidence.',),(Choice(stop,'cancel'),),tone='attention' if feature.startswith('H') else 'normal')
 
+    def _maintenance_storage_errors(self):
+        errors=getattr(getattr(self.pd,'maintenance_book',None),'errors',0)
+        return errors if type(errors) is int and errors>0 else 0
+
     def _maintenance_identity(self):
         snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
         return (getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
@@ -394,7 +401,8 @@ class MaintenanceViewMixin:
         if screen.kind=='home':
             self._maintenance_button('back',choices[0],8,37,256,30,selection==0)
             self._maintenance_text('hero',screen.heading,17,83,30)
-            self._maintenance_text('hero_sub','Guided checks and reminders',17,106,39,True,color=0x9CD3)
+            self._maintenance_text('hero_sub','Some records could not be saved' if self._maintenance_storage_errors()
+                else 'Guided checks and reminders',17,106,39,True,color=0x9CD3)
             for i in range(4):
                 x=17 if i%2==0 else 145
                 y=130 if i<2 else 246
@@ -621,6 +629,14 @@ class MaintenanceViewMixin:
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
+        book=getattr(self.pd,'maintenance_book',None)
+        poll_records=getattr(book,'poll_records',None)
+        if callable(poll_records): poll_records()
+        errors=self._maintenance_storage_errors()
+        if errors!=self._maintenance_record_errors:
+            self._maintenance_record_errors=errors
+            if visible and active_page in ('root','result'):
+                self.Draw_Maintenance_Menu();self.lcd.update()
         future=self._maintenance_records_future
         if future is not None and future.done():
             self._maintenance_records_future=None
