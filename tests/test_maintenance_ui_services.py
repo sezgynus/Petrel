@@ -70,9 +70,9 @@ class MaintenanceServiceUI(unittest.TestCase):
         d._maintenance_records_data=(((p,{'timestamp':10},'not_due'),),())
         d._maintenance_records_identity=d._maintenance_identity()
         d._maintenance_records_ready=True
-        with patch('ui_maintenance.time',return_value=50):
+        with patch.dict(d._maintenance_service_screen.__globals__,{'time':lambda:50}):
             self.assertIn('Within your interval',str(d._maintenance_screen()))
-        with patch('ui_maintenance.time',return_value=110):
+        with patch.dict(d._maintenance_service_screen.__globals__,{'time':lambda:110}):
             self.assertIn('Service is due',str(d._maintenance_screen()))
         self.assertTrue(any(c.action=='load_services' for c in d._maintenance_screen().choices))
 
