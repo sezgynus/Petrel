@@ -47,3 +47,5 @@ Mevcut referans paket **9×32 KiB = 288 KiB**, yani **3–11** slotlarını kull
 ## JPEG uyumluluk kuralı
 
 Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanmalıdır (`Pillow: subsampling=2`). `tools/render_icon_sources.py` ile doğrudan SVG’den üretin; JPEG’leri tekrar tekrar sıkıştırmayın. Fiziksel T5UIC1 testinde 4:4:4, hem Flash hem baytları geri okunarak doğrulanmış SRAM üzerinden seçili ana menü kartlarını ve homing görselini bozdu; 4:2:0 düzgün çizildi. Temiz emülatör görüntüsü panelin JPEG çözücüsünü doğrulamaz. Kaynak yükleyici diğer örnekleme biçimlerini panele erişmeden reddeder; CI tüm ikonların biçimini ve ICO’nun kaynaklarla eşleşmesini kontrol eder. Görsel güncellemelerden sonra seçili/seçili olmayan ana menü kartlarını, homing’i, küçük menü/durum ikonlarını ve animasyonu fiziksel panelde kontrol edin.
+
+Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.

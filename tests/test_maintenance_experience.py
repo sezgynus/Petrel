@@ -33,5 +33,5 @@ class MaintenanceExperienceTests(unittest.TestCase):
         result=NS(feature_id='R02',status='PASSED',reason='measured',restore_verified=False,
                   evidence=(('peak_hz',40),('axis','X')))
         self.assertNotIn('peak hz',str(result_details(result)))
-        self.assertIn('Restore verified: not proven',result_details(result))
+        self.assertIn('Previous state not confirmed',result_details(result))
         self.assertEqual(device_name('extruder1'),'Hotend 1')

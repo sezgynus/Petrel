@@ -136,22 +136,20 @@ def result_summary(result):
 
 
 def result_details(result):
+    from maintenance_evidence_view import evidence_lines, outcome_text
     lines=[]
+    if str(getattr(result,'reason','')).startswith('Historical'):
+        lines.append('Historical record')
     outcomes=getattr(result,'components',()) or (result,)
-    for outcome in outcomes:
+    for outcome in outcomes[:16]:
         feature=getattr(outcome,'feature_id','')
         if feature:
             try: title=LABELS.get(feature,definition_for(feature).title)
             except ValueError: title='Check'
             lines.append(title)
-        lines.append(str(getattr(outcome,'status',None) or 'OBSERVED'))
-        reason=str(getattr(outcome,'reason',''))
-        if reason: lines.append(reason.replace('_',' '))
-        for key,value in getattr(outcome,'evidence',())[:16]:
-            if feature=='R02' and key=='peak_hz':
-                continue
-            lines.append(str(key).replace('_',' ')+': '+str(value))
+        lines.append(outcome_text(getattr(outcome,'status',None)))
+        lines.extend(evidence_lines(feature,getattr(outcome,'evidence',())))
     restored=getattr(result,'restore_verified',None)
     if restored is not None:
-        lines.append('Restore verified: '+('yes' if restored else 'not proven'))
+        lines.append('Previous state restored' if restored else 'Previous state not confirmed')
     return tuple(lines)

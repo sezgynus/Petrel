@@ -10,6 +10,7 @@ from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details)
 from graphite_theme import show_icon
 from maintenance_care_view import care_items
+from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
 
 
@@ -111,6 +112,18 @@ class MaintenanceViewMixin:
         return physical,reads
 
     def _maintenance_screen(self):
+        screen=self._maintenance_screen_model()
+        if screen.kind=='detail' and screen.lines:
+            pinned=bool(screen.choices and screen.choices[0].action in ('back','home','result_back'))
+            count=sum(max(1,len(textwrap.wrap(str(line),39))) for line in screen.lines)
+            if (count>(5 if pinned else 7) or len(textwrap.wrap(screen.heading,30))>2) and not any(
+                    c.action=='instructions' for c in screen.choices):
+                from dataclasses import replace
+                screen=replace(screen,choices=screen.choices+(Choice('Read full instructions','instructions',
+                    (screen.heading,)+screen.lines),))
+        return screen
+
+    def _maintenance_screen_model(self):
         self._maintenance_init()
         page=self._maintenance_page
         context=self._maintenance_context
@@ -186,6 +199,11 @@ class MaintenanceViewMixin:
                           (Choice('Cancel read','cancel_read'),))
         if page=='result':
             outcome=getattr(self,'_maintenance_result',None)
+            if getattr(outcome,'status','') is None and getattr(outcome,'evidence',()):
+                from maintenance_evidence_view import evidence_lines
+                facts=evidence_lines(getattr(outcome,'feature_id',''),outcome.evidence)
+                return Screen('Diagnostic data',choices=(Choice('Back','result_back'),)+tuple(
+                    Choice(line,'none') for line in facts),kind='list')
             heading,lines,tone=result_summary(outcome)
             if self._maintenance_storage_errors():
                 lines=tuple(lines)+('Some records could not be saved.','Review storage and history.')
@@ -291,7 +309,7 @@ class MaintenanceViewMixin:
                 name=device_name(record.get('device'))
                 stamp=record.get('timestamp')
                 date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Date unknown'
-                choices.append(Choice(name,'historical_result',record,date+' / '+str(record.get('status',''))))
+                choices.append(Choice(name,'historical_result',record,date+' / '+outcome_text(record.get('status'))))
             return Screen('Check history',choices=(back,)+tuple(choices),kind='list')
         if page=='storage':
             return Screen('Maintenance records','Working in the background',('Please wait for the record.','No hardware action is running.'),(back,))
@@ -475,20 +493,6 @@ class MaintenanceViewMixin:
         self.lcd.draw_rectangle(1,bg,x,y,min(271,x+cells*w-1),y+h-1)
         self.lcd.draw_text(False,False,self.lcd.font6x12 if small else self.lcd.font8x16,color,bg,x,y,value)
 
-    def _maintenance_button(self,key,choice,x,y,width,height,selected,detail=False):
-        bg=0x19E9 if selected else 0x2967
-        signature=(choice.label,choice.detail,selected,x,y,width,height)
-        if self._maintenance_regions.get(key)==signature:
-            return
-        self._maintenance_regions[key]=signature
-        self.lcd.draw_rectangle(1,bg,x,y,x+width-1,y+height-1)
-        if selected:
-            self.lcd.draw_rectangle(0,0x063B,x,y,x+width-1,y+height-1)
-            self.lcd.draw_rectangle(1,0x063B,x,y,x+2,y+height-1)
-        self.lcd.draw_text(False,False,self.lcd.font8x16,0xE75E,bg,x+10,y+(7 if detail else (height-16)//2),choice.label[:(width-20)//8])
-        if detail and choice.detail:
-            self.lcd.draw_text(False,False,self.lcd.font6x12,0x9CD3,bg,x+10,y+27,choice.detail[:(width-20)//6])
-
     def Draw_Maintenance_Menu(self):
         self._maintenance_init()
         screen=self._maintenance_screen()
@@ -595,7 +599,7 @@ class MaintenanceViewMixin:
             return self._maintenance_complete(self.pd.cancel_maintenance_read())
         if action=='choose':
             accepted,reason=self.pd.maintenance_pulse.choose(value)
-            self._maintenance_notice='' if accepted else reason
+            self._maintenance_notice='' if accepted else 'Step not accepted. Review preparation.'
             return self._maintenance_show('pulse')
         if action=='measure':
             self.pd.maintenance_pulse.begin_measurement()
@@ -603,7 +607,7 @@ class MaintenanceViewMixin:
         if action=='record':
             owner=self.pd.maintenance_pulse
             accepted,reason=owner.record_measurement(owner.measurement_value)
-            self._maintenance_notice='' if accepted else reason
+            self._maintenance_notice='' if accepted else 'Measurement not accepted. Review the value.'
             return self._maintenance_show('pulse')
         if action=='observe':
             result=self.pd.observe_maintenance_physical(value)

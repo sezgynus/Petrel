@@ -29,3 +29,7 @@ Tam H01 sonucundan Heating speed reference açılır. Bilinen sağlam donanım v
 Regresyonlar her imzalı commit için GitHub Actions'ta çalışır. Yerel test veya geliştirme emülatörü çalıştırılmaz. CI arayüz entegrasyonunu ve sınırlı çizimi doğrular; fiziksel panel kabulünün yerine geçmez.
 
 Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretmez. Bakım hedefleri, keşif cihaz adından farklı olabilen eksen adları dahil kayıtlı planları izler.
+
+## Teşhis sunumu ve ortak görseller
+
+Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; bilinmeyen alanlarda birim uydurmak yerine destek raporuna yönlendirilir. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Eski 156–163 kutu ikonları SVG/JPEG kaynaklarından ve paketten kaldırılır; Maintenance master ikonları 13, 45 ve 218 kullanır. Eşleşen çıktı/manifest 9 bloktur (288 KiB); önceki bakım UI paketinden bir blok küçüktür.

@@ -40,7 +40,9 @@ def _row(v,key,choice,index,y,height=48,icon=45):
             show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,y+15)
         x=60 if icon is not None else 24
         cells=(256-x)//8
-        v.lcd.draw_text(False,False,v.lcd.font8x16,INK,BG,x,y+(7 if detail else 16),choice.label[:cells])
+        parts=textwrap.wrap(choice.label,cells)[:2] if height>=48 and not detail else (choice.label[:cells],)
+        for line,part in enumerate(parts):
+            v.lcd.draw_text(False,False,v.lcd.font8x16,INK,BG,x,y+(7 if detail or len(parts)>1 else 16)+line*18,part)
         if detail:
             v.lcd.draw_text(False,False,v.lcd.font6x12,MUTED,BG,x,y+28,choice.detail[:(256-x)//6])
         v.lcd.draw_line(LINE,16,y+height-1,256,y+height-1)
@@ -81,7 +83,7 @@ def _home(v,screen):
             _text(v,('care_status',i),item.detail,174,y,13,True,WARNING if item.state=='due' else MUTED)
             _bar(v,('home',i),item,24,y+17,232)
         else:
-            _text(v,('care_name',i),'Select to manage reminders' if i==0 else '',24,y,38,True,MUTED)
+            _text(v,('care_name',i),'Select to set up' if i==0 else '',24,y,38,True,MUTED)
             _text(v,('care_status',i),'',174,y,13,True)
             if _cached(v,('bar',('home',i)),('empty',y)):
                 v.lcd.draw_rectangle(1,BG,24,y+17,256,y+20)
@@ -134,7 +136,7 @@ def _list(v,screen):
                 _bar(v,slot,item,24,y+64,232)
                 _cursor(v,key,y,height-2,selection==index)
                 continue
-        _row(v,('list',slot),choice,index,y,height,45)
+        _row(v,('list',slot),choice,index,y,height,None if choice.action=='none' else 45)
     _scroll(v,start,count,visible)
 
 
