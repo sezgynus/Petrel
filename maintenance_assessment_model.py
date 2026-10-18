@@ -84,7 +84,7 @@ def comparable(current, baseline):
     return (current.feature == baseline.feature and current.device == baseline.device
             and bool(current.config_digest) and current.config_digest == baseline.config_digest
             and required <= a.keys() and required <= b.keys()
-            and all(a[k] == b[k] for k in required)
+            and all(a[k] == b[k] and a[k] not in ('unknown','unverified','not_tracked') for k in required)
             and current.method == baseline.method
             and current.status in ('PASSED', 'PASSED_USER', 'OBSERVED', 'FAILED_METRIC')
             and baseline.status in ('PASSED', 'PASSED_USER', 'OBSERVED'))

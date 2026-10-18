@@ -38,6 +38,7 @@ class PhysicalResult:
     status: str
     reason: str
     restore_verified: bool = False
+    evidence: tuple = ()
 
 
 def _object_name(row):
@@ -230,7 +231,12 @@ class MaintenancePulseController:
 
     def _finish(self, status, reason, verified=False):
         row = self._row
-        result = PhysicalResult(row.feature_id, row.device, status, reason, verified)
+        evidence = ()
+        bracket = getattr(self,'_f12_bracket',None)
+        if row.feature_id == 'F12' and bracket is not None:
+            evidence = (('pwm_lower',bracket.low),('pwm_upper',bracket.high),
+                        ('user_verified',status == 'PASSED_USER'))
+        result = PhysicalResult(row.feature_id, row.device, status, reason, verified, evidence)
         self._release()
         return result
 
