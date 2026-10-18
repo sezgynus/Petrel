@@ -155,12 +155,20 @@ class MaintenanceFilamentController(FirmwareWorkflow):
         return (('Observe actual result','finish'),)
 
     def start(self,*args,**kwargs):
+        if self._closed or self._locked or self.pending:
+            return False, 'workflow_busy_or_locked'
         self._stage,self._sensor,self._sensor_restore = 0,None,None
         self._measurement,self._measured = None,False
         self._samples,self._owned_loadcell = [],False
         self._operation = None
         self._profile = profile()
         self._remaining = 0.
+        self._tare_done = self._calibrated = False
+        self._sensor_disabled = self._restoring = False
+        self._restore_outcome = None
+        self._motion_seen = False
+        self._mechanical_seen = 0
+        self._gram_edit = False
         self._token = 'PETREL_E_'+uuid.uuid4().hex
         return super().start(*args,**kwargs)
 

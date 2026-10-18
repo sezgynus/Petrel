@@ -92,6 +92,38 @@ class FilamentWorkflowTests(unittest.TestCase):
         result = self.complete()
         self.assertEqual(result.status,'INCONCLUSIVE')
 
+    def test_cancel_restore_then_second_sensor_failure_restores_again(self):
+        self.arm()
+        self.dispatch()
+        self.status[self.sensor]['enabled'] = False
+        self.complete()
+        self.owner.cancel()
+        self.worker.drain()
+        self.owner.poll()
+        self.status[self.sensor]['enabled'] = True
+        self.assertEqual(self.complete().status,'ABORTED')
+        self.arm()
+        self.dispatch()
+        self.status[self.sensor]['enabled'] = False
+        self.complete()
+        self.assertIsNone(self.owner._finish('INCONCLUSIVE','sensor_read_failed'))
+        self.assertEqual(self.owner.phase,'preflight')
+        self.worker.drain()
+        self.owner.poll()
+        self.assertIn('ENABLE=1',self.commands[-1][1]['script'])
+        self.status[self.sensor]['enabled'] = True
+        result = self.complete()
+        self.assertEqual(result.status,'INCONCLUSIVE')
+        self.assertTrue(result.restore_verified)
+
+    def test_busy_start_does_not_erase_owned_sensor_restore(self):
+        self.arm()
+        self.owner._sensor_disabled = True
+        self.owner._sensor_restore = True
+        self.assertFalse(self.owner.start('E03',self.sensor)[0])
+        self.assertTrue(self.owner._sensor_disabled)
+        self.assertTrue(self.owner._sensor_restore)
+
     def test_extrusion_without_xyz_motion_does_not_require_xyz_homing(self):
         from test_maintenance_motion import state_and_status
         self.owner._row=SimpleNamespace(feature_id='E01',device=None)
@@ -195,3 +227,4 @@ class FilamentInformationTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
