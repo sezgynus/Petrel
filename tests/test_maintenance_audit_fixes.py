@@ -7,6 +7,35 @@ from unittest.mock import Mock, patch
 from maintenance_workflow import FirmwareWorkflow, SafetyViolation
 from maintenance_filament import MaintenanceFilamentController
 from maintenance_test_trace import PrinterProxy
+from printerInterface import PrinterData
+from maintenance_physical import PhysicalResult
+
+
+class F12RecordingTests(unittest.TestCase):
+    def test_terminal_stop_results_reach_history_and_assessment_once(self):
+        for status in ('PASSED_USER','FAILED_USER'):
+            with self.subTest(status=status):
+                printer = object.__new__(PrinterData)
+                row = NS(method=2)
+                result = PhysicalResult('F12','fan',status,'finished',True,
+                    (('pwm_lower',10),('pwm_upper',12)))
+                printer.state = NS()
+                printer.maintenance_book = Mock()
+                printer.maintenance_assessment = Mock()
+                printer.maintenance_pulse = NS(_row=row,
+                    f12_confirm_stopped=Mock(return_value=(result,'finished')))
+                self.assertEqual(printer.confirm_maintenance_f12_stopped(),(result,'finished'))
+                printer.maintenance_book.record.assert_called_once_with(result,2,printer.state,row)
+                printer.maintenance_assessment.ingest.assert_called_once_with(result,2,printer.state)
+
+    def test_nonterminal_round_acceptance_is_not_recorded(self):
+        printer = object.__new__(PrinterData)
+        printer._record_maintenance_result = Mock()
+        for value in (True,False,None):
+            printer.maintenance_pulse = NS(_row=NS(method=2),
+                f12_confirm_stopped=Mock(return_value=(value,'round')))
+            self.assertEqual(printer.confirm_maintenance_f12_stopped(),(value,'round'))
+        printer._record_maintenance_result.assert_not_called()
 
 
 class TraceTransportTests(unittest.TestCase):

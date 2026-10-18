@@ -617,7 +617,11 @@ class PrinterData:
         return self._record_maintenance_result(self.maintenance_pulse.observe(seen),getattr(row,'method',None),row)
 
     def confirm_maintenance_f12_stopped(self):
-        return self.maintenance_pulse.f12_confirm_stopped()
+        row = getattr(self.maintenance_pulse,'_row',None)
+        result,reason = self.maintenance_pulse.f12_confirm_stopped()
+        if result is not None and type(result) is not bool:
+            self._record_maintenance_result(result,getattr(row,'method',None),row)
+        return result,reason
 
     def cancel_maintenance_physical(self):
         row = getattr(self.maintenance_pulse,'_row',None)
@@ -1617,4 +1621,5 @@ class PrinterData:
             raise ValueError('Runtime Z offset is outside the supported range')
         send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
         return send('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
+
 
