@@ -122,7 +122,12 @@ class MaintenanceViewMixin:
             return Screen(device_name(row.device),label(row),preparation(row),(
                 back,Choice('Prepare check','start',row)),tone='attention')
         if page=='pulse':
-            return self._maintenance_pulse_screen()
+            screen=self._maintenance_pulse_screen()
+            lines=tuple(part for text in screen.lines for part in textwrap.wrap(str(text),30))
+            if len(lines)>7:
+                from dataclasses import replace
+                screen=replace(screen,choices=screen.choices+(Choice('Read full instructions','instructions',screen.lines),))
+            return screen
         if page=='reading':
             return Screen('Reading information','Waiting for evidence',('The read runs in the background.',),
                           (Choice('Cancel read','cancel_read'),))
@@ -151,19 +156,35 @@ class MaintenanceViewMixin:
             if not findings:
                 return Screen('Findings','No current alerts recorded',('This does not prove all hardware','is healthy. Start a check to','collect current evidence.'),
                               (back,Choice('Check printer','open','groups')))
-            return Screen('Findings',choices=(back,)+tuple(Choice(device_name(f.device),'finding',f,
-                'Needs review' if f.state=='attention' else 'Issue reported') for f in findings),kind='list')
+            subjects={}
+            for finding in findings:
+                subjects.setdefault(finding.device,[]).append(finding)
+            return Screen('Findings',choices=(back,)+tuple(Choice(device_name(device),'finding',tuple(items),
+                '%d finding%s to review' % (len(items),'s' if len(items)!=1 else ''))
+                for device,items in subjects.items()),kind='list')
         if page=='finding':
             from maintenance_assessment_messages import message_text
-            finding=context
-            try: explanation=message_text(finding.message_key)
-            except KeyError: explanation='Review the recorded evidence.'
+            findings=context if isinstance(context,tuple) else (context,)
+            explanations=[]
             choices=[back,Choice('Check printer','open','groups')]
-            for feature in finding.actions:
-                physical,_=self._maintenance_options()
-                row=next((r for r in physical if r.feature_id==feature and r.device==finding.device),None)
-                if row is not None: choices.append(Choice(label(row),'prepare',row))
-            return Screen('Finding',device_name(finding.device),tuple(textwrap.wrap(explanation,30)),tuple(choices),tone='attention')
+            physical,_=self._maintenance_options()
+            offered=set()
+            for finding in findings:
+                try: explanation=message_text(finding.message_key)
+                except KeyError: explanation='Review the recorded evidence.'
+                if explanation not in explanations: explanations.append(explanation)
+                for feature in finding.actions:
+                    row=next((r for r in physical if r.feature_id==feature and r.device==finding.device),None)
+                    if row is not None and (feature,row.device) not in offered:
+                        choices.append(Choice(label(row),'prepare',row));offered.add((feature,row.device))
+            # Keep all explanations reachable rather than silently dropping text.
+            lines=tuple(part for explanation in explanations for part in textwrap.wrap(explanation,30))
+            if len(lines)>7:
+                choices.append(Choice('Read all findings','instructions',lines))
+            return Screen('Finding',device_name(findings[0].device),lines[:7],tuple(choices),tone='attention')
+        if page=='instructions':
+            lines=tuple(part for value in context for part in (textwrap.wrap(str(value),30) or ['']))
+            return Screen('Full instructions',choices=(back,)+tuple(Choice(line,'none') for line in lines),kind='list')
         if page.startswith('service'):
             return self._maintenance_service_screen()
         if page=='history':
@@ -351,7 +372,7 @@ class MaintenanceViewMixin:
         if screen.kind=='home':
             self._maintenance_button('back',choices[0],8,37,256,30,selection==0)
             self._maintenance_text('hero',screen.heading,17,83,30)
-            self._maintenance_text('hero_sub','Capability-based checks',17,106,39,True,color=0x9CD3)
+            self._maintenance_text('hero_sub','Guided checks and reminders',17,106,39,True,color=0x9CD3)
             for i in range(4):
                 x=17 if i%2==0 else 145
                 y=130 if i<2 else 246
@@ -450,6 +471,7 @@ class MaintenanceViewMixin:
         if action=='targets': return self._maintenance_open('targets',value)
         if action=='prepare': return self._maintenance_open('prepare',value)
         if action=='details': return self._maintenance_open('details',value)
+        if action=='instructions': return self._maintenance_open('instructions',value)
         if action=='finding': return self._maintenance_open('finding',value)
         if action=='review':
             outcome=SimpleNamespace(status='OBSERVED',reason='Measured evidence',evidence=tuple(('value',x) for x in value))
@@ -562,6 +584,11 @@ class MaintenanceViewMixin:
             self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
             self.Draw_Maintenance_Menu();self.lcd.update()
         elif event==self.ENCODER_DIFF_ENTER and choices:
+            drawn=getattr(self,'_maintenance_drawn_choices',None)
+            current=tuple((c.action,c.value) for c in choices)
+            if drawn is not None and drawn!=current:
+                self._maintenance_selection=0
+                self.Draw_Maintenance_Menu();self.lcd.update();return
             selection=min(self._maintenance_selection,len(choices)-1)
             self._maintenance_dispatch(choices[selection])
 
@@ -588,11 +615,13 @@ class MaintenanceViewMixin:
                     elif self._maintenance_history: self._maintenance_history.pop()
                 self._maintenance_show(target)
         if getattr(owner,'pending',False):
+            before=owner.phase
             result=self.pd.poll_maintenance_physical()
             if result is not None:
                 self._maintenance_result=result
                 if visible: self._maintenance_complete(result)
             elif visible and active_page=='pulse':
+                if owner.phase!=before: self._maintenance_selection=0
                 # Field-level signatures suppress unchanged packets, including
                 # after prolonged user observation; no UI timeout is introduced.
                 self.Draw_Maintenance_Menu();self.lcd.update()

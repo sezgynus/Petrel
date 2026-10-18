@@ -13,3 +13,7 @@ Normal durum şeridi korunur. Kök kutucuklar yönetilen metinsiz 156–163 ikon
 Bakım kayıtları yalnız açık istekle yüklenir ve mevcut worker üzerinde işlenir. Hatırlatıcı eklerken desteklenen cihaz, görev ve takvim aralığı seçilir. Editörün ilk değeri kurulu politika değildir; kayıt inceleme ve açık onay gerektirir. Hatırlatıcı kaydı bakım yapıldığı anlamına gelmez. Gerçek tamamlanma ayrıca onaylanır. Son bakım tarihi yoksa bilinmeyen kalır. Kaldırılan cihazlar gizlenir ve yeni tamamlanma kaydı alamaz. Aşınma veya kalan ömür tahmini çıkarılmaz.
 
 Son kontrol geçmişi ayrıca yüklenir ve tarihsel olarak işaretlenir. Baskı kullanımı, örneklenmiş kullanım ve ayıklanmış rapor aktarımı istek üzerine bilgi okumalarıdır. Kullanıcı tek termal kontrol çalıştırsa da Findings bağımsız termal alt sonuçları içerir. Maintenance girişinde çizim önbelleği geçersiz kılınır; diğer ekranlardan kalıntı kalmaz.
+
+## Son etkileşim korumaları
+
+Eylemler değişmişse yakalanan ENTER komut göndermek yerine ekranı yeniler. Controller faz değişimi odağı güvenli ilk eyleme döndürür. Uzun controller talimatları ayrı kaydırılan sayfadan okunur. Aynı cihazın bulguları gruplanır; açıklamalar korunur. Çizimler normal durum şeridinin üstünde kalır ve değişmeyen ekranlar yeni çizim paketi üretmez. Fiziksel backend'ler yetkili kalır; CI UI entegrasyonunu doğrular, yeni ekran düzeninin fiziksel kabulü değildir.

@@ -23,6 +23,7 @@ class MaintenanceUIFlows(unittest.TestCase):
         return d.pd.maintenance_pulse
 
     def choose(self,d,action,value=None):
+        d.Draw_Maintenance_Menu()
         screen=d._maintenance_screen()
         index=next(i for i,c in enumerate(screen.choices) if c.action==action and (value is None or c.value==value))
         d._maintenance_selection=index
