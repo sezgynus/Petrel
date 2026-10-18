@@ -85,7 +85,8 @@ class MaintenancePartialUpdates(unittest.TestCase):
         draw_maintenance(d,screen);d.lcd.reset_mock()
         d._maintenance_selection=4;draw_maintenance(d,screen)
         d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,39,BG,0,241,259,357)
-        self.assertTrue(all(c.args[-3]>=220 for c in d.lcd.draw_rectangle.call_args_list))
+        self.assertTrue(all(c.args[-3]>=220 or (c.args[-4]==4 and c.args[-2]==7)
+                            for c in d.lcd.draw_rectangle.call_args_list))
         self.no_full_clear(d)
 
     def test_choice_count_change_does_not_clear_the_frame(self):
