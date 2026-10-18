@@ -18,7 +18,7 @@ class ServicePolicy:
 
     def __post_init__(self):
         if (not all(_text(x) for x in (self.task_id,self.device,self.source))
-                or self.basis not in ('calendar_s','print_s','sampled_on_s','travel_mm')
+                or self.basis not in ('calendar_s','print_s','sampled_on_s','sampled_print_s','travel_mm')
                 or not numeric(self.interval) or self.interval <= 0):
             raise ValueError('invalid_service_policy')
 
@@ -35,7 +35,7 @@ def service_due(policy, *, now, last_at=None, current=None, previous=None,
         return 'unknown'
     if current-previous >= policy.interval:
         return 'due'
-    return 'unknown' if policy.basis == 'sampled_on_s' else 'not_due'
+    return 'unknown' if policy.basis in ('sampled_on_s','sampled_print_s') else 'not_due'
 
 def encode(evidence):
     return asdict(evidence)
@@ -120,12 +120,14 @@ class AssessmentStore:
             raise ValueError('invalid_service_policies')
         return tuple(ServicePolicy(**item) for item in items)
 
-    def latest_service(self,task_id,device):
+    def latest_service(self,task_id,device,basis=None):
         return next((dict(item) for item in reversed(self.load()['services'])
-                     if item.get('task')==task_id and item.get('device')==device),None)
+                     if item.get('task')==task_id and item.get('device')==device
+                     and (basis is None or item.get('basis')==basis)),None)
 
     def invalidate_device(self,device):
         data = self.load()
         data['baselines'] = {k:v for k,v in data['baselines'].items()
                              if v.get('device') != device}
         self._save(data)
+

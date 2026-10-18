@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import uuid
 from threading import Lock
 from time import monotonic, time
 from maintenance_motion import number
@@ -143,6 +144,9 @@ class MaintenanceBook:
                       'speed' if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan ')) else None)
                 if key and number(values.get(key)):
                     active[name] = values[key]>0
+            active['@printing'] = (state.status.get('print_stats',{}).get('state')=='printing'
+                and state.status.get('virtual_sdcard',{}).get('is_active') is True
+                and state.status.get('pause_resume',{}).get('is_paused') is False)
         with self._lock:
             previous = self._last
             if previous is not None and state.epoch==previous[0]:
@@ -174,17 +178,35 @@ class MaintenanceBook:
             if not isinstance(counters,dict) or len(counters)>32:
                 raise ValueError('maintenance_usage_invalid')
             for name,value in pending.items():
+                if name=='@printing': continue
                 old = counters.get(name,0.)
                 if not number(old) or old<0:
                     raise ValueError('maintenance_usage_invalid')
                 counters[name] = old+value
+            printing = data.get('sampled_print_s',0.)
+            if not number(printing) or printing<0:
+                raise ValueError('maintenance_print_usage_invalid')
+            identity = data.get('counter_id')
+            if identity is None: identity=uuid.uuid4().hex
+            if not isinstance(identity,str) or not re.fullmatch(r'[a-f0-9]{32}',identity):
+                raise ValueError('maintenance_usage_identity_invalid')
             write_json('maintenance-usage.json',{'version':1,'sampled_on_s':counters,
+                'sampled_print_s':printing+pending.get('@printing',0.),'counter_id':identity,
                 'coverage':'sampled_lower_bound_not_lifetime','saved_at':time()})
         except Exception:
             with self._lock:
                 for name,value in pending.items():
                     self._usage[name] = self._usage.get(name,0.)+value
             raise
+
+    def service_counters(self):
+        """Worker-only durable lower bounds, with a persisted ledger identity."""
+        self.flush()
+        data=read_json('maintenance-usage.json',{})
+        counters=dict(data.get('sampled_on_s',{}))
+        for name in self._names: counters.setdefault(name,0.)
+        return {'counter_id':data.get('counter_id'),'sampled_on_s':counters,
+                'sampled_print_s':data.get('sampled_print_s')}
 
     def read(self,feature):
         if feature=='S11':
@@ -200,7 +222,8 @@ class MaintenanceBook:
         if feature=='S12':
             self.flush()
             data = read_json('maintenance-usage.json',{'version':1,'sampled_on_s':{}})
-            return (('coverage','sampled_lower_bound_not_lifetime'),)+tuple(
+            return (('coverage','sampled_lower_bound_not_lifetime'),
+                    ('sampled_print_s',data.get('sampled_print_s',0.)),)+tuple(
                 (name[:40]+'.sampled_on_s',round(value,1))
                 for name,value in data.get('sampled_on_s',{}).items() if number(value) and value>=0)[:16]
         if feature=='S20':

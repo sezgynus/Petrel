@@ -578,7 +578,12 @@ class PrinterData:
         from maintenance_ui_records import request
         rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
         devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
-        return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history)
+        return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
+            usage_provider=self.maintenance_book.service_counters)
+
+    def maintenance_service_bases(self,device):
+        bases=('calendar_s','sampled_print_s')
+        return bases+(('sampled_on_s',) if device in self.maintenance_book._names else ())
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
         from maintenance_reference import request
