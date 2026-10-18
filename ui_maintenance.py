@@ -4,7 +4,7 @@ Presentation is separate from the trusted controllers. Only an explicit action
 advances a workflow; observations have no timeout. No I/O in drawing/navigation.
 """
 from types import SimpleNamespace
-from time import monotonic
+from time import monotonic, strftime, localtime
 import textwrap
 from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details)
@@ -28,6 +28,19 @@ class MaintenanceViewMixin:
             self._maintenance_regions={}
             self._maintenance_notice=''
             self._maintenance_origin=None
+            self._maintenance_records_future=None
+            self._maintenance_records_data=((),())
+            self._maintenance_records_ready=False
+            self._maintenance_records_return='service'
+
+    def Enter_Maintenance_Menu(self):
+        self._maintenance_init()
+        self.checkkey=self.MaintenanceMenu
+        self._maintenance_history=[]
+        self._maintenance_context=None
+        self._maintenance_frame=None
+        self._maintenance_regions={}
+        self._maintenance_show('root')
 
     def _maintenance_back_home(self):
         self._maintenance_history=[]
@@ -151,10 +164,21 @@ class MaintenanceViewMixin:
                 row=next((r for r in physical if r.feature_id==feature and r.device==finding.device),None)
                 if row is not None: choices.append(Choice(label(row),'prepare',row))
             return Screen('Finding',device_name(finding.device),tuple(textwrap.wrap(explanation,30)),tuple(choices),tone='attention')
-        if page=='service':
+        if page.startswith('service'):
             return self._maintenance_service_screen()
         if page=='history':
             return self._maintenance_history_screen()
+        if page=='history_records':
+            records=self._maintenance_records_data[1]
+            if not records:
+                return Screen('Check history','No recorded checks',('Only completed recorded checks','appear here. This is not a','lifetime health history.'),(back,))
+            choices=[]
+            for record in records:
+                name=device_name(record.get('device'))
+                stamp=record.get('timestamp')
+                date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Date unknown'
+                choices.append(Choice(name,'historical_result',record,date+' / '+str(record.get('status',''))))
+            return Screen('Check history',choices=(back,)+tuple(choices),kind='list')
         if page=='storage':
             return Screen('Maintenance records','Working in the background',('Please wait for the record.','No hardware action is running.'),(back,))
         if page=='notice':
@@ -225,12 +249,58 @@ class MaintenanceViewMixin:
         return Screen(title,heading,live or ('Waiting for verified evidence.',),(Choice(stop,'cancel'),),tone='attention' if feature.startswith('H') else 'normal')
 
     def _maintenance_service_screen(self):
-        return Screen('Service plan','No interval assumed',('Load your configured service','tasks. Manufacturer or user','policy is required.'),
-                      (Choice('Back','back'),Choice('Load service tasks','load_services')))
+        from maintenance_ui_records import TASKS
+        from maintenance_assessment_store import ServicePolicy
+        page=self._maintenance_page
+        back=Choice('Back','back')
+        if page=='service':
+            if not self._maintenance_records_ready:
+                return Screen('Service plan','No interval assumed',('Load your saved reminders.','Intervals require an explicit','manufacturer or user policy.'),
+                    (back,Choice('Load service tasks','load_services')))
+            tasks=self._maintenance_records_data[0]
+            choices=[back,Choice('Add calendar reminder','service_add')]
+            for policy,last,due in tasks:
+                detail={'due':'Service is due','not_due':'Within your interval','unknown':'No reliable service date'}[due]
+                choices.append(Choice(TASKS.get(policy.task_id,policy.task_id),'service_task',(policy,last,due),device_name(policy.device)+' / '+detail))
+            if not tasks:
+                return Screen('Service plan','No reminders configured',('Choose the device and task.','No interval or last-service date','will be invented.'),tuple(choices))
+            return Screen('Service plan',choices=tuple(choices),kind='list')
+        if page=='service_devices':
+            physical,reads=self._maintenance_options()
+            devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
+            return Screen('Choose device',choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
+        if page=='service_kind':
+            device=self._maintenance_context
+            tasks=['inspect_clean']
+            if device.startswith('extruder'): tasks.append('nozzle_inspect')
+            if device.startswith(('stepper_','manual_stepper ')): tasks.append('lubricate')
+            return Screen('Choose service task',choices=(back,)+tuple(Choice(TASKS[k],'service_kind',(device,k)) for k in tasks),kind='list')
+        if page=='service_interval':
+            device,task,days=self._maintenance_context
+            return Screen('Choose your interval',str(days)+' calendar days',('Turn to change the interval.','Use your maintenance guidance.','This is a reminder, not wear','measurement.'),
+                (Choice('Review reminder','service_review'),))
+        if page=='service_review':
+            policy=self._maintenance_context
+            return Screen('Confirm reminder',TASKS.get(policy.task_id,policy.task_id),
+                (device_name(policy.device),'Every %d calendar days' % (policy.interval/86400),
+                 'Source: user-defined interval.','No service is marked completed.'),
+                (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
+        if page=='service_task':
+            policy,last,due=self._maintenance_context
+            date=strftime('%Y-%m-%d',localtime(last['timestamp'])) if last and type(last.get('timestamp')) in (int,float) else 'Not recorded'
+            return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
+                (device_name(policy.device),'Last service: '+date,
+                 {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':'Due date cannot be determined.'}[due],
+                 'Follow manufacturer guidance.'),
+                (back,Choice('I completed this service','service_confirm',policy)),tone='attention' if due=='due' else 'normal')
+        if page=='service_confirm':
+            return Screen('Confirm completed service','Did you finish the work?',('Only confirm actual maintenance.','This writes a service date,','not a hardware test result.'),
+                (back,Choice('Yes, record completion','service_complete',self._maintenance_context)))
+        return Screen('Service plan',choices=(back,))
 
     def _maintenance_history_screen(self):
         return Screen('Usage and history','Records, not lifetime counters',('Print history covers recorded jobs.','Sampled ON time is a lower bound.','Open the records you need.'),(
-            Choice('Back','back'),Choice('Recent check history','history_read','S11'),
+            Choice('Back','back'),Choice('Recent check history','load_history'),
             Choice('Recorded print usage','history_read','S10'),Choice('Sampled component usage','history_read','S12')))
 
     def _maintenance_rows(self):
@@ -335,10 +405,12 @@ class MaintenanceViewMixin:
         color=getattr(owner,'display_color',None) if page=='pulse' else None
         # Diagnostic colour patch stays below instruction text and above buttons.
         color_sig=(color,page)
+        previous_color=self._maintenance_regions.get('color',(None,None))[0]
         if self._maintenance_regions.get('color')!=color_sig:
             self._maintenance_regions['color']=color_sig
-            self.lcd.draw_rectangle(1,color if color is not None else 0x2125,16,199,255,222)
-        self._trace_maintenance_ui('draw',title=screen.title,entries=self._maintenance_rows()[1])
+            if color is not None or previous_color is not None:
+                self.lcd.draw_rectangle(1,color if color is not None else 0x2125,16,199,255,222)
+        self._trace_maintenance_ui('draw',title=screen.title,entries=tuple((c.label,) for c in choices))
 
     def _maintenance_complete(self,result):
         if result is None:
@@ -350,6 +422,28 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
+        if action=='historical_result':
+            record=value
+            outcome=SimpleNamespace(feature_id=record.get('feature'),device=record.get('device'),
+                status=record.get('status'),reason='Historical record: '+str(record.get('reason','')),
+                evidence=tuple(record.get('evidence',())),restore_verified=record.get('restore_verified'))
+            return self._maintenance_open('details',outcome)
+        if action=='service_discard':
+            self._maintenance_history=[('root',3,None)]
+            self._maintenance_context=None
+            return self._maintenance_show('service')
+        if action=='service_add': return self._maintenance_open('service_devices')
+        if action=='service_device': return self._maintenance_open('service_kind',value)
+        if action=='service_kind': return self._maintenance_open('service_interval',(value[0],value[1],30))
+        if action=='service_review':
+            from maintenance_assessment_store import ServicePolicy
+            device,task,days=self._maintenance_context
+            return self._maintenance_open('service_review',ServicePolicy(task,device,'calendar_s',days*86400,'user-defined interval'))
+        if action=='service_task': return self._maintenance_open('service_task',value)
+        if action=='service_confirm': return self._maintenance_open('service_confirm',value)
+        if action in ('service_save','service_complete'):
+            return self._maintenance_load_records('save_policy' if action=='service_save' else 'complete',value)
+        if action=='load_history': return self._maintenance_load_records(history=True)
         if action=='home': return self._maintenance_back_home()
         if action=='back': return self._maintenance_back()
         if action=='open': return self._maintenance_open(value)
@@ -424,14 +518,26 @@ class MaintenanceViewMixin:
         if action in ('load_services','history_read','export'):
             return self._maintenance_storage_action(action,value)
 
+    def _maintenance_load_records(self,operation='load',policy=None,history=False):
+        if self._maintenance_records_future is not None:
+            return
+        try:
+            future=self.pd.maintenance_ui_records(operation,policy=policy,history=history)
+        except Exception:
+            return self._maintenance_open('notice',('Records unavailable',('The request could not be queued.','No maintenance was recorded.')))
+        self._maintenance_records_future=future
+        self._maintenance_records_return='history_records' if history else 'service'
+        # A write is already explicitly authorized. Leaving this wait view does
+        # not replay or duplicate it; its Future remains owned until completion.
+        self._maintenance_open('storage')
+
     def _maintenance_storage_action(self,action,value):
-        # Implemented by the service/history integration, never draw-time I/O.
-        if action in ('history_read','export'):
-            feature='S20' if action=='export' else value
-            row=next((r for r in self.pd.maintenance_read_plan() if r.feature_id==feature),None)
-            if row is not None:
-                return self._maintenance_dispatch(Choice('Read records','read',row))
-        self._maintenance_open('notice',('No service policy loaded',('Define a source-backed policy.','No interval will be invented.')))
+        if action=='load_services': return self._maintenance_load_records()
+        feature='S20' if action=='export' else value
+        row=next((r for r in self.pd.maintenance_read_plan() if r.feature_id==feature),None)
+        if row is not None:
+            return self._maintenance_dispatch(Choice('Read records','read',row))
+        self._maintenance_open('notice',('No data source available',('This information is not supported','by the current installation.')))
 
     def HMI_Maintenance_Menu(self):
         self._maintenance_init()
@@ -443,6 +549,12 @@ class MaintenanceViewMixin:
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
             owner.adjust_measurement(.01*steps*(1 if event==self.ENCODER_DIFF_CW else -1))
             self._maintenance_show('pulse');return
+        if self._maintenance_page=='service_interval' and event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            device,task,days=self._maintenance_context
+            steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
+            days=max(1,min(3650,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
+            self._maintenance_context=(device,task,days)
+            self.Draw_Maintenance_Menu();self.lcd.update();return
         choices=self._maintenance_screen().choices
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
@@ -459,6 +571,22 @@ class MaintenanceViewMixin:
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
+        future=self._maintenance_records_future
+        if future is not None and future.done():
+            self._maintenance_records_future=None
+            try:
+                self._maintenance_records_data=future.result()
+                self._maintenance_records_ready=True
+                target=self._maintenance_records_return
+            except Exception:
+                target='notice'
+                self._maintenance_context=('Record operation failed',('Review storage and retry explicitly.','No success is assumed.'))
+            if visible and active_page=='storage':
+                if target!='notice':
+                    self._maintenance_context=None
+                    if target=='service': self._maintenance_history=[('root',3,None)]
+                    elif self._maintenance_history: self._maintenance_history.pop()
+                self._maintenance_show(target)
         if getattr(owner,'pending',False):
             result=self.pd.poll_maintenance_physical()
             if result is not None:

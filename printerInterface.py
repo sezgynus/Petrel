@@ -574,13 +574,24 @@ class PrinterData:
                     logging.warning('Maintenance assessment evidence rejected')
         return result
 
+    def maintenance_ui_records(self, operation, policy=None, history=False):
+        from maintenance_ui_records import request
+        rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
+        devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
+        return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history)
+
+    def _maintenance_assessment_rows(self):
+        from maintenance_heater import thermal_plan
+        rows=tuple(self.maintenance_read_plan())+tuple(self.maintenance_guided_plan())
+        return tuple(dict.fromkeys(rows+thermal_plan(self.maintenance.snapshot)))
+
     def maintenance_assessment_details(self, **policies):
-        rows = tuple(self.maintenance_read_plan()) + tuple(self.maintenance_guided_plan())
+        rows = self._maintenance_assessment_rows()
         return self.maintenance_assessment.detailed_report(
             self.maintenance.snapshot, rows, **policies)
 
     def maintenance_assessment_report(self):
-        rows = tuple(self.maintenance_read_plan()) + tuple(self.maintenance_guided_plan())
+        rows = self._maintenance_assessment_rows()
         return self.maintenance_assessment.report(self.maintenance.snapshot, rows)
 
     def maintenance_read_plan(self):
@@ -1606,3 +1617,4 @@ class PrinterData:
             raise ValueError('Runtime Z offset is outside the supported range')
         send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
         return send('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
+

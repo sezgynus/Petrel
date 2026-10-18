@@ -1621,8 +1621,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 # an entry safety check, never a capability API request.
                 from maintenance_session import idle
                 if idle(self.pd.state):
-                    self.checkkey = self.MaintenanceMenu
-                    self.Draw_Maintenance_Menu()
+                    self.Enter_Maintenance_Menu()
             elif key == 'INFO':
                 self._info_origin = self.MainMenu
                 self.checkkey = self.Info
@@ -3837,3 +3836,4 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.pd.buzzer.tone(100, 698)
         else:
             self.pd.buzzer.tone(40, 440)
+
