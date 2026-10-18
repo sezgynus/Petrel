@@ -75,8 +75,24 @@ Usage steps: [Daily use](user-guide.md) · [Print/Tune](print-controls.md) · [M
 | Incomplete hold returns without selecting a menu item | <a href="assets/screens/hold-cancel.png"><img src="assets/screens/framed/hold-cancel.png" width="176" alt="Incomplete hold returns without selecting a menu item"></a> | [Full-size PNG](assets/screens/hold-cancel.png) |
 | Printer power-off confirmation | <a href="assets/screens/power-confirm.png"><img src="assets/screens/framed/power-confirm.png" width="176" alt="Printer power-off confirmation"></a> | [Full-size PNG](assets/screens/power-confirm.png) |
 | Power off is blocked while a print is active | <a href="assets/screens/power-blocked.png"><img src="assets/screens/framed/power-blocked.png" width="176" alt="Power off is blocked while a print is active"></a> | [Full-size PNG](assets/screens/power-blocked.png) |
-| Historical Maintenance placeholder (not current UI) | <a href="assets/screens/maintenance.png"><img src="assets/screens/framed/maintenance.png" width="176" alt="Maintenance placeholder"></a> | [Full-size PNG](assets/screens/maintenance.png) |
 | Power off selected | <a href="assets/screens/power-off-selected.png"><img src="assets/screens/framed/power-off-selected.png" width="176" alt="Power off selected"></a> | [Full-size PNG](assets/screens/power-off-selected.png) |
+
+## Maintenance checks, care and diagnostics
+
+| Screen | Preview | Panel PNG |
+|---|---|---|
+| Care overview and fixed Maintenance destinations | <a href="assets/screens/maintenance.png"><img src="assets/screens/framed/maintenance.png" width="176" alt="Care overview and fixed Maintenance destinations"></a> | [Full-size PNG](assets/screens/maintenance.png) |
+| Five saved care plans, first page | <a href="assets/screens/maintenance-care.png"><img src="assets/screens/framed/maintenance-care.png" width="176" alt="Five saved care plans, first page"></a> | [Full-size PNG](assets/screens/maintenance-care.png) |
+| Remaining care plans after scrolling | <a href="assets/screens/maintenance-care-scrolled.png"><img src="assets/screens/framed/maintenance-care-scrolled.png" width="176" alt="Remaining care plans after scrolling"></a> | [Full-size PNG](assets/screens/maintenance-care-scrolled.png) |
+| Checks grouped by installed capability | <a href="assets/screens/maintenance-checks.png"><img src="assets/screens/framed/maintenance-checks.png" width="176" alt="Checks grouped by installed capability"></a> | [Full-size PNG](assets/screens/maintenance-checks.png) |
+| Fan check preparation before any command | <a href="assets/screens/maintenance-prepare.png"><img src="assets/screens/framed/maintenance-prepare.png" width="176" alt="Fan check preparation before any command"></a> | [Full-size PNG](assets/screens/maintenance-prepare.png) |
+| Diagnostics, usage and support entry points | <a href="assets/screens/maintenance-diagnostics.png"><img src="assets/screens/framed/maintenance-diagnostics.png" width="176" alt="Diagnostics, usage and support entry points"></a> | [Full-size PNG](assets/screens/maintenance-diagnostics.png) |
+| Host readings as labeled measurements | <a href="assets/screens/maintenance-host.png"><img src="assets/screens/framed/maintenance-host.png" width="176" alt="Host readings as labeled measurements"></a> | [Full-size PNG](assets/screens/maintenance-host.png) |
+| Next page of the host information report | <a href="assets/screens/maintenance-host-page-2.png"><img src="assets/screens/framed/maintenance-host-page-2.png" width="176" alt="Next page of the host information report"></a> | [Full-size PNG](assets/screens/maintenance-host-page-2.png) |
+| Recorded fan observation with separate actions | <a href="assets/screens/maintenance-result.png"><img src="assets/screens/framed/maintenance-result.png" width="176" alt="Recorded fan observation with separate actions"></a> | [Full-size PNG](assets/screens/maintenance-result.png) |
+| Heating result explains a measurement requiring review | <a href="assets/screens/maintenance-thermal-result.png"><img src="assets/screens/framed/maintenance-thermal-result.png" width="176" alt="Heating result explains a measurement requiring review"></a> | [Full-size PNG](assets/screens/maintenance-thermal-result.png) |
+| Optional heating measurements without menu cursors | <a href="assets/screens/maintenance-evidence.png"><img src="assets/screens/framed/maintenance-evidence.png" width="176" alt="Optional heating measurements without menu cursors"></a> | [Full-size PNG](assets/screens/maintenance-evidence.png) |
+| Recommendation explanation and available follow-up | <a href="assets/screens/maintenance-recommendation.png"><img src="assets/screens/framed/maintenance-recommendation.png" width="176" alt="Recommendation explanation and available follow-up"></a> | [Full-size PNG](assets/screens/maintenance-recommendation.png) |
 
 ## Bed leveling and calibration
 

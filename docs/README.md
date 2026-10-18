@@ -8,6 +8,7 @@
 |---|---|
 | [Installation and configuration](installation.md) | Wiring, setup, external settings, updates and troubleshooting |
 | [Daily use](user-guide.md) | Printing, movement, heating, calibration, Display, Info, light and power |
+| [Using Maintenance](user-guide.md#maintenance) | Care plans, hardware checks, results, diagnostics, recommendations and current screenshots |
 | [Maintenance self-tests](maintenance-stage8-acceptance.md) | Guarded physical tests, optional output profiles, operator observation and real-Pi acceptance |
 | [MMU and filament](mmu-guide.md) | Happy Hare gates, spool assignment, tool map, EndlessSpool and recovery |
 | [LCD compatibility](lcd-assets.md) | Choosing the supported display and checking panel resources |

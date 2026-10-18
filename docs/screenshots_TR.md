@@ -75,8 +75,24 @@ Kullanım adımları: [Günlük kullanım](user-guide_TR.md) · [Print/Tune](pri
 | Yarım basılı tutma menü seçmeden geri döner | <a href="assets/screens/hold-cancel.png"><img src="assets/screens/framed/hold-cancel.png" width="176" alt="Yarım basılı tutma menü seçmeden geri döner"></a> | [Tam boyut PNG](assets/screens/hold-cancel.png) |
 | Yazıcıyı kapatma onayı | <a href="assets/screens/power-confirm.png"><img src="assets/screens/framed/power-confirm.png" width="176" alt="Yazıcıyı kapatma onayı"></a> | [Tam boyut PNG](assets/screens/power-confirm.png) |
 | Aktif baskıda güç kapatma engellenir | <a href="assets/screens/power-blocked.png"><img src="assets/screens/framed/power-blocked.png" width="176" alt="Aktif baskıda güç kapatma engellenir"></a> | [Tam boyut PNG](assets/screens/power-blocked.png) |
-| Eski Maintenance placeholder (güncel UI değil) | <a href="assets/screens/maintenance.png"><img src="assets/screens/framed/maintenance.png" width="176" alt="Bakım menüsü"></a> | [Tam boyut PNG](assets/screens/maintenance.png) |
 | Güç kapatma seçili | <a href="assets/screens/power-off-selected.png"><img src="assets/screens/framed/power-off-selected.png" width="176" alt="Güç kapatma seçili"></a> | [Tam boyut PNG](assets/screens/power-off-selected.png) |
+
+## Maintenance testleri, bakım ve diagnostik
+
+| Ekran | Önizleme | Panel PNG |
+|---|---|---|
+| Bakım özeti ve sabit Maintenance bölümleri | <a href="assets/screens/maintenance.png"><img src="assets/screens/framed/maintenance.png" width="176" alt="Bakım özeti ve sabit Maintenance bölümleri"></a> | [Tam boyut PNG](assets/screens/maintenance.png) |
+| Beş kayıtlı bakım planı, ilk görünüm | <a href="assets/screens/maintenance-care.png"><img src="assets/screens/framed/maintenance-care.png" width="176" alt="Beş kayıtlı bakım planı, ilk görünüm"></a> | [Tam boyut PNG](assets/screens/maintenance-care.png) |
+| Kaydırma sonrası diğer bakım planları | <a href="assets/screens/maintenance-care-scrolled.png"><img src="assets/screens/framed/maintenance-care-scrolled.png" width="176" alt="Kaydırma sonrası diğer bakım planları"></a> | [Tam boyut PNG](assets/screens/maintenance-care-scrolled.png) |
+| Kurulu donanıma göre gruplandırılan testler | <a href="assets/screens/maintenance-checks.png"><img src="assets/screens/framed/maintenance-checks.png" width="176" alt="Kurulu donanıma göre gruplandırılan testler"></a> | [Tam boyut PNG](assets/screens/maintenance-checks.png) |
+| Komut çalıştırılmadan önce fan testi hazırlığı | <a href="assets/screens/maintenance-prepare.png"><img src="assets/screens/framed/maintenance-prepare.png" width="176" alt="Komut çalıştırılmadan önce fan testi hazırlığı"></a> | [Tam boyut PNG](assets/screens/maintenance-prepare.png) |
+| Diagnostik, kullanım ve destek girişleri | <a href="assets/screens/maintenance-diagnostics.png"><img src="assets/screens/framed/maintenance-diagnostics.png" width="176" alt="Diagnostik, kullanım ve destek girişleri"></a> | [Tam boyut PNG](assets/screens/maintenance-diagnostics.png) |
+| Etiketli ölçümler olarak host verileri | <a href="assets/screens/maintenance-host.png"><img src="assets/screens/framed/maintenance-host.png" width="176" alt="Etiketli ölçümler olarak host verileri"></a> | [Tam boyut PNG](assets/screens/maintenance-host.png) |
+| Host bilgi raporunun sonraki sayfası | <a href="assets/screens/maintenance-host-page-2.png"><img src="assets/screens/framed/maintenance-host-page-2.png" width="176" alt="Host bilgi raporunun sonraki sayfası"></a> | [Tam boyut PNG](assets/screens/maintenance-host-page-2.png) |
+| Ayrı işlem alanıyla kaydedilen fan gözlemi | <a href="assets/screens/maintenance-result.png"><img src="assets/screens/framed/maintenance-result.png" width="176" alt="Ayrı işlem alanıyla kaydedilen fan gözlemi"></a> | [Tam boyut PNG](assets/screens/maintenance-result.png) |
+| İncelenmesi gereken ölçümü açıklayan ısıtma sonucu | <a href="assets/screens/maintenance-thermal-result.png"><img src="assets/screens/framed/maintenance-thermal-result.png" width="176" alt="İncelenmesi gereken ölçümü açıklayan ısıtma sonucu"></a> | [Tam boyut PNG](assets/screens/maintenance-thermal-result.png) |
+| Menü seçim çizgileri olmadan isteğe bağlı ısıtma ölçümleri | <a href="assets/screens/maintenance-evidence.png"><img src="assets/screens/framed/maintenance-evidence.png" width="176" alt="Menü seçim çizgileri olmadan isteğe bağlı ısıtma ölçümleri"></a> | [Tam boyut PNG](assets/screens/maintenance-evidence.png) |
+| Önerinin açıklaması ve kullanılabilir sonraki işlemler | <a href="assets/screens/maintenance-recommendation.png"><img src="assets/screens/framed/maintenance-recommendation.png" width="176" alt="Önerinin açıklaması ve kullanılabilir sonraki işlemler"></a> | [Tam boyut PNG](assets/screens/maintenance-recommendation.png) |
 
 ## Tabla ayarı ve kalibrasyon
 

@@ -42,9 +42,10 @@ The interface uses the existing encoder and native panel drawing commands. The h
 | Spoolman | Spool IDs and gate material/color; remaining percentage when the Happy Hare/Spoolman integration supplies it |
 | Display and system | Brightness/dimming, buzzer/tones, network/host/MCU/software status, QR link and idle-time Petrel updates |
 | Light and power | Configured PWM case light and Moonraker power device; encoder hold with confirmation and active-print blocking |
+| Maintenance | Capability-based guided checks, care progress, readable results/diagnostics and recorded recommendations |
 | After Job | Three optional policy switches; only set pins, while your macros perform end-print actions |
 
-MMU and Spoolman are optional. Menus depend on discovered configuration and valid status; on-screen labels remain English. Maintenance offers opt-in Diagnostics and guarded, user-confirmed Self Tests in this feature branch. Physical actuator behavior has not yet been accepted on a real printer; [see the Stage 8 guide](docs/maintenance-stage8-acceptance.md). See the [complete Print/Tune field table](docs/print-controls.md).
+MMU and Spoolman are optional. Menus depend on discovered configuration and valid status; on-screen labels remain English. Maintenance includes capability-based checks, periodic care, diagnostic reports and recommendations. See the [illustrated usage guide](docs/user-guide.md#maintenance) and [target-specific physical acceptance ledger](docs/maintenance-reference-printer-acceptance.md). See the [complete Print/Tune field table](docs/print-controls.md).
 
 ## Compatibility and requirements
 

@@ -42,9 +42,10 @@ Arayüz mevcut enkoderi ve panelin native çizim komutlarını kullanır. Host �
 | Spoolman | Makara ID'leri ve gate malzeme/rengi; Happy Hare/Spoolman entegrasyonu sağlıyorsa kalan yüzde |
 | Ekran ve sistem | Parlaklık/karartma, buzzer/tonlar, ağ/host/MCU/yazılım durumu, QR bağlantısı ve yazıcı boşta iken Petrel güncellemeleri |
 | Işık ve güç | Yapılandırılmış PWM kasa ışığı ve Moonraker güç cihazı; onaylı enkoder basılı tutma ve aktif baskıda kapatma engeli |
+| Maintenance | Kurulu donanıma göre kılavuzlu kontroller, bakım ilerlemesi, okunabilir sonuçlar/diagnostik ve kayıtlı öneriler |
 | After Job | Üç isteğe bağlı politika switchi; yalnız pinleri değiştirir, iş sonundaki eylemleri makrolarınız yapar |
 
-MMU ve Spoolman isteğe bağlıdır. Menüler algılanan yapılandırmaya ve geçerli duruma bağlıdır; ekran etiketleri İngilizce kalır. Maintenance, bu feature dalında isteğe bağlı Diagnostics ve güvenlik/onay kontrollü Self Tests içerir. Fiziksel aktüatör davranışı gerçek yazıcıda henüz kabul edilmedi; [Aşama 8 rehberine bakın](docs/maintenance-stage8-acceptance_TR.md). [Print/Tune alanlarının tam tablosuna](docs/print-controls_TR.md) bakın.
+MMU ve Spoolman isteğe bağlıdır. Menüler algılanan yapılandırmaya ve geçerli duruma bağlıdır; ekran etiketleri İngilizce kalır. Maintenance; donanıma göre kontroller, periyodik bakım, diagnostik raporları ve öneriler içerir. [Ekranlarla kullanım rehberine](docs/user-guide_TR.md#maintenance) ve [hedef bazlı fiziksel kabul çizelgesine](docs/maintenance-reference-printer-acceptance_TR.md) bakın. [Print/Tune alanlarının tam tablosuna](docs/print-controls_TR.md) bakın.
 
 ## Uyumluluk ve gereksinimler
 

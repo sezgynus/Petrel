@@ -179,18 +179,86 @@ Open **Display → Buzzer** to choose one of the configured `[pwm_cycle_time nam
 
 Press an audio setting, rotate to adjust it and press again to save. Volume uses 10% steps from 0 to 100%. Tones include Off, Tick, Short beep, Low, High and Double. Output and sound preferences survive restarts. Sounds play in the background; rapid rotations do not build a sound queue. If the selected section is removed from Klipper configuration, sound controls are hidden until an available output is chosen.
 
-## Maintenance (experimental feature branch)
+## Maintenance
 
-**Home → Maintenance** opens four Graphite tiles:
+Open **Home → Maintenance** while the printer is idle. Available checks and devices follow the discovered printer configuration. Screen labels remain English.
 
-- **Check printer:** guided checks grouped by purpose and installed hardware. Select the device, review preparation, then explicitly confirm Start. No physical command runs on menu entry. A combined heating check captures heating, control and cooling evidence in one operation.
-- **Findings:** understandable current alerts grouped by device. Numeric evidence is optional under **Details**. No alerts does not imply all hardware is healthy. User observations, measured criteria, incomplete checks and information remain distinct.
-- **Service plan:** load saved reminders or add a calendar reminder for a supported device. Choose your own interval from maintenance guidance, review it and save explicitly. The editor's initial value is not an installed default. Record actual completed maintenance separately; creating a reminder does not claim work was done.
-- **More:** supported calibrations, on-demand system information, recorded usage/history and support recording/report export. Offset, mesh and screw adjustment stay in Leveling.
+<p align="center"><img src="assets/screens/framed/maintenance.png" width="360" alt="Maintenance overview with care progress and four fixed destinations"></p>
 
-Follow the instructions for sensor transitions, measured distances and physical observations. There is no timeout for a user's answer. Fan startup checks require a confirmed full stop between rounds. Cancelling active heating requests a Klipper safety shutdown; read the stop action before pressing. Back returns to the originating device. Calibration does not automatically issue SAVE_CONFIG.
+The overview shows the two nearest or due care plans. The four destinations remain in the same place as plans and recommendations grow:
 
-History entries are explicitly historical, not current health. Usage covers only the recorded period; sampled component ON time is a lower bound. Missing reference conditions or service dates are not invented. The [gallery](screenshots.md) may include older test/placeholder views and does not illustrate this new layout. See [LCD interaction](maintenance-ui.md), [safe output profiles](maintenance-profiles.md), and the [target-specific physical acceptance ledger](maintenance-reference-printer-acceptance.md). Earlier backend acceptance does not constitute physical acceptance of this new UI.
+| Destination | Use it for |
+|---|---|
+| **Care schedule** | All saved reminders, their progress and recording completed maintenance |
+| **Check printer** | Guided checks by purpose/device, plus supported calibrations |
+| **Diagnostics** | On-demand readings, usage/history and support tools |
+| **Recommendations** | Current recorded issues grouped by device and available follow-up checks |
+
+These screenshots show the current UI with example controller records and measurements; they are not new physical test results. Your available entries and readings can differ.
+
+### Care schedule
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-care.png" width="360" alt="Care schedule with multiple saved plans">
+  <img src="assets/screens/framed/maintenance-care-scrolled.png" width="360" alt="Remaining plans and the scrolling care viewport">
+</p>
+
+The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Missing service dates or unknown sampled coverage do not get a fabricated percentage. Rotate to reach every plan; **Back** stays at the top.
+
+1. Open **Care schedule → Add reminder**. Select a supported device, service task and available reminder basis.
+2. Set your interval using the manufacturer's maintenance guidance, review it and explicitly save. The editor's initial value is not an installed default.
+3. After actually performing maintenance, open its plan and select **I completed this service → Yes, record completion**. This records the service date; it does not award a passed hardware test.
+4. Use **Refresh records** to reload saved plans. A load/save error is shown rather than claiming success.
+
+Sampled printing/powered hours cover only the recorded period and are lower bounds. A value below the interval does not prove service is not due.
+
+### Run a check and read its result
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-checks.png" width="360" alt="Checks grouped by purpose">
+  <img src="assets/screens/framed/maintenance-prepare.png" width="360" alt="Preparation before the fan check">
+  <img src="assets/screens/framed/maintenance-result.png" width="360" alt="Recorded fan observation with separate Details action">
+</p>
+
+1. Open **Check printer**, select a group and the check/device you need.
+2. Read preparation and choose **Prepare check**. This step does not actuate hardware.
+3. Review the separate confirmation and select **Start check**, or **Home axes and continue** when homing is required.
+4. Follow the sensor, physical observation or measurement instructions. Enter measured travel rather than commanded travel. A user's answer has no timeout.
+5. Read the result heading and **What this means**. Choose **Details** for optional measurements, or **Back to checks** to return to the originating device.
+
+A recorded user observation, a measured criterion and an unfinished check have different meanings. A completed check does not certify every function or remaining component life. Fan startup rounds require explicit confirmation that the fan has physically stopped.
+
+**Stopping active heating requests a Klipper safety shutdown.** Read the stop action before pressing it. Calibration changes are not automatically saved. Everyday probe-offset, screw-adjustment and bed-mesh tools remain under **Leveling**.
+
+### Measurements and diagnostics
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Diagnostics with system readings, usage/history and support tools">
+  <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Host measurements shown as label and value groups">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Second page of a diagnostic report">
+</p>
+
+Open **Diagnostics**, choose a group and select a reading. Information is collected in the background and opens directly as a report. The heading identifies the reading; measurements show their label, value and unit together. Information fields are not selectable menu items.
+
+Long reports show a page count in the top-right of the report. Rotate to **Next page** or **Previous page**, then press. **Back** returns to the prior screen. The shared dashboard remains below the report; only actual actions receive a selection cursor.
+
+**Diagnostics → Usage and history** contains recorded print usage, sampled component usage and recent check history. Historical evidence is labeled **HISTORY** and does not describe current hardware health. **Support tools** contains optional recording and diagnostic-report export; recording does not start a check.
+
+### Results needing review and recommendations
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-thermal-result.png" width="360" alt="Heating result with a clear review message">
+  <img src="assets/screens/framed/maintenance-evidence.png" width="360" alt="Optional labeled heating measurements">
+  <img src="assets/screens/framed/maintenance-recommendation.png" width="360" alt="Recommendation explanation separate from follow-up actions">
+</p>
+
+A result needing attention explains what was measured before offering follow-up actions. For example, excessive overshoot asks you to review temperature control; it does not automatically diagnose an aged heater. Supported PID calibration is offered only when registered for that same heater.
+
+**Recommendations** groups current recorded findings by device. Read **What to review**, then choose an offered check if needed. Additional text remains reachable through report pages. No recommendations means no current recorded alert, not that every component is healthy.
+
+A complete heating result may offer **Heating speed reference**. Save only a known-working response after explicit confirmation. Comparison requires equivalent hardware/cooling conditions and your chosen review limit; it is not a manufacturer wear threshold. Remove the reference after hardware changes.
+
+See the [current screen gallery](screenshots.md#maintenance-checks-care-and-diagnostics), [LCD interaction details](maintenance-ui.md), [output profiles](maintenance-profiles.md) and [physical acceptance ledger](maintenance-reference-printer-acceptance.md). Backend acceptance and CI screenshots do not replace physical acceptance of this UI.
 
 ## Info and updates
 
