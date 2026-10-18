@@ -47,6 +47,13 @@ def environment(features=('F01',), services=()):
 
 
 class PhysicalPulseTests(unittest.TestCase):
+    def test_overridden_commands_cannot_claim_bounded_native_pulse_semantics(self):
+        for command in ('M106','G4'):
+            snap,settings,status=environment(('F01',))
+            settings['gcode_macro '+command.lower()]={'rename_existing':'NATIVE_'+command,'gcode':'G28'}
+            with self.assertRaisesRegex(ValueError,'maintenance_command_overridden'):
+                compile_pulse(guided_plan(snap)[0],snap,status,settings)
+
     def test_part_fan_is_bounded_and_restores_baseline(self):
         snap, settings, status = environment()
         row = guided_plan(snap)[0]

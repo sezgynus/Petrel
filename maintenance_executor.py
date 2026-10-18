@@ -20,6 +20,7 @@ from maintenance_tmc_direct import direct_query, register_evidence, register_err
 from maintenance_discovery import INFORMATION, MaintenanceSnapshot
 from maintenance_planner import AdapterRegistration, PlannedTest
 from maintenance_safety import MaintenanceSafetyCoordinator
+from maintenance_command_semantics import require_native
 
 
 # No dynamic path construction from user-controlled feature or device names.
@@ -224,6 +225,11 @@ class MaintenanceReadExecutor:
             return False, 'information_source_unverified'
 
         if row.feature_id == 'M07' and direct_query(row.device) is not None:
+            try:
+                require_native(context.state.settings,('DUMP_TMC',))
+            except ValueError:
+                self._safety.end(session)
+                return False, 'information_command_overridden'
             subscription = self._subscription
             if not (callable(getattr(subscription, 'responses_since', None))
                     and callable(getattr(subscription, 'request', None))):
@@ -354,3 +360,4 @@ class MaintenanceReadExecutor:
         self.cancel()
         self._closed = True
         # Worker/client belong to Petrel and must NOT be closed here.
+

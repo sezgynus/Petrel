@@ -50,6 +50,20 @@ class Client:
 
 
 class ReadExecutorTests(unittest.TestCase):
+    def test_overridden_dump_tmc_is_rejected_before_subscription_dispatch(self):
+        from unittest.mock import Mock
+        self.settings['gcode_macro dump_tmc']={'rename_existing':'NATIVE_DUMP_TMC','gcode':'G28'}
+        self.state.objects=('tmc2208 stepper_x',)
+        self.snapshot=MaintenanceSnapshot(33,(DeviceCapabilities('tmc2208 stepper_x','driver',
+            _add(0,'M07',INFORMATION)),),config_marker=id(self.settings))
+        subscription=Mock()
+        executor=MaintenanceReadExecutor(self.worker,self.client,self.context,
+            lambda:self.snapshot,subscription=subscription)
+        row=next(r for r in build_plan(self.snapshot,read_only_adapters()) if r.feature_id=='M07')
+        self.assertEqual(executor.start(row),(False,'information_command_overridden'))
+        subscription.request.assert_not_called()
+        self.assertIsNone(executor._safety.active)
+
     def setUp(self):
         self.settings = {}
         self.state = SimpleNamespace(
@@ -302,3 +316,4 @@ class DirectTmcReadTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

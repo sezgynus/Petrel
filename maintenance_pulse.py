@@ -10,6 +10,7 @@ import re
 
 from maintenance_guided import _trusted_target
 from maintenance_hh_leds import mmu_led_owners, mmu_unit_indices
+from maintenance_command_semantics import require_native_script
 
 _NAME = re.compile(r'[A-Za-z][A-Za-z0-9_]{0,47}\Z')
 _TONE = 0.000625  # 1600 Hz; one 150-ms chirp
@@ -337,6 +338,7 @@ def compile_pulse(row, snapshot, status, settings, *, pin_command_name=None):
         script = '%s\nG4 P%d\n%s' % (start, duration, restore)
     if '\r' in script or len(script) > (_MAX_LED_SCRIPT if feature == 'O04' else 700):
         raise ValueError('unsafe_program')
+    require_native_script(settings,script)
     from urllib.parse import quote
     endpoint = ('' if feature == 'S18'
                 else '/printer/objects/query?' + quote(object_name, safe=''))
@@ -482,6 +484,7 @@ def compile_mmu_led_pulse(row, snapshot, physical, settings, controls, mmu, mach
     script = '\n'.join(instructions)
     if '\r' in script or len(script) > _MAX_LED_SCRIPT:
         raise ValueError('unsafe_mmu_led_program')
+    require_native_script(settings,script)
     from urllib.parse import quote
     read_path = '/printer/objects/query?' + '&'.join(
         quote(owner.section, safe='') for owner in owners)
