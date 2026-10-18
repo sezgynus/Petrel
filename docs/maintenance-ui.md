@@ -33,3 +33,7 @@ The empty-evidence root does not build an assessment report or controller plan. 
 ## Diagnostic presentation and shared artwork
 
 Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; unknown fields remain in the support report instead of guessing units. Long text wraps and full instructions remain reachable. Retired tile IDs 156–163 are removed from SVG/JPEG sources and the packed library; Maintenance uses master icons 13, 45 and 218. The matching export/manifest is 9 blocks (288 KiB), one block smaller than the former Maintenance UI.
+
+## Incremental updates across all submenus
+
+Encoder rotation reuses the displayed model; ENTER still rebuilds and validates action identities before dispatch. Like master list menus, scrolling uses native move_area, retaining overlapping rows and drawing only the exposed row. Care rows, descriptions, label fields, progress pixels and action viewports keep separate signatures. A value or action-count change does not invalidate the whole frame. Bar growth/shrink paints only the changed span.

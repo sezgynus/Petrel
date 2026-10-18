@@ -493,9 +493,10 @@ class MaintenanceViewMixin:
         self.lcd.draw_rectangle(1,bg,x,y,min(271,x+cells*w-1),y+h-1)
         self.lcd.draw_text(False,False,self.lcd.font6x12 if small else self.lcd.font8x16,color,bg,x,y,value)
 
-    def Draw_Maintenance_Menu(self):
+    def Draw_Maintenance_Menu(self,screen=None):
         self._maintenance_init()
-        screen=self._maintenance_screen()
+        if screen is None: screen=self._maintenance_screen()
+        self._maintenance_last_screen=screen
         draw_maintenance(self,screen)
         self._trace_maintenance_ui('draw',title=screen.title,entries=tuple((c.label,) for c in screen.choices))
 
@@ -670,12 +671,16 @@ class MaintenanceViewMixin:
             percent=max(1,min(100,percent+(steps if event==self.ENCODER_DIFF_CW else -steps)))
             self._maintenance_context=(outcome,percent)
             self.Draw_Maintenance_Menu();self.lcd.update();return
-        choices=self._maintenance_screen().choices
+        screen=(getattr(self,'_maintenance_last_screen',None) if self._maintenance_frame is not None and self._maintenance_frame[1]==self._maintenance_page
+                else None)
+        rotating=event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW)
+        if screen is None or not rotating: screen=self._maintenance_screen()
+        choices=screen.choices
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
             delta=steps if event==self.ENCODER_DIFF_CW else -steps
             self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
-            self.Draw_Maintenance_Menu();self.lcd.update()
+            self.Draw_Maintenance_Menu(screen);self.lcd.update()
         elif event==self.ENCODER_DIFF_ENTER and choices:
             drawn=getattr(self,'_maintenance_drawn_choices',None)
             current=tuple((c.action,c.value) for c in choices)

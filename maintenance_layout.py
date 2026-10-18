@@ -33,20 +33,70 @@ def _cursor(v,key,y,height,selected):
 
 def _row(v,key,choice,index,y,height=48,icon=45):
     detail=bool(choice.detail)
-    content=(choice.label,choice.detail,y,height,icon)
-    if _cached(v,('row',key),content):
-        v.lcd.draw_rectangle(1,BG,16,y,258,y+height-1)
-        if icon is not None:
-            show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,y+15)
-        x=60 if icon is not None else 24
-        cells=(256-x)//8
-        parts=textwrap.wrap(choice.label,cells)[:2] if height>=48 and not detail else (choice.label[:cells],)
-        for line,part in enumerate(parts):
-            v.lcd.draw_text(False,False,v.lcd.font8x16,INK,BG,x,y+(7 if detail or len(parts)>1 else 16)+line*18,part)
-        if detail:
-            v.lcd.draw_text(False,False,v.lcd.font6x12,MUTED,BG,x,y+28,choice.detail[:(256-x)//6])
+    x=60 if icon is not None else 24
+    cells=(256-x)//8
+    parts=textwrap.wrap(choice.label,cells)[:2] if height>=48 and not detail else (choice.label[:cells],)
+    shape=(y,height,icon is not None,detail,len(parts))
+    if _cached(v,('row',key),shape):
+        _forget(v,key,keep=('row',))
+        v.lcd.draw_rectangle(1,BG,16,y,259,y+height-1)
         v.lcd.draw_line(LINE,16,y+height-1,256,y+height-1)
+    if icon is not None and _cached(v,('icon',key),(icon,26,y+(height-20)//2)):
+        top=y+(height-20)//2
+        v.lcd.draw_rectangle(1,BG,26,top,49,top+23)
+        show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,top)
+    for line in range(2 if height>=48 else 1):
+        value=parts[line] if line<len(parts) else ''
+        if line==1 and detail: continue
+        _text(v,('label',key,line),value,x,y+(7 if detail or len(parts)>1 else 16 if height>=48 else 9)+line*18,cells)
+    if detail:
+        _text(v,('detail',key),choice.detail,x,y+28,(256-x)//6,True,MUTED)
     _cursor(v,key,y,height,index==v._maintenance_selection)
+
+
+def _contains(key,token):
+    return key==token or isinstance(key,tuple) and any(_contains(part,token) for part in key)
+
+
+def _forget(v,token,keep=()):
+    for key in tuple(v._maintenance_regions):
+        if _contains(key,token) and not (isinstance(key,tuple) and key[0] in keep):
+            del v._maintenance_regions[key]
+
+
+def _move_viewport(v,prefix,old_start,start,visible,height,top,first=1):
+    delta=start-old_start
+    if not delta: return
+    # Same panel operation as master _draw_list_menu, restricted to this viewport.
+    # Remove the old cursor before its pixels are copied to the next row.
+    bottom=top+visible*height-1
+    v.lcd.draw_rectangle(1,BG,4,top,7,bottom)
+    if abs(delta)<visible:
+        v.lcd.move_area(1,v.DWIN_SCROLL_UP if delta>0 else v.DWIN_SCROLL_DOWN,
+            abs(delta)*height,BG,0,top,259,bottom)
+    else:
+        v.lcd.draw_rectangle(1,BG,0,top,259,bottom)
+    retained=set(range(max(old_start,start)+first,min(old_start+visible,start+visible)+first)) if abs(delta)<visible else set()
+    tokens={key[1] for key in v._maintenance_regions if isinstance(key,tuple) and len(key)>1
+            and key[0] in ('row','cursor','care_row') and isinstance(key[1],tuple) and key[1][0]==prefix}
+    for token in tokens:
+        if token[1] not in retained:
+            _forget(v,token)
+            continue
+        for key,value in tuple(v._maintenance_regions.items()):
+            if not _contains(key,token): continue
+            kind=key[0]
+            value=list(value)
+            if kind in ('row','cursor','care_row'):
+                value[0]-=delta*height
+                if kind=='cursor': value[2]=False
+            elif kind=='native': value[2]-=delta*height
+            elif kind=='icon': value[2]-=delta*height
+            elif kind=='bar': value[3]-=delta*height
+            v._maintenance_regions[key]=tuple(value)
+    # Empty-slot sentinels belong to physical rows, not logical entries.
+    for key in tuple(v._maintenance_regions):
+        if isinstance(key,tuple) and key[0]=='empty': del v._maintenance_regions[key]
 
 
 def _scroll(v,start,total,visible,y=90,height=253):
@@ -61,10 +111,21 @@ def _scroll(v,start,total,visible,y=90,height=253):
 
 def _bar(v,key,item,x,y,width):
     fill=None if item.progress is None else int(width*item.progress)
-    if _cached(v,('bar',key),(fill,item.state,x,y,width)):
+    signature=(fill,item.state,x,y,width)
+    old=v._maintenance_regions.get(('bar',key))
+    if old==signature: return
+    v._maintenance_regions[('bar',key)]=signature
+    color=WARNING if item.state=='due' else ACCENT
+    if old is None or old[2:]!=(x,y,width) or old[0] is None or fill is None:
         v.lcd.draw_rectangle(1,LINE,x,y,x+width-1,y+3)
-        if fill:
-            v.lcd.draw_rectangle(1,WARNING if item.state=='due' else ACCENT,x,y,x+fill-1,y+3)
+        if fill: v.lcd.draw_rectangle(1,color,x,y,x+fill-1,y+3)
+    elif old[1]!=item.state:
+        if fill: v.lcd.draw_rectangle(1,color,x,y,x+fill-1,y+3)
+        if fill<old[0]: v.lcd.draw_rectangle(1,LINE,x+fill,y,x+old[0]-1,y+3)
+    elif fill>old[0]:
+        v.lcd.draw_rectangle(1,color,x+old[0],y,x+fill-1,y+3)
+    elif fill<old[0]:
+        v.lcd.draw_rectangle(1,LINE,x+fill,y,x+old[0]-1,y+3)
 
 
 def _home(v,screen):
@@ -97,46 +158,44 @@ def _list(v,screen):
     count=len(choices)-1
     care=screen.kind=='care'
     visible=3 if care else 5
+    height=82 if care else 52
     selection=v._maintenance_selection
-    start=getattr(v,'_maintenance_scroll',0)
+    old_start=getattr(v,'_maintenance_scroll',0)
+    start=old_start
     if selection>0:
         start=max(0,min(start,selection-1),selection-visible)
     start=min(start,max(0,count-visible))
-    if start!=getattr(v,'_maintenance_scroll',0):
-        v.lcd.draw_rectangle(1,BG,0,84,271,359)
-        v._maintenance_regions={k:value for k,value in v._maintenance_regions.items()
-            if k in (('row','back'),('cursor','back'))}
+    _move_viewport(v,'entry',old_start,start,visible,height,86)
     v._maintenance_scroll=start
     items={(item.policy.task_id,item.policy.device):item for item in screen.care}
-    height=82 if care else 52
     for slot in range(visible):
         index=start+slot+1
         y=86+slot*height
+        key=('entry',index)
         if index>=len(choices):
             if _cached(v,('empty',slot),(index,count)):
                 v.lcd.draw_rectangle(1,BG,0,y,260,min(359,y+height-1))
+                _forget(v,key)
             continue
+        v._maintenance_regions.pop(('empty',slot),None)
         choice=choices[index]
         if care and choice.action=='service_task':
             policy=choice.value[0]
             item=items.get((policy.task_id,policy.device))
             if item is not None:
-                key=('care_row',slot)
-                label=textwrap.wrap(item.label,28)[:2]
-                sig=(tuple(label),item.detail,y)
-                if _cached(v,key,sig):
+                if _cached(v,('care_row',key),(y,height)):
+                    _forget(v,key,keep=('care_row',))
                     v.lcd.draw_rectangle(1,BG,16,y,259,y+height-1)
-                    for line,value in enumerate(label):
-                        v.lcd.draw_text(False,False,v.lcd.font8x16,INK,BG,24,y+4+line*18,value)
-                    v.lcd.draw_text(False,False,v.lcd.font6x12,WARNING if item.state=='due' else MUTED,
-                        BG,24,y+43,item.detail)
                     v.lcd.draw_line(LINE,16,y+height-1,256,y+height-1)
-                    # Clearing the row also clears its old track.
-                    v._maintenance_regions.pop(('bar',slot),None)
-                _bar(v,slot,item,24,y+64,232)
+                parts=textwrap.wrap(item.label,28)[:2]
+                for line in range(2):
+                    _text(v,('care_label',key,line),parts[line] if line<len(parts) else '',24,y+4+line*18,28)
+                _text(v,('care_detail',key),item.detail,24,y+43,38,True,
+                    WARNING if item.state=='due' else MUTED)
+                _bar(v,key,item,24,y+64,232)
                 _cursor(v,key,y,height-2,selection==index)
                 continue
-        _row(v,('list',slot),choice,index,y,height,None if choice.action=='none' else 45)
+        _row(v,key,choice,index,y,height,None if choice.action=='none' else 45)
     _scroll(v,start,count,visible)
 
 
@@ -161,17 +220,17 @@ def _detail(v,screen):
     selected=max(0,v._maintenance_selection-first)
     start=max(0,min(getattr(v,'_maintenance_scroll',0),selected),selected-visible+1)
     start=min(start,max(0,total-visible))
-    if start!=getattr(v,'_maintenance_scroll',0):
-        v.lcd.draw_rectangle(1,BG,0,239,271,359)
-        v._maintenance_regions={k:value for k,value in v._maintenance_regions.items()
-            if not (isinstance(k,tuple) and len(k)>1 and isinstance(k[1],tuple) and k[1][0]=='action')}
+    _move_viewport(v,'action',getattr(v,'_maintenance_scroll',0),start,visible,39,241,first=first)
     v._maintenance_scroll=start
     for slot in range(visible):
         index=first+start+slot
         if index<len(choices):
-            _row(v,('action',slot),choices[index],index,241+slot*39,35,None)
-    if total>visible:
-        _text(v,'action_count','%d/%d'%(selected+1,total),216,220,8,True,MUTED)
+            _row(v,('action',index),choices[index],index,241+slot*39,35,None)
+        else:
+            if _cached(v,('empty',slot),(index,total)):
+                v.lcd.draw_rectangle(1,BG,0,241+slot*39,259,278+slot*39)
+                _forget(v,('action',index))
+    _text(v,'action_count','%d/%d'%(selected+1,total) if total>visible else '',216,220,8,True,MUTED)
     owner=getattr(v.pd,'maintenance_pulse',None)
     color=getattr(owner,'display_color',None) if v._maintenance_page=='pulse' else None
     previous=v._maintenance_regions.get('color_patch')
@@ -181,7 +240,8 @@ def _detail(v,screen):
 
 def draw_maintenance(v,screen):
     v._maintenance_selection=max(0,min(v._maintenance_selection,max(0,len(screen.choices)-1)))
-    frame=(id(v.lcd),v._maintenance_page,screen.kind,screen.title,len(screen.choices))
+    pinned=bool(screen.choices and screen.choices[0].action in ('back','home','result_back'))
+    frame=(id(v.lcd),v._maintenance_page,screen.kind,screen.title,pinned)
     if frame!=v._maintenance_frame:
         v._maintenance_frame=frame
         v._maintenance_regions={}

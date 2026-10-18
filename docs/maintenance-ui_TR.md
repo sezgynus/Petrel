@@ -33,3 +33,7 @@ Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretm
 ## Teşhis sunumu ve ortak görseller
 
 Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; bilinmeyen alanlarda birim uydurmak yerine destek raporuna yönlendirilir. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Eski 156–163 kutu ikonları SVG/JPEG kaynaklarından ve paketten kaldırılır; Maintenance master ikonları 13, 45 ve 218 kullanır. Eşleşen çıktı/manifest 9 bloktur (288 KiB); önceki bakım UI paketinden bir blok küçüktür.
+
+## Tüm alt menülerde artımlı güncelleme
+
+Enkoder dönüşü çizilmiş modeli kullanır; ENTER eylem kimliğini göndermeden önce güncel modelle doğrular. Master listeleri gibi kaydırma native move_area kullanır; ortak satırlar korunur, yalnız yeni açılan satır çizilir. Bakım satırı, açıklama, etiket, çubuk pikselleri ve eylem penceresi ayrı imzalar tutar. Değer veya eylem adedi değişince tüm ekran geçersizleşmez. Çubuk artışı/azalışı yalnız değişen aralığı boyar.
