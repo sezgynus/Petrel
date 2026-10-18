@@ -495,6 +495,9 @@ class PrinterData:
         self.recovery.close()
         self.maintenance_pulse.close()
         self.maintenance_reader.close()
+        barrier = getattr(self.subscription, 'wait_for_emergency_requests', None)
+        if callable(barrier) and not barrier(timeout=3.0):
+            logging.error('Maintenance safety stop unconfirmed during shutdown')
         self.maintenance.clear()
         # TEMPORARY MAINTENANCE TEST TRACE: preserve shutdown tail.
         trace = getattr(self,'maintenance_test_trace',None)

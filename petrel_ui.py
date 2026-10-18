@@ -816,6 +816,13 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.lcd.update()
 
     def _ui_tick(self):
+        # Operation deadlines must not depend on the visible screen or LCD.
+        self._maintenance_advanced_this_tick = False
+        if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
+               for name in ('maintenance_pulse', 'maintenance_reader')):
+            self.pd.update_variable()
+            self._advance_maintenance_operations()
+            self._maintenance_advanced_this_tick = True
         self._poll_panel_power()
         self._sync_case_light_tracking()
         if not self._uart_online:

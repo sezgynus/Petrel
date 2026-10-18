@@ -10,7 +10,7 @@ import math
 import re
 import socket
 import time
-from concurrent.futures import Future
+from concurrent.futures import Future, wait
 from queue import Empty, Full, Queue
 from threading import Event, Lock, Thread
 from urllib.parse import urlsplit, urlunsplit
@@ -80,6 +80,7 @@ class MoonrakerSubscription:
         self._outbound = Queue(maxsize=32)
         self._outbound_wakeup = Event()
         self._completion_requests = set()
+        self._emergency_requests = set()
         self._pending_requests = {}
         self._pending_deadlines = {}
         self.gcode_responses = Queue(maxsize=64)
@@ -343,6 +344,9 @@ class MoonrakerSubscription:
                               >= self.MAX_PENDING_REQUESTS - (0 if method == 'printer.emergency_stop' else 1))
                 if not overloaded:
                     self._completion_requests.add(future)
+                    if method == 'printer.emergency_stop':
+                        self._emergency_requests = {f for f in self._emergency_requests if not f.done()}
+                        self._emergency_requests.add(future)
             if overloaded:
                 future.set_exception(MoonrakerError('Too many outstanding Moonraker requests'))
                 return future
@@ -644,6 +648,15 @@ class MoonrakerSubscription:
                     except Exception:
                         pass
             self._stop.wait(self.retry_delay)
+
+    def wait_for_emergency_requests(self, timeout=3.0):
+        """Observe already queued safety requests before closing; never replay."""
+        with self._lock:
+            pending = tuple(self._emergency_requests)
+        if not pending:
+            return True
+        _, unfinished = wait(pending, timeout=timeout)
+        return not unfinished and all(not f.cancelled() and f.exception() is None for f in pending)
 
     def close(self):
         self._stop.set()

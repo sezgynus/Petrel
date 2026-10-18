@@ -778,22 +778,29 @@ class MaintenanceViewMixin:
                     if target=='service': self._maintenance_history=[('root',1,None)]
                     elif self._maintenance_history: self._maintenance_history.pop()
                 self._maintenance_show(target)
-        if getattr(owner,'pending',False):
-            before=owner.phase
-            result=self.pd.poll_maintenance_physical()
-            if result is not None:
-                self._maintenance_result=result
-                if visible: self._maintenance_complete(result)
-            elif visible and active_page=='pulse':
-                if owner.phase!=before: self._maintenance_selection=0
-                # Field-level signatures suppress unchanged packets, including
-                # after prolonged user observation; no UI timeout is introduced.
-                self.Draw_Maintenance_Menu();self.lcd.update()
-            if hasattr(self,'_loop'): self._loop.set_interval(.1)
-        elif getattr(reader,'pending',False):
-            result=self.pd.poll_maintenance_read()
-            if result is not None:
-                self._maintenance_result=result
-                if visible: self._maintenance_complete(result)
-            if hasattr(self,'_loop'): self._loop.set_interval(.1)
+        if not getattr(self, '_maintenance_advanced_this_tick', False):
+            self._advance_maintenance_operations()
+        result = getattr(self, '_maintenance_pending_result', None)
+        if result is not None and visible:
+            self._maintenance_pending_result = None
+            self._maintenance_complete(result)
+        elif visible and active_page == 'pulse' and getattr(owner, 'pending', False):
+            self.Draw_Maintenance_Menu(); self.lcd.update()
 
+    def _advance_maintenance_operations(self):
+        """Advance controllers even when a UI overlay or UART loss hides them."""
+        owner = getattr(self.pd, 'maintenance_pulse', None)
+        reader = getattr(self.pd, 'maintenance_reader', None)
+        result = None
+        if getattr(owner, 'pending', False) is True:
+            before = owner.phase
+            result = self.pd.poll_maintenance_physical()
+            if owner.phase != before:
+                self._maintenance_selection = 0
+        elif getattr(reader, 'pending', False) is True:
+            result = self.pd.poll_maintenance_read()
+        if result is not None:
+            self._maintenance_result = self._maintenance_pending_result = result
+        if (getattr(owner, 'pending', False) is True or
+                getattr(reader, 'pending', False) is True) and hasattr(self, '_loop'):
+            self._loop.set_interval(.1)
