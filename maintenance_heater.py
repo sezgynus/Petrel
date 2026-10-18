@@ -5,6 +5,8 @@ Klipper emergency_stop (shutdown), never queued ordinary G-code behind a dwell.
 No autonomous retries, threads, config writes or acceptance updates.
 """
 import logging
+import hashlib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from uuid import uuid4
@@ -139,6 +141,10 @@ class MaintenanceHeaterController:
         if not names or len(names) > 16 or row.device not in names:
             raise ValueError('heater_inventory_unbounded_or_missing')
         path = '/printer/objects/query?' + '&'.join(quote(n, safe='')+'=temperature,target,power' for n in names)
+        fans = [r.name for r in self._printer.maintenance.snapshot.devices if r.family == 'fan'] if initial else []
+        if len(fans)>16:
+            raise ValueError('fan_inventory_exceeds_thermal_bound')
+        path += ''.join('&'+quote(n,safe='')+'=speed' for n in fans)
         if row.feature_id in PID:
             path += '&configfile=save_config_pending,save_config_pending_items'
         reply = self._client.get(path)
@@ -146,6 +152,11 @@ class MaintenanceHeaterController:
         status = reply['result']['status']
         c = contract(row.device, self._printer.state.settings, status, row.feature_id,
                      profile_for(self._printer.maintenance.snapshot, row.device)) if initial else None
+        if initial:
+            speeds = [(name,status.get(name,{}).get('speed')) for name in fans]
+            if all(type(value) in (int,float) and 0<=value<=1 for _,value in speeds):
+                signature=hashlib.sha256(json.dumps(sorted(speeds)).encode()).hexdigest()
+                c=replace(c,fan_start_state=signature)
         if not initial:
             for name in names:
                 if name != row.device:
@@ -190,6 +201,11 @@ class MaintenanceHeaterController:
         conditions = (('profile_version', 1),)
         if c is not None:
             conditions += (('target_c', c.target), ('duration_s', c.duration))
+            if c.fan_start_state:
+                conditions += (('fan_state', c.fan_start_state),)
+        version=getattr(self._printer.state,'software_version','unknown')
+        if isinstance(version,str) and version!='unknown' and 0<len(version)<=160:
+            conditions += (('firmware_version',version),)
         if getattr(self, '_assessment_initial', None) is not None:
             conditions += (('initial_temperature_c', self._assessment_initial),)
         operation = getattr(self, '_assessment_operation', '')
@@ -561,3 +577,4 @@ class MaintenancePhysicalRouter:
     def close(self):
         for owner in self._owners:
             owner.close()
+

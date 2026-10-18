@@ -22,6 +22,7 @@ class MaintenanceAssessment:
             raise ValueError('invalid_assessment_capacity_or_age')
         self.capacity = capacity
         self._latest = OrderedDict()
+        self._trends = OrderedDict()
         self._identity = None
         self._clock,self._max_age = clock,max_age
 
@@ -47,6 +48,19 @@ class MaintenanceAssessment:
 
     def has_current_evidence(self,snapshot):
         return bool(self._evidence(snapshot))
+
+    def current_operation(self,snapshot,operation_id):
+        return bool(operation_id) and any(item.operation_id==operation_id for item in self._evidence(snapshot))
+
+    def accept_trend(self,snapshot,operation_id,finding):
+        from maintenance_assessment_model import Finding
+        if not isinstance(finding,Finding) or not self.current_operation(snapshot,operation_id):
+            return False
+        key=(finding.rule_id,finding.device)
+        self._trends.pop(key,None)
+        self._trends[key]=(self._clock(),finding)
+        while len(self._trends)>self.capacity: self._trends.popitem(last=False)
+        return True
 
     def report(self,snapshot,rows):
         evidence = self._evidence(snapshot)
@@ -77,7 +91,11 @@ class MaintenanceAssessment:
             # A declared task must bind to a supported actual target.
             if (feature,policy.device) in allowed:
                 tasks.append((policy.task_id,policy.device,service_due(policy,**arguments)))
-        compared = []
+        now=self._clock()
+        compared = [f for stamp,f in self._trends.values()
+                    if 0<=now-stamp<=self._max_age and
+                    any((feature,f.device) in allowed for feature in f.evidence_features)
+                    and snapshot is not None and (snapshot.epoch,snapshot.config_marker)==self._identity]
         for current,baseline,key,limit,source in trends:
             if (current.feature,current.device) in allowed:
                 finding = trend_finding(current,baseline,key,relative_limit=limit,source=source)
@@ -97,5 +115,7 @@ class MaintenanceAssessment:
 
     def clear(self):
         self._latest.clear()
+        self._trends.clear()
         self._identity = None
+
 

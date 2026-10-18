@@ -580,6 +580,25 @@ class PrinterData:
         devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history)
 
+    def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
+        from maintenance_reference import request
+        snapshot=self.maintenance.snapshot
+        identity=(getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
+        operation_id=getattr(result,'operation_id','')
+        if not self.maintenance_assessment.current_operation(snapshot,operation_id):
+            raise ValueError('reference_measurement_stale')
+        def current():
+            live=self.maintenance.snapshot
+            return (self.state.ready and live is not None and
+                (live.epoch,live.config_marker)==identity)
+        return request(self._maintenance_worker,operation,result,self.state,
+            relative_limit=relative_limit,confirmed=confirmed,current=current)
+
+    def accept_maintenance_reference(self,result):
+        if result.finding is None: return True
+        return self.maintenance_assessment.accept_trend(
+            self.maintenance.snapshot,result.operation_id,result.finding)
+
     def _maintenance_assessment_rows(self):
         from maintenance_heater import thermal_plan
         rows=tuple(self.maintenance_read_plan())+tuple(self.maintenance_guided_plan())

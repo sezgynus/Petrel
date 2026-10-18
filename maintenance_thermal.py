@@ -28,6 +28,7 @@ class ThermalContract:
     duration: float
     min_temp: float
     max_temp: float
+    fan_start_state: str = ''
 
     @property
     def off(self):
@@ -219,3 +220,4 @@ def pid_evidence(config, device):
             return ()
         result.append((key.lower(), value))
     return tuple(result)
+
