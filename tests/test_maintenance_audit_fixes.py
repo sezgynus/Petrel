@@ -10,6 +10,20 @@ from maintenance_test_trace import PrinterProxy
 from printerInterface import PrinterData
 from maintenance_physical import PhysicalResult
 from maintenance_records import MaintenanceBook
+from maintenance_discovery import discover, CALIBRATION
+
+
+class ConfigOnlyDiscoveryTests(unittest.TestCase):
+    def test_loaded_config_only_calibrations_do_not_need_status_objects(self):
+        state=NS(ready=True,epoch=1,
+            objects=('toolhead','gcode_move','probe','manual_probe'),status={},
+            settings={'delta_calibrate':{'radius':50},
+                      'axis_twist_compensation':{'calibrate_start_x':10}})
+        snapshot=discover(state)
+        self.assertEqual(snapshot.method('P16'),CALIBRATION)
+        self.assertEqual(snapshot.method('P17'),CALIBRATION)
+        self.assertNotIn('delta_calibrate',state.objects)
+        self.assertNotIn('axis_twist_compensation',state.objects)
 
 
 class RecordWriteTests(unittest.TestCase):

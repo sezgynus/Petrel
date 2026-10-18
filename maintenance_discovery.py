@@ -178,6 +178,7 @@ def discover(state, services=()):
                      or (isinstance(section, str) and section.startswith('pwm_cycle_time ')
                          and 'maintenance.audible:' + section in services)
                      or section == 'resonance_tester'
+                     or section in ('delta_calibrate', 'axis_twist_compensation')
                      or (isinstance(section, str)
                          and section.split(' ', 1)[0] in accel_types))
     results = []
@@ -512,3 +513,4 @@ def discover(state, services=()):
     # Features without positive evidence and ALWAYS_HIDDEN IDs remain NONE.
     return MaintenanceSnapshot(state.epoch, tuple(results), global_bits,
                                id(settings), tuple(sorted(services)))
+
