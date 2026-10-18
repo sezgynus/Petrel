@@ -309,7 +309,10 @@ class PrinterData:
 
     def _read(self, key, work, stamp=None):
         if stamp is None:
-            stamp = self.subscription.snapshot().get('epoch', 0) if hasattr(self, 'subscription') else 0
+            reader = getattr(self.subscription, 'lifecycle', None) if hasattr(self, 'subscription') else None
+            life = reader() if callable(reader) else None
+            stamp = (life.get('epoch', 0) if isinstance(life, dict) else
+                     self.subscription.snapshot().get('epoch', 0) if hasattr(self, 'subscription') else 0)
         job = self._read_jobs.get(key)
         if job is not None and job[0] != stamp:
             job[1].cancel()
@@ -833,11 +836,12 @@ class PrinterData:
         self.file_sort = preference
         self.file_sort_revision += 1
         self._sort_files()
+        self._files_paths_snapshot = tuple(item['path'] for item in self.files)
         return True
 
-    def _sort_files(self, entries=None):
+    def _sort_files(self, entries=None, preference=None):
         items = self.files if entries is None else entries
-        field, descending = self.file_sort
+        field, descending = self.file_sort if preference is None else preference
         # Deterministic ties and full paths preserve distinct nested files.
         items.sort(key=lambda item: (item['path'].casefold(), item['path']))
         def value(item):
@@ -857,17 +861,27 @@ class PrinterData:
             self._files_loaded = False
             self._files_loading = True
             try:
-                files = self._read('files', lambda: self.getREST('/server/files/list'),
-                                   (self.state.epoch, self.state.file_revision))['result']
-                if not isinstance(files, list) or not all(
-                        isinstance(item, dict) and isinstance(item.get('path'), str)
-                        and item['path'] for item in files):
-                    raise ValueError('Invalid file list')
-                paths = [item['path'] for item in files]
-                if len(paths) != len(set(paths)):
-                    raise ValueError('Duplicate file paths')
-                self.files = list(files)
-                self._sort_files()
+                preference = self.file_sort
+                revision = self.state.file_revision
+                def prepare():
+                    files = self.getREST('/server/files/list')['result']
+                    if not isinstance(files, list) or not all(
+                            isinstance(item, dict) and isinstance(item.get('path'), str)
+                            and item['path'] for item in files):
+                        raise ValueError('Invalid file list')
+                    paths = {item['path'] for item in files}
+                    if len(paths) != len(files):
+                        raise ValueError('Duplicate file paths')
+                    self._sort_files(files, preference=preference)
+                    keys = {item['path']: (item['path'], item.get('modified'), item.get('size'),
+                            revision if item.get('modified') is None else None) for item in files}
+                    return files, tuple(item['path'] for item in files), keys
+                files, paths, keys = self._read('files', prepare,
+                    (self.state.epoch, revision, self.file_sort_revision))
+                self.files = files
+                self._files_paths_snapshot = paths
+                self._file_thumbnail_keys = keys
+                self._file_thumbnail_list = files
                 self.file_error = None
                 self._files_loaded = True
                 self._files_loading = False
@@ -879,7 +893,7 @@ class PrinterData:
                 self._files_loaded = False
                 self._files_loading = False
                 self._file_retry_at = time.monotonic() + 5
-        return tuple(item['path'] for item in self.files)
+        return getattr(self, '_files_paths_snapshot', tuple())
 
     def prefetch_files(self):
         """Warm the root browser cache using the existing nonblocking read worker."""
@@ -914,14 +928,18 @@ class PrinterData:
         if directory and any(part in ('', '.', '..') for part in directory.split('/')):
             raise ValueError('Invalid directory path')
         key = (self.state.epoch, self.state.file_revision, directory)
+        orders = getattr(self, '_directory_orders', {})
+        self._directory_orders = orders
         sizes = getattr(self, '_directory_cache_sizes', {})
         self._directory_cache_sizes = sizes
         for old in tuple(sizes):
             if old not in self._directory_cache:
                 del sizes[old]
+                orders.pop(old, None)
         if self._directory_revision_key != key[:2]:
             self._directory_cache.clear()
             sizes.clear()
+            orders.clear()
             self._directory_retry_at.clear()
             self._directory_revision_key = key[:2]
         try:
@@ -929,25 +947,31 @@ class PrinterData:
                 if time.monotonic() < self._directory_retry_at.get(key, 0):
                     return ()
                 self._directory_loading = True
-                response = self._read(('directory', directory),
-                    lambda: self.getREST('/server/files/directory?path=' + quote('gcodes/' + directory, safe='')), key)
-                data = response['result']
-                entries = []
-                for group, name_key, is_dir in (('dirs', 'dirname', True), ('files', 'filename', False)):
-                    for item in data[group]:
-                        name = item[name_key]
-                        if not isinstance(name, str) or not name or '/' in name or name in ('.', '..'):
-                            raise ValueError('Invalid directory entry')
-                        if name.startswith('.') or (not is_dir and not name.lower().endswith('.gcode')):
-                            continue
-                        path = (directory + '/' if directory else '') + name
-                        entries.append(dict(item, path=path + ('/' if is_dir else ''), isDirectory=is_dir))
-                if len({item['path'] for item in entries}) != len(entries):
-                    raise ValueError('Duplicate directory entries')
-                size = self._directory_size(entries)
+                preference = self.file_sort
+                def prepare_directory():
+                    data = self.getREST('/server/files/directory?path=' + quote('gcodes/' + directory, safe=''))['result']
+                    entries = []
+                    for group, name_key, is_dir in (('dirs', 'dirname', True), ('files', 'filename', False)):
+                        for item in data[group]:
+                            name = item[name_key]
+                            if not isinstance(name, str) or not name or '/' in name or name in ('.', '..'):
+                                raise ValueError('Invalid directory entry')
+                            if name.startswith('.') or (not is_dir and not name.lower().endswith('.gcode')):
+                                continue
+                            path = (directory + '/' if directory else '') + name
+                            entries.append(dict(item, path=path + ('/' if is_dir else ''), isDirectory=is_dir))
+                    if len({item['path'] for item in entries}) != len(entries):
+                        raise ValueError('Duplicate directory entries')
+                    size = self._directory_size(entries)
+                    self._sort_files(entries, preference=preference)
+                    entries.sort(key=lambda item: not item['isDirectory'])
+                    return entries, size, tuple(item['path'] for item in entries)
+                entries, size, paths = self._read(('directory', directory), prepare_directory,
+                    (key, preference))
                 if size <= self.DIRECTORY_CACHE_BYTES:
                     self._directory_cache[key] = entries
                     sizes[key] = size
+                    orders[key] = (preference, paths)
                 self._directory_loading = False
                 self._directory_retry_at.pop(key, None)
             # Insertion-ordered cache: keep the root and current parent available
@@ -965,9 +989,22 @@ class PrinterData:
                     victim = next(iter(self._directory_cache))
                 del self._directory_cache[victim]
                 retained -= sizes.pop(victim, 0)
-            self._sort_files(entries)
-            entries.sort(key=lambda item: not item['isDirectory'])
-            return tuple(item['path'] for item in entries)
+                orders.pop(victim, None)
+            order = orders.get(key)
+            if order is not None and order[0] != self.file_sort:
+                preference = self.file_sort
+                source = entries
+                def resort():
+                    items = list(source)
+                    self._sort_files(items, preference=preference)
+                    items.sort(key=lambda item: not item['isDirectory'])
+                    return items, tuple(item['path'] for item in items)
+                self._directory_loading = True
+                entries, paths = self._read(('directory_sort', directory), resort, (key, preference))
+                self._directory_loading = False
+                self._directory_cache[key] = entries
+                orders[key] = (preference, paths)
+            return orders[key][1] if key in orders else paths
         except ReadPending:
             return ()
         except (MoonrakerError, KeyError, TypeError, ValueError) as error:
@@ -1252,13 +1289,20 @@ class PrinterData:
     def printingIsPaused(self):
         return self.job_Info['print_stats']['state'] == "paused" or self.job_Info['print_stats']['state'] == "pausing"
 
+    def _print_file_identity(self, filename):
+        reader = getattr(self.subscription, 'file_identity', None)
+        identity = reader(filename) if callable(reader) else None
+        return identity if isinstance(identity, tuple) and len(identity) == 2 else (self.state.epoch, self.state.file_revision)
+
     def _refresh_print_metadata(self):
         """One bounded asynchronous metadata read per job/file revision."""
         filename = self.job_Info['print_stats'].get('filename', '')
-        stamp = (self.state.epoch, self.state.file_revision, filename)
+        stamp = (*self._print_file_identity(filename), filename)
         if stamp != getattr(self, '_print_metadata_stamp', None):
+            old = getattr(self, '_print_metadata_stamp', None)
             self._print_metadata_stamp = stamp
-            self._print_metadata = {}
+            if old is None or old[0] != stamp[0] or old[2] != filename:
+                self._print_metadata = {}
             self._print_metadata_loaded = False
             self._print_metadata_retry = 0.
             job = self._read_jobs.pop('print_metadata', None)
@@ -1289,7 +1333,7 @@ class PrinterData:
         if stamp is None or stamp[2] != filename:
             return {}
         state = getattr(self, 'state', None)
-        if state is not None and stamp[:2] != (state.epoch, state.file_revision):
+        if state is not None and stamp[0] != state.epoch:
             return {}
         return getattr(self, '_print_metadata', {})
 

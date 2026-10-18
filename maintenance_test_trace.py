@@ -508,6 +508,9 @@ class OwnerProxy(Proxy):
 
 
 class WorkerProxy(Proxy):
+    def on_stopped(self, callback):
+        return self._target.on_stopped(callback)
+
     def submit(self,work,*args,**kwargs):
         trace,context = self._trace,dict(self._trace.context())
         def observed():

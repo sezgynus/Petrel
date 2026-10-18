@@ -1,6 +1,7 @@
 """File thumbnail confirmation screen; UART drawing stays on the UI owner."""
 import logging
 import time
+from itertools import islice
 from thumbnail_cache import ThumbnailCache
 from preview_metadata import PreviewDetails, amount, duration
 
@@ -17,16 +18,23 @@ class FilePreviewMixin:
         if stamp == getattr(self, '_thumbnail_stamp', None):
             return
         self._thumbnail_stamp = stamp
-        self._thumbnail_keys = {
-            item['path']: (item['path'], item.get('modified'), item.get('size'),
-                           revision if item.get('modified') is None else None)
-            for item in self.pd.files
-        }
-        priority = tuple(self._thumbnail_keys[path] for path in getattr(self, '_file_paths', ())
-                         if path in self._thumbnail_keys and not path.endswith('/'))[:5]
+        if getattr(self.pd, '_file_thumbnail_list', None) is self.pd.files:
+            self._thumbnail_keys = self.pd._file_thumbnail_keys
+        else:
+            self._thumbnail_keys = {
+                item['path']: (item['path'], item.get('modified'), item.get('size'),
+                               revision if item.get('modified') is None else None)
+                for item in self.pd.files}
+        priority = tuple(islice((self._thumbnail_keys[path] for path in getattr(self, '_file_paths', ())
+                         if path in self._thumbnail_keys and not path.endswith('/')), 5))
         path = stamp[-1]
         self._print_thumbnail_key = None
-        valid = list(self._thumbnail_keys.values())
+        retained = set(self._thumbnail_cache.entries) | set(self._thumbnail_cache.details)
+        valid = [key for key in retained if self._thumbnail_keys.get(key[0]) == key]
+        valid.extend(priority)
+        preview = getattr(self, '_preview_cache_key', None)
+        if preview is not None and self._thumbnail_keys.get(preview[0]) == preview:
+            valid.append(preview)
         if path:
             base = self._thumbnail_keys.get(path, (path, None, None, revision))
             self._print_thumbnail_key = base + (88,)

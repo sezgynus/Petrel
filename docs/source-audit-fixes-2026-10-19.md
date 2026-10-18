@@ -10,9 +10,9 @@ Branch: `fix/source-audit-2026-10-19`. Base: `bc5e395`. Hardware acceptance is p
 | K02 | Observe emergency stop before transport shutdown | Implemented |
 | K03 | Usage coverage for optional fans/heaters | Implemented |
 | K04 | Flush usage during orderly shutdown | Implemented |
-| K05 | Small input/read/buzzer snapshots | Pending |
-| K06 | Prepare large file lists off the UI owner | Pending |
-| K07 | Targeted print metadata invalidation | Pending |
+| K05 | Small input/read/buzzer snapshots | Implemented |
+| K06 | Prepare large file lists off the UI owner | Implemented |
+| K07 | Targeted print metadata invalidation | Implemented |
 | K08 | Bound remote connections and read deadlines | Pending |
 | K09 | Cooperative worker shutdown and update isolation | Implemented |
 | K10 | Shared remote JPEG cache with animation freshness | Pending |

@@ -3,7 +3,7 @@
 Long-running commands may be sent as JSON-RPC notifications so transport acknowledgement
 is decoupled from physical completion. Completion is confirmed from subscribed printer state.
 """
-from collections import deque
+from collections import deque, OrderedDict
 import copy
 import json
 import math
@@ -73,6 +73,8 @@ class MoonrakerSubscription:
         self._epoch = 0
         self._revision = 0
         self._file_revision = 0
+        self._file_changes = OrderedDict()
+        self._file_change_floor = 0
         self._power_devices = {}
         self._power_off_serial = {}
         self._subscribing = False
@@ -106,6 +108,18 @@ class MoonrakerSubscription:
                     'file_revision': self._file_revision,
                     'power_devices': dict(self._power_devices),
                     'power_off_serial': dict(self._power_off_serial)}
+
+    def file_identity(self, filename):
+        with self._lock:
+            return self._epoch, max(self._file_change_floor, self._file_changes.get(filename, 0))
+
+    def buzzer_snapshot(self):
+        """Copy only the tiny PWM configuration needed by the sound worker."""
+        with self._lock:
+            return {'state': self._state, 'epoch': self._epoch,
+                    'objects': [n for n in self._objects if n.startswith('pwm_cycle_time ')],
+                    'settings': {n: copy.deepcopy(v) for n, v in self._settings.items()
+                                 if n.startswith('pwm_cycle_time ')}}
 
     def snapshot(self, include_settings=True):
         with self._lock:
@@ -256,6 +270,21 @@ class MoonrakerSubscription:
         elif method == 'notify_filelist_changed':
             with self._lock:
                 self._file_revision += 1
+                event = params[0] if isinstance(params, list) and len(params) == 1 else {}
+                items = [event.get(k) for k in ('item', 'source_item')] if isinstance(event, dict) else []
+                relevant = [i for i in items if isinstance(i, dict) and i.get('root') == 'gcodes']
+                if not items or not any(isinstance(i, dict) for i in items):
+                    self._file_change_floor = self._file_revision
+                for item in relevant:
+                    path = item.get('path')
+                    if not isinstance(path, str) or event.get('action', '').endswith('dir'):
+                        self._file_change_floor = self._file_revision
+                        continue
+                    self._file_changes.pop(path, None)
+                    self._file_changes[path] = self._file_revision
+                    while len(self._file_changes) > 128:
+                        _, revision = self._file_changes.popitem(last=False)
+                        self._file_change_floor = max(self._file_change_floor, revision)
         elif method == 'notify_gcode_response':
             if isinstance(params, list) and len(params) == 1 and isinstance(params[0], str):
                 with self._lock:

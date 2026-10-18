@@ -1207,7 +1207,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 or (not recovering and feedback is not None
                     and not (feedback.phase == 'error' and kind == 'press'))):
             return False
-        snapshot = self.pd.subscription.snapshot()
+        snapshot = self._ui_lifecycle()
         if (snapshot['state'] != 'ready'
                 and getattr(self, 'checkkey', None) != self.MMUMenu
                 and not (recovering and kind in ('rotate', 'press'))):

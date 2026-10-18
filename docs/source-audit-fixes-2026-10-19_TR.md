@@ -10,9 +10,9 @@ Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü beklen
 | K02 | Taşıma kapanmadan acil durdurmayı gözleme | Uygulandı |
 | K03 | İsteğe bağlı fan/ısıtıcı sayaç kapsamı | Uygulandı |
 | K04 | Düzenli kapanışta kullanım kaydı | Uygulandı |
-| K05 | Küçük input/read/buzzer snapshot’ları | Bekliyor |
-| K06 | Büyük dosya listelerini UI dışında hazırlama | Bekliyor |
-| K07 | Hedefli baskı metadata geçersizleştirme | Bekliyor |
+| K05 | Küçük input/read/buzzer snapshot’ları | Uygulandı |
+| K06 | Büyük dosya listelerini UI dışında hazırlama | Uygulandı |
+| K07 | Hedefli baskı metadata geçersizleştirme | Uygulandı |
 | K08 | Remote bağlantı ve okuma süre sınırları | Bekliyor |
 | K09 | Kooperatif worker kapanışı ve update yalıtımı | Uygulandı |
 | K10 | Animasyona duyarlı ortak remote JPEG cache’i | Bekliyor |
