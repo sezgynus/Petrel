@@ -104,6 +104,24 @@ class InfoIncrementalTests(unittest.TestCase):
         view.Draw_Info_Menu()
         view.lcd.draw_rectangle.assert_not_called()
 
+    def test_scroll_clears_fragments_on_both_sides_of_fixed_scrollbar(self):
+        from tools.render_docs_screenshots import canvas
+        from PIL import ImageChops
+        view, reference = canvas(), canvas()
+        view.Draw_Info_Menu(); view.lcd.update()
+        for scroll in (1, 3, 2, 0):
+            # Simulate stale pixels in both previously unmaintained strips.
+            for left, right in ((256, 263), (269, 271)):
+                view.lcd.draw_rectangle(1, 0xF800, left, 92, right, 359)
+            view.lcd.update()
+            view._info_scroll = reference._info_scroll = scroll
+            reference._info_render_scroll = None
+            view.Draw_Info_Menu(); view.lcd.update()
+            reference.Draw_Info_Menu(); reference.lcd.update()
+            actual = view.framebuffer.snapshot()[0].crop((256, 90, 272, 360))
+            expected = reference.framebuffer.snapshot()[0].crop((256, 90, 272, 360))
+            self.assertIsNone(ImageChops.difference(actual, expected).getbbox(), scroll)
+
     def test_new_lcd_forces_complete_render(self):
         view = self.view()
         view.Draw_Info_Menu()

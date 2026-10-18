@@ -3122,6 +3122,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
                                     0, 356, 255, self.STATUS_Y - 1)
         if not stationary:
+            # The fixed gutter is wider than the scrollbar itself. Remove
+            # edge fragments without touching retained content or dashboard.
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
+                                    256, 90, 271, self.STATUS_Y - 1)
             draw_scrollbar(self.lcd, self._info_scroll, max_scroll + 11, 11)
         self._info_render_scroll = self._info_scroll
         self._info_render_items = items
