@@ -1,6 +1,8 @@
 """Evidence-based findings. Threshold policies must identify their source."""
 from dataclasses import dataclass
 import math
+import hashlib
+import json
 from maintenance_assessment_model import Finding, comparable, _text
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +71,9 @@ def metric_finding(item,policy):
         return None
     outside = (policy.lower is not None and value<policy.lower
                or policy.upper is not None and value>policy.upper)
-    return Finding('metric.'+item.feature,item.device,'attention' if outside else 'clear',
+    identity = hashlib.sha256(json.dumps((policy.feature,policy.key,policy.lower,
+        policy.upper,policy.source,policy.version),allow_nan=False).encode()).hexdigest()[:24]
+    return Finding('metric.'+item.feature+'.'+identity,item.device,'attention' if outside else 'clear',
         'metric.outside_policy' if outside else 'metric.within_policy',(item.feature,),
         confidence='measured')
 
@@ -87,3 +91,4 @@ def trend_finding(current,baseline,key,*,relative_limit,source):
     return Finding('trend.'+current.feature,current.device,'attention' if changed else 'clear',
         'trend.changed_review_conditions' if changed else 'trend.within_policy',
         (current.feature,),confidence='indicative')
+

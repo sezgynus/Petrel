@@ -30,8 +30,19 @@ class AssessmentBackendTest(unittest.TestCase):
         api,snap,rows,now=self.setup_backend()
         p=MetricPolicy('H07','overshoot_c',upper=5,source='declared_profile')
         result=api.detailed_report(snap,rows,metric_policies=(p,))
-        self.assertTrue(any(f.rule_id=='metric.H07' for f in result.findings))
+        self.assertTrue(any(f.rule_id.startswith('metric.H07.') for f in result.findings))
         self.assertFalse(api.detailed_report(None,rows,metric_policies=(p,)).findings)
+
+    def test_distinct_policies_cannot_erase_an_attention_finding(self):
+        api,snap,rows,now=self.setup_backend()
+        policies=(MetricPolicy('H07','overshoot_c',upper=5,source='strict',version=1),
+                  MetricPolicy('H07','overshoot_c',upper=10,source='other',version=2))
+        report=api.detailed_report(snap,rows,metric_policies=policies)
+        metrics=[f for f in report.findings if f.rule_id.startswith('metric.')]
+        self.assertEqual(len(metrics),2)
+        self.assertEqual({f.state for f in metrics},{'clear','attention'})
+        repeated=api.detailed_report(snap,rows,metric_policies=policies+policies)
+        self.assertEqual(len([f for f in repeated.findings if f.rule_id.startswith('metric.')]),2)
 
     def test_storage_is_deferred_and_operations_allowlisted(self):
         calls=[]
@@ -44,3 +55,4 @@ class AssessmentBackendTest(unittest.TestCase):
         self.assertEqual(len(calls),1)
         with self.assertRaises(ValueError):
             MaintenanceAssessment.storage_request(Worker(),'unused.json','_save',{})
+
