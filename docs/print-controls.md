@@ -104,3 +104,6 @@ Handle `Power_OFF_Printer_After_Job` in your own end-print power macro using you
 ![Rejected value, job switch and Pause command blink red twice](assets/framed/rejected-controls-demo.gif)
 
 These are offline emulator outputs from the real UI with example states. [Production commands](ui-emulator.md#refresh-pngs-frames-and-gifs) and [complete gallery](screenshots.md).
+
+
+Elapsed includes total job time (including preparation and pauses), using Klipper total_duration with print_duration as fallback. Progress follows Mainsail’s default file-relative calculation using the metadata G-code byte boundaries, with raw SD progress as fallback. Remaining averages valid file and filament estimates; Finish also includes the slicer estimate, matching Mainsail’s default source sets. Thus Remaining and Finish can differ. Missing estimates show --:--; +1 beside Finish means the next calendar day. Mainsail browser-specific calculation settings are not imported. Metadata loads asynchronously and retains only four timing/progress scalars per current file revision.

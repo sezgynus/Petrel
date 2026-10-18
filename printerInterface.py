@@ -1,4 +1,5 @@
 from klipper_recovery import KlipperRecovery
+from print_estimates import progress as print_progress, estimates as print_estimates, number as time_number
 import copy
 from dataclasses import replace
 import logging
@@ -1225,32 +1226,72 @@ class PrinterData:
         self.job_Info = job
         self.file_name = job['print_stats'].get('filename', '')
         self.status = print_state
+        self._refresh_print_metadata()
         self.HMI_flag.print_finish = print_state == 'complete'
         return changed
 
     def printingIsPaused(self):
         return self.job_Info['print_stats']['state'] == "paused" or self.job_Info['print_stats']['state'] == "pausing"
 
+    def _refresh_print_metadata(self):
+        """One bounded asynchronous metadata read per job/file revision."""
+        filename = self.job_Info['print_stats'].get('filename', '')
+        stamp = (self.state.epoch, self.state.file_revision, filename)
+        if stamp != getattr(self, '_print_metadata_stamp', None):
+            self._print_metadata_stamp = stamp
+            self._print_metadata = {}
+            self._print_metadata_loaded = False
+            self._print_metadata_retry = 0.
+            job = self._read_jobs.pop('print_metadata', None)
+            if job is not None:
+                job[1].cancel()
+        if (not filename or self.job_Info['print_stats']['state'] == 'standby'
+                or self._print_metadata_loaded or time.monotonic() < self._print_metadata_retry):
+            return
+        try:
+            response = self._read('print_metadata', lambda: self.getREST(
+                '/server/files/metadata?filename=' + quote(filename, safe='')), stamp)
+            metadata = response.get('result') if isinstance(response, Mapping) else None
+            if not isinstance(metadata, Mapping):
+                raise ValueError('Invalid print metadata')
+            self._print_metadata = {key: time_number(metadata.get(key)) for key in
+                                    ('gcode_start_byte', 'gcode_end_byte',
+                                     'filament_total', 'estimated_time')}
+            self._print_metadata_loaded = True
+        except ReadPending:
+            pass
+        except Exception as error:
+            logging.debug('Print time metadata unavailable: %s', error)
+            self._print_metadata_retry = time.monotonic() + 10.
+
+    def _current_print_metadata(self):
+        stamp = getattr(self, '_print_metadata_stamp', None)
+        filename = self.job_Info['print_stats'].get('filename', '')
+        if stamp is None or stamp[2] != filename:
+            return {}
+        state = getattr(self, 'state', None)
+        if state is not None and stamp[:2] != (state.epoch, state.file_revision):
+            return {}
+        return getattr(self, '_print_metadata', {})
+
     def getPercent(self):
-        # Paused/terminal jobs retain their statistics even when SD execution stops.
         if self.job_Info['print_stats']['state'] == 'standby':
             return 0
-        return max(0, min(100, self.job_Info['virtual_sdcard']['progress'] * 100))
+        return 100 * print_progress(self.job_Info['virtual_sdcard'], self._current_print_metadata())
 
     def duration(self):
-        if self.job_Info['print_stats']['state'] == 'standby':
+        stats = self.job_Info['print_stats']
+        if stats['state'] == 'standby':
             return 0
-        return self.job_Info['print_stats'].get('print_duration', 0)
+        total = time_number(stats.get('total_duration'))
+        return total if total is not None else (time_number(stats.get('print_duration')) or 0)
+
+    def print_time_estimates(self):
+        return print_estimates(self.job_Info['print_stats'], self.job_Info['virtual_sdcard'],
+                               self._current_print_metadata())
 
     def remain(self):
-        if self.status in ('complete', 'cancelled', 'error'):
-            return 0
-        percent = self.getPercent()
-        duration = self.duration()
-        if percent:
-            total = duration / (percent / 100)
-            return total - duration
-        return 0
+        return self.print_time_estimates()[0] or 0
 
     def openAndPrintFile(self, path):
         if self.maintenance_pulse.pending:

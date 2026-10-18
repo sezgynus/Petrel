@@ -104,3 +104,6 @@ Switch sadece `SET_PIN PIN=<tam isim> VALUE=0|1` gönderir. O anda ısıtıcı/m
 ![Reddedilen ayar, iş switchi ve Pause komutunun iki kırmızı yanıp sönmesi](assets/framed/rejected-controls-demo.gif)
 
 Bunlar gerçek UI'dan örnek durumlarla üretilen çevrimdışı emülatör çıktılarıdır. [Üretim komutları](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme) ve [tam galeri](screenshots_TR.md).
+
+
+Elapsed, Klipper total_duration üzerinden hazırlık ve duraklamalar dahil toplam iş süresini gösterir; alan yoksa print_duration kullanılır. İlerleme, metadata içindeki G-code başlangıç/bitiş baytlarıyla Mainsail varsayılanı olan dosya içi oranla hesaplanır; veri yoksa ham SD ilerlemesine dönülür. Remaining geçerli dosya ve filament tahminlerinin ortalamasıdır; Finish hesabına dilimleyici tahmini de katılır. Bu yüzden Remaining ile Finish farklı olabilir. Tahmin yoksa --:-- gösterilir; Finish yanındaki +1 ertesi takvim günüdür. Mainsail tarayıcısına özel hesap ayarları aktarılmaz. Metadata asenkron yüklenir; mevcut dosya revizyonu için yalnız dört süre/ilerleme alanı tutulur.

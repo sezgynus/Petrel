@@ -1,5 +1,6 @@
 """Print-focused views with bounded, field-only rendering and quiet edits."""
 import time
+from print_estimates import finish_text
 import textwrap
 from concurrent.futures import Future
 from collections.abc import Mapping
@@ -28,6 +29,8 @@ class PrintFocusMixin:
 
     @staticmethod
     def _focus_time(seconds):
+        if seconds is None:
+            return "--:--"
         minutes = max(0, int(seconds or 0)) // 60
         return '%02d:%02d' % (minutes//60, minutes%60)
 
@@ -157,14 +160,15 @@ class PrintFocusMixin:
         self._focus_field('material',material,14,62,244,16,lambda:self._focus_text(material[:30],14,62,color=0xADB5))
         percent = max(0,min(100,int(self.pd.getPercent())))
         self._focus_field('percent',percent,128,90,130,27,lambda:self._focus_text('%d%%'%percent,128,93,self.lcd.font12x24))
-        remaining = self._focus_time(self.pd.remain())
+        remaining_seconds, eta_seconds = self.pd.print_time_estimates()
+        remaining = self._focus_time(remaining_seconds)
         self._focus_field('remain',remaining,128,125,130,42,lambda:(self._focus_text('Remaining',128,125,color=0xADB5),self._focus_text(remaining,128,145,self.lcd.font10x20)))
         layers = self.pd.print_layers()
         self._focus_field('layers',layers,128,173,130,13,lambda:self._focus_text('Layer %d/%d'%layers if layers else '',128,174,self.lcd.font6x12,color=0xADB5))
         self._focus_field('progress',percent,14,190,244,8,lambda:self._draw_progress_track(self.lcd,14,190,244,percent))
         elapsed = self._focus_time(self.pd.duration())
         self._focus_field('elapsed',elapsed,14,210,110,44,lambda:(self._focus_text('Elapsed',14,210,color=0xADB5),self._focus_text(elapsed,14,232,self.lcd.font10x20)))
-        finish = 'Finish ~'+time.strftime('%H:%M',time.localtime(time.time()+max(0,self.pd.remain()))) if self.pd.status=='printing' else self.pd.status.capitalize()
+        finish = finish_text(time.time(), eta_seconds) if self.pd.status=='printing' else self.pd.status.capitalize()
         self._focus_field('finish',finish,128,210,130,17,lambda:self._focus_text(finish[:16],128,210,color=0xADB5))
         raw = self.pd.state.status.get('mmu',{})
         change = raw.get('toolchange', {})
