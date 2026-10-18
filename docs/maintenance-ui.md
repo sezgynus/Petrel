@@ -37,3 +37,7 @@ Successful information reads open their measured facts directly, without another
 ## Incremental updates across all submenus
 
 Encoder rotation reuses the displayed model; ENTER still rebuilds and validates action identities before dispatch. Like master list menus, scrolling uses native move_area, retaining overlapping rows and drawing only the exposed row. Care rows, descriptions, label fields, progress pixels and action viewports keep separate signatures. A value or action-count change does not invalidate the whole frame. Bar growth/shrink paints only the changed span.
+
+## Semantic icons
+
+Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recommendations and Care schedule. They use master line weight/caps and palette, baseline 4:2:0 JPEG sources, the existing library ID and unchanged 9-block footprint. Submenu icons are selected from action, topic, test feature and service task contracts: heaters, bed, fan, axes/homing, probe, filament, driver, host, buzzer, lights, history and storage use their corresponding existing icons. Info is used only for actual Details; unknown actions and numeric facts do not receive an Info fallback. Care and menu labels remain native LCD text.

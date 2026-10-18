@@ -37,3 +37,7 @@ Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi do�
 ## Tüm alt menülerde artımlı güncelleme
 
 Enkoder dönüşü çizilmiş modeli kullanır; ENTER eylem kimliğini göndermeden önce güncel modelle doğrular. Master listeleri gibi kaydırma native move_area kullanır; ortak satırlar korunur, yalnız yeni açılan satır çizilir. Bakım satırı, açıklama, etiket, çubuk pikselleri ve eylem penceresi ayrı imzalar tutar. Değer veya eylem adedi değişince tüm ekran geçersizleşmez. Çubuk artışı/azalışı yalnız değişen aralığı boyar.
+
+## Anlamlı ikonlar
+
+Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recommendations ve Care schedule girişlerini ayırır. Master çizgi kalınlığı/uçları ve paleti, baseline 4:2:0 JPEG kaynakları, mevcut kütüphane ID’si ve değişmeyen 9 blok alanı kullanılır. Alt menü ikonları eylem, konu, test özelliği ve bakım işi sözleşmelerinden seçilir: ısıtıcı, tabla, fan, eksen/homing, prob, filament, sürücü, host, buzzer, ışık, geçmiş ve depolama ilgili mevcut ikonu kullanır. Info yalnız gerçek Details için kullanılır; bilinmeyen eyleme ve sayısal veriye Info atanmaz. Bakım/menü etiketleri LCD’nin native metnidir.

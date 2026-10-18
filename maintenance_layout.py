@@ -5,7 +5,8 @@ header and thin cursor. Encoder focus changes paint only cursor strips.
 """
 import textwrap
 from graphite_theme import show_icon
-from lcd_resources import ICON_LIBRARY_ID
+from lcd_resources import ICON_LIBRARY_ID, ICON_MAINTENANCE_CARE
+from maintenance_icons import icon_for
 
 BG=0x2125
 INK=0xE75E
@@ -31,7 +32,7 @@ def _cursor(v,key,y,height,selected):
         v.lcd.draw_rectangle(1,ACCENT if selected else BG,4,y+5,7,y+height-6)
 
 
-def _row(v,key,choice,index,y,height=48,icon=45):
+def _row(v,key,choice,index,y,height=48,icon=None):
     detail=bool(choice.detail)
     x=60 if icon is not None else 24
     cells=(256-x)//8
@@ -45,9 +46,7 @@ def _row(v,key,choice,index,y,height=48,icon=45):
         top=y+(height-20)//2
         v.lcd.draw_rectangle(1,BG,26,top,49,top+23)
         show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,top)
-    for line in range(2 if height>=48 else 1):
-        value=parts[line] if line<len(parts) else ''
-        if line==1 and detail: continue
+    for line,value in enumerate(parts):
         _text(v,('label',key,line),value,x,y+(7 if detail or len(parts)>1 else 16 if height>=48 else 9)+line*18,cells)
     if detail:
         _text(v,('detail',key),choice.detail,x,y+28,(256-x)//6,True,MUTED)
@@ -132,7 +131,9 @@ def _home(v,screen):
     choices=screen.choices
     _row(v,'back',choices[0],0,31,52,13)
     _cursor(v,'care',88,112,v._maintenance_selection==1)
-    _text(v,'care_label','Care schedule',24,92,28)
+    if _cached(v,'care_icon',ICON_MAINTENANCE_CARE):
+        show_icon(v.lcd,ICON_LIBRARY_ID,ICON_MAINTENANCE_CARE,24,91)
+    _text(v,'care_label','Care schedule',50,92,25)
     _text(v,'care_summary',screen.heading,24,114,39,True,
           WARNING if v._maintenance_storage_errors() or v._maintenance_records_failed else MUTED)
     items=screen.care
@@ -141,15 +142,15 @@ def _home(v,screen):
         if i<len(items):
             item=items[i]
             _text(v,('care_name',i),item.label,24,y,24,True)
-            _text(v,('care_status',i),item.detail,174,y,13,True,WARNING if item.state=='due' else MUTED)
+            _text(v,('care_status',i),'Not started' if item.detail=='No service date' else 'Unknown' if item.detail=='Coverage unknown' else item.detail,174,y,13,True,WARNING if item.state=='due' else MUTED)
             _bar(v,('home',i),item,24,y+17,232)
         else:
             _text(v,('care_name',i),'Select to set up' if i==0 else '',24,y,38,True,MUTED)
             _text(v,('care_status',i),'',174,y,13,True)
             if _cached(v,('bar',('home',i)),('empty',y)):
                 v.lcd.draw_rectangle(1,BG,24,y+17,256,y+20)
-    for index,y,icon in ((2,204,218),(3,256,45),(4,308,45)):
-        _row(v,('root',index),choices[index],index,y,48,icon)
+    for index,y in ((2,204),(3,256),(4,308)):
+        _row(v,('root',index),choices[index],index,y,48,icon_for(choices[index]))
 
 
 def _list(v,screen):
@@ -187,15 +188,19 @@ def _list(v,screen):
                     _forget(v,key,keep=('care_row',))
                     v.lcd.draw_rectangle(1,BG,16,y,259,y+height-1)
                     v.lcd.draw_line(LINE,16,y+height-1,256,y+height-1)
-                parts=textwrap.wrap(item.label,28)[:2]
+                icon=icon_for(choice)
+                if icon is not None and _cached(v,('icon',key),(icon,26,y+7)):
+                    v.lcd.draw_rectangle(1,BG,26,y+7,49,y+30)
+                    show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,y+7)
+                parts=textwrap.wrap(item.label,24)[:2]
                 for line in range(2):
-                    _text(v,('care_label',key,line),parts[line] if line<len(parts) else '',24,y+4+line*18,28)
+                    _text(v,('care_label',key,line),parts[line] if line<len(parts) else '',60,y+4+line*18,24)
                 _text(v,('care_detail',key),item.detail,24,y+43,38,True,
                     WARNING if item.state=='due' else MUTED)
                 _bar(v,key,item,24,y+64,232)
                 _cursor(v,key,y,height-2,selection==index)
                 continue
-        _row(v,key,choice,index,y,height,None if choice.action=='none' else 45)
+        _row(v,key,choice,index,y,height,icon_for(choice))
     _scroll(v,start,count,visible)
 
 

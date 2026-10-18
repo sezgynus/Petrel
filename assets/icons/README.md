@@ -49,3 +49,5 @@ The current reference pack occupies **9×32 KiB = 288 KiB**, slots **3–11**. T
 All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: subsampling=2`). Render directly from SVG using `tools/render_icon_sources.py`; do not repeatedly recompress JPEGs. Physical T5UIC1 tests reproduced damaged selected home tiles and homing artwork with 4:4:4 from both Flash and byte-verified SRAM; 4:2:0 rendered correctly. A clean emulator preview cannot validate the panel JPEG decoder. The source loader rejects other sampling formats before any panel access, and CI checks every shipped icon and the exported ICO against its sources. Check selected/unselected home tiles, homing, small menu/status icons and animation on hardware after artwork updates.
 
 Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 156–163 are retired; they are not shipped or referenced by the UI.
+
+Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. They follow the shared Graphite stroke and require the same baseline 4:2:0 JPEG encoding. The reference pack remains 9×32 KiB.

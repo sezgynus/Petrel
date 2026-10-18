@@ -18,7 +18,7 @@ class MaintenancePartialUpdates(unittest.TestCase):
 
     def menu(self,count=8,kind='list'):
         return Screen('Checks',choices=(Choice('Back','back'),)+tuple(
-            Choice('Check '+str(i),'open',str(i),'Reading '+str(i)) for i in range(1,count+1)),kind=kind)
+            Choice('Check '+str(i),'prepare',NS(feature_id='F02',device='fan'), 'Reading '+str(i)) for i in range(1,count+1)),kind=kind)
 
     def no_full_clear(self,d):
         for c in d.lcd.draw_rectangle.call_args_list:

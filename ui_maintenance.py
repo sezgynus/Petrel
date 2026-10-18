@@ -12,6 +12,7 @@ from graphite_theme import show_icon
 from maintenance_care_view import care_items
 from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
+from maintenance_icons import icon_for
 
 
 class MaintenanceViewMixin:
@@ -480,7 +481,7 @@ class MaintenanceViewMixin:
 
     def _maintenance_rows(self):
         screen=self._maintenance_screen()
-        return screen.title,tuple((c.label,self.ICON_Info,None,None) for c in screen.choices)
+        return screen.title,tuple((c.label,icon_for(c),None,None) for c in screen.choices)
 
     def _maintenance_text(self,key,value,x,y,cells=30,small=False,color=0xE75E,bg=0x2125):
         value=str(value).replace('\n',' ').replace('\r',' ')
