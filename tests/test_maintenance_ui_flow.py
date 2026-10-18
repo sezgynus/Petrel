@@ -189,3 +189,13 @@ class MaintenanceUIFlows(unittest.TestCase):
         d.pd.observe_maintenance_physical=Mock()
         for _ in range(3): d._poll_maintenance_ui()
         d.pd.observe_maintenance_physical.assert_not_called()
+
+    def test_managed_tile_ids_skip_the_reserved_qr_slot(self):
+        import lcd_resources as icons
+        self.assertEqual(icons.ICON_MAINTENANCE_CHECK,156)
+        self.assertEqual(icons.ICON_MAINTENANCE_MORE_SELECTED,163)
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        self.assertFalse((root/'assets/icons/155.jpg').exists())
+        for index in range(156,164):
+            self.assertTrue((root/('assets/icons/%d.jpg'%index)).exists())
