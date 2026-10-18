@@ -179,13 +179,86 @@ Yapılandırılmış `[pwm_cycle_time ad]` çıkışlarından birini veya **Disa
 
 Ses ayarına basın, çevirmeyle değiştirin ve tekrar basarak kaydedin. Ses seviyesi %0–100 arasında 10’ar adımla değişir. Tonlar Off, Tick, Short beep, Low, High ve Double seçeneklerini içerir. Çıkış ve ses tercihleri yeniden başlatmada korunur. Sesler arka planda çalar; hızlı çevirmelerde birikmez. Seçili section Klipper yapılandırmasından kaldırılırsa kullanılabilir bir çıkış seçilene kadar ses kontrolleri gizlenir.
 
-## Bakım
+## Maintenance
+
+Yazıcı boştayken **Home → Maintenance** açın. Görünen kontroller ve cihazlar keşfedilen yazıcı yapılandırmasına göre belirlenir. Ekran etiketleri İngilizce kalır.
+
+<p align="center"><img src="assets/screens/framed/maintenance.png" width="360" alt="Bakım ilerlemesi ve dört sabit bölümle Maintenance özeti"></p>
+
+Giriş ekranı en yakın veya zamanı gelmiş iki bakım planını gösterir. Plan ve öneri sayısı artsa da dört bölüm aynı yerde kalır:
+
+| Bölüm | Kullanım amacı |
+|---|---|
+| **Care schedule** | Tüm kayıtlı hatırlatıcılar, ilerlemeleri ve tamamlanan bakımı kaydetme |
+| **Check printer** | Amaç/cihaz bazında kılavuzlu kontroller ve desteklenen kalibrasyonlar |
+| **Diagnostics** | İstek üzerine okumalar, kullanım/geçmiş ve destek araçları |
+| **Recommendations** | Cihaz bazında güncel kayıtlı sorunlar ve kullanılabilir sonraki kontroller |
+
+Görseller güncel arayüzü örnek controller kayıtları ve ölçümlerle gösterir; yeni fiziksel test sonucu değildir. Yazıcınızdaki seçenekler ve değerler farklı olabilir.
+
+### Care schedule: periyodik bakım
 
 <p align="center">
-  <img src="assets/screens/framed/maintenance.png" width="360" alt="Bakım menüsü">
+  <img src="assets/screens/framed/maintenance-care.png" width="360" alt="Birden fazla kayıtlı planla bakım takibi">
+  <img src="assets/screens/framed/maintenance-care-scrolled.png" width="360" alt="Kaydırılabilir alandaki diğer bakım planları">
 </p>
 
-**Home → Maintenance**, Info’dan önceki menüdür. Şimdilik yalnızca **Back** seçeneğini içerir; bu seçenek ana menüde aynı ikona döner.
+Çubuk, belirlediğiniz aralıkta geçen süreyi gösterir; parça aşınmasını veya kalan ömrü ölçmez. **Due**, bu aralığın dolduğunu belirtir. Bakım tarihi veya örneklenmiş kullanım kapsamı bilinmiyorsa yüzde uydurulmaz. Tüm planlara enkoderi çevirerek ulaşabilirsiniz; **Back** üstte kalır.
+
+1. **Care schedule → Add reminder** açın. Desteklenen cihazı, bakım işini ve sunulan hatırlatma esasını seçin.
+2. Üreticinin bakım rehberine göre aralığı belirleyin, inceleyin ve açıkça kaydedin. Editörün ilk değeri kurulmuş bir varsayılan değildir.
+3. Bakımı gerçekten yaptıktan sonra planı açıp **I completed this service → Yes, record completion** seçin. Bu işlem bakım tarihini kaydeder; donanım testine başarılı sonucu vermez.
+4. Kayıtlı planları yeniden yüklemek için **Refresh records** kullanın. Yükleme/kayıt hatası başarı gibi gösterilmez.
+
+Örneklenmiş baskı/açık kalma saatleri yalnız kaydedilen dönemi kapsar ve alt sınırdır. Değerin aralığın altında olması bakımın henüz gerekmediğini kanıtlamaz.
+
+### Kontrol çalıştırma ve sonucunu okuma
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-checks.png" width="360" alt="Amaca göre gruplandırılmış kontroller">
+  <img src="assets/screens/framed/maintenance-prepare.png" width="360" alt="Fan kontrolünden önce hazırlık">
+  <img src="assets/screens/framed/maintenance-result.png" width="360" alt="Ayrı Details işlemiyle kaydedilen fan gözlemi">
+</p>
+
+1. **Check printer** açın; grubu ve gereken kontrolü/cihazı seçin.
+2. Hazırlığı okuyup **Prepare check** seçin. Bu adım donanımı çalıştırmaz.
+3. Ayrı onay ekranını inceleyip **Start check**, homing gerekiyorsa **Home axes and continue** seçin.
+4. Sensör, fiziksel gözlem veya ölçüm talimatlarını izleyin. Komut verilen mesafe yerine gerçekten ölçtüğünüz mesafeyi girin. Kullanıcı yanıtında zaman aşımı yoktur.
+5. Sonuç başlığını ve **What this means** açıklamasını okuyun. İsteğe bağlı ölçümler için **Details**, başladığınız cihaza dönmek için **Back to checks** seçin.
+
+Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol farklı anlam taşır. Tamamlanan bir kontrol tüm işlevleri veya parçanın kalan ömrünü belgelemez. Fan başlangıç turlarında fanın fiziksel olarak tamamen durduğunu açıkça onaylamanız gerekir.
+
+**Etkin ısıtmayı durdurmak Klipper güvenlik shutdown isteği gönderir.** Basmadan önce durdurma eylemini okuyun. Kalibrasyon değişiklikleri otomatik kaydedilmez. Günlük prob offset, vida ayarı ve bed mesh araçları **Leveling** altında kalır.
+
+### Ölçümler ve diagnostik
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Sistem okumaları, kullanım/geçmiş ve destek araçları">
+  <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Etiket ve değer gruplarıyla host ölçümleri">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Diagnostik raporunun ikinci sayfası">
+</p>
+
+**Diagnostics** açın; bir grup ve okumayı seçin. Bilgi arka planda alınır ve doğrudan rapor olarak açılır. Başlık okumayı tanımlar; ölçümler etiket, değer ve birimi birlikte gösterir. Bilgi alanları seçilebilir menü öğesi değildir.
+
+Uzun raporlarda raporun sağ üstünde sayfa sayısı görünür. Enkoderle **Next page** veya **Previous page** seçip basın. **Back** önceki ekrana döner. Ortak dashboard raporun altında kalır; seçim çizgisi yalnız gerçek işlemlerde görünür.
+
+**Diagnostics → Usage and history** altında kayıtlı baskı kullanımı, örneklenmiş bileşen kullanımı ve son kontrol geçmişi bulunur. Geçmiş kanıtlar **HISTORY** olarak işaretlenir; güncel donanım sağlığını anlatmaz. **Support tools** isteğe bağlı kayıt ve diagnostik rapor aktarımını içerir; kaydı açmak kontrol başlatmaz.
+
+### İnceleme gerektiren sonuçlar ve öneriler
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-thermal-result.png" width="360" alt="Belirgin inceleme mesajıyla ısıtma sonucu">
+  <img src="assets/screens/framed/maintenance-evidence.png" width="360" alt="İsteğe bağlı etiketli ısıtma ölçümleri">
+  <img src="assets/screens/framed/maintenance-recommendation.png" width="360" alt="Sonraki işlemlerden ayrı öneri açıklaması">
+</p>
+
+Dikkat gerektiren sonuç, sonraki işlemleri sunmadan önce neyin ölçüldüğünü açıklar. Örneğin yüksek sıcaklık aşımı, sıcaklık kontrolünü incelemenizi ister; otomatik olarak ısıtıcı eskimesi tanısı koymaz. Desteklenen PID kalibrasyonu yalnız aynı ısıtıcı için kayıtlıysa sunulur.
+
+**Recommendations** güncel kayıtlı bulguları cihaz bazında toplar. **What to review** açıklamasını okuyup gerekiyorsa sunulan kontrolü seçin. Ek metne rapor sayfalarından ulaşılır. Öneri bulunmaması güncel kayıtlı uyarı olmadığı anlamına gelir; tüm parçaların sağlıklı olduğunu göstermez.
+
+Tam bir ısıtma sonucunda **Heating speed reference** sunulabilir. Yalnız sağlam çalıştığı bilinen yanıtı açık onayla kaydedin. Karşılaştırma aynı donanım/soğutma koşullarını ve sizin seçtiğiniz inceleme sınırını gerektirir; bu sınır üreticinin aşınma eşiği değildir. Donanım değişince referansı kaldırın.
+
+[Güncel ekran galerisini](screenshots_TR.md#maintenance-testleri-bakım-ve-diagnostik), [LCD etkileşim ayrıntılarını](maintenance-ui_TR.md), [çıkış profillerini](maintenance-profiles_TR.md) ve [fiziksel kabul çizelgesini](maintenance-reference-printer-acceptance_TR.md) inceleyin. Backend kabulü ve CI görselleri bu arayüzün fiziksel kabulünün yerine geçmez.
 
 ## Info ve güncellemeler
 

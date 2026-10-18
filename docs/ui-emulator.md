@@ -4,7 +4,7 @@
 
 ## What it is for
 
-The optional emulator captures the screens drawn by the running Petrel service. Use it to review layouts, refresh documentation and report visual bugs as original-size images. It follows the real LCD UI; it is not a standalone printer simulator or live browser viewer. Navigate with the physical encoder, then request a capture over SSH.
+The optional emulator captures the screens drawn by the running Petrel service. Use it to review layouts, refresh documentation and report visual bugs as original-size images. It follows the real LCD UI; it is not a standalone printer simulator. A separate opt-in live browser viewer is described below. Navigate with the physical encoder, then request a capture over SSH.
 
 ## Enable or disable
 
@@ -114,3 +114,25 @@ The first command produces native 272×480 panel PNGs plus 528×900 presentation
 The second/third commands produce the successful Print/Tune walkthrough as native/framed GIF. The final command produces both forms of power hold/cancel/blocking, two red rejection blinks, long MMU error scrolling and 0/1/50/100% panel-native fan animation. Native GIFs go in `docs/assets/`, presentation copies in `docs/assets/framed/`. The PNG command does not refresh these GIFs.
 
 All states use the real UI/driver with example data and no physical printer connection. Error replies are supplied by test doubles. The clock is 12:34 and animations are sampled at controlled elapsed times. Missing preview/layers, reduced Tune and long errors are included in the gallery. The fan GIF emulates the panel animation commands; it does not validate the physical JPEG decoder.
+
+
+## Optional live Remote Display (port 8088)
+
+Petrel can serve its live LCD framebuffer over a small HTTP server and accept virtual encoder input: mouse wheel rotates the encoder; middle click sends ENTER. The on-screen **CCW**, **Enter**, and **CW** buttons provide the same inputs, including on touchscreens. Each rotation button click moves one encoder step. The physical LCD and encoder keep working.
+
+Enable it in `~/.config/Petrel/Petrel.env`:
+
+```ini
+PETREL_REMOTE=1
+PETREL_REMOTE_PORT=8088
+```
+
+The default bind address is now **`0.0.0.0:8088`**, all IPv4 network interfaces. `PETREL_REMOTE_HOST=0.0.0.0` is optional (the default). Once the feature version is running, open either **`http://<PI_LAN_IP>:8088`** on the local network or **`http://<PI_TAILSCALE_IP>:8088`** from the tailnet. SSH tunneling and Tailscale Serve are not required. Use `tailscale ip -4` to see the Tailscale address.
+
+Public Internet access additionally requires a **publicly reachable IP/address and router port forwarding (TCP 8088), or another externally accessible gateway**; merely listening on `0.0.0.0` does not create public access through NAT or firewalls.
+
+**Security:** There is currently **no password, login, or HTTPS** in this small server. Anyone who can reach TCP port 8088 can see the LCD and operate the encoder, including printer control actions. Do not forward it to the open Internet unless you explicitly accept that risk. Cross-origin checks are basic browser protections, not authentication.
+
+The server is opt-in; disabling `PETREL_REMOTE` and restarting Petrel closes the listener. If you prefer restriction again, set `PETREL_REMOTE_HOST=tailscale` (only the current Tailscale IPv4) or `PETREL_REMOTE_HOST=127.0.0.1` (local access only). Restart Petrel when the printer is idle after changing these settings. The emulator activates automatically with `PETREL_REMOTE=1`.
+
+Browser video frames are generated on demand (~4 FPS at 272×480); encoder inputs travel through the same epoch-guarded UI event queue as physical input. Remote middle-button hold deliberately does not trigger a power-button long press. Screen display alone cannot verify physical fan, LED or buzzer operation.

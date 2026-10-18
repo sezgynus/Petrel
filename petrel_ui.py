@@ -1,5 +1,5 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
-from graphite_theme import show_icon as show_theme_icon
+from graphite_theme import show_icon as show_theme_icon, draw_scrollbar
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
@@ -17,6 +17,8 @@ from command_feedback import CommandFeedback
 from threading import Lock
 from ui_events import UIEventLoop, InputEvent
 from ui_case_light import CaseLightMixin
+from ui_maintenance import MaintenanceViewMixin
+from ui_recovery import RecoveryViewMixin
 from ui_power import PowerShortcutMixin
 from ui_mmu import MMUViewMixin
 from ui_buzzer import BuzzerViewMixin
@@ -73,7 +75,7 @@ class select_t:
         return self.changed()
 
 
-class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -320,7 +322,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
     def __init__(self, USARTx, encoder_pins, button_pin, octoPrint_API_Key,
                  moonraker_url='http://127.0.0.1:7125', request_timeout=5.0, settings_path=None,
                  power_device='Printer', power_on_hold_ms=2000,
-                 emulator=False, emulator_socket=None, screenshot_directory=None, emulator_font=None):
+                 emulator=False, emulator_socket=None, screenshot_directory=None, emulator_font=None,
+                 remote=False, remote_port=8088, remote_host='0.0.0.0'):
         self._closed = False
         self._uart_epoch = 0
         self._uart_online = False
@@ -334,7 +337,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         self._boot_files_started = (None, 0)
         self._boot_progress = -1
         self.encoder = self.button = self.lcd = self.pd = None
-        self._emulator_options = (emulator, emulator_socket, screenshot_directory, emulator_font)
+        self._emulator_options = (bool(emulator or remote), emulator_socket, screenshot_directory, emulator_font)
+        self._remote_options = (bool(remote), remote_port, remote_host)
         self._settings = (USARTx, encoder_pins, button_pin, octoPrint_API_Key,
                           moonraker_url, request_timeout, settings_path, power_device, power_on_hold_ms)
         self._input_lock = Lock()
@@ -374,6 +378,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         self.checkkey = self.MainMenu
         self.pd = PrinterData(api_key, url, timeout, settings_path=settings_path,
                               power_device=power_device)
+        self._maintenance_button_presses = 0
+        self.pd._maintenance_panel_api = self._maintenance_panel_api
         self.pd.init_Webservices()
         self._power_monitor = PowerMonitor(self.pd.client, self.pd.power_device)
         self._relay_status = None
@@ -390,6 +396,18 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         self.button.when_pressed = self._button_pressed
         self.button.when_released = self._button_released
         self.button.when_held = self._button_held
+        if self._remote_options[0]:
+            try:
+                from dwin_emulator.remote import RemoteDisplayServer
+                self._remote_display = RemoteDisplayServer(
+                    self._emulator, self._remote_input,
+                    port=self._remote_options[1], host=self._remote_options[2],
+                    report_provider=self.pd.maintenance_book.exported,
+                    trace_provider=self.pd.export_maintenance_test_recording)
+            except (OSError, RuntimeError, ValueError):
+                # The normal physical LCD must remain functional even if
+                # The chosen interface is unavailable or port 8088 is occupied.
+                logging.exception('Remote Display unavailable; continuing with physical LCD')
 
     def _uart_failed(self):
         self._power_hold_started = None
@@ -629,10 +647,14 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
                 self.Draw_Maintenance_Menu()
             if getattr(self, 'checkkey', None) == self.BuzzerMenu:
                 self.Draw_Buzzer_Menu()
+            if getattr(self, 'checkkey', None) == self.RecoveryScreen:
+                self.Clear_Popup_Area()
+                self._recovery_render = None
+                self.Draw_Recovery()
             self.lcd.update()
             if (self.pd.connection_error and self.checkkey != self.MMUMenu
                     and not getattr(self, '_boot_active', False)):
-                self._show_message('Moonraker unavailable')
+                self._poll_recovery_ui()
             self._uart_online = True
             if hasattr(self, '_loop'):
                 self._loop.set_interval(.5)
@@ -694,7 +716,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         snapshot = self.pd.subscription.snapshot()
         if snapshot['state'] != 'ready':
             self.pd.update_variable()
-            self._draw_boot_progress(70)
+            if not self._poll_recovery_ui():
+                self._draw_boot_progress(70)
             return
         self._draw_boot_progress(80)
         self.pd.update_variable()
@@ -1139,7 +1162,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         if self._closed:
             return
         self._closed = True
-        for resource in (getattr(self, '_buzzer_player', None),
+        for resource in (getattr(self, '_remote_display', None),
+                         getattr(self, '_buzzer_player', None),
                          getattr(self, '_screenshot_server', None),
                          getattr(self, '_emulator', None),
                          getattr(self, '_power_monitor', None), self.button, self.encoder, self.pd):
@@ -1163,14 +1187,31 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
 
     def _enqueue_input(self, kind, value, accelerated_value=0, rate=0.0):
         feedback = getattr(self, '_action_feedback', None)
+        recovering = getattr(self, 'checkkey', None) == self.RecoveryScreen
         if (self.pd is None or self._closed or not getattr(self, '_uart_online', True)
-                or (feedback is not None and not (feedback.phase == 'error' and kind == 'press'))):
-            return
+                or (not recovering and feedback is not None
+                    and not (feedback.phase == 'error' and kind == 'press'))):
+            return False
         snapshot = self.pd.subscription.snapshot()
-        if snapshot['state'] != 'ready' and getattr(self, 'checkkey', None) != self.MMUMenu:
-            return
-        if not self._loop.post(InputEvent(kind, value, snapshot['epoch'], getattr(self, '_uart_epoch', 0), accelerated_value, rate)):
+        if (snapshot['state'] != 'ready'
+                and getattr(self, 'checkkey', None) != self.MMUMenu
+                and not (recovering and kind in ('rotate', 'press'))):
+            return False
+        accepted = self._loop.post(InputEvent(
+            kind, value, snapshot['epoch'], getattr(self, '_uart_epoch', 0),
+            accelerated_value, rate))
+        if not accepted:
             logging.warning('LCD input queue full or closed; input discarded')
+        return accepted
+
+    def _remote_input(self, kind, value):
+        # The HTTP thread may ONLY post ordinary epoch-bound events. No GPIO
+        # simulation, direct UI calls, long-press power, or Moonraker access.
+        if kind == 'press' and value == 1:
+            return self._enqueue_input('press', 1)
+        if kind == 'rotate' and type(value) is int and 0 < abs(value) <= 6:
+            return self._enqueue_input('rotate', value, value)
+        return False
 
     def encoder_has_data(self, value):
         # GPIO thread: capture rotation only; never draw or execute UI handlers.
@@ -1198,6 +1239,7 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             self._enqueue_input('rotate', delta, delta * multiplier, rate)
 
     def _button_pressed(self):
+        self._maintenance_button_presses = getattr(self,'_maintenance_button_presses',0)+1
         # A zero hold time makes the press edge itself request printer power.
         if getattr(self, 'power_on_hold_ms', 2000) == 0 and getattr(self, '_relay_status', None) != 'on':
             self._request_power_on()
@@ -1313,7 +1355,28 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             future.add_done_callback(lambda _done: self._loop.post(InputEvent(
                 'live_jog_flush', 0, snapshot['epoch'], getattr(self, '_uart_epoch', 0))))
 
-    def _process_input(self, event):
+    # BEGIN TEMPORARY MAINTENANCE TEST TRACE
+    def _process_input(self,event):
+        self._trace_maintenance_ui('input_before',event)
+        try:
+            return self._process_input_untraced(event)
+        except Exception as error:
+            trace = getattr(self.pd,'maintenance_test_trace',None)
+            if trace is not None and trace.active:
+                trace.emit('ui_handler_error',{'type':type(error).__name__})
+            raise
+        finally:
+            self._trace_maintenance_ui('input_after',event)
+
+    def EachMomentUpdate(self):
+        try:
+            return self._each_moment_update_untraced()
+        finally:
+            # Includes recovery screens and all early returns.
+            self._trace_maintenance_ui('tick')
+    # END TEMPORARY MAINTENANCE TEST TRACE
+
+    def _process_input_untraced(self, event):
         if event.kind == 'power_on':
             if not self._closed:
                 self.pd.power_on_if_off()
@@ -1322,6 +1385,10 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             return
         if (not getattr(self, '_uart_online', True)
                 or event.ui_epoch != getattr(self, '_uart_epoch', 0)):
+            return
+        if (getattr(self, 'checkkey', None) == self.RecoveryScreen
+                and self.pd.connection_error and not self._closed):
+            self._recovery_input(event)
             return
         snapshot = self._ui_lifecycle()
         if ((snapshot['state'] != 'ready' and getattr(self, 'checkkey', None) != self.MMUMenu) or snapshot['epoch'] != event.epoch
@@ -1550,8 +1617,11 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
                 self.checkkey = self.DisplayMenu
                 self.Draw_Display_Menu()
             elif key == 'MAINTENANCE':
-                self.checkkey = self.MaintenanceMenu
-                self.Draw_Maintenance_Menu()
+                # Discovery has already run at Klipper READY; this is only
+                # an entry safety check, never a capability API request.
+                from maintenance_session import idle
+                if idle(self.pd.state):
+                    self.Enter_Maintenance_Menu()
             elif key == 'INFO':
                 self._info_origin = self.MainMenu
                 self.checkkey = self.Info
@@ -1728,7 +1798,39 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
 
         self.lcd.update()
 
+    def _maintenance_panel_api(self,action,*args):
+        lcd = self.lcd
+        if lcd is None or not self._uart_online:
+            raise ValueError('lcd_offline')
+        if action=='info':
+            info = {'uart_epoch':self._uart_epoch,
+                    'startup_assets_synced':bool(getattr(lcd,'_assets_synced',False)),
+                    'gpio_button_presses':getattr(self,'_maintenance_button_presses',0)}
+            provider = getattr(lcd,'diagnostics',None)
+            if callable(provider):
+                info.update(provider())
+            provider = getattr(self.encoder,'diagnostics',None)
+            if callable(provider):
+                info.update(provider())
+            return info
+        if action=='capture':
+            raw = getattr(lcd,'_backlight_raw',None)
+            if type(raw) is not int:
+                raise ValueError('runtime_brightness_unknown')
+            return raw
+        if action in ('brightness','restore'):
+            value,epoch = args
+            if epoch!=self._uart_epoch:
+                raise ValueError('lcd_session_changed')
+            lcd.set_backlight(display_settings.raw_brightness(value) if action=='brightness' else value)
+            return True
+        raise ValueError('panel_action_unavailable')
+
     def _display_activity(self):
+        panel = getattr(getattr(self,'pd',None),'maintenance_panel',None)
+        if panel is not None and panel.pending:
+            self._display_last_activity = time.monotonic()
+            return False
         self._display_last_activity = time.monotonic()
         if getattr(self, '_display_dimmed', False):
             self._display_dimmed = False
@@ -1737,22 +1839,15 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
         return False
 
     def _display_idle_tick(self):
+        panel = getattr(getattr(self,'pd',None),'maintenance_panel',None)
+        if panel is not None and panel.pending:
+            return
         values = getattr(self, '_display_values', None)
         if (values and values[1] and not getattr(self, '_display_dimmed', False)
                 and time.monotonic() - self._display_last_activity >= values[1] * 60
                 and not getattr(self, '_display_edit', False)):
             self.lcd.set_backlight(display_settings.raw_brightness(min(values[0], values[2])))
             self._display_dimmed = True
-
-    def Draw_Maintenance_Menu(self):
-        self._draw_list_menu('Maintenance', [('Back', self.ICON_Back, None, None)], 0)
-
-    def HMI_Maintenance_Menu(self):
-        if self.get_encoder_state() == self.ENCODER_DIFF_ENTER:
-            self.select_page.set(next(i for i, entry in enumerate(self._home_entries())
-                                      if entry[0] == 'MAINTENANCE'))
-            self.Goto_MainMenu()
-            self.lcd.update()
 
     def Draw_Display_Menu(self):
         selection = getattr(self, '_display_selection', 0)
@@ -2977,10 +3072,9 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             self._info_update_render = None
             self._info_update_message = None
             self.lcd.move_area(1, self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
-                               distance, self.lcd.Color_Bg_Black, 0, 90, 271, 355)
+                               distance, self.lcd.Color_Bg_Black, 0, 90, 255, 355)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 90, 255, 91)
             # Scroll indicators belong to the fixed frame, not the moving list.
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 256, 92, 271, 359)
             if (previous == max_scroll) != (self._info_scroll == max_scroll):
                 self.Erase_Menu_Cursor(0)
                 if self._info_scroll < max_scroll:
@@ -3027,11 +3121,8 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             # Clear old QR fragments here, including those from earlier renders.
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
                                     0, 356, 255, self.STATUS_Y - 1)
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 256, 76, 271, 89)
-            if self._info_scroll:
-                self._draw_menu_text('^', 256, 76)
-            if self._info_scroll < max_scroll:
-                self._draw_menu_text('v', 256, 328)
+        if not stationary:
+            draw_scrollbar(self.lcd, self._info_scroll, max_scroll + 11, 11)
         self._info_render_scroll = self._info_scroll
         self._info_render_items = items
         self._info_render_lcd = self.lcd
@@ -3341,13 +3432,24 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
     # --------------------------------------------------------------#
     # --------------------------------------------------------------#
 
-    def EachMomentUpdate(self):
+    def _each_moment_update_untraced(self):
         self._poll_case_light_live()
         self._sync_case_light_tracking()
         self._poll_case_light_state()
         # variable update
         update = self.pd.update_variable()
+        self._poll_maintenance_ui()
         self._focus_tick_quiet()
+        if self.pd.connection_error:
+            # Invalidate active operation sessions before the recovery screen
+            # takes over; do not leave mesh/probe sessions running invisibly.
+            self._poll_screws_tilt()
+            self._poll_bed_mesh()
+            self.pd.probe_wizard.update()
+            if self._poll_recovery_ui():
+                return
+        else:
+            self._poll_recovery_ui()
         if not self.pd.connection_error and self.checkkey not in (self.SelectFile, self.FilePreview):
             self.pd.prefetch_files()
         if not self.pd.connection_error and self._configure_menus():
@@ -3532,6 +3634,7 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
 
     def _restore_power_origin(self):
         # Both the hold capsule and confirmation can overwrite cached rows.
+        self._maintenance_frame = None
         self._list_render = None
         self._info_render_scroll = None
         origin = self._power_origin
@@ -3564,6 +3667,7 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             self.PrintProcess: self.Goto_PrintProcess,
             self.TuneEdit: self._focus_edit_draw,
             self.PrintErrorDetails: self._focus_error_draw,
+            self.RecoveryScreen: self.Draw_Recovery,
             self.ScrewsTiltMenu: self.Draw_Screws_Menu,
             self.ScrewsTiltResult: self.Draw_Screws_Result,
             self.ProbeWizardID: self.Draw_Probe_Wizard,
@@ -3729,3 +3833,4 @@ class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUVie
             self.pd.buzzer.tone(100, 698)
         else:
             self.pd.buzzer.tone(40, 440)
+

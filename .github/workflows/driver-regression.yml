@@ -7,7 +7,7 @@ on:
       - master
   push:
     branches:
-      - master
+      - '**'
 
 permissions:
   contents: read
@@ -28,3 +28,18 @@ jobs:
         run: python -m compileall -q .
       - name: Run regression suite
         run: python -m unittest discover -s tests -v
+      - name: Report uninstrumented Maintenance RSS/PSS/USS
+        run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20
+      - name: Report traced Maintenance allocations
+        run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20 --trace
+      - name: Render Maintenance documentation screenshots
+        run: python tools/render_docs_screenshots.py --group maintenance
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-documentation
+          path: |
+            docs/assets/screens/maintenance*.png
+            docs/assets/screens/framed/maintenance*.png
+            docs/screenshots.md
+            docs/screenshots_TR.md
+          retention-days: 7

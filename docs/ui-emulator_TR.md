@@ -4,7 +4,7 @@
 
 ## Ne işe yarar
 
-İsteğe bağlı emülatör, çalışan Petrel servisinin çizdiği ekranları yakalar. Yerleşimleri incelemek, dokümantasyonu yenilemek ve görsel hataları özgün boyutlu görsellerle bildirmek için kullanın. Gerçek LCD arayüzünü takip eder; bağımsız yazıcı simülatörü veya canlı tarayıcı görüntüleyicisi değildir. Fiziksel encoderle gezinin, ardından SSH üzerinden görüntü isteyin.
+İsteğe bağlı emülatör, çalışan Petrel servisinin çizdiği ekranları yakalar. Yerleşimleri incelemek, dokümantasyonu yenilemek ve görsel hataları özgün boyutlu görsellerle bildirmek için kullanın. Gerçek LCD arayüzünü takip eder; bağımsız yazıcı simülatörü değildir. İsteğe bağlı canlı tarayıcı görüntüleme aşağıda anlatılmıştır. Fiziksel encoderle gezinin, ardından SSH üzerinden görüntü isteyin.
 
 ## Açma veya kapatma
 
@@ -114,3 +114,25 @@ Tek üretim oturumunda aynı checkout'tan bütün çıktıları yenileyin:
 İkinci/üçüncü komut Print/Tune başarı akışını özgün/çerçeveli GIF olarak üretir. Son komut güç basılı tutma/iptal/engelleme, iki kırmızı ret yanıp sönmesi, uzun MMU hatası kaydırması ve 0/1/50/100% panel-native fan animasyonu için iki biçimde GIF üretir. Özgün GIF'ler `docs/assets/`, sunum kopyaları `docs/assets/framed/` içindedir. PNG komutu bu GIF'leri yenilemez.
 
 Bütün durumlar gerçek UI/driver ile örnek verilerden üretilir; fiziksel yazıcıya bağlanılmaz. Hata yanıtları test doubles ile sağlanır. Saat 12:34'tür; animasyonlar kontrollü geçen zamanla örneklenir. Eksik preview/katman, azaltılmış Tune ve uzun hata örnekleri galeriye dahildir. Fan GIF'i panel animasyon komutlarını emüle eder; fiziksel JPEG decoder doğrulaması yerine geçmez.
+
+
+## İsteğe bağlı canlı Remote Display (8088 portu)
+
+Petrel, LCD framebuffer'ını küçük bir HTTP sunucusuyla canlı sunabilir ve sanal enkoder girişlerini kabul eder: mouse tekerleği enkoderi döndürür, orta tuş ENTER üretir. Ekrandaki **CCW**, **Enter** ve **CW** butonları, dokunmatik ekranlar dahil aynı girişleri sağlar. Her döndürme butonu tıklaması enkoderi bir adım ilerletir. Gerçek LCD ve enkoder de çalışmaya devam eder.
+
+`~/.config/Petrel/Petrel.env` dosyasında etkinleştir:
+
+```ini
+PETREL_REMOTE=1
+PETREL_REMOTE_PORT=8088
+```
+
+Varsayılan dinleme adresi artık **`0.0.0.0:8088`**, yani bütün IPv4 ağ arayüzleridir. `PETREL_REMOTE_HOST=0.0.0.0` satırı isteğe bağlıdır (zaten varsayılan). Feature sürümü çalışırken yerel ağdan **`http://<PI_LAN_IP>:8088`** veya Tailscale üzerinden **`http://<PI_TAILSCALE_IP>:8088`** adresini açabilirsin. SSH tüneli veya Tailscale Serve gerekmez. Tailscale IP'si `tailscale ip -4` ile öğrenilebilir.
+
+Açık internetten erişim için ayrıca **dışarıdan erişilebilir bir IP/adres ve modemde TCP 8088 port yönlendirmesi veya dışarıya açık başka bir ağ geçidi** gerekir; sadece `0.0.0.0` dinlemek NAT veya güvenlik duvarını aşmaz.
+
+**Güvenlik:** Bu küçük sunucuda şu anda **parola, giriş ekranı veya HTTPS yoktur**. TCP 8088 portuna ulaşabilen herkes LCD'yi görebilir ve enkoder üzerinden yazıcıyı kontrol edebilir. Bu riski açıkça kabul etmeden portu genel internete yönlendirme. Tarayıcı kaynak kontrolleri kimlik doğrulama değildir.
+
+Sunucu isteğe bağlıdır; `PETREL_REMOTE` kapatılıp Petrel yeniden başlatıldığında dinleme durur. Daha dar erişim tercih edilirse `PETREL_REMOTE_HOST=tailscale` (sadece mevcut Tailscale IPv4) veya `PETREL_REMOTE_HOST=127.0.0.1` (yalnız Pi) kullanılabilir. Ayarları değiştirdikten sonra yazıcı boşta iken Petrel'i yeniden başlat. `PETREL_REMOTE=1` emülatörü otomatik açar.
+
+Görüntü kareleri istek üzerine yaklaşık 4 FPS hızında, 272×480 boyutunda üretilir; sanal enkoder girişleri fiziksel girdilerle aynı oturum kontrollü UI olay kuyruğundan geçer. Uzaktan orta tuşu basılı tutmak güç uzun basışını bilerek tetiklemez. Ekran tek başına fan, LED veya buzzer'ın fiziksel çalıştığını doğrulamaz.

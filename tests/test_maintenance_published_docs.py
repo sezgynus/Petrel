@@ -1,0 +1,44 @@
+"""Published Maintenance guides and pictures stay paired with the real UI."""
+from pathlib import Path
+import time
+import unittest
+from unittest.mock import patch
+from PIL import Image,ImageChops
+from tools import render_docs_screenshots as renderer
+
+ROOT=Path(__file__).resolve().parents[1]
+
+class PublishedMaintenanceGuide(unittest.TestCase):
+    def scenes(self):
+        return [s for s in renderer.SCENES if s[1]=='maintenance']
+
+    def test_both_guides_and_galleries_include_every_current_scene(self):
+        self.assertEqual(len(self.scenes()),12)
+        for tr in (False,True):
+            suffix='_TR' if tr else ''
+            guide=(ROOT/('docs/user-guide'+suffix+'.md')).read_text(encoding='utf-8')
+            gallery=(ROOT/('docs/screenshots'+suffix+'.md')).read_text(encoding='utf-8')
+            self.assertNotIn('Maintenance placeholder',gallery)
+            self.assertNotIn('four Graphite tiles',guide)
+            self.assertNotIn('dört Graphite kutucuk',guide)
+            for name,*_ in self.scenes():
+                self.assertIn('assets/screens/framed/'+name+'.png',guide)
+                self.assertIn('assets/screens/framed/'+name+'.png',gallery)
+                self.assertIn('assets/screens/'+name+'.png',gallery)
+            for label in ('Care schedule','Check printer','Diagnostics','Recommendations','Next page','Previous page'):
+                self.assertIn(label,guide)
+
+    @patch('t5uic1_driver.time.sleep')
+    def test_published_native_pixels_match_the_current_production_ui(self,_):
+        with patch.object(time,'strftime',return_value='12:34'),patch('mmu_filament_view.time.monotonic',return_value=3.6):
+            for name,group,en,tr,draw in self.scenes():
+                with self.subTest(scene=name),Image.open(ROOT/('docs/assets/screens/'+name+'.png')) as published:
+                    actual=draw()
+                    self.assertEqual(published.size,(272,480))
+                    self.assertEqual(published.mode,'RGB')
+                    self.assertIsNone(ImageChops.difference(published,actual).getbbox())
+
+    def test_every_presentation_frame_contains_exact_native_panel_pixels(self):
+        for name,*_ in self.scenes():
+            with self.subTest(scene=name),Image.open(ROOT/('docs/assets/screens/'+name+'.png')) as panel,Image.open(ROOT/('docs/assets/screens/framed/'+name+'.png')) as frame:
+                self.assertIsNone(ImageChops.difference(panel,frame.convert('RGB').crop((128,122,400,602))).getbbox())

@@ -1,0 +1,2708 @@
+{
+  "schema_version": 1,
+  "scope": "Sanitized validation reference printer; NEVER hard-code this hardware inventory in generic Petrel production logic",
+  "evidence": {
+    "config_reference_date": "2026-10-15",
+    "config_archive_sha256": "68899aa3a1897c35afa1e59563a59a53de168cec81eb709714543d8554cd973c",
+    "live_log_date": "2026-10-16",
+    "live_feature_count": 54,
+    "exact_live_id_inventory_recorded": false,
+    "qualification": "The 54-feature READY log is a count, not an exact list; confirmed/conditional entries here come from the independent 121-ID hardware reference, plus user-observed physical acceptances.",
+    "physical_trace_2026_10_17": {
+      "session": "dec3042495ca4ab78b58b947e2b3c73a",
+      "head": "32a8e14991e6d1d308909602084ab2e1f7b7d815",
+      "events": 2844,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "accepted_features": [
+        "S15",
+        "S16",
+        "S17"
+      ]
+    },
+    "physical_trace_2026_10_17_m": {
+      "session": "2de3566ce59d476cb020ad83dd5360bf",
+      "head": "0c96a4c3deed78615028c0d2ecd074fc42198680",
+      "events": 787,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "accepted_targets": [
+        "physical X endstop",
+        "physical Y endstop"
+      ]
+    },
+    "physical_trace_2026_10_17_m03": {
+      "session": "a4ad65170ed04b649b0a1a58c9c55b53",
+      "head": "4deca8ee79a4b3f4c8cd154869e796f46bb42981",
+      "events": 274,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "accepted_targets": [
+        "Cartesian X/Y/Z homing"
+      ],
+      "ui_confirmation_retries": 2,
+      "ui_flow_accepted": false
+    },
+    "physical_trace_2026_10_17_followup": {
+      "session": "b04c94981b594e06b991b254996a34a0",
+      "head": "bae5c429bd4af3c529dd38eaaa21a2ed41f8ef16",
+      "events": 330,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 1,
+      "m03": {
+        "run": 1,
+        "confirm_seq": 96,
+        "refresh_seq": 102,
+        "dispatch_seq": 105,
+        "observe_seq": 191,
+        "result_seq": 193,
+        "confirm_attempts": 1,
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "ui_flow": "single_confirmation_refresh_then_dispatch"
+      },
+      "m04_stepper_x": {
+        "run": 2,
+        "confirm_seq": 222,
+        "dispatch_seq": 231,
+        "error_seq": 233,
+        "shutdown_seq": 235,
+        "result_seq": 241,
+        "controller_result": "INCONCLUSIVE",
+        "restore_verified": false,
+        "root_cause": "unknown_original_transport_error_detail_not_retained"
+      }
+    },
+    "physical_trace_2026_10_17_auto_home": {
+      "session": "8bf95a8e7cc6431c99ede09170b26605",
+      "head": "4e2f71395637e9d5d2d6084772255f52b10b9907",
+      "events": 448,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "feature_id": "M04",
+      "target": "stepper_x",
+      "confirm_seq": 120,
+      "preparation": "homing_verified",
+      "rpc_error_seq": 295,
+      "dispatch_stage": "guard_denied",
+      "dispatch_guard_reason": "clear_mesh_before_motion_test",
+      "result_seq": 303,
+      "controller_result": "INCONCLUSIVE",
+      "physical_acceptance": false
+    },
+    "physical_trace_2026_10_17_motion_batch": {
+      "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+      "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+      "events": 2545,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "accepted_targets": [
+        {
+          "feature_id": "M04",
+          "target": "stepper_x"
+        },
+        {
+          "feature_id": "M04",
+          "target": "stepper_y"
+        },
+        {
+          "feature_id": "M04",
+          "target": "stepper_z"
+        },
+        {
+          "feature_id": "M05",
+          "target": "axis X"
+        },
+        {
+          "feature_id": "M05",
+          "target": "axis Y"
+        },
+        {
+          "feature_id": "M05",
+          "target": "axis Z"
+        },
+        {
+          "feature_id": "M06",
+          "target": "axis X"
+        },
+        {
+          "feature_id": "M06",
+          "target": "axis Y"
+        },
+        {
+          "feature_id": "M06",
+          "target": "axis Z"
+        }
+      ],
+      "withheld_acceptance": {
+        "date": "2026-10-17",
+        "targets": [
+          {
+            "feature_id": "M10",
+            "target": "tmc2208 stepper_x"
+          },
+          {
+            "feature_id": "M10",
+            "target": "tmc2208 stepper_y"
+          },
+          {
+            "feature_id": "M10",
+            "target": "tmc2208 stepper_z"
+          },
+          {
+            "feature_id": "M12",
+            "target": "endstop_phase X"
+          }
+        ],
+        "reason": "Operator requested explanation before accepting M10/M12; Observed clicks alone do not grant acceptance."
+      }
+    },
+    "physical_trace_2026_10_17_m12_acceptance": {
+      "date": "2026-10-17",
+      "accepted_targets": [
+        {
+          "feature_id": "M12",
+          "target": "endstop_phase X",
+          "trigger_phase": "49/64",
+          "homing_cycles": 10
+        },
+        {
+          "feature_id": "M12",
+          "target": "endstop_phase Y",
+          "trigger_phase": "33/64",
+          "homing_cycles": 10
+        }
+      ],
+      "qualification": "Operator accepted both M12 tests. Repeat-entry precheck limitation explicitly excluded. SAVE_CONFIG not performed."
+    },
+    "retired_m10_entries": {
+      "date": "2026-10-17",
+      "reason": "M10 misclassified as Self Test and retired as reserved/unused ID. M07 read-only Diagnostics includes fault summary. Historical observations and pending attempts archived; no physical acceptance.",
+      "entries": [
+        {
+          "feature_id": "M10",
+          "target": "tmc2208 stepper_x",
+          "title": "TMC driver fault diagnostics",
+          "method": "A",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Operator requested explanation before acceptance; previous Observed click is not informed physical acceptance. Await explicit confirmation after clarification.",
+          "acceptance": null,
+          "retest_required": true,
+          "previous_acceptances": [
+            {
+              "date": "2026-10-17",
+              "source": "user_explicit_physical_observation",
+              "controller_result": "OBSERVED_USER",
+              "restore_verified": false,
+              "observation": "Operator acknowledged passive fault diagnostics; no reported faults is not proof of motor health.",
+              "trace": {
+                "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+                "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+                "run": 23,
+                "observe_seq": 2355,
+                "result_seq": 2357
+              },
+              "measurements": {
+                "fault_count": 0,
+                "faults": "none",
+                "motor_health_verified": false
+              },
+              "invalidated": true,
+              "invalidation_reason": "Operator clicked Observed without understanding the check; informed acceptance explicitly withheld.",
+              "invalidation_date": "2026-10-17"
+            }
+          ]
+        },
+        {
+          "feature_id": "M10",
+          "target": "tmc2208 stepper_y",
+          "title": "TMC driver fault diagnostics",
+          "method": "A",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Operator requested explanation before acceptance; previous Observed click is not informed physical acceptance. Await explicit confirmation after clarification.",
+          "acceptance": null,
+          "retest_required": true,
+          "previous_acceptances": [
+            {
+              "date": "2026-10-17",
+              "source": "user_explicit_physical_observation",
+              "controller_result": "OBSERVED_USER",
+              "restore_verified": false,
+              "observation": "Operator acknowledged passive fault diagnostics; no reported faults is not proof of motor health.",
+              "trace": {
+                "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+                "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+                "run": 24,
+                "observe_seq": 2394,
+                "result_seq": 2396
+              },
+              "measurements": {
+                "fault_count": 0,
+                "faults": "none",
+                "motor_health_verified": false
+              },
+              "invalidated": true,
+              "invalidation_reason": "Operator clicked Observed without understanding the check; informed acceptance explicitly withheld.",
+              "invalidation_date": "2026-10-17"
+            }
+          ]
+        },
+        {
+          "feature_id": "M10",
+          "target": "tmc2208 stepper_z",
+          "title": "TMC driver fault diagnostics",
+          "method": "A",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Operator requested explanation before acceptance; previous Observed click is not informed physical acceptance. Await explicit confirmation after clarification.",
+          "acceptance": null,
+          "retest_required": true,
+          "previous_acceptances": [
+            {
+              "date": "2026-10-17",
+              "source": "user_explicit_physical_observation",
+              "controller_result": "OBSERVED_USER",
+              "restore_verified": false,
+              "observation": "Operator acknowledged passive fault diagnostics; no reported faults is not proof of motor health.",
+              "trace": {
+                "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+                "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+                "run": 25,
+                "observe_seq": 2452,
+                "result_seq": 2454
+              },
+              "measurements": {
+                "fault_count": 0,
+                "faults": "none",
+                "motor_health_verified": false
+              },
+              "invalidated": true,
+              "invalidation_reason": "Operator clicked Observed without understanding the check; informed acceptance explicitly withheld.",
+              "invalidation_date": "2026-10-17"
+            }
+          ]
+        },
+        {
+          "feature_id": "M10",
+          "target": "tmc2208 extruder",
+          "title": "TMC driver fault diagnostics",
+          "method": "A",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Implemented guarded per-target motion/observation adapter; pending final physical operator acceptance. CI is not physical evidence.",
+          "acceptance": null
+        }
+      ]
+    },
+    "m07_informational_diagnostics": {
+      "date": "2026-10-17",
+      "reason": "M07 is a read-only on-demand TMC driver register diagnostic, not a physical Self Test. Previously listed four pending hardware acceptance targets are archived and excluded from active physical acceptance tracking.",
+      "validation": "Operator ran M07 before homing with all drivers disabled after implementing direct DUMP_TMC register read. Four TMC2208 results reported register values and zero active fault flags. Successful information reads do not certify motor health or create hardware PASS.",
+      "method": "INFORMATION",
+      "controller_result": "observed_information",
+      "motor_health_verified": false,
+      "readings": [
+        {
+          "target": "tmc2208 stepper_x",
+          "register": "DRV_STATUS",
+          "value": "80120000",
+          "fault_count": 0
+        },
+        {
+          "target": "tmc2208 stepper_y",
+          "register": "DRV_STATUS",
+          "value": "C0120000",
+          "fault_count": 0
+        },
+        {
+          "target": "tmc2208 stepper_z",
+          "register": "DRV_STATUS",
+          "value": "C00B0000",
+          "fault_count": 0
+        },
+        {
+          "target": "tmc2208 extruder",
+          "register": "DRV_STATUS",
+          "value": "C0150000",
+          "fault_count": 0
+        }
+      ],
+      "retired_physical_acceptance_entries": [
+        {
+          "feature_id": "M07",
+          "target": "tmc2208 stepper_x",
+          "title": "TMC driver status",
+          "method": "AI",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Implemented INFORMATION adapter for reported driver monitor only; no physical motor-health PASS. Pending operator acceptance.",
+          "acceptance": null
+        },
+        {
+          "feature_id": "M07",
+          "target": "tmc2208 stepper_y",
+          "title": "TMC driver status",
+          "method": "AI",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Implemented INFORMATION adapter for reported driver monitor only; no physical motor-health PASS. Pending operator acceptance.",
+          "acceptance": null
+        },
+        {
+          "feature_id": "M07",
+          "target": "tmc2208 stepper_z",
+          "title": "TMC driver status",
+          "method": "AI",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Implemented INFORMATION adapter for reported driver monitor only; no physical motor-health PASS. Pending operator acceptance.",
+          "acceptance": null
+        },
+        {
+          "feature_id": "M07",
+          "target": "tmc2208 extruder",
+          "title": "TMC driver status",
+          "method": "AI",
+          "reference": "confirmed",
+          "status": "pending",
+          "adapter": "implemented",
+          "note": "Implemented INFORMATION adapter for reported driver monitor only; no physical motor-health PASS. Pending operator acceptance.",
+          "acceptance": null
+        }
+      ]
+    },
+    "physical_trace_2026_10_17_thermal_group": {
+      "session": "58240fb38284486dbb6cbdd3d45f6358",
+      "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+      "events": 1830,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 0,
+      "accepted_procedures_per_target": 14,
+      "heating_cooling_runs": 2,
+      "operator_confirmed": true,
+      "restore_verified": true,
+      "scope": "H01/H05/H06/H07/H08/H09/H13, per extruder and heater_bed; 14 independent procedure acceptances from two single-cycle runs",
+      "exception": "Extruder H07 and H08 retain FAILED_METRIC (7.72 C overshoot and 6.69 C peak-to-peak stability); only measurement procedure is accepted.",
+      "runs": [
+        {
+          "device": "extruder",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794,
+          "parent_result": "FAILED_METRIC",
+          "subresults": {
+            "H01": "PASSED_USER",
+            "H05": "PASSED_USER",
+            "H06": "PASSED_USER",
+            "H07": "FAILED_METRIC",
+            "H08": "FAILED_METRIC",
+            "H09": "PASSED_USER",
+            "H13": "PASSED_USER"
+          }
+        },
+        {
+          "device": "heater_bed",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662,
+          "parent_result": "PASSED_USER",
+          "subresults": {
+            "H01": "PASSED_USER",
+            "H05": "PASSED_USER",
+            "H06": "PASSED_USER",
+            "H07": "PASSED_USER",
+            "H08": "PASSED_USER",
+            "H09": "PASSED_USER",
+            "H13": "PASSED_USER"
+          }
+        }
+      ]
+    },
+    "physical_trace_2026_10_17_h02_pid": {
+      "session": "31cd66be65bd4a3b88968c920adfe340",
+      "head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+      "events": 1720,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 1,
+      "h02": {
+        "device": "extruder",
+        "run": 1,
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "metric_ok": true,
+        "coefficients": {
+          "pid_kp": 14.738,
+          "pid_ki": 0.558,
+          "pid_kd": 97.273
+        },
+        "target_c": 150,
+        "user_observation": true,
+        "confirm_seq": 72,
+        "dispatch_seq": 81,
+        "completion_seq": 1352,
+        "observe_seq": 1595,
+        "result_seq": 1597,
+        "pending_config_not_saved": true
+      },
+      "h03": {
+        "device": "heater_bed",
+        "run": 2,
+        "controller_result": "BLOCKED",
+        "reason": "existing_or_unknown_pending_config",
+        "result_seq": 1672,
+        "actuation_dispatched": false,
+        "physical_acceptance": false
+      },
+      "qualification": "Operator observation verifies H02 test procedure and safe OFF, not persistence of the calculated PID values. No SAVE_CONFIG. H03 remains pending; its preflight correctly blocks on H02's unsaved pending config."
+    },
+    "physical_trace_2026_10_17_h03_pid": {
+      "session": "8fa2b04372d94b7ca60e6d443fc098a8",
+      "head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+      "first_seq": 1721,
+      "last_seq": 4391,
+      "session_events": 2671,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 1,
+      "h03": {
+        "device": "heater_bed",
+        "run": 3,
+        "target_c": 60,
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "metric_ok": true,
+        "coefficients": {
+          "pid_kp": 72.339,
+          "pid_ki": 1.502,
+          "pid_kd": 870.785
+        },
+        "heated_to_target_band": true,
+        "operator_observation": true,
+        "config_pending_not_saved": true,
+        "start_seq": 1766,
+        "confirm_seq": 1783,
+        "dispatch_seq": 1792,
+        "completion_seq": 4118,
+        "observe_seq": 4288,
+        "result_seq": 4290
+      },
+      "qualification": "H03 physical procedure accepted. The PID coefficients are pending SAVE_CONFIG; the trace does not show persistence of settings to disk. Historical earlier H03 BLOCKED attempt is retained under the H02 session and does not affect this later successful run."
+    },
+    "physical_trace_2026_10_17_probe": {
+      "session": "2d899dbe5dcc42e6a5e6a020df941369",
+      "tested_signed_head": "6d8abb4a064ec9a32c726e23e279637e69d23af5",
+      "last_seq": 693,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 0,
+      "operator_accepted_targets": [
+        "P01 probe",
+        "P03 probe",
+        "P04 probe"
+      ],
+      "p04_first_attempt": {
+        "controller_result": "BLOCKED",
+        "reason": "raise_z_before_probe_test",
+        "initial_z_mm": 2.964
+      },
+      "p04_second_attempt": {
+        "controller_result": "PASSED",
+        "initial_z_mm": 52.964,
+        "measured_z_mm": -0.025
+      },
+      "p03_measurement": {
+        "range_mm": 0.0175,
+        "standard_deviation_mm": 0.004644
+      },
+      "qualification": "User explicitly stated P01, P03 and P04 passed. Earlier P04 was blocked by a preflight-only low-Z guard; auto-lift improvement was not present or physically tested in this trace."
+    },
+    "physical_trace_2026_10_17_resonance": {
+      "session": "070d7f8524944245bec7259f58e3f6a3",
+      "tested_signed_head": "15476fa89b70012d503ae25baf1f0b0a1b13e981",
+      "first_seq": 1,
+      "last_seq": 672,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 1,
+      "p04": {
+        "run": 1,
+        "homing_command": "G28",
+        "homing_dispatch_seq": 119,
+        "probe_dispatch_seq": 287,
+        "result_seq": 303,
+        "controller_result": "PASSED",
+        "measured_z_mm": -0.015,
+        "automatic_low_z_lift_exercised": false
+      },
+      "r01": {
+        "run": 2,
+        "dispatch_seq": 372,
+        "result_seq": 387,
+        "controller_result": "PASSED",
+        "acceleration_mm_s2": {
+          "x": -1850.514855,
+          "y": -8364.327145,
+          "z": -4903.011187
+        }
+      },
+      "r03": {
+        "run": 6,
+        "dispatch_seq": 514,
+        "result_seq": 535,
+        "controller_result": "PASSED",
+        "noise_psd": {
+          "x": 19.122206,
+          "y": 17.65123,
+          "z": 41.822396
+        },
+        "measurement_time_s": 2
+      },
+      "excluded": {
+        "r02": {
+          "run": 4,
+          "result_seq": 457,
+          "controller_result": "ABORTED"
+        },
+        "r04": {
+          "run": 3,
+          "result_seq": 431,
+          "controller_result": "ABORTED"
+        }
+      },
+      "evidence_boundary": "The operator reported running P04/R01/R03; all three showed controller PASSED with numeric firmware evidence. P04's preparation was XYZ homing, not the newly added low-Z automatic lift. R02/R04 were cancelled without physical acceptance."
+    },
+    "physical_trace_2026_10_18_resonance_group": {
+      "session": "ff80258017ad4c1495e3fd1c64b17e7e",
+      "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+      "first_seq": 1,
+      "last_seq": 902,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 0,
+      "r02": {
+        "x": {
+          "run": 1,
+          "dispatch_seq": 121,
+          "observe_seq": 177,
+          "result_seq": 179,
+          "controller_result": "PASSED",
+          "data": "Klipper PSD recorded"
+        },
+        "y": {
+          "run": 2,
+          "dispatch_seq": 260,
+          "observe_seq": 305,
+          "result_seq": 307,
+          "controller_result": "PASSED",
+          "data": "Klipper PSD recorded"
+        }
+      },
+      "r04": {
+        "x": {
+          "run": 3,
+          "dispatch_seq": 355,
+          "result_seq": 439,
+          "controller_result": "OBSERVED",
+          "shaper": "3hump_ei",
+          "frequency_hz": 137.6,
+          "saved": false
+        },
+        "y": {
+          "run": 5,
+          "homing_dispatch_seq": 598,
+          "dispatch_seq": 769,
+          "result_seq": 854,
+          "controller_result": "OBSERVED",
+          "shaper": "mzv",
+          "frequency_hz": 42.2,
+          "saved": false
+        },
+        "earlier_y_blocked": {
+          "run": 4,
+          "result_seq": 519,
+          "controller_result": "BLOCKED",
+          "reason": "existing_pending_config"
+        }
+      },
+      "evidence_boundary": "The operator explicitly accepted the completed R group. R02 X/Y have actual TEST_RESONANCES execution, PASSED and observe(true); R04 X/Y have Klipper-native SHAPER_CALIBRATE OBSERVED with signed-head trace. Klipper recommendations are not independent mechanical-quality assessments, and persistent SAVE_CONFIG / restore is not verified. Earlier aborted/blocked attempts stay in history."
+    },
+    "physical_trace_2026_10_18_filament_partial": {
+      "session": "d924a92a9df94f1b99645da43a7b14be",
+      "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+      "session_first_seq": 903,
+      "session_last_seq": 1877,
+      "manifest_last_seq": 1877,
+      "dropped_events": 0,
+      "write_errors": 0,
+      "rotations": 1,
+      "trace_scope": "Uploaded ZIP includes archived earlier sessions in events.previous.jsonl. Use only session d924... events #903–1877 for this filament acceptance; sequence numbers in earlier sessions must not be mixed.",
+      "accepted": {
+        "E01": {
+          "run": 9,
+          "observe_seq": 1131,
+          "result_seq": 1133,
+          "controller_result": "PASSED_USER",
+          "commanded_mm": 5,
+          "modal_restore_verified": true,
+          "full_restore_verified": false
+        },
+        "E02": {
+          "run": 10,
+          "measurement_entry_seq": 1235,
+          "observe_seq": 1249,
+          "result_seq": 1251,
+          "controller_result": "PASSED_USER",
+          "commanded_mm": 10,
+          "operator_entered_measured_mm": 10,
+          "computed_error_mm": 0,
+          "modal_restore_verified": true,
+          "full_restore_verified": false
+        },
+        "E07": {
+          "run": 12,
+          "observe_seq": 1360,
+          "result_seq": 1362,
+          "controller_result": "PASSED_USER",
+          "commanded_mm": 5,
+          "modal_restore_verified": true,
+          "full_restore_verified": false
+        }
+      },
+      "blocked": [
+        {
+          "feature_id": "E01",
+          "run": 6,
+          "result_seq": 971,
+          "reason": "preheat_active_extruder_before_test"
+        },
+        {
+          "feature_id": "E03",
+          "run": 7,
+          "result_seq": 1015,
+          "reason": "motion_requires_cold_idle_heaters"
+        },
+        {
+          "feature_id": "E03",
+          "run": 8,
+          "result_seq": 1040,
+          "reason": "motion_requires_cold_idle_heaters"
+        },
+        {
+          "feature_id": "E03",
+          "run": 11,
+          "result_seq": 1281,
+          "reason": "motion_requires_cold_idle_heaters"
+        },
+        {
+          "feature_id": "E11",
+          "run": 13,
+          "result_seq": 1392,
+          "reason": "motion_requires_cold_idle_heaters"
+        },
+        {
+          "feature_id": "E12",
+          "run": 14,
+          "result_seq": 1420,
+          "reason": "motion_requires_cold_idle_heaters"
+        }
+      ],
+      "evidence_boundary": "Only E01/E02/E07 have explicit observe(true) plus controller PASSED_USER. E02 10.0 mm is entered by the user, not independent automatic metrology. Modal restoration was reported, but top-level restore_verified stays false. E03/E11 remain pending and E12 conditional; their blocked attempts were not physically accepted. Already accepted S15/S16/S17 reruns in this session do not add new acceptance rows."
+    },
+    "parked_mmu_workflows_2026_10_18": {
+      "feature_ids": [
+        "E11",
+        "E12"
+      ],
+      "policy": "No operator-mandated MMU disable/enable for Maintenance tests. Tests remain unavailable until safe automatic and verifiably restored subsystem transitions are possible; E12 also requires per-action mechanical acceptance.",
+      "operator_approval": false,
+      "physical_acceptance": false,
+      "hardware_discovery_retained": true,
+      "previous_blocked_trace": "physical_trace_2026_10_18_filament_partial",
+      "ledger_status_unchanged": {
+        "E11": "pending",
+        "E12": "conditional"
+      }
+    },
+    "operator_followup_2026_10_18_e03": {
+      "date": "2026-10-18",
+      "feature_id": "E03",
+      "target": "filament_switch_sensor mmu_gate_sensor",
+      "source": "user_explicit_physical_observation",
+      "observation": "E03 worked as intended; operator expressly approved physical acceptance.",
+      "new_instrumented_trace_available": false,
+      "controller_result_reported": false,
+      "restore_verified": false,
+      "previous_blocked_trace": "physical_trace_2026_10_18_filament_partial",
+      "historic_blocked_result_seqs": [
+        1015,
+        1040,
+        1281
+      ],
+      "evidence_boundary": "Prior ZIP contains only E03 BLOCKED attempts. This acceptance is a later explicit physical user observation, not a new event trace. Do not infer sensor transition timestamps, controller PASSED, restore verification or the signed printer HEAD."
+    }
+  },
+  "policy": {
+    "working_branch": "feature/maintenance-test-engine",
+    "operator_observation_required_for_physical_acceptance": true,
+    "ci_is_not_physical_acceptance": true,
+    "acceptance_per_target": true,
+    "bilingual_docs_must_match": true,
+    "mark_accepted_only_after_user_confirmation": true,
+    "no_master_merge_without_request": true,
+    "manual_subsystem_disable_required_for_test": false,
+    "automatic_subsystem_transition_requires_verified_restore": true
+  },
+  "entries": [
+    {
+      "feature_id": "F01",
+      "target": "fan",
+      "title": "Part fan rotation",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Reference-backed hardware capability; no physical operator acceptance recorded.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Fan visibly rotated and recovered its original reported state"
+      }
+    },
+    {
+      "feature_id": "F02",
+      "target": "fan",
+      "title": "Part fan speed steps",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Revised 2,000 ms/stage F02 operator accepted 2026-10-16. Historical acceptance and inconclusive attempt preserved. Current electronic restore readback not reported; RPM not measured.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly accepted revised F02 fan speed stages at 2,000 ms per stage. Latest controller readback and restore verification not separately reported.",
+        "tested_step_duration_ms": 2000,
+        "tested_program_duration_ms": 6000,
+        "controller_result_reported": false,
+        "restore_evidence": "not_reported"
+      },
+      "retest_required": false,
+      "previous_acceptances": [
+        {
+          "date": "2026-10-16",
+          "source": "user_explicit_physical_observation",
+          "controller_result": "PASSED_USER",
+          "restore_verified": true,
+          "observation": "All three fan-speed steps were observed and LCD reported PASSED_USER; 800 ms per step was judged too brief to distinguish comfortably.",
+          "tested_step_duration_ms": 800,
+          "tested_program_duration_ms": 2400,
+          "tested_signed_head": "b3ecd1be0da8f30b79471c71608aa43ca474817c",
+          "note": "Acceptance applies only to the original 800 ms-per-step version. Longer 2,000 ms-per-step revision requires user retest."
+        }
+      ],
+      "previous_attempts": [
+        {
+          "date": "2026-10-16",
+          "source": "user_reported_physical_attempt",
+          "tested_signed_head": "0bb69d31fda6737c5f21806aeb085d14654086c7",
+          "tested_step_duration_ms": 2000,
+          "controller_result": "INCONCLUSIVE",
+          "controller_reason": "not_supplied_by_user",
+          "operator_confirmation_requested": false,
+          "restore_verified": null,
+          "observation": "The three commanded fan-speed stages physically ran, but LCD showed INCONCLUSIVE without requesting the operator Yes/No observation. No successful electronic restore readback or operator acceptance can be inferred.",
+          "suspected_cause": "MoonrakerClient default 5-second HTTP timeout is shorter than the six-second G4 dwell sequence; diagnosis from source code, not yet confirmed by Pi logs."
+        }
+      ]
+    },
+    {
+      "feature_id": "F04",
+      "target": "fan_generic (not installed)",
+      "title": "Generic fan rotation",
+      "method": "U",
+      "reference": "absent",
+      "status": "not_applicable",
+      "adapter": "implemented",
+      "note": "Reference-backed hardware capability; no physical operator acceptance recorded.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "F12",
+      "target": "fan",
+      "title": "Minimum usable fan PWM",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator-approved physical adaptive five-stage startup PWM search on reference fan. Effective kick-start suppression was required by F12 preflight. No exact threshold command, tachometer RPM, or physical PWM waveform was separately reported.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly confirmed that the real printer F12 test ended with LCD PASSED and the iterative adaptive five-stage bracket/narrowing workflow functioned as intended after kick-start interference was addressed. The exact calculated M106 threshold was not supplied; no tachometer RPM or electrical PWM measurement is claimed.",
+        "algorithm": "adaptive_five_stage_command_bracketing",
+        "threshold_reported": false,
+        "restore_evidence": "controller_passthrough_result_implies_verified_restore_not_independently_measured"
+      }
+    },
+    {
+      "feature_id": "F13",
+      "target": "guarded fan/heater comparison",
+      "title": "Fan thermal A/B comparison",
+      "method": "A",
+      "reference": "conditional",
+      "status": "conditional",
+      "adapter": "not_implemented",
+      "note": "No declared repeatable thermal A/B test profile.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "H01",
+      "target": "extruder",
+      "title": "Heater warmup",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H01 measurement procedure from one Thermal Characterization heating/cooling run on extruder, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "rise_c",
+          "value": 38.8,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H01",
+      "target": "heater_bed",
+      "title": "Heater warmup",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H01 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "rise_c",
+          "value": 17.89,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H02",
+      "target": "extruder",
+      "title": "Extruder PID calibration",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Real H02 PID procedure physically verified after fixing canonical mixed-case Klipper pending PID fields. Klipper PID_CALIBRATE completed and OFF was verified. The pending coefficients were read but neither SAVE_CONFIG nor an on-printer config write was issued by Petrel.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly selected Observed after a complete H02 extruder PID calibration, fresh three-coefficient proof, heater OFF and cooling verification; the LCD displayed PASSED_USER.",
+        "tested_signed_head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+        "target_c": 150,
+        "metrics": {
+          "pid_kp": 14.738,
+          "pid_ki": 0.558,
+          "pid_kd": 97.273,
+          "heated_to_target_band": true
+        },
+        "klipper_save_config_pending": true,
+        "save_config_executed": false,
+        "trace": {
+          "session": "31cd66be65bd4a3b88968c920adfe340",
+          "head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+          "run": 1,
+          "confirm_seq": 72,
+          "dispatch_seq": 81,
+          "completion_seq": 1352,
+          "observe_seq": 1595,
+          "result_seq": 1597
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H03",
+      "target": "heater_bed",
+      "title": "Bed PID calibration",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Klipper PID_CALIBRATE heater_bed completed under guarded Petrel H03 procedure. Three new PID parameters were read from Klipper's pending config; heater OFF and cooling were verified; operator explicitly confirmed result. Petrel did not send SAVE_CONFIG.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly confirmed successful H03 bed PID calibration. Klipper completed autotune, Petrel verified positive finite PID values from pending config and heater OFF/cooling, and LCD reported PASSED_USER.",
+        "tested_signed_head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+        "target_c": 60,
+        "metrics": {
+          "pid_kp": 72.339,
+          "pid_ki": 1.502,
+          "pid_kd": 870.785,
+          "heated_to_target_band": true
+        },
+        "klipper_save_config_pending": true,
+        "save_config_executed": false,
+        "trace": {
+          "session": "8fa2b04372d94b7ca60e6d443fc098a8",
+          "head": "1b6511db3ab45a3f9b3afc30c2c5364f836c356f",
+          "run": 3,
+          "start_seq": 1766,
+          "confirm_seq": 1783,
+          "dispatch_seq": 1792,
+          "completion_seq": 4118,
+          "observe_seq": 4288,
+          "result_seq": 4290
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H05",
+      "target": "extruder",
+      "title": "Heating rate",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H05 measurement procedure from one Thermal Characterization heating/cooling run on extruder, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "heating_c_per_s",
+          "value": 0.2649,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H05",
+      "target": "heater_bed",
+      "title": "Heating rate",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H05 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "heating_c_per_s",
+          "value": 0.1501,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H06",
+      "target": "extruder",
+      "title": "Time to target",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H06 measurement procedure from one Thermal Characterization heating/cooling run on extruder, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "time_to_target_s",
+          "value": 15.53,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H06",
+      "target": "heater_bed",
+      "title": "Time to target",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H06 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "time_to_target_s",
+          "value": 55.87,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H07",
+      "target": "extruder",
+      "title": "Temperature overshoot",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "FAILED_METRIC",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H07 measurement procedure on extruder; measured thermal performance did not meet the criterion. Procedure acceptance does not convert FAILED_METRIC to PASS.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": false,
+        "measurement": {
+          "name": "overshoot_c",
+          "value": 7.72,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H07",
+      "target": "heater_bed",
+      "title": "Temperature overshoot",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H07 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "overshoot_c",
+          "value": 1.3,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H08",
+      "target": "extruder",
+      "title": "Temperature stability",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "FAILED_METRIC",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H08 measurement procedure on extruder; measured thermal performance did not meet the criterion. Procedure acceptance does not convert FAILED_METRIC to PASS.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": false,
+        "measurement": {
+          "name": "stability_peak_to_peak_c",
+          "value": 6.69,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H08",
+      "target": "heater_bed",
+      "title": "Temperature stability",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H08 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "stability_peak_to_peak_c",
+          "value": 0.52,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H09",
+      "target": "extruder",
+      "title": "Cooling rate",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H09 measurement procedure from one Thermal Characterization heating/cooling run on extruder, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "cooling_c_per_s",
+          "value": -0.1666,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H09",
+      "target": "heater_bed",
+      "title": "Cooling rate",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H09 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "cooling_c_per_s",
+          "value": -0.053,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H13",
+      "target": "extruder",
+      "title": "Heater response warning",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H13 measurement procedure from one Thermal Characterization heating/cooling run on extruder, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "rise_c",
+          "value": 38.8,
+          "samples": 120,
+          "span_s": 153.57
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 1,
+          "observe_seq": 792,
+          "result_seq": 794
+        },
+        "run_id": "thermal_characterization_1",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H13",
+      "target": "heater_bed",
+      "title": "Heater response warning",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Thermal Characterization procedure physically accepted after one bounded heating/cooling run and verified OFF. Printer performance criteria are retained independently; CI is not physical acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted the H13 measurement procedure from one Thermal Characterization heating/cooling run on heater_bed, with observed OFF restoration and independent metric result.",
+        "procedure_accepted": true,
+        "performance_criterion_passed": true,
+        "measurement": {
+          "name": "rise_c",
+          "value": 17.89,
+          "samples": 119,
+          "span_s": 153.56
+        },
+        "trace": {
+          "session": "58240fb38284486dbb6cbdd3d45f6358",
+          "head": "115e392c348292ab5d6bcf57bcde27874c359536",
+          "run": 2,
+          "observe_seq": 1660,
+          "result_seq": 1662
+        },
+        "run_id": "thermal_characterization_2",
+        "grouped_features": [
+          "H01",
+          "H05",
+          "H06",
+          "H07",
+          "H08",
+          "H09",
+          "H13"
+        ]
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "H15",
+      "target": "co-located calibrated sensor pair",
+      "title": "Paired temperature-sensor deviation",
+      "method": "AI",
+      "reference": "conditional",
+      "status": "conditional",
+      "adapter": "not_implemented",
+      "note": "No verified co-located calibrated sensor pair.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "M01",
+      "target": "physical X endstop",
+      "title": "Physical endstop press/release",
+      "method": "AU",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Registered endstop-name parser physically verified; open > TRIGGERED > open and explicit operator observation recorded on 2026-10-17.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator exercised physical X endstop open > TRIGGERED > open and selected observe(true); premature clicks remained retryable without failing the test.",
+        "trace": {
+          "session": "2de3566ce59d476cb020ad83dd5360bf",
+          "head": "0c96a4c3deed78615028c0d2ecd074fc42198680",
+          "run": 1,
+          "observe_seq": 249,
+          "result_seq": 251
+        },
+        "measurements": {
+          "transitions": "open > TRIGGERED > open"
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M01",
+      "target": "physical Y endstop",
+      "title": "Physical endstop press/release",
+      "method": "AU",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Registered endstop-name parser physically verified; open > TRIGGERED > open and explicit operator observation recorded on 2026-10-17.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator exercised physical Y endstop open > TRIGGERED > open and selected observe(true); premature clicks remained retryable without failing the test.",
+        "trace": {
+          "session": "2de3566ce59d476cb020ad83dd5360bf",
+          "head": "0c96a4c3deed78615028c0d2ecd074fc42198680",
+          "run": 2,
+          "observe_seq": 392,
+          "result_seq": 394
+        },
+        "measurements": {
+          "transitions": "open > TRIGGERED > open"
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M03",
+      "target": "Cartesian X/Y/Z homing",
+      "title": "Homing completion",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical homing accepted. Follow-up trace b04c94981b594e06b991b254996a34a0 verifies single-confirmation safety refresh and dispatch after the UI retry correction.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly confirmed successful Cartesian XYZ homing after stable final readback; controller verified modal restoration.",
+        "trace": {
+          "session": "a4ad65170ed04b649b0a1a58c9c55b53",
+          "head": "4deca8ee79a4b3f4c8cd154869e796f46bb42981",
+          "run": 1,
+          "observe_seq": 220,
+          "result_seq": 222
+        },
+        "measurements": {
+          "homed_axes": "xyz",
+          "position_xyz": [
+            157.9,
+            141.5,
+            10
+          ]
+        }
+      }
+    },
+    {
+      "feature_id": "M04",
+      "target": "stepper_x",
+      "title": "Stepper coarse movement",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 3,
+          "observe_seq": 553,
+          "result_seq": 555
+        }
+      },
+      "retest_required": false,
+      "previous_attempts": [
+        {
+          "date": "2026-10-17",
+          "source": "user_explicit_physical_observation",
+          "controller_result": "FAILED_USER",
+          "restore_verified": true,
+          "trace": {
+            "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+            "run": 1,
+            "observe_seq": 326,
+            "result_seq": 328
+          },
+          "observation": "Controller recorded FAILED_USER from accidental Not observed selection; operator explicitly invalidated this selection. Later runs 2 and 3 accepted the target.",
+          "operator_correction": {
+            "date": "2026-10-17",
+            "accidental_selection": true,
+            "exclude_from_physical_failure": true,
+            "observation": "Operator explicitly clarified that Not observed was selected accidentally and must be disregarded."
+          }
+        }
+      ]
+    },
+    {
+      "feature_id": "M04",
+      "target": "stepper_y",
+      "title": "Stepper coarse movement",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 4,
+          "observe_seq": 675,
+          "result_seq": 677
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M04",
+      "target": "stepper_z",
+      "title": "Stepper coarse movement",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 5,
+          "observe_seq": 794,
+          "result_seq": 796
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M05",
+      "target": "axis X",
+      "title": "Axis coarse travel",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 7,
+          "observe_seq": 966,
+          "result_seq": 968
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M05",
+      "target": "axis Y",
+      "title": "Axis coarse travel",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 9,
+          "observe_seq": 1115,
+          "result_seq": 1117
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M05",
+      "target": "axis Z",
+      "title": "Axis coarse travel",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 12,
+          "observe_seq": 1308,
+          "result_seq": 1310
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M06",
+      "target": "axis X",
+      "title": "Measured axis travel",
+      "method": "E",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 13,
+          "observe_seq": 1498,
+          "result_seq": 1500
+        },
+        "measurements": {
+          "commanded_mm": 10,
+          "operator_entered_mm": 10,
+          "error_mm": 0,
+          "measurement_source": "operator_report_not_independent_metrology"
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M06",
+      "target": "axis Y",
+      "title": "Measured axis travel",
+      "method": "E",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 14,
+          "observe_seq": 1701,
+          "result_seq": 1703
+        },
+        "measurements": {
+          "commanded_mm": 10,
+          "operator_entered_mm": 10,
+          "error_mm": 0,
+          "measurement_source": "operator_report_not_independent_metrology"
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M06",
+      "target": "axis Z",
+      "title": "Measured axis travel",
+      "method": "E",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator explicitly accepted physical movement and return after controller restoration readback.",
+        "trace": {
+          "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+          "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+          "run": 15,
+          "observe_seq": 1935,
+          "result_seq": 1937
+        },
+        "measurements": {
+          "commanded_mm": 10,
+          "operator_entered_mm": 10,
+          "error_mm": 0,
+          "measurement_source": "operator_report_not_independent_metrology"
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "M12",
+      "target": "endstop_phase X",
+      "title": "Endstop phase calibration",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator accepted the ten-homing M12 workflow; pending SAVE_CONFIG not performed. Known repeat-entry precheck limitation excluded from acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly accepted M12 stepper_x ten-homing calibration. Pending trigger_phase 49/64 was reviewed; no SAVE_CONFIG was issued. Repeat-entry precheck limitation explicitly waived.",
+        "trace": {
+          "session": "2a74f7fe73914463b7798c7551b51c92",
+          "head": "c9d3b3326c95734c2e03366608ee9631785714ff",
+          "run": 1,
+          "observe_seq": 1086,
+          "result_seq": 1088
+        },
+        "measurements": {
+          "homing_cycles": 10,
+          "trigger_phase": "49/64",
+          "pending_config": true,
+          "saved": false,
+          "independent_metrology": false
+        }
+      },
+      "retest_required": false,
+      "previous_acceptances": [
+        {
+          "date": "2026-10-17",
+          "source": "user_explicit_physical_observation",
+          "controller_result": "OBSERVED_USER",
+          "restore_verified": false,
+          "observation": "Operator observed phase calibration; pending config deliberately retained without SAVE_CONFIG. Numerical trigger phase was omitted by the old trace sanitizer.",
+          "trace": {
+            "session": "3e8f0231f5a84e8eaeae6944aba6951d",
+            "head": "537e0373c6e83dc4ee5105e3b968f36eb1a8f361",
+            "run": 16,
+            "observe_seq": 2019,
+            "result_seq": 2021
+          },
+          "measurements": {
+            "pending_config": true,
+            "saved": false,
+            "trigger_phase_recorded": false
+          },
+          "invalidated": true,
+          "invalidation_reason": "Operator clicked Observed without understanding the check; informed acceptance explicitly withheld.",
+          "invalidation_date": "2026-10-17"
+        }
+      ]
+    },
+    {
+      "feature_id": "M12",
+      "target": "endstop_phase Y",
+      "title": "Endstop phase calibration",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator accepted the ten-homing M12 workflow; pending SAVE_CONFIG not performed. Known repeat-entry precheck limitation excluded from acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly accepted M12 stepper_y ten-homing calibration. Pending trigger_phase 33/64 was reviewed; no SAVE_CONFIG was issued. Repeat-entry precheck limitation explicitly waived.",
+        "trace": {
+          "session": "2fd812d7ffdb4c6e8b59275ef181b1b2",
+          "head": "e85474ff788d9a17007bbe6e24c2e3f8e0445a98",
+          "run": 2,
+          "observe_seq": 769,
+          "result_seq": 771
+        },
+        "measurements": {
+          "homing_cycles": 10,
+          "trigger_phase": "33/64",
+          "pending_config": true,
+          "saved": false,
+          "independent_metrology": false
+        }
+      },
+      "retest_required": false,
+      "diagnostic_observations": [
+        {
+          "date": "2026-10-17",
+          "source": "user_supplied_lcd_screenshot",
+          "source_type": "petrel_diagnostics_information_read",
+          "feature_id": "M12",
+          "target": "stepper_y",
+          "status": "observed_information",
+          "verified": true,
+          "output": {
+            "stepper_y.phase": "58/64"
+          },
+          "reported_lcd_time": "19:18",
+          "operator_context": "Prior Diagnostics M12/Y read returned INCONCLUSIVE because Y had not been homed in that session; operator homed Y and explicitly confirmed successful repeat read.",
+          "scope": "Current last_home diagnostic phase only. Not ten-homing ENDSTOP_PHASE_CALIBRATE result, not SAVE_CONFIG, and not a new physical test acceptance."
+        }
+      ]
+    },
+    {
+      "feature_id": "P01",
+      "target": "probe",
+      "title": "Probe trigger response",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical P-group test accepted on 2026-10-17 after operator reported PASS; source trace retained.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": true,
+        "observation": "Operator explicitly confirmed P01 probe activation, released/triggered/released transitions and final deactivation passed on the real servo-probe.",
+        "tested_signed_head": "6d8abb4a064ec9a32c726e23e279637e69d23af5",
+        "trace": {
+          "session": "2d899dbe5dcc42e6a5e6a020df941369",
+          "last_seq": 693
+        }
+      }
+    },
+    {
+      "feature_id": "P03",
+      "target": "probe",
+      "title": "Probe repeatability",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical P-group test accepted on 2026-10-17 after operator reported PASS; source trace retained.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed P03 ten-sample probe repeatability passed on the real printer; the range and standard deviation are measured Klipper outputs, not independent accuracy metrology.",
+        "tested_signed_head": "6d8abb4a064ec9a32c726e23e279637e69d23af5",
+        "trace": {
+          "session": "2d899dbe5dcc42e6a5e6a020df941369",
+          "last_seq": 693
+        },
+        "measurement": {
+          "range_mm": 0.0175,
+          "standard_deviation_mm": 0.004644
+        }
+      }
+    },
+    {
+      "feature_id": "P04",
+      "target": "probe",
+      "title": "Single probe measurement",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Previously accepted single probe measurement; operator retested and accepted automatic low-Z lift on 2026-10-18. Earlier instrumented traces did not exercise the lift.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed P04 single probe reading passed after manually lifting Z. An earlier attempt was BLOCKED at Z=2.964 mm, followed by successful measurement starting at Z=52.964 mm. The new automatic pre-lift procedure requires separate physical retest.",
+        "tested_signed_head": "6d8abb4a064ec9a32c726e23e279637e69d23af5",
+        "trace": {
+          "session": "2d899dbe5dcc42e6a5e6a020df941369",
+          "last_seq": 693
+        },
+        "measurement": {
+          "starting_z_mm": 52.964,
+          "measured_z_mm": -0.025,
+          "earlier_blocked_z_mm": 2.964,
+          "automatic_lift_physically_retested": true
+        },
+        "followup_trace": {
+          "session": "070d7f8524944245bec7259f58e3f6a3",
+          "run": 1,
+          "homing_dispatch_seq": 119,
+          "probe_dispatch_seq": 287,
+          "result_seq": 303,
+          "controller_result": "PASSED",
+          "measured_z_mm": -0.015,
+          "preparation": "guarded_G28_XYZ_homing",
+          "new_automatic_low_z_lift_tested": false
+        },
+        "automatic_lift_followup": {
+          "date": "2026-10-18",
+          "source": "user_explicit_physical_observation",
+          "controller_result": "OBSERVED_USER",
+          "restore_verified": false,
+          "observation": "Operator explicitly repeated P04 on the reference printer and confirmed that the guarded automatic Z lift works; no new instrumented trace, numerical lift measurement or independent restoration readback was supplied.",
+          "new_instrumented_trace_available": false
+        }
+      }
+    },
+    {
+      "feature_id": "P05",
+      "target": "probe Z-offset",
+      "title": "Probe Z-offset wizard",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "not_implemented",
+      "note": "Existing Leveling feature explicitly approved by operator on 2026-10-18; excluded from Maintenance catalog execution. No standalone Maintenance adapter is implemented.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed the existing Probe Z-offset wizard workflow was already functioning in Petrel's Leveling menu and approved its acceptance. This is not evidence of a new Maintenance test run, an LCD PASSED result, or an independent restore readback.",
+        "acceptance_surface": "leveling",
+        "maintenance_adapter_excluded": true,
+        "new_instrumented_trace_available": false
+      }
+    },
+    {
+      "feature_id": "P07",
+      "target": "bed_mesh (probe)",
+      "title": "Automatic bed mesh",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "not_implemented",
+      "note": "Existing Leveling feature explicitly approved by operator on 2026-10-18; excluded from Maintenance catalog execution. No standalone Maintenance adapter is implemented.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed the existing Automatic bed mesh workflow was already functioning in Petrel's Leveling menu and approved its acceptance. This is not evidence of a new Maintenance test run, an LCD PASSED result, or an independent restore readback.",
+        "acceptance_surface": "leveling",
+        "maintenance_adapter_excluded": true,
+        "new_instrumented_trace_available": false
+      }
+    },
+    {
+      "feature_id": "P08",
+      "target": "bed_mesh (manual)",
+      "title": "Manual bed mesh",
+      "method": "UK",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "not_implemented",
+      "note": "Existing Leveling feature explicitly approved by operator on 2026-10-18; excluded from Maintenance catalog execution. No standalone Maintenance adapter is implemented.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed the existing Manual bed mesh workflow was already functioning in Petrel's Leveling menu and approved its acceptance. This is not evidence of a new Maintenance test run, an LCD PASSED result, or an independent restore readback.",
+        "acceptance_surface": "leveling",
+        "maintenance_adapter_excluded": true,
+        "new_instrumented_trace_available": false
+      }
+    },
+    {
+      "feature_id": "P11",
+      "target": "screws_tilt_adjust",
+      "title": "Screws tilt adjustment",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "not_implemented",
+      "note": "Existing Leveling feature explicitly approved by operator on 2026-10-18; excluded from Maintenance catalog execution. No standalone Maintenance adapter is implemented.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed the existing Screws tilt adjustment workflow was already functioning in Petrel's Leveling menu and approved its acceptance. This is not evidence of a new Maintenance test run, an LCD PASSED result, or an independent restore readback.",
+        "acceptance_surface": "leveling",
+        "maintenance_adapter_excluded": true,
+        "new_instrumented_trace_available": false
+      }
+    },
+    {
+      "feature_id": "R01",
+      "target": "adxl345",
+      "title": "Accelerometer reading",
+      "method": "AI",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Real-printer sensor test reported by operator and completed with numeric firmware evidence; no axis movement or saved configuration. R02 X/Y and R04 X/Y were independently accepted on 2026-10-18; historical R01/R03 readings are unchanged.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator reported completing R01 on the actual reference printer. The ACCELEROMETER_QUERY completed and controller PASSED with all three finite acceleration components (no independent metrology or orientation proof).",
+        "tested_signed_head": "15476fa89b70012d503ae25baf1f0b0a1b13e981",
+        "trace": {
+          "session": "070d7f8524944245bec7259f58e3f6a3",
+          "run": 2,
+          "dispatch_seq": 372,
+          "result_seq": 387
+        },
+        "measurement": {
+          "unit": "mm/s²",
+          "axis_x": -1850.514855,
+          "axis_y": -8364.327145,
+          "axis_z": -4903.011187
+        }
+      }
+    },
+    {
+      "feature_id": "R02",
+      "target": "resonance_tester X",
+      "title": "Axis resonance measurement",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Reference-printer X-axis Klipper TEST_RESONANCES produced a validated resonance PSD; operator reviewed the result. No Petrel-generated mechanical quality score, input-shaper choice, or SAVE_CONFIG. Acceptance is for execution/PSD recording only.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator confirmed completion of the real-printer R02 X-axis test after the firmware TEST_RESONANCES run and selected Result reviewed. Petrel reported PASSED with Klipper PSD recorded. No numeric PSD peak was reported on the new UI, no mechanical quality assessment was made, and no restore verification is claimed.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "ff80258017ad4c1495e3fd1c64b17e7e",
+          "run": 1,
+          "dispatch_seq": 121,
+          "observe_seq": 177,
+          "result_seq": 179
+        },
+        "measurement": {
+          "axis": "X",
+          "device": "adxl345",
+          "command": "TEST_RESONANCES",
+          "klipper_psd_recorded": true,
+          "shaper_recommendation_computed": false,
+          "save_config_sent": false
+        }
+      }
+    },
+    {
+      "feature_id": "R02",
+      "target": "resonance_tester Y",
+      "title": "Axis resonance measurement",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Reference-printer Y-axis Klipper TEST_RESONANCES produced a validated resonance PSD; operator reviewed the result. No Petrel-generated mechanical quality score, input-shaper choice, or SAVE_CONFIG. Acceptance is for execution/PSD recording only.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator confirmed completion of the real-printer R02 Y-axis test after the firmware TEST_RESONANCES run and selected Result reviewed. Petrel reported PASSED with Klipper PSD recorded. No numeric PSD peak was reported on the new UI, no mechanical quality assessment was made, and no restore verification is claimed.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "ff80258017ad4c1495e3fd1c64b17e7e",
+          "run": 2,
+          "dispatch_seq": 260,
+          "observe_seq": 305,
+          "result_seq": 307
+        },
+        "measurement": {
+          "axis": "Y",
+          "device": "adxl345",
+          "command": "TEST_RESONANCES",
+          "klipper_psd_recorded": true,
+          "shaper_recommendation_computed": false,
+          "save_config_sent": false
+        }
+      }
+    },
+    {
+      "feature_id": "R03",
+      "target": "adxl345",
+      "title": "Accelerometer noise floor",
+      "method": "A",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Real-printer sensor test reported by operator and completed with numeric firmware evidence; no axis movement or saved configuration. R02 X/Y and R04 X/Y were independently accepted on 2026-10-18; historical R01/R03 readings are unchanged.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED",
+        "restore_verified": false,
+        "observation": "Operator reported completing R03 on the actual reference printer. The MEASURE_AXES_NOISE command completed after a two-second capture and controller PASSED with finite PSD values on X/Y/Z (not a measured pass/fail noise threshold).",
+        "tested_signed_head": "15476fa89b70012d503ae25baf1f0b0a1b13e981",
+        "trace": {
+          "session": "070d7f8524944245bec7259f58e3f6a3",
+          "run": 6,
+          "dispatch_seq": 514,
+          "result_seq": 535
+        },
+        "measurement": {
+          "unit": "PSD (Klipper reported)",
+          "axis_x": 19.122206,
+          "axis_y": 17.65123,
+          "axis_z": 41.822396,
+          "measure_time_s": 2
+        }
+      }
+    },
+    {
+      "feature_id": "R04",
+      "target": "input_shaper X/Y",
+      "title": "Input shaper calibration",
+      "method": "K",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Klipper-native SHAPER_CALIBRATE completed for both X and Y on the reference printer; verified native recommendations only, with no Petrel scoring and no SAVE_CONFIG. First Y preflight was BLOCKED by existing pending config, followed by successful retest after configuration epoch/homing.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED",
+        "restore_verified": false,
+        "observation": "Operator explicitly accepted the entire R group after completing R04 X and Y on the reference printer. Klipper SHAPER_CALIBRATE returned native input-shaper recommendations for both axes, without Petrel numerical ranking. X completed directly; initial Y preflight was blocked by an existing pending configuration, then Y was rerun after a fresh epoch and guarded XYZ homing. Both final results were OBSERVED. No SAVE_CONFIG was sent or persistent shaper configuration verified.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "ff80258017ad4c1495e3fd1c64b17e7e",
+          "successful_runs": [
+            {
+              "axis": "X",
+              "run": 3,
+              "dispatch_seq": 355,
+              "result_seq": 439
+            },
+            {
+              "axis": "Y",
+              "run": 5,
+              "homing_dispatch_seq": 598,
+              "dispatch_seq": 769,
+              "result_seq": 854
+            }
+          ],
+          "earlier_y_blocked": {
+            "run": 4,
+            "result_seq": 519,
+            "reason": "existing_pending_config"
+          }
+        },
+        "recommendations": {
+          "x": {
+            "shaper": "3hump_ei",
+            "frequency_hz": 137.6
+          },
+          "y": {
+            "shaper": "mzv",
+            "frequency_hz": 42.2
+          }
+        },
+        "saved": false,
+        "measurement_scope": "Klipper native recommendation and test procedure; no independent validation of optimal shaper or persistent settings"
+      }
+    },
+    {
+      "feature_id": "E01",
+      "target": "extruder filament path",
+      "title": "Coarse filament extrusion",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "On the reference printer the filament workflow was observed after a commanded 5 mm feed. Physical operator approval and PASSED_USER were captured in the signed-head trace; modal G-code restore reported true, but full controller restore was not verified.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": false,
+        "observation": "Operator executed the real-printer E01 filament-feed procedure, observed the commanded 5.0 mm physical filament motion and explicitly selected observe(true). The controller reported PASSED_USER after reporting modal G-code restoration. No independent flow/length metrology or complete heater/physical restoration is claimed.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "d924a92a9df94f1b99645da43a7b14be",
+          "run": 9,
+          "observe_seq": 1131,
+          "result_seq": 1133
+        },
+        "measurement": {
+          "commanded_mm": 5,
+          "modal_restore_verified": true,
+          "independent_automatic_measurement": false
+        }
+      }
+    },
+    {
+      "feature_id": "E02",
+      "target": "extruder measured length",
+      "title": "Measured extrusion distance",
+      "method": "E",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "On the reference printer the E02 commanded 10 mm and operator entered 10 mm as the externally measured result; Petrel computed 0 mm error but no independent automatic measurement was available. Physical operator approval and PASSED_USER were captured in the signed-head trace; modal G-code restore reported true, but full controller restore was not verified.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": false,
+        "observation": "Operator ran the E02 real-printer filament extrusion distance procedure, entered an externally measured 10.0 mm feed for the commanded 10.0 mm and explicitly selected observe(true). The controller reported PASSED_USER and a computed 0.0 mm difference. The entered length is an operator measurement, not an automated sensor reading; complete physical/thermal restore is not verified.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "d924a92a9df94f1b99645da43a7b14be",
+          "run": 10,
+          "observe_seq": 1249,
+          "result_seq": 1251,
+          "measurement_entry_seq": 1235
+        },
+        "measurement": {
+          "commanded_mm": 10,
+          "modal_restore_verified": true,
+          "operator_entered_measured_mm": 10,
+          "computed_error_mm": 0,
+          "independent_automatic_measurement": false
+        }
+      }
+    },
+    {
+      "feature_id": "E03",
+      "target": "filament_switch_sensor mmu_gate_sensor",
+      "title": "Filament presence sensor",
+      "method": "AU",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Operator explicitly confirmed that the E03 physical filament-presence sensor test behaved as intended on the reference printer. This follow-up is a user observation without a newly uploaded trace. The earlier motion_requires_cold_idle_heaters BLOCKED attempts remain historical; controller PASS, individual sensor samples and verified restore were not independently confirmed.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "controller_result_reported": false,
+        "restore_verified": false,
+        "observation": "Operator explicitly confirmed the E03 filament-presence sensor test worked as intended on the physical printer and approved it for acceptance. No new instrumented trace, latest LCD controller outcome, individual absent-present-absent transition timestamps or verified sensor enabled-state restoration were supplied.",
+        "acceptance_surface": "maintenance",
+        "new_instrumented_trace_available": false,
+        "physical_test_reported": true
+      }
+    },
+    {
+      "feature_id": "E07",
+      "target": "extruder + MMU filament path",
+      "title": "Filament path motion",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "On the reference printer the filament workflow was observed after a commanded 5 mm feed. Physical operator approval and PASSED_USER were captured in the signed-head trace; modal G-code restore reported true, but full controller restore was not verified.",
+      "acceptance": {
+        "date": "2026-10-18",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": false,
+        "observation": "Operator executed the real-printer E07 filament-feed procedure, observed the commanded 5.0 mm physical filament motion and explicitly selected observe(true). The controller reported PASSED_USER after reporting modal G-code restoration. No independent flow/length metrology or complete heater/physical restoration is claimed.",
+        "tested_signed_head": "ad0615911960e627dcec70722b84cc5c4a8b88c4",
+        "trace": {
+          "session": "d924a92a9df94f1b99645da43a7b14be",
+          "run": 12,
+          "observe_seq": 1360,
+          "result_seq": 1362
+        },
+        "measurement": {
+          "commanded_mm": 5,
+          "modal_restore_verified": true,
+          "independent_automatic_measurement": false
+        }
+      }
+    },
+    {
+      "feature_id": "E11",
+      "target": "Happy Hare MMU gate sensors (4 gates)",
+      "title": "MMU gate sensor diagnostics",
+      "method": "AU",
+      "reference": "confirmed",
+      "status": "pending",
+      "adapter": "not_implemented",
+      "note": "Parked from executable Maintenance workflows: former sensor test required user to manually disable the MMU and handle filament fragments; no safe, verified automatic MMU state transition and restoration exists. Hardware discovery and the 2026-10-18 BLOCKED trace are retained; not physically accepted. Re-enable only after safe automatic control/verified original-state restoration where applicable and complete test contracts.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "E12",
+      "target": "Happy Hare gear and selector",
+      "title": "MMU mechanical diagnostics",
+      "method": "AU",
+      "reference": "conditional",
+      "status": "conditional",
+      "adapter": "not_implemented",
+      "note": "Parked from executable Maintenance workflows: grip/release/selector-home checks and a single user confirmation cannot represent a comprehensive, safe MMU mechanical acceptance. Hardware discovery and the 2026-10-18 BLOCKED trace are retained; not physically accepted. Re-enable only after safe automatic control/verified original-state restoration where applicable and complete test contracts.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "S15",
+      "target": "Petrel encoder",
+      "title": "Petrel encoder diagnostics",
+      "method": "AU",
+      "reference": "conditional",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical operator acceptance recorded 2026-10-17 from the uploaded temporary test trace; subsequent cancelled reopens do not erase completed acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator selected observe(true) after new physical encoder events in both directions and a button press; GPIO deltas +2/-3/1.",
+        "trace": {
+          "session": "dec3042495ca4ab78b58b947e2b3c73a",
+          "head": "32a8e14991e6d1d308909602084ab2e1f7b7d815",
+          "run": 48,
+          "observe_seq": 2274,
+          "result_seq": 2276
+        },
+        "measurements": {
+          "gpio_positive_steps": 2,
+          "gpio_negative_steps": 3,
+          "gpio_button_presses": 1
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "S16",
+      "target": "DWIN LCD",
+      "title": "Petrel LCD diagnostics",
+      "method": "AU",
+      "reference": "conditional",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical operator acceptance recorded 2026-10-17 from the uploaded temporary test trace; subsequent cancelled reopens do not erase completed acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator confirmed all five red/green/blue/white/black stages and selected observe(true) after panel restore; visual observation only.",
+        "trace": {
+          "session": "dec3042495ca4ab78b58b947e2b3c73a",
+          "head": "32a8e14991e6d1d308909602084ab2e1f7b7d815",
+          "run": 50,
+          "observe_seq": 2491,
+          "result_seq": 2493
+        },
+        "measurements": {
+          "observed_stages": 5,
+          "settings_saved": false
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "S17",
+      "target": "DWIN backlight",
+      "title": "Backlight observation",
+      "method": "U",
+      "reference": "conditional",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Physical operator acceptance recorded 2026-10-17 from the uploaded temporary test trace; subsequent cancelled reopens do not erase completed acceptance.",
+      "acceptance": {
+        "date": "2026-10-17",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Operator confirmed 10/50/100 percent stages and selected observe(true) after runtime restore; repeated successful run 51 retained as trace evidence.",
+        "trace": {
+          "session": "dec3042495ca4ab78b58b947e2b3c73a",
+          "head": "32a8e14991e6d1d308909602084ab2e1f7b7d815",
+          "run": 53,
+          "observe_seq": 2762,
+          "result_seq": 2764
+        },
+        "measurements": {
+          "observed_stages": 3,
+          "settings_saved": false
+        }
+      },
+      "retest_required": false
+    },
+    {
+      "feature_id": "S18",
+      "target": "pwm_cycle_time Buzzer",
+      "title": "Audible output observation",
+      "method": "U",
+      "reference": "conditional",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Reference-backed hardware capability; no physical operator acceptance recorded.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Buzzer sound heard; no live readback from Klipper pwm_cycle_time"
+      }
+    },
+    {
+      "feature_id": "O02",
+      "target": "approved servo and deploy/stow path",
+      "title": "Safe servo movement",
+      "method": "U",
+      "reference": "conditional",
+      "status": "conditional",
+      "adapter": "implemented",
+      "note": "Do not sweep arbitrary servo angles; only verified safe path. Adapter implemented 2026-10-17; physical acceptance deferred; conditional profiles/sources remain required.",
+      "acceptance": null
+    },
+    {
+      "feature_id": "O03",
+      "target": "output_pin case_light",
+      "title": "Safe auxiliary output",
+      "method": "U",
+      "reference": "conditional",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Only approved case_light; never power, heater-disable or ADXL power outputs.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "PASSED_USER",
+        "restore_verified": true,
+        "observation": "Case light changed and returned to original reported output"
+      }
+    },
+    {
+      "feature_id": "O04",
+      "target": "neopixel mmu_leds",
+      "title": "LED output observation",
+      "method": "U",
+      "reference": "confirmed",
+      "status": "accepted",
+      "adapter": "implemented",
+      "note": "Synchronized O04 red-green-blue-white sequence operator accepted 2026-10-16. Historical blocked and missing blue attempts preserved. Current electronic restore readback not reported.",
+      "acceptance": {
+        "date": "2026-10-16",
+        "source": "user_explicit_physical_observation",
+        "controller_result": "OBSERVED_USER",
+        "restore_verified": false,
+        "observation": "Operator confirmed revised O04 Happy Hare LED test displayed red, green, blue and white in sequence. Latest controller readback and restore verification not separately reported.",
+        "controller_result_reported": false,
+        "restore_evidence": "not_reported"
+      },
+      "retest_required": false,
+      "previous_attempts": [
+        {
+          "date": "2026-10-16",
+          "source": "operator_live_result_plus_pi_journal",
+          "controller_result": "BLOCKED",
+          "controller_reason": "mmu_led_not_enabled_or_readable",
+          "operator_confirmation_requested": false,
+          "restore_verified": null,
+          "observation": "O04 was discovered but preflight rejected Happy Hare live status enabled='True' and animation='True' (literal strings). No physical actuation during blocked attempt.",
+          "tested_signed_head": "70159750abc5886e0535bbac43925348085b861e",
+          "resolution": "Strict boolean/string normalization in shared O04 preflight and controller readback requires signed-head CI and physical retest."
+        },
+        {
+          "date": "2026-10-16",
+          "source": "user_explicit_physical_color_observation",
+          "controller_result": "not_reported",
+          "operator_confirmation_requested": true,
+          "restore_verified": null,
+          "observation": "The Happy Hare-managed O04 test ran after boolean-string support, but user observed red -> green -> white only; blue stage was not visible. Four-color physical acceptance is NOT established.",
+          "tested_signed_head": "0e1de54a48bee9dd75e1ce0c985703415ef53a3c",
+          "resolution": "G4 alone is not a guaranteed host/reactor wall-time barrier. Add G4 P650 + M400 after each timed MMU_SET_LED frame; keep O04 pending physical retest."
+        }
+      ],
+      "previous_acceptances": [
+        {
+          "date": "2026-10-16",
+          "source": "user_explicit_physical_observation",
+          "controller_result": "OBSERVED_USER",
+          "restore_verified": false,
+          "observation": "Four Happy Hare LEDs showed red, blue, green, white; original LED policy resumed"
+        }
+      ]
+    },
+    {
+      "feature_id": "O06",
+      "target": "user-defined physical servicing",
+      "title": "Guided servicing",
+      "method": "U",
+      "reference": "conditional",
+      "status": "conditional",
+      "adapter": "implemented",
+      "note": "Service procedure must be explicitly defined; not a generic automatic physical PASS. Adapter implemented 2026-10-17; physical acceptance deferred; conditional profiles/sources remain required.",
+      "acceptance": null
+    }
+  ]
+}

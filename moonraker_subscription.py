@@ -201,8 +201,28 @@ class MoonrakerSubscription:
                 self._pending_deadlines.pop(message['id'], None)
             if future is not None and not future.done():
                 if 'error' in message or 'result' not in message:
-                    future.set_exception(MoonrakerError('Moonraker command failed; check printer'))
+                    exc=MoonrakerError('Moonraker command failed; check printer')
+                    error=message.get('error')
+                    exc.rpc_code=(error.get('code') if isinstance(error,dict)
+                                  and type(error.get('code')) is int else None)
+                    # Keep only finite diagnostic categories, never arbitrary
+                    # server text (which can contain paths or macro payloads).
+                    detail=error.get('message','') if isinstance(error,dict) else ''
+                    exc.diagnostic_code='moonraker_server_error'
+                    if isinstance(detail,str):
+                        for prefix,code in (
+                                ('Unknown command:', 'klipper_unknown_command'),
+                                ('Unknown stepper ', 'klipper_unknown_stepper'),
+                                ('Must home axis first', 'klipper_home_required'),
+                                ('Move out of range:', 'klipper_move_out_of_range'),
+                                ('Printer is not ready', 'klipper_not_ready')):
+                            if detail.startswith(prefix):
+                                exc.diagnostic_code=code
+                                break
+                    future.dispatch_stage='server_error'
+                    future.set_exception(exc)
                 else:
+                    future.dispatch_stage='complete'
                     future.set_result(message['result'])
             return
         method = message.get('method')
@@ -255,9 +275,10 @@ class MoonrakerSubscription:
             return self._response_serial, tuple(text for serial, text in self._response_history
                                                 if cursor is not None and serial > cursor)
 
-    def request(self, method, params=None, guard=None):
+    def request(self, method, params=None, guard=None, request_timeout=None):
         """Nonblocking RPC; Future resolves on completion, never on dispatch."""
-        return self.notify(method, params, completion=True, guard=guard)
+        return self.notify(method, params, completion=True, guard=guard,
+                           request_timeout=request_timeout)
 
     def request_script_with_cleanup(self, script, cleanup, guard):
         """Completion RPCs for acknowledged SAVE, movement and non-moving recovery."""
@@ -299,8 +320,18 @@ class MoonrakerSubscription:
         preparation.add_done_callback(saved)
         return result
 
-    def notify(self, method, params=None, completion=False, guard=None):
+    def notify(self, method, params=None, completion=False, guard=None,
+               request_timeout=None):
+        if request_timeout is not None:
+            import math
+            if (method != 'printer.gcode.script' or not completion
+                    or type(request_timeout) not in (int, float)
+                    or not math.isfinite(request_timeout)
+                    or not 0 < request_timeout <= 900):
+                raise ValueError('Invalid bounded script completion timeout')
         future = Future()
+        future.request_timeout = request_timeout
+        future.dispatch_stage = 'queued'
         with self._lock:
             if self._stop.is_set() or self._state != 'ready' or self._socket is None:
                 future.set_exception(MoonrakerError('Moonraker subscription is not ready'))
@@ -430,6 +461,7 @@ class MoonrakerSubscription:
                 if future.cancelled():
                     continue
                 if guard is not None and not guard():
+                    future.dispatch_stage='guard_denied'
                     raise MoonrakerError('Printer state changed before command dispatch')
                 envelope = {'jsonrpc': '2.0', 'method': method, 'params': params}
                 with self._lock:
@@ -445,7 +477,8 @@ class MoonrakerSubscription:
                         ttl = (self.CANCEL_REQUEST_TIMEOUT if method == 'printer.print.cancel'
                                else self.LONG_REQUEST_TIMEOUT if method == 'printer.gcode.script'
                                else max(self.REQUEST_TIMEOUT, self.timeout * 4))
-                        self._pending_deadlines[self._id] = time.monotonic() + ttl
+                        self._pending_deadlines[self._id] = time.monotonic() + (getattr(future, 'request_timeout', None) or ttl)
+                future.dispatch_stage='send_attempted'
                 connection.send(json.dumps(envelope))
                 if not completion and not future.done():
                     future.set_result(None)

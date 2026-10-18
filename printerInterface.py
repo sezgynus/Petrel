@@ -1,3 +1,4 @@
+from klipper_recovery import KlipperRecovery
 import copy
 from dataclasses import replace
 import logging
@@ -22,6 +23,21 @@ from mmu_control import MMUSession
 from preset_store import PresetStore
 from printer_state import PrinterState
 from printer_capabilities import PrinterCapabilities
+from maintenance_session import MaintenanceDiscoveryManager
+from maintenance_controller import MaintenanceReadController
+from maintenance_guided import guided_plan
+from maintenance_switches import MaintenanceSwitchController
+from maintenance_motion_controller import MaintenanceMotionController
+from maintenance_probe import MaintenanceProbeController
+from maintenance_resonance import MaintenanceResonanceController
+from maintenance_filament import MaintenanceFilamentController
+from maintenance_panel import MaintenancePanelController
+from maintenance_auxiliary import MaintenanceAuxiliaryController
+from maintenance_records import MaintenanceBook
+from maintenance_assessment_service import MaintenanceAssessment
+from maintenance_system import travel_profile
+from maintenance_physical import MaintenancePulseController
+from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
 from system_info import host_memory_usage, host_metrics, network_info, updater_version, wifi_info
 
 class xyze_t:
@@ -196,6 +212,10 @@ class PrinterData:
         self._jog_restore = None
         self._jog_state_name = '_PETREL_JOG_' + uuid.uuid4().hex
         self.state = PrinterState()
+        self.maintenance_book = MaintenanceBook(self._maintenance_worker)
+        self.maintenance_assessment = MaintenanceAssessment()
+        self._maintenance_panel_api = None
+        self.maintenance = MaintenanceDiscoveryManager()
         self.capabilities = PrinterCapabilities()
         self._apply_capabilities(self.capabilities)
         self.status = None
@@ -266,9 +286,25 @@ class PrinterData:
         self._directory_cache = {}
         self._preset_original = copy.deepcopy(self.material_preset)
         self.subscription = MoonrakerSubscription(URL, API_Key, timeout)
+        self.recovery = KlipperRecovery(self.client, self._read_worker,
+            lambda: bool(self.connection_error) or not self.state.ready)
         self.probe_wizard = ProbeWizard(self)
         self.screws_tilt = ScrewsTiltSession(self)
         self.bed_mesh = BedMeshSession(self)
+        # Created without I/O; reads happen only after an explicit request.
+        self.maintenance_reader = MaintenanceReadController(
+            self, self._maintenance_worker, self.client)
+        self.maintenance_panel = MaintenancePanelController(self,self._maintenance_worker,self.client)
+        self.maintenance_pulse = MaintenancePhysicalRouter(
+            MaintenancePulseController(self, self._maintenance_worker, self.client),
+            MaintenanceHeaterController(self, self._maintenance_worker, self.client),
+            motion=MaintenanceMotionController(self, self._maintenance_worker, self.client),
+            switches=MaintenanceSwitchController(self, self._maintenance_worker, self.client),
+            probe=MaintenanceProbeController(self, self._maintenance_worker, self.client),
+            resonance=MaintenanceResonanceController(self, self._maintenance_worker, self.client),
+            filament=MaintenanceFilamentController(self, self._maintenance_worker, self.client),
+            panel=self.maintenance_panel,
+            auxiliary=MaintenanceAuxiliaryController(self,self._maintenance_worker,self.client))
 
     def _read(self, key, work, stamp=None):
         if stamp is None:
@@ -455,11 +491,180 @@ class PrinterData:
         self.MACHINE_SIZE = 'x'.join('{:g}'.format(value) for value in caps.build_size)
 
     def close(self):
+        self.recovery.close()
+        self.maintenance_pulse.close()
+        self.maintenance_reader.close()
+        self.maintenance.clear()
+        # TEMPORARY MAINTENANCE TEST TRACE: preserve shutdown tail.
+        trace = getattr(self,'maintenance_test_trace',None)
+        if trace is not None:
+            trace.stop()
         self.subscription.close()
         self._read_worker.close()
         self._maintenance_worker.close()
         self.spoolman_client.close()
         self.client.close()
+        if trace is not None:
+            trace.flush()
+
+    # BEGIN TEMPORARY MAINTENANCE TEST TRACE
+    def toggle_maintenance_test_recording(self):
+        if self.maintenance_pulse.pending or self.maintenance_reader.pending:
+            return False
+        trace = getattr(self,'maintenance_test_trace',None)
+        if trace is not None and trace.active:
+            trace.stop()
+        else:
+            if trace is None:
+                from maintenance_test_trace import TestTrace
+                trace = self.maintenance_test_trace = TestTrace(self)
+            trace.start()
+            trace.tick(self.state)
+        return True
+
+    def maintenance_test_recording_label(self):
+        trace = getattr(self,'maintenance_test_trace',None)
+        return trace.label if trace is not None else 'Start test recording'
+
+    def export_maintenance_test_recording(self):
+        trace = getattr(self,'maintenance_test_trace',None)
+        return trace.exported() if trace is not None else None
+    # END TEMPORARY MAINTENANCE TEST TRACE
+
+    def _note_maintenance_state(self,state):
+        book = getattr(self,'maintenance_book',None)
+        if book is not None:
+            book.note(state)
+        # TEMPORARY MAINTENANCE TEST TRACE
+        trace = getattr(self,'maintenance_test_trace',None)
+        if trace is not None:
+            trace.tick(state)
+
+    def maintenance_integrations(self,state):
+        services = ['maintenance.records','maintenance.usage_counters','maintenance.report_export']
+        if travel_profile(state):
+            services.append('maintenance.travel_counter')
+        if callable(getattr(self,'_maintenance_panel_api',None)):
+            services.extend(('petrel.uart_diagnostics','petrel.encoder_diagnostics',
+                             'petrel.lcd_diagnostics','petrel.backlight'))
+        return tuple(services)
+
+    def maintenance_local_read(self,feature):
+        if feature in ('S11','S12','S20'):
+            return self.maintenance_book.read(feature)
+        if feature in ('S14','S15','S16') and callable(getattr(self,'_maintenance_panel_api',None)):
+            data = self._maintenance_panel_api('info')
+            prefix = 'gpio_' if feature=='S15' else None
+            keys = ('startup_assets_synced','uart_epoch') if feature=='S16' else (
+                    tuple(k for k in data if k.startswith(prefix)) if prefix else
+                    tuple(k for k in data if not k.startswith('gpio_')))
+            return tuple((k,data[k]) for k in keys if type(data.get(k)) in (int,float,bool))
+        return ()
+
+    def _record_maintenance_result(self,result,method,plan=None):
+        if result is not None:
+            book = getattr(self,'maintenance_book',None)
+            if book is not None:
+                book.record(result,method,self.state,plan)
+            assessment = getattr(self,'maintenance_assessment',None)
+            if assessment is not None:
+                try:
+                    assessment.ingest(result,method,self.state)
+                except (ValueError, TypeError, AttributeError):
+                    logging.warning('Maintenance assessment evidence rejected')
+        return result
+
+    def maintenance_ui_records(self, operation, policy=None, history=False):
+        from maintenance_ui_records import request
+        rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
+        devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
+        return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
+            usage_provider=self.maintenance_book.service_counters)
+
+    def maintenance_service_bases(self,device):
+        bases=('calendar_s','sampled_print_s')
+        return bases+(('sampled_on_s',) if device in self.maintenance_book._names else ())
+
+    def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
+        from maintenance_reference import request
+        snapshot=self.maintenance.snapshot
+        identity=(getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
+        operation_id=getattr(result,'operation_id','')
+        if not self.maintenance_assessment.current_operation(snapshot,operation_id):
+            raise ValueError('reference_measurement_stale')
+        def current():
+            live=self.maintenance.snapshot
+            return (self.state.ready and live is not None and
+                (live.epoch,live.config_marker)==identity)
+        return request(self._maintenance_worker,operation,result,self.state,
+            relative_limit=relative_limit,confirmed=confirmed,current=current)
+
+    def accept_maintenance_reference(self,result):
+        if not self.maintenance_assessment.current_operation(self.maintenance.snapshot,result.operation_id):
+            return False
+        if result.reset_device is not None:
+            self.maintenance_assessment.invalidate_trends(result.reset_device)
+        if result.finding is None: return True
+        return self.maintenance_assessment.accept_trend(
+            self.maintenance.snapshot,result.operation_id,result.finding)
+
+    def _maintenance_assessment_rows(self):
+        from maintenance_heater import thermal_plan
+        rows=tuple(self.maintenance_read_plan())+tuple(self.maintenance_guided_plan())
+        return tuple(dict.fromkeys(rows+thermal_plan(self.maintenance.snapshot)))
+
+    def maintenance_assessment_details(self, **policies):
+        rows = self._maintenance_assessment_rows()
+        return self.maintenance_assessment.detailed_report(
+            self.maintenance.snapshot, rows, **policies)
+
+    def maintenance_assessment_report(self):
+        rows = self._maintenance_assessment_rows()
+        return self.maintenance_assessment.report(self.maintenance.snapshot, rows)
+
+    def maintenance_read_plan(self):
+        return self.maintenance_reader.available()
+
+    def maintenance_guided_plan(self):
+        # Passive target discovery only; not an actuation authorization.
+        owner = getattr(self, 'maintenance_pulse', None)
+        return owner.available() if owner is not None else guided_plan(self.maintenance.snapshot)
+
+    def start_maintenance_physical(self, feature_id, device=None, **kwargs):
+        return self.maintenance_pulse.start(feature_id, device, **kwargs)
+
+    def poll_maintenance_physical(self):
+        row = getattr(self.maintenance_pulse,'_row',None)
+        return self._record_maintenance_result(self.maintenance_pulse.poll(),getattr(row,'method',None),row)
+
+    def confirm_maintenance_physical(self):
+        return self.maintenance_pulse.confirm()
+
+    def observe_maintenance_physical(self, seen):
+        row = getattr(self.maintenance_pulse,'_row',None)
+        return self._record_maintenance_result(self.maintenance_pulse.observe(seen),getattr(row,'method',None),row)
+
+    def confirm_maintenance_f12_stopped(self):
+        row = getattr(self.maintenance_pulse,'_row',None)
+        result,reason = self.maintenance_pulse.f12_confirm_stopped()
+        if result is not None and type(result) is not bool:
+            self._record_maintenance_result(result,getattr(row,'method',None),row)
+        return result,reason
+
+    def cancel_maintenance_physical(self):
+        row = getattr(self.maintenance_pulse,'_row',None)
+        return self._record_maintenance_result(self.maintenance_pulse.cancel(),getattr(row,'method',None),row)
+
+    def start_maintenance_read(self, feature_id, timeout=8.0, device=None):
+        return self.maintenance_reader.start(feature_id, timeout=timeout, device=device)
+
+    def poll_maintenance_read(self):
+        row = self.maintenance_reader._row
+        return self._record_maintenance_result(self.maintenance_reader.poll(),16,row)
+
+    def cancel_maintenance_read(self):
+        row = self.maintenance_reader._row
+        return self._record_maintenance_result(self.maintenance_reader.cancel(),16,row)
 
     def check_command_results(self):
         from queue import Empty
@@ -488,7 +693,8 @@ class PrinterData:
     def getREST(self, path):
         return self.client.get(path)
 
-    def postREST(self, path, json, cleanup=None, report_error=True, dispatch_guard=None):
+    def postREST(self, path, json, cleanup=None, report_error=True,
+                 dispatch_guard=None, request_timeout=None):
         snapshot = self.subscription.snapshot()
         if (self.connection_error or not self.state.ready or snapshot['state'] != 'ready'
                 or snapshot['epoch'] != self.state.epoch):
@@ -507,7 +713,15 @@ class PrinterData:
         def operation_guard():
             return guard() and (dispatch_guard is None or dispatch_guard())
 
-        return self.client.post(path, json, guard=operation_guard, cleanup=cleanup, cleanup_guard=guard, report_error=report_error) if cleanup is not None else self.client.post(path, json, guard=operation_guard, report_error=report_error)
+        # Only explicitly requesting callers override the normal transport
+        # timeout. Keep the default path untouched for every existing
+        # printer operation; the override remains bounded by MoonrakerClient.
+        options = {'guard': operation_guard, 'report_error': report_error}
+        if cleanup is not None:
+            options.update(cleanup=cleanup, cleanup_guard=guard)
+        if request_timeout is not None:
+            options['request_timeout'] = request_timeout
+        return self.client.post(path, json, **options)
 
     def power_on_if_off(self):
         """Turn on the configured Moonraker power device only when it is off."""
@@ -531,6 +745,8 @@ class PrinterData:
                                 guard=device_is_off, report_error=False)
 
     def power_off_block_reason(self):
+        if self.maintenance_pulse.pending:
+            return 'Maintenance operation is active'
         snapshot = self.subscription.snapshot()
         status = snapshot.get('status', {})
         if status.get('print_stats', {}).get('state') in ('printing', 'paused', 'pausing'):
@@ -836,7 +1052,12 @@ class PrinterData:
             else:
                 state = PrinterState.from_snapshot(self.subscription.snapshot())
             if not state.ready:
+                if self.state.ready:
+                    self.maintenance_pulse.cancel()
+                    self.maintenance_reader.cancel()
+                    self.maintenance.clear()
                 self.state = state
+                self._note_maintenance_state(state)
                 self._files_loaded = False
                 self.connection_error = state.error or 'Klipper is not ready'
                 return False
@@ -965,11 +1186,18 @@ class PrinterData:
         self.connection_error = None
         changed = state != self.state or spoolman_changed or presets_changed or sort_changed
         self.state = state
+        self._note_maintenance_state(state)
         self.capabilities = caps
         self._caps_cache_key = caps_key
         self._apply_capabilities(caps)
         self.SHORT_BUILD_VERSION = state.software_version
         if state.epoch != self._file_epoch:
+            self.maintenance_pulse.cancel()
+            self.maintenance_reader.cancel()
+            # Reuse the existing Klipper READY epoch transition. Never
+            # rediscover on menu entry or during ordinary print updates.
+            self.maintenance.ready(state, self.client, self._maintenance_worker,
+                                   lambda: self.state, integrations=self.maintenance_integrations(state))
             self._files_loaded = False
             self.files = []
             self._file_epoch = state.epoch
@@ -1025,6 +1253,8 @@ class PrinterData:
         return 0
 
     def openAndPrintFile(self, path):
+        if self.maintenance_pulse.pending:
+            raise ValueError('Wait for Maintenance pulse to finish')
         if self.jog_recovery_required:
             raise ValueError('Restore jog state before starting a print')
         if (not isinstance(path, str) or not self._files_loaded or self.file_error
@@ -1419,3 +1649,5 @@ class PrinterData:
             raise ValueError('Runtime Z offset is outside the supported range')
         send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
         return send('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
+
+

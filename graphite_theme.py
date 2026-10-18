@@ -9,3 +9,13 @@ BACKGROUND_RGB = ((_r << 3) | (_r >> 2), (_g << 2) | (_g >> 4), (_b << 3) | (_b 
 def show_icon(lcd, library, icons, x, y):
     # Filter the source JPEG's black backing to preserve the current surface.
     lcd.show_icon(library, icons, x, y, background=False, enhanced=True)
+
+
+def draw_scrollbar(lcd, start, total, visible, y=90, height=253):
+    """Draw the fixed right gutter shared by scrollable Graphite screens."""
+    lcd.draw_rectangle(1, BACKGROUND_COLOR, 264, 84, 268, 355)
+    if total > visible:
+        thumb = max(10, height * visible // total)
+        top = y + (height - thumb) * start // (total - visible)
+        lcd.draw_rectangle(1, 0x39C8, 265, y, 267, y + height - 1)
+        lcd.draw_rectangle(1, 0x063B, 265, top, 267, top + thumb - 1)
