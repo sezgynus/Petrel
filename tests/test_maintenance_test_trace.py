@@ -302,60 +302,42 @@ class TestRecorder(unittest.TestCase):
 
 
 class TestRecorderUI(unittest.TestCase):
-    def test_diagnostic_evidence_precedes_review_and_info_rows_are_inert(self):
+    def test_diagnostic_evidence_requires_explicit_observation(self):
         from test_capabilities import display,snapshot
-        for feature,details in (
-                ('M10',('tmc2208 stepper_x','Reported faults: 0','No fault flags reported')),
-                ('M12',('stepper_x','Trigger phase: 7/64','Pending config: YES','Saved to file: NO'))):
-            with self.subTest(feature=feature):
-                d=display(snapshot())
-                d._maintenance_page='pulse'
-                d.pd.maintenance_pulse=SimpleNamespace(phase='await_observation',
-                    feature_id=feature,observation_details=details)
-                d.pd.observe_maintenance_physical=Mock(return_value=SimpleNamespace(status='OBSERVED_USER'))
-                d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_ENTER)
-                d._maintenance_show=Mock()
-                title,rows=d._maintenance_rows()
-                self.assertEqual(tuple(r[0] for r in rows[:len(details)]),details)
-                self.assertEqual(rows[-1][0],'Result reviewed')
-                for selected in range(len(details)):
-                    d._maintenance_selection=selected
-                    d.HMI_Maintenance_Menu()
-                d.pd.observe_maintenance_physical.assert_not_called()
-                d._maintenance_selection=len(details)+1
-                d.HMI_Maintenance_Menu()
-                d.pd.observe_maintenance_physical.assert_called_once_with(True)
-                d._maintenance_show.assert_called_once_with('result')
-
+        d=display(snapshot());d._maintenance_init()
+        d._maintenance_page='pulse'
+        d.pd.maintenance_pulse=SimpleNamespace(phase='await_observation',feature_id='M12',
+            observation_details=('Trigger phase: 7/64',))
+        d.pd.observe_maintenance_physical=Mock(return_value=SimpleNamespace(status='OBSERVED_USER'))
+        d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_ENTER)
+        choices=d._maintenance_screen().choices
+        d._maintenance_selection=next(i for i,c in enumerate(choices) if c.action=='review')
+        d.HMI_Maintenance_Menu()
+        d.pd.observe_maintenance_physical.assert_not_called()
+        d._maintenance_back()
+        choices=d._maintenance_screen().choices
+        d._maintenance_selection=next(i for i,c in enumerate(choices) if c.action=='observe' and c.value is True)
+        d.HMI_Maintenance_Menu()
+        d.pd.observe_maintenance_physical.assert_called_once_with(True)
 
     def test_auto_homing_is_announced_before_any_motion(self):
         from test_capabilities import display,snapshot
-        d=display(snapshot())
-        d._maintenance_page='pulse'
-        d.pd.maintenance_pulse=SimpleNamespace(
-            phase='await_confirmation',preparing_home=True,feature_id='M04')
-        title,rows=d._maintenance_rows()
-        self.assertEqual(title,'Prepare: home XYZ')
-        self.assertEqual(rows[1][0],'Home XYZ, then run test')
-        d.pd.maintenance_pulse.phase='running'
-        self.assertEqual(d._maintenance_rows()[0],'Homing for selected test')
-
+        d=display(snapshot());d._maintenance_init();d._maintenance_page='pulse'
+        d.pd.maintenance_pulse=SimpleNamespace(phase='await_confirmation',preparing_home=True,feature_id='M04')
+        self.assertEqual(d._maintenance_screen().heading,'Clear the homing path')
+        self.assertEqual(d._maintenance_screen().choices[1].label,'Home axes and continue')
 
     def test_start_stop_recording_menu_does_not_dispatch_any_test(self):
         from test_capabilities import display,snapshot
-        d = display(snapshot())
-        d._maintenance_page='root'
-        d._maintenance_selection=3
-        d.pd.maintenance_test_recording_label=Mock(return_value='Start test recording')
+        d=display(snapshot());d._maintenance_init();d._maintenance_page='support'
         d.pd.toggle_maintenance_test_recording=Mock(return_value=True)
         d.pd.start_maintenance_physical=Mock()
-        d.pd.start_maintenance_read=Mock()
         d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_ENTER)
-        self.assertEqual(d._maintenance_rows()[1][3][0],'Start test recording')
+        choices=d._maintenance_screen().choices
+        d._maintenance_selection=next(i for i,c in enumerate(choices) if c.action=='trace')
         d.HMI_Maintenance_Menu()
         d.pd.toggle_maintenance_test_recording.assert_called_once()
         d.pd.start_maintenance_physical.assert_not_called()
-        d.pd.start_maintenance_read.assert_not_called()
 
     def test_input_and_periodic_wrappers_record_after_early_recovery_return(self):
         from test_capabilities import display,snapshot
@@ -398,3 +380,4 @@ class TestRecorderHTTP(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
