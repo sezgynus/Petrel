@@ -47,9 +47,9 @@ def _row(v,key,choice,index,y,height=48,icon=None):
         v.lcd.draw_rectangle(1,BG,26,top,49,top+23)
         show_icon(v.lcd,ICON_LIBRARY_ID,icon,26,top)
     for line,value in enumerate(parts):
-        _text(v,('label',key,line),value,x,y+(7 if detail or len(parts)>1 else 16 if height>=48 else 9)+line*18,cells)
+        _text(v,('label',key,line),value,x,y+(3 if detail and height<48 else 7 if detail or len(parts)>1 else 16 if height>=48 else 9)+line*18,cells)
     if detail:
-        _text(v,('detail',key),choice.detail,x,y+28,(256-x)//6,True,MUTED)
+        _text(v,('detail',key),choice.detail,x,y+(21 if height<48 else 28),(256-x)//6,True,MUTED)
     _cursor(v,key,y,height,index==v._maintenance_selection)
 
 
