@@ -103,5 +103,9 @@ def assess(plan, evidence):
             pid = next((f for f in ('H02','H03','H04') if (f,device) in allowed),None)
             message = 'thermal.overshoot_review' if feature=='H07' else 'thermal.stability_review'
             actions = (pid,) if pid else ()
-        findings.append(Finding('check.'+feature,device,state,message,(feature,),actions,confidence))
+        finding = Finding('check.'+feature,device,state,message,(feature,),actions,confidence)
+        if item is not None:
+            from maintenance_assessment_rules import observed_finding
+            finding = observed_finding(item) or finding
+        findings.append(finding)
     return tuple(findings)

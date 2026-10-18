@@ -7,3 +7,5 @@ Registered plans are intersected with current capabilities and grouped by topic/
 Explicit baselines and confirmed service records use a bounded atomic versioned store. Device replacement invalidates baselines. Service intervals require a named source; no defaults are invented. Counter resets or identity changes yield unknown. Sampled ON time below an interval cannot prove maintenance is not due.
 
 Petrel ingests completed results into a bounded epoch/config-scoped assessment cache. maintenance_assessment_report() is an on-demand backend API and never dispatches tests. Thermal results retain operation identity, target, duration and initial temperature; unknown fan/environment/hardware conditions are not invented, so these records alone are not a comparable baseline. History preserves conditions and restoration separately.
+
+Firmware facts distinguish active throttling from historical flags, Klipper state and supported driver faults. Numeric policies require explicit source/version and finite limits. Trend comparison is indicative and never identifies a failed part. Missing evidence cannot satisfy a rule.
