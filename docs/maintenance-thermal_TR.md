@@ -4,8 +4,7 @@ kullanıcı isteğiyle cihaz bazında çalışan Diagnostics okumalarıdır. Ort
 worker ve taze kuyruk/oturum kontrolleri kullanılır. Klipper eventtime eklenir;
 eksik/sonlu olmayan alanlar sonuçsuzdur. Görev oranı elektriksel güç ölçümü değildir.
 Donanım PASS veya fiziksel kabul üretilmez. Başlangıçta polling yapılmaz.
-Fiziksel H testleri ve kalibrasyon, bağımsız termal güvenlik controller'ı kurulana
-kadar kullanılamaz. Mevcut kabul kayıtları değişmez.
+Fiziksel H karakterizasyonu ve PID kalibrasyonu aşağıdaki bağımsız termal güvenlik controller katmanında uygulanmıştır. Bilgi okumak tek başına fiziksel kabul sağlamaz.
 
 ## Ölçüm sözleşmesi
 H01/H05/H06/H07/H08/H09/H13 en çok 256 Klipper-eventtime örneğinde ayrı
@@ -23,7 +22,7 @@ Genel ısıtıcılar açık uygulama profili gerektirir; hazne sıcaklığı tah
 Salt derleyici, süreli bekleme sonrasına OFF ekler. SAVE_CONFIG yoktur.
 
 ## Fiziksel controller
-Self Tests artık her standart ısıtıcı için tek bir **Thermal Characterization**
+Check printer artık her standart ısıtıcı için tek bir **Thermal Characterization**
 (H01) satırı sunar. Tek ısıtma/bekleme/OFF/soğuma döngüsünden H01/H05/H06/
 H07/H08/H09/H13 ölçümleri ve ayrı ayrı kullanıcı onaylı sonuçlar çıkar.
 Yedi kimlik katalogda, trace ve geçmiş kayıtlarında bağımsız kalır; yalnız
@@ -45,9 +44,7 @@ süreli program OFF ile biter; Klipper korumaları korunur.
 Petrel donanımsal güvenlik controller'ı değildir.
 Soğuk/boş başlangıç, yapılandırılmış sınırlar, yaşam döngüsü/epoch kimliği ve
 taze dispatch kontrolü zorunludur. Sıfırdan farklı eski ısıtıcı hedefi geri
-yüklenmez. Bütün H hedeflerinin fiziksel kabulü son toplu kullanıcı testine
-kadar bekler. Genel/uygulamaya özel ve ileri kalibrasyon adaptörleri bu
-aşamada henüz kullanılamaz.
+yüklenmez. Referans hotend/yatak prosedürleri, H02/H03 dahil, [çizelgede](maintenance-reference-printer-acceptance_TR.md) kullanıcı kabulü aldı. Bu, başka yazıcıyı veya isteğe bağlı genel/ileri uygulamaları kabul etmez.
 
 ## PID kalibrasyonu
 H02 hotend ve H03 yatak ayrı kalibrasyon kayıtlarıyla Klipper PID_CALIBRATE
@@ -108,20 +105,18 @@ Standart extruder/yatak testleri profil dosyası gerektirmez.
 | H18 | Koşullu: tekrarlanabilir izinli fan/ısıtıcı A/B profili yok; gösterilmez |
 
 **Kapsam sınırı:** referans yazıcıda doğrulanmış 16 fiziksel H hedefinin tamamı
-uygulandı ve fiziksel kabul bekliyor. H10/H12/H15/H17/H18 uygulanmış donanım
+uygulandı ve referans çizelgesinde prosedür olarak kullanıcı kabulü aldı. H10/H12/H15/H17/H18 uygulanmış donanım
 adaptörleri değildir; keşif veya katalog satırı bu durumu değiştirmez.
 Bu isteğe bağlı testler açılmadan önce ek kanıt ve bağımsız sözleşme gerekir.
 18 ID'nin hepsinin çalıştırılabilir olduğu iddia edilmez.
 
-## Son toplu fiziksel kabul
+## Fiziksel kabul prosedürü
 Geliştirme sırasında fiziksel komut gönderilmedi. Gerçek boş yazıcıda önce
 checkout/servis HEAD'ini ve etkin ısıtıcı sınırlarını doğrulayın.
 1. Diagnostics altında H11/H14 ve gerçekten mevcutsa H16'yı inceleyin.
 2. H01'i hotend ve yatak için bağımsız çalıştırın. Onaydan önce hedefi ve
    shutdown bildirimini okuyun. Gözlenen ısıtma ve OFF davranışını doğrulayın.
-3. Isıtıcılar soğuk başlangıç koşuluna döndüğünde H05, H06, H07, H08, H09
-   ve H13'ü her hedef için ayrı çalıştırın. Her satır ayrı deney ve sonuçtur;
-   komşu satırlara kabul aktarılmaz.
+3. Her H01 koşusunun yedi alt sonucunu inceleyin: H01/H05/H06/H07/H08/H09/H13. Bunlar ayrı fiziksel menü denemeleri değildir. Prosedürü kabul etmek başarısız metriği PASS yapmaz.
 4. H02 ve H03'ü en son, gözetim altında, tek ısıtıcıyla yapın. Bekleyen
    config kalibrasyonu engeller; önceden bekleyen PID sonucunun ne olacağına
    kendiniz karar verin. Petrel otomatik kaydetmez/Klipper'ı yeniden başlatmaz.
@@ -136,7 +131,7 @@ PID ayrıca pozitif raporlanan görev oranı ve hedef eksi 5 C bandına ölçül
 
 Isıtma programı `G4` sonrasında `M400` ile gerçek beklemenin tamamlanmasını bekler; ardından OFF gönderir. G4/M400 veya termal komutların macro ile override edildiği yapılandırmalar güvenilir protokol kabul edilmez.
 
-## 16 Ekim 2026 kullanıcı deneyi ve düzeltme
+## Tarihsel 16 Ekim 2026 kullanıcı deneyi ve düzeltme
 Kullanıcı H01/H05/H07/H08/H09/H13 ve H06 hotend denemelerinde
 webhooks shutdown veya Run ekranına geri dönüş bildirdi. H02/H03
 `pid_calibrate interrupted` bildirdi; H03 yaklaşık 10 sn ısıttı.
@@ -144,7 +139,7 @@ H05/H07 yatak BLOCKED idi. H06 yatak çalıştı; paylaşılan sonuç
 PASSED_USER, hedefe erişme 33.57 sn, 122 örnek, 153.8 sn toplam pencere
 gösteriyor. H11 hotend/yatak ve H14 görünen okumalar kullanıcı tarafından
 çalışır olarak bildirildi. Bu bilgi okumalarından fiziksel ısıtıcı kabulü türetilmez.
-Diğer hedefler için başarılı fiziksel kabul yoktur.
+O tarihte diğer hedefler için başarılı fiziksel kabul yoktu; sonraki kabuller güncel çizelgededir.
 
 Controller'da tamamlanmış yeni kuyruk okumasından önce eski kanıtın yaşının
 denetlenmesi düzeltildi. Dispatch öncesi 3 sn kuralı korunur; devam eden
@@ -156,7 +151,7 @@ ister. Örnek/işlem hatasının alt nedeni sonuç kodunda korunur.
 
 Klipper'ın PID hedef davranışı kaynakta yeniden kontrol edildi: hedef ve
 hedef eksi 5 C geçişleri zaten destekleniyordu; bu kural değiştirilmedi.
-Bu düzeltme gerçek cihazda henüz yeniden denenmedi. PID kesilmesinin kesin
+Bu tarihsel kayıt sırasında düzeltme gerçek cihazda henüz yeniden denenmemişti. PID kesilmesinin kesin
 nedeni için yeni sonuç kodu ve aynı zamana ait Klipper/Petrel günlüğü gerekir.
 Sıcak veya başka ısıtıcısı etkin yazıcıda BLOCKED normaldir; yatakta başlangıç
 sıcaklığı en çok 35 C, hotend'de en çok 45 C olmalıdır.
@@ -199,5 +194,5 @@ FAILED_METRIC, kullanıcı gözlemi olumsuzsa FAILED_USER yazılır.
 Toplu sonuç özet durum taşır; geçmişe ortak zaman damgasıyla yedi ayrı
 özellik kaydı tek worker yazımıyla aktarılır. Trace, yedi alt sonucun
 kimlik ve kanıtlarını tek sonuç olayı altında saklar. CI fiziksel kabul
-JSON'unu değiştirmez. LCD'de yedi durum/ölçüm çifti kaydırılarak incelenir,
-Back önceki Self Tests satırına döner. Mevcut 120 sn bekleme otomatik uzatılmaz.
+JSON'unu değiştirmez. LCD'de alt sonuçlar ve kanıtlar sayfalı incelenir;
+Back önceki Check printer satırına döner. Mevcut 120 sn bekleme otomatik uzatılmaz.

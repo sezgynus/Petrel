@@ -62,6 +62,8 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 2. Rotate the encoder and open a menu; check temperatures against the web interface.
 3. For wrong text/icons, follow the [LCD resource guide](lcd-assets.md); for connection failures, use the troubleshooting table below.
 
+Normal cold-start MCU connection delays keep the splash for up to 30 seconds; explicit errors/shutdowns open recovery immediately. See [connection and recovery](user-guide.md#printer-connection-and-recovery) for refresh/restart actions.
+
 Moonraker must authorize the Petrel connection. Set `MOONRAKER_API_KEY` if authentication is required. Check the service user's serial/GPIO permissions; the installer configures the `dialout` and `gpio` groups.
 
 ## Change settings

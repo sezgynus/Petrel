@@ -14,4 +14,4 @@ S16 fiziksel LCD'de açık ilerletilen kırmızı/yeşil/mavi/beyaz/siyah gözle
 
 S20 açık eylemle ~/.config/Petrel/maintenance-report.json yazar. Remote Display mevcut Host/Origin sınırları içinde /maintenance-report.json yolundan son çıktıyı indirir. İndirme rapor üretmez veya test başlatmaz. Ham konfigürasyon, dosya adı, URL veya API anahtarı dışa aktarılmaz.
 
-Bütün okumalar/ön kontroller sınırlı ve asenkrondur. Fiziksel panel gözlemleri gerçek yazıcı kabulünü bekler.
+Bütün okumalar/ön kontroller sınırlı ve asenkrondur. Fiziksel panel gözlemleri cihaz bazlı kullanıcı kabulü gerektirir; referans S15/S16/S17 kabulleri [çizelgede](maintenance-reference-printer-acceptance_TR.md) kayıtlıdır.

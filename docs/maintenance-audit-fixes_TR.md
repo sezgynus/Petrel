@@ -1,5 +1,7 @@
 # Maintenance kaynak denetimi çözümleri — 18 Ekim 2026
 
+> Aşağıdaki tarihli kayıt/denetim notları kaydedildikleri sürümü açıklar; güncel çalıştırma talimatı veya kabul toplamı değildir. [Güncel kullanım rehberini](user-guide_TR.md#maintenance) ve [kabul çizelgesini](maintenance-reference-printer-acceptance_TR.md) kullanın. Daha sonraki değişiklikler eski test erişimi, güvenlik eşiği ve kabul bekleme ifadelerinin yerini alır.
+
 Denetim tabanı: e324a6684c439e34ec745a614c1f508a5ff3cdbb. Çalışma feature/maintenance-ui-ux dalındadır. Lokal test veya emülatör çalıştırılmadı. Her değişiklik imzalandı ve sonraki geliştirmeden önce tam imzalı commit üzerinde Actions ile doğrulandı. Bir takvim regresyonunda saat enjeksiyonu ek test commit'iyle düzeltilip CI yeşile döndükten sonra devam edildi.
 
 | Bulgu | Çözüm | İmzalı uygulama commit'i |

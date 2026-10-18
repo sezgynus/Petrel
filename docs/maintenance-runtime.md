@@ -8,6 +8,6 @@
 
 `live_safety_context(printer, evidence)` obtains an on-demand subscription snapshot without copying the stable config tree, checks the running Petrel operation owners (jog/recovery, settings save, bed mesh, screws tilt, probe wizard, MMU) and produces a fresh `SafetyContext` for the existing fail-closed `precheck`. Missing print/pause/virtual SD/webhooks status is denied. Existing operations cannot be treated as idle simply because a UI menu is idle.
 
-**Important:** Stage 5 only defines the provider. The next backend integration must perform queue GET work on Petrel's existing bounded worker (not on the UI thread), and must never call the queue endpoint from every telemetry update. External Moonraker clients can still change state between checks; physical commands will require additional dispatch-time safety checks.
+**Current integration:** Controllers run queue GET work on the existing bounded worker, not the UI thread or every normal telemetry update. Admission/dispatch use the three-second freshness bound; active controllers additionally define their own bounded monitoring/retry contracts. External clients can change state between checks, so physical dispatch also revalidates live state. See the motion, thermal and resonance guides for active-run rules.
 
 Regression coverage: `tests/test_maintenance_runtime.py`; all tests run in GitHub Actions on push.

@@ -6,16 +6,17 @@
 
 | Rehber | Kullanım amacı |
 |---|---|
+| [Yazıcı bağlantısı ve kurtarma](klipper-recovery_TR.md) | Olağan açılış bekleyişi, hata ayrıntıları ve korumalı restart eylemleri |
 | [Kurulum ve yapılandırma](installation_TR.md) | Bağlantı, kurulum, harici ayarlar, güncellemeler ve sorun giderme |
 | [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Display, Info, ışık ve güç |
 | [Maintenance kullanımı](user-guide_TR.md#maintenance) | Bakım planları, donanım kontrolleri, sonuçlar, diagnostik, öneriler ve güncel ekranlar |
-| [Maintenance öz testleri](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
+| [Maintenance fiziksel kabulü](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
 | [MMU ve filament](mmu-guide_TR.md) | Happy Hare kanalları, makara atama, takım eşlemesi, EndlessSpool ve kurtarma |
 | [LCD uyumluluğu](lcd-assets_TR.md) | Desteklenen ekranı seçme ve panel kaynaklarını kontrol etme |
 | [Orijinal DWIN kaynaklarına dönüş](restore-stock-dwin_TR.md) | Kalıcı Flash uyarısı, Creality DWIN_SET paketi ve LCD microSD geri yükleme adımları |
 | [Print ve Tune](print-controls_TR.md) | Baskı ekranı, çalışma zamanı ayarları ve isteğe bağlı politika switchleri |
 
-[Ekran galerisi](screenshots_TR.md): tüm güncel ekranlar ve forumlarda kullanılabilecek doğrudan görsel bağlantıları.
+[Ekran galerisi](screenshots_TR.md): belgelenmiş örnek durumlar ve forumlarda kullanılabilecek doğrudan görsel bağlantıları.
 
 ## Katkı ve araçlar
 
@@ -35,3 +36,5 @@ Bu İngilizce referanslar panel çalışmaları veya geçmiş bağlam içindir; 
 - [Stok kaynak envanteri](lcd-assets.json): incelenmiş kaynak hash ve boyutları.
 - [Geçmiş kaynak audit'i, 2026-10-05](source-audit.md): önceki incelemenin bulguları.
 - [Geçmiş MMU sürücü entegrasyonu, 2026-10-08](mmu-driver-integration.md): MMU birleştirmesinden önceki entegrasyon kaydı.
+
+- [Repo Markdown denetimi, 2026-10-18](documentation-audit-2026-10-18_TR.md): kaynak tutarlılığı, iki dil kapsamı, düzeltmeler ve tam incelenen-dosya envanteri.

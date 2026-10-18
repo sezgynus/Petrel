@@ -1,13 +1,11 @@
 # Maintenance salt-okunur backend entegrasyonu
 
-[English](maintenance-backend.md) · [Güvenlik](maintenance-runtime_TR.md)
+[English](maintenance-backend.md) · [Türkçe](maintenance-backend_TR.md) · [Güvenlik](maintenance-runtime_TR.md)
 
-**Aşama 6:** Mevcut Petrel backend'i yalnız ihtiyaç anında kullanılan bir `MaintenanceReadController` sahibi oldu. Açılışta, normal baskı telemetrisinde veya başka menü açılırken Maintenance sorgusu yapılmaz. İlave arka plan thread'i, Moonraker istemcisi, websocket veya DWIN çizim döngüsü yoktur.
+`PrinterData`, **Maintenance → Diagnostics** ile bağlı, istek üzerine çalışan `MaintenanceReadController` sahibidir. Altı okuyuculu ilk Aşama 6 artık uygulamanın tamamı değildir. `maintenance_executor.read_only_adapters()` kayıtları host/sistem, termal, hareket/sürücü, filament ve ortam bilgilerini kapsar; tam güncel liste burada ve içe aktarılan alan kayıtlarında tanımlıdır.
 
-`PrinterData.maintenance_read_plan()`, keşfi, kataloğu ve altı sabit bilgi adaptörünü (S01/S02/S03/S05/S08/S10) eşler. `start_maintenance_read(feature_id)`, sınırlı salt-okunur job queue ön kontrolünü Petrel'in mevcut Maintenance worker'ına kuyruğa alır; UI thread'de ağ isteği yapmaz. `poll_maintenance_read()`, kuyruk kanıtı hazır olduğunda asenkron Future akışını ilerletir ve beklerken sonuç döndürmez, tamamlanınca `ReadResult` verir. `cancel_maintenance_read()` eski sonuçları atar. Controller bağlantı/epoch geçişinde iptal edilir, paylaşılan worker/client kapanmadan önce kapatılır.
+`maintenance_read_plan()` kayıtlı okuyucuları güncel keşif snapshot'ıyla kesiştirir. `start_maintenance_read(feature_id, device=...)` mevcut Maintenance worker'ında sınırlı salt-okunur ön kontrol başlatır. `poll_maintenance_read()` beklerken sonuç döndürmez, tamamlanınca `ReadResult` verir; `cancel_maintenance_read()` geç yanıtları geçersiz kılar. Kopuş/epoch değişimi işlem sahibini iptal eder. Kapatma yeni worker/client oluşturmaz veya değiştirmez.
 
-Ön kontrol `/server/info` ile job_queue varlığını açıkça doğrular; varsa `/server/job_queue/status` okur. Başarısız endpoint kuyruk kapalı kabul edilmez. Gerçek printer-state, print/pause/manual-probe/MMU ve diğer Petrel işlem sahipleri GET öncesi ve sonuç alınırken yeniden kontrol edilir. Salt-okunur bilgi sonuçları hiçbir zaman fiziksel PASSED olarak sunulmaz. Fiziksel aktüatör testi içermez.
+Ön kontrol `/server/info` ve bileşen kuruluysa `/server/job_queue/status` üzerinden iş kuyruğunu olumlu doğrular. Başarısız endpoint kuyruk yok demek değildir. Yazıcı yaşam döngüsü, print/pause/manual-probe/MMU ve diğer Petrel işlemleri gönderimden ve sonuç alınmasından önce denetlenir. Bilgi okuyucuları donanım PASS üretmez. M07 ayrıca korunan, istek üzerine register sorgusudur; [yürütücüye](maintenance-read-executor_TR.md) bakın.
 
-**Henüz UI özelliği değildir:** LCD Maintenance ekranı değişmedi. Bu backend API sonraki Diagnostics/Information ekranları için isteğe bağlıdır. Haricî Mainsail/Fluidd komutları güvenlik kontrolleriyle yarışabilir; fiziksel testlerden önce daha güçlü komut öncesi senkronizasyon gereklidir.
-
-`tests/test_maintenance_controller.py`, gerçek backend yapımı, kuyruk var/yok, baskı başlangıcı, eski epoch, iptal, isteğe bağlı çalışma ve UI'yi bloke etmeyen akışı tam GitHub CI içinde kapsar.
+Normal menüleri açmak diagnostik okuyucuları çalıştırmaz. Pasif READY keşfinin ayrı sınırlı servis sorgusu, örneklenmiş kullanımın ayrı kayıt yolu vardır; bunlar diagnostik çalıştırma değildir. Sonuçlar açık etiket/birim ve sayfalama içeren [salt-okunur LCD raporlarında](maintenance-ui_TR.md) açılır. Petrel'in yerel rezervasyonu harici istemcileri kilitlemez. Controller, yürütücü ve diagnostik sunumu regresyonları GitHub Actions üzerinde çalışır.

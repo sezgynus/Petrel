@@ -4,12 +4,12 @@ This tool is only for Maintenance physical acceptance. It observes existing menu
 
 ## Use
 
-1. Maintenance → **Start test recording**.
-2. Run tests in order from Self Tests or Diagnostics.
+1. Maintenance → Diagnostics → Support tools → **Start test recording**.
+2. Run tests in order from Check printer or Diagnostics.
 3. Answer the on-screen questions and enter the requested actual measurements. These answers are recorded too.
 4. If something fails, you can proceed to another test without repeatedly retrying. If a test remains active, use its existing safe completion/cancel flow.
-5. Finish with Maintenance → **Stop test recording**.
-6. In [Remote Display](http://openeye3dpi.local:8088/), select **Download test recording** and attach the single ZIP to the conversation.
+5. Finish with Maintenance → Diagnostics → Support tools → **Stop test recording**.
+6. In [Remote Display](ui-emulator.md#optional-live-remote-display-port-8088), select **Download test recording** and attach the single ZIP to the conversation.
 
 General URL: `http://<petrel-host>:8088/maintenance-test-trace.zip`.
 This detailed recording is separate from Diagnostics S20; running S20 is unnecessary.

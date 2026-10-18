@@ -22,7 +22,7 @@ On an installed Pi, replace `python3` with `~/petrel-env/bin/python`. The suite 
 - Display settings, power/startup behavior and reconnection handling.
 - Emulator rendering, capture requests and lossless output.
 
-For a behavior change, add or update checks for the user outcome and failure cases. A passing suite does not prove physical rendering, motion, probing accuracy or external-service persistence. GitHub's regression workflow runs on pushes to `master`, pull requests targeting `master`, and manual dispatch. Feature-branch pushes alone do not run it; use the local command before opening a pull request.
+For a behavior change, add or update checks for the user outcome and failure cases. A passing suite does not prove physical rendering, motion, probing accuracy or external-service persistence. GitHub's regression workflow runs on pushes to **every branch**, pull requests targeting `master`, and manual dispatch. For this project's CI-first development flow, add relevant regressions, push each commit, wait for the signing bot, and verify the complete workflow on the final signed HEAD before continuing. The local commands above are optional contributor tooling, not a replacement for that gate.
 
 ## Hardware validation
 

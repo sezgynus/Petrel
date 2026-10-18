@@ -14,6 +14,10 @@
 
 Gerçek UI ve sürücünün çevrimdışı emülatör çıktısıdır; durum verileri örnektir. Üretim yöntemi: [emülatör rehberi](ui-emulator_TR.md).
 
+## Baskı süresi ve ilerleme
+
+Elapsed, Klipper total_duration üzerinden hazırlık ve duraklamalar dahil toplam iş süresini gösterir; alan yoksa print_duration kullanılır. İlerleme, metadata içindeki G-code başlangıç/bitiş baytlarıyla Mainsail varsayılanı olan dosya içi oranla hesaplanır; veri yoksa ham SD ilerlemesine dönülür. Remaining geçerli dosya ve filament tahminlerinin ortalamasıdır; Finish hesabına dilimleyici tahmini de katılır. Bu yüzden Remaining ile Finish farklı olabilir. Tahmin yoksa --:-- gösterilir; Finish yanındaki +1 ertesi takvim günüdür. Mainsail tarayıcısına özel hesap ayarları aktarılmaz. Metadata asenkron yüklenir; mevcut dosya revizyonu için yalnız dört süre/ilerleme alanı tutulur.
+
 ## Tune ile ayarlama
 
 **Tune → alan → çevir → Apply** yolunu kullanın. PRINT, MOTION, EXTRUSION ve AFTER JOB grupları aynı sayfadadır. Yalnız desteklenen cihazlar ve geçerli durum verisi için kontroller görünür; aşağıdaki 17 alan en geniş kapsamı gösterir.
@@ -77,7 +81,7 @@ value: 0
 
 `virtual_pin:` için kurulumunuzdaki Klipper virtual-pins eklentisi gerekir; standart Klipper pin sağlayıcısı değildir. Uygun fiziksel output pinler de kullanılabilir. Petrel eklenti kurmaz veya makroları değiştirmez.
 
-Switch sadece `SET_PIN PIN=<tam isim> VALUE=0|1` gönderir. O anda ısıtıcı/motor/güç kapatmaz. START_PRINT / END_PRINT makrolarınız bu değerleri okuyup davranışı belirler. Örnek:
+Switch sadece `SET_PIN PIN=<exact name> VALUE=0|1` gönderir. O anda ısıtıcı/motor/güç kapatmaz. START_PRINT / END_PRINT makrolarınız bu değerleri okuyup davranışı belirler. Örnek:
 
 ```jinja
 {% if printer['output_pin Turn_OFF_Heaters_After_Job'].value|int %}
@@ -104,6 +108,3 @@ Switch sadece `SET_PIN PIN=<tam isim> VALUE=0|1` gönderir. O anda ısıtıcı/m
 ![Reddedilen ayar, iş switchi ve Pause komutunun iki kırmızı yanıp sönmesi](assets/framed/rejected-controls-demo.gif)
 
 Bunlar gerçek UI'dan örnek durumlarla üretilen çevrimdışı emülatör çıktılarıdır. [Üretim komutları](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme) ve [tam galeri](screenshots_TR.md).
-
-
-Elapsed, Klipper total_duration üzerinden hazırlık ve duraklamalar dahil toplam iş süresini gösterir; alan yoksa print_duration kullanılır. İlerleme, metadata içindeki G-code başlangıç/bitiş baytlarıyla Mainsail varsayılanı olan dosya içi oranla hesaplanır; veri yoksa ham SD ilerlemesine dönülür. Remaining geçerli dosya ve filament tahminlerinin ortalamasıdır; Finish hesabına dilimleyici tahmini de katılır. Bu yüzden Remaining ile Finish farklı olabilir. Tahmin yoksa --:-- gösterilir; Finish yanındaki +1 ertesi takvim günüdür. Mainsail tarayıcısına özel hesap ayarları aktarılmaz. Metadata asenkron yüklenir; mevcut dosya revizyonu için yalnız dört süre/ilerleme alanı tutulur.

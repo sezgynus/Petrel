@@ -1,5 +1,7 @@
 # Maintenance source audit resolution — 18 October 2026
 
+> Dated trace/audit notes below describe their recorded revision. They are not current run instructions or acceptance totals. Use the [current usage guide](user-guide.md#maintenance) and [acceptance ledger](maintenance-reference-printer-acceptance.md). Later changes supersede earlier test availability, safety-threshold and pending-acceptance statements.
+
 Audit base: e324a6684c439e34ec745a614c1f508a5ff3cdbb. Work stays on feature/maintenance-ui-ux. No local tests or emulator were run. Each change was signed and checked by Actions on that exact signed commit before the next development change. One calendar regression required a follow-up test-clock fix before work continued.
 
 | Finding | Resolution | Signed implementation commit |

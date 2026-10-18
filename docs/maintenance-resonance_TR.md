@@ -1,5 +1,7 @@
 # Maintenance rezonans
 
+> Aşağıdaki tarihli kayıt/denetim notları kaydedildikleri sürümü açıklar; güncel çalıştırma talimatı veya kabul toplamı değildir. [Güncel kullanım rehberini](user-guide_TR.md#maintenance) ve [kabul çizelgesini](maintenance-reference-printer-acceptance_TR.md) kullanın. Daha sonraki değişiklikler eski test erişimi, güvenlik eşiği ve kabul bekleme ifadelerinin yerini alır.
+
 [English](maintenance-resonance.md)
 
 R01 keşfedilen doğru çipi sorgular ve gerçek ivme vektörünü doğrular. R03 yalnız sensöre atanmış eksenlerin gürültüsünü ayrıştırır. Bir sensör birkaç eksene hizmet ediyorsa R02/R04 açık eksen seçimi sunar. Desteklenmeyen eksenler görünmez.

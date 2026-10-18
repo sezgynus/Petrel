@@ -2,23 +2,22 @@
 
 [English](maintenance-read-executor.md) · [Güvenlik](maintenance-safety_TR.md)
 
-**Durum:** Bağımsız backend altyapısında yalnız bilgi sunan altı adaptör var. Motor/ısıtıcı/fan sürülmez, G-code çalıştırılmaz, Maintenance menüsü oluşturulmaz veya fiziksel PASSED sonucu verilmez.
+**Durum:** İstek üzerine çalışan bilgi yürütücüsü Diagnostics ile entegredir. Motor/ısıtıcı/fan sürmez veya donanım PASS üretmez. M07 korumalı register-sorgu G-code yolunu; diğer okuyucular sınırlı GET veya açıkça kayıtlı yerel kayıt/panel sağlayıcılarını kullanır.
 
-`maintenance_executor.py`, yalnız S01, S02, S03, S05, S08 ve S10 için sabit, sınırlandırılmış GET endpoint'leri ve şemaya özel skaler alan seçicileri içerir. İstekler Petrel'in **mevcut** Moonraker istemcisi ve bounded read worker'ıyla, yalnız ihtiyaç anında yürütülür. Yeni thread, polling döngüsü, websocket aboneliği veya ağ istemcisi yoktur. Her okuma Safety Coordinator tarafından pozitif olarak doğrulanan boşta/oturum kontrolüyle başlar. Worker GET komutundan hemen önce ve Future sonucu alınırken durum yeniden kontrol edilir; eski yanıt baskı başlangıcı, kopuş veya epoch/config değişiminden sonra yayımlanamaz.
+`maintenance_executor.read_only_adapters()` host/sistem, termal, hareket/sürücü, filament ve ortam alan kayıtlarını birleştirir. Rastgele cihaz adından kayıt türetilmez. Yeni thread, bağlantı veya abonelik olmadan mevcut istemci ve worker kullanılır. Her okuma olumlu boşta/oturum kontrolleri ister; gönderim ve sonuç alımı değişen baskı/bağlantı/config durumunu reddeder. Yerel okuyucular kayıtlı geçmiş, örneklenmiş kullanım ve panel/enkoder sayaçlarını kapsar. Açık rapor dışa aktarımı ayrı sınırlı depolama işlemidir; donanım eylemi değildir.
 
 `start(row)`, açıkça tanımlı INFORMATION planını, güvenilir sabit adaptörü, sınırlı timeout'u ve güncel pozitif güvenlik bağlamını doğrulayıp kabul durumunu döndürür. `poll()` engellemez; sonuç hazır değilken `None` döndürür. `cancel()` oturumu geçersizleştirip eski yanıtı atar; `close()` Petrel'e ait istemci/worker'ı kapatmaz. Ham API sözlükleri veya gizli anahtarlar saklanmadan, yanıtın yalnız seçilmiş sayısal/durum alanları küçük kanıt tuple'ına çevrilir.
 
 Başarılı bilgi okumasında `ReadResult.status=None` kullanılır: **telemetri gözlendi, fiziksel test PASS değildir**. Eksik ölçüm `INCONCLUSIVE`, iptal/güvensiz durum `ABORTED`, okuma hatası/zaman aşımı `ERROR` olur. Bunlar tamamlanmış fiziksel test olarak kalıcı depolanmaz.
 
-**Entegrasyon henüz yapılmadı:** Uygulama yöneticisi bu altyapıyı mevcut worker/client ile oluşturmalı, *gerçek* kuyruk ve diğer operasyon kontrollerini sağlamalı, DWIN UI'da plan modelini kullanmalıdır. Gerçek kontrol yapılmadan SafetyContext bayrakları pozitif verilmemelidir. Bu aşama açılış iş yükü veya UI sıcak yolunu değiştirmez. TMC hata bitleri ve aktif donanım testleri, sürücüye özel kanıt ve ayrıca güvenlik onayı gerektirir.
+**Güncel entegrasyon:** `MaintenanceReadController` canlı kuyruk/işlem kanıtını sağlar ve yürütücüyü yönetir; LCD adlandırılmış raporlar ve tam sayfalı ölçümler sunar. Çağıran taraf olumlu güvenlik bayrağı uydurmamalıdır. İlk yalnız-GET aşaması tarihseldir; aşağıdaki doğrudan M07 yolu uygulanmıştır.
 
 `tests/test_maintenance_executor.py`, geçerli/eksik/geçersiz yanıtları, yöntem seçimini, iptali, sıradaki okumayı, dış baskı başlangıcını, epoch değişimini ve paylaşılan worker sahipliğini GitHub Actions CI'da kapsar.
 
 ## Güncel M07 uygulaması: homing bağımsız doğrudan register tanılaması
 
-Yukarıdaki bölüm ilk salt-okunur GET altyapısının tarihsel kapsamını açıklar. Güncel
-M07 Diagnostics, desteklenen TMC çiplerinde yalnız kullanıcının talebi üzerine
-`DUMP_TMC STEPPER=<doğrulanmış isim> REGISTER=DRV_STATUS` çalıştırır.
+Güncel M07 Diagnostics, desteklenen TMC çiplerinde yalnız kullanıcının talebi üzerine
+`DUMP_TMC STEPPER=<verified name> REGISTER=DRV_STATUS` çalıştırır.
 Klipper'ın `notify_gcode_response` çıktısı mevcut Moonraker bağlantısında
 komut tamamlanması ve yeni yanıt imleciyle değerlendirilir. Önceki konsol
 satırları, belirsiz/çift cevap, iletişim hatası ve kayıp yanıt hatasız

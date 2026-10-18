@@ -4,6 +4,8 @@
 
 **Status:** GitHub CI validates regression and simulated asynchronous flows, but does **not** establish real Pi device acceptance. This document and its opt-in smoke script are the field-test procedure, not evidence that tests already ran on the user's printer.
 
+The Maintenance engine is already in master. These are explicit field-validation tools, not proof of an unmerged feature. For an A/B comparison, choose and record two real revisions and ensure the service actually runs each one; identical master checkouts are not a before/after comparison. Keep the temporary worktree until all measurements finish. The virtualenv path below is generic; use the actual service environment.
+
 ## 1. Preserve the working master and ensure the printer is idle
 
 Do not deploy the branch or interrupt `Petrel.service` during a print, paused print, MMU operation, calibration, or unstable connection. Do not copy printer configuration, passwords, API keys or other secrets into GitHub artifacts. No test should power the printer on/off or issue G-code.
@@ -12,17 +14,15 @@ For a noninvasive preliminary read-only smoke while normal Petrel runs master, a
 
 ```sh
 cd ~/Petrel
-git fetch origin feature/maintenance-test-engine
-git worktree add --detach /tmp/petrel-maintenance-acceptance origin/feature/maintenance-test-engine
+git fetch origin master
+git worktree add --detach /tmp/petrel-maintenance-acceptance origin/master
 cd /tmp/petrel-maintenance-acceptance
-/home/sezgynpi/petrel-env/bin/python tools/validate_maintenance_pi.py --output /tmp/petrel-maintenance-readonly.json
+~/petrel-env/bin/python tools/validate_maintenance_pi.py --output /tmp/petrel-maintenance-readonly.json
 ```
 
-The Python path is the confirmed Petrel virtualenv on the accepted Pi. The direct script now resolves its repository imports without requiring PYTHONPATH. The script creates a **temporary second Petrel backend connection** solely for read-only checks; it does not display a DWIN UI or run heater/motion tests. It exits and closes all its connections. `READ_ONLY_SMOKE_OK` requires S01 and S08 to return fresh, valid information; this is NOT a physical hardware PASS. `INCOMPLETE` or `BLOCKED` is not a test success; inspect the reason. An active queue, print, manual probe, MMU, missing fields or connection changes should prevent a read, not be bypassed.
+The example Python path is the standard service virtualenv; use the actual environment on the target Pi. The direct script now resolves its repository imports without requiring PYTHONPATH. The script creates a **temporary second Petrel backend connection** solely for read-only checks; it does not display a DWIN UI or run heater/motion tests. It exits and closes all its connections. `READ_ONLY_SMOKE_OK` requires S01 and S08 to return fresh, valid information; this is NOT a physical hardware PASS. `INCOMPLETE` or `BLOCKED` is not a test success; inspect the reason. An active queue, print, manual probe, MMU, missing fields or connection changes should prevent a read, not be bypassed.
 
-```sh
-git -C ~/Petrel worktree remove /tmp/petrel-maintenance-acceptance
-```
+
 
 ## 2. Memory and responsiveness: controlled actual-service A/B
 
@@ -47,3 +47,10 @@ Verify the running `Petrel.service` actually uses the expected branch checkout, 
 ## Acceptance gate
 
 Record the device/OS/Python version, Petrel HEAD SHA, Moonraker/Klipper versions, whether a job queue is installed, the sanitized smoke JSON, master/feature resource deltas, and manual UI responsiveness notes. Keep secrets and printer configuration private. **Do not mark Pi acceptance complete until the commands are actually run on that device and the measured results pass.** The GitHub CI test `tests/test_maintenance_pi_acceptance.py` uses fakes only; it never probes the printer or substitutes for this acceptance test.
+
+
+After all captures, remove the temporary checkout:
+
+```sh
+git -C ~/Petrel worktree remove /tmp/petrel-maintenance-acceptance
+```

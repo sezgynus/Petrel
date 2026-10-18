@@ -1,38 +1,29 @@
-# Maintenance Aşama 8 — Gerçek Raspberry Pi fiziksel kabulü
+# Maintenance fiziksel kabulü
 
-[English](maintenance-stage8-acceptance.md) · [Çıkış izin profilleri](maintenance-profiles_TR.md) · [LCD kullanım akışı](maintenance-ui_TR.md) · **[Güncel referans yazıcı kullanıcı kabul çizelgesi](maintenance-reference-printer-acceptance_TR.md)**
-
-> **Güncel kabul durumu:** Bu dosyanın aşağıdaki ilk aşama örnekleri tarihî kanıttır. Sonraki sohbetlerde hangi cihazın fiziksel olarak KABUL edildiğini yukarıdaki güncel çizelgeden ve JSON'dan kontrol et.
+[English](maintenance-stage8-acceptance.md) · [Türkçe](maintenance-stage8-acceptance_TR.md) · [Profiller](maintenance-profiles_TR.md) · [LCD rehberi](user-guide_TR.md#maintenance) · [Kabul çizelgesi](maintenance-reference-printer-acceptance_TR.md)
 
 ## Kapsam ve ön şartlar
 
-Aşama 8 geliştirmesi GitHub regresyon testleriyle doğrulanır; ancak sahte verili CI **gerçek aktüasyon, çıkış geri yükleme, buzzer sesi veya LED ışığını kanıtlamaz**. Bunlar gerçek yazıcıda kullanıcı onayı gerektirir. Önceki **Aşama 7** salt-okunur Pi kabulünde altı bilgi kaynağı gözlemlendi; bu Aşama 8'in yerini tutmaz.
+Maintenance master ile entegredir. CI yazılım sözleşmelerini doğrular; gerçek hareketi, sesi, ışığı, ısıtmayı veya geri yüklemeyi değil. Kabul, çizelgede kaydedilen özellik/cihaz/sürüm içindir; bu prosedür değişti diye kabul edilmiş kayıtları sıfırlamayın.
 
-Yazıcının standby olduğunu, `virtual_sdcard.is_active=false`, `pause_resume.is_paused=false` durumlarını, kuyrukta baskı ve MMU/probe/kalibrasyon/jog recovery işlemi bulunmadığını doğrula. Test sırasında yazıcının başında bulun. Baskı sürerken veya sıcak parçaların soğutulması için fana güvenilirken aktüatör testi yapma. Case-light/buzzer/generic-fan/LED seçenekleri gerçek donanıma uygun `maintenance-test-profiles.json` dosyasıyla açıkça izin verilene kadar kapalıdır. Part fan F01 ek profile gerek duymaz.
+İmzalı, CI başarılı sürüm kullanın ve çalışan servisin checkout'unu doğrulayın. Yalnız boşta güncelleyin/yeniden başlatın: baskı/pause, kuyrukta iş, MMU/prob/kalibrasyon veya çözülmemiş jog geri alma bulunmamalıdır. Fiziksel yolu açıp ilgili grubun koşullarını inceleyin. Fiziksel çalıştırmada operatör başında olmalıdır. İsteğe bağlı görsel/ses/genel fan/bağımsız LED çıkışları sürüm-2 rol beyanı ister; tanınan Happy Hare LED'leri doğrulanmış denetleyici eşlemesini kullanır. Parça fanı adayları ek profil istemez.
 
-## Master'a birleştirmeden devreye alma
+## Cihaz üstünde manuel sıra
 
-Mevcut `/tmp/petrel-maintenance-acceptance` detached worktree'sini kullan; güncel **imzalı ve CI PASS** `feature/maintenance-test-engine` HEAD'ini fetch edip worktree'yi ona ilerlet. Çalışan `~/Petrel` master dizininde feature checkout yapma. LCD testi için **gerçek Petrel.service**, önceki Aşama 7 A/B testindeki gibi geçici systemd drop-in üzerinden detached feature worktree'nin `WorkingDirectory` ve `ExecStart` değerleriyle başlatılmalı. Geri dönüş trap'i kullan, testten önce servis feature worktree'den açıldığını doğrula. Baskı sırasında servis yeniden başlatılmaz.
+1. **Maintenance → Check printer** altında işlev grubunu ve tam cihazı seçip **Prepare check** açın. Hazırlık durum okur, donanım çalıştırmaz.
+2. Hazırlığı ve ayrı onayı okuyun. **Start check** veya sunulduğunda **Home axes and continue** seçin. Controller'a özel eylemler **Run short pulse**, **Run speed steps**, **Run color sequence** veya **Run PID** olabilir. **Kullanıcı yanıtı zaman aşımına uğramaz.** Eski güvenlik kanıtı yeni kontrol ister; insan yanıtına süre dayatmaz.
+3. İstenen fiziksel davranışı gözleyip seçili akışı izleyin. F02 üç adet 2 saniyelik kademe; O04 kırmızı → mavi → yeşil → beyaz; F12 fiziksel tam duruş onayı içerir. Termal H01 tek ısıtıcı koşusunda yedi alt metrik üretir; yedi ayrı menü denemesi değildir.
+4. Geri yükleme kanıtını ve sonucu inceleyin. Yalnız açık gözlem ve desteklenen geri okuma `PASSED_USER` üretebilir. S18 ve Happy Hare O04 `OBSERVED_USER`, `restore_verified=False` kullanır; elektronik geri yükleme uydurmayın. Ölçüt başarısızlığı ile prosedürün çalışmaması farklıdır.
+5. **Details**, sayfalar ve önerileri inceleyin. **Back to checks** önceki cihaza döner. Aktif iptal grubun açıkladığı güvenlik yolunu izler; ısıtma/belirsiz hareket Klipper shutdown isteyebilir. Belirsiz komutu körlemesine tekrarlamayın.
+6. Bağımsız bilgi **Maintenance → Diagnostics** altındadır. Okumalar rapordur; donanım PASS değildir. Destek kaydı/dışa aktarım **Diagnostics → Support tools** altındadır.
 
-## Cihaz üstünde manuel test
+## Kayıt ve geri dönüş
 
-1. LCD'den **Maintenance → Self Tests** seç. Yalnız gerçek keşifle doğrulanmış ve açıkça güvenli hedefler listelenebilir. Menüye girmek yazıcıyı hareket ettirmemeli veya çıkışları değiştirmemeli.
-2. **F01 fan** veya izin verilmiş opsiyonel çıkışı seç. İhtiyaç anında yapılan kuyruk/başlangıç durumu kontrolünü bekle. BLOCKED görünüyorsa güvenlik denetimini atlatma.
-3. Varsayılan **Cancel** seçeneğinden **Run short pulse** seçeneğine enkoderle git ve üç saniyelik süre içinde basarak açıkça onayla. Derlenen tek kısa script uyarımdan sonra başlangıç değerine dönüşü amaçlar.
-4. Backend'in komut sonrası GET ile geri dönüşü doğrulamasını bekle. Komutun kuyruğa alınması geri yüklemenin gerçekleştiğini kanıtlamaz. INCONCLUSIVE çıkarsa yeni testten önce fiziksel çıkışı ve Klipper durumunu kontrol et.
-5. UI açık kullanıcı gözlemi ister. Ancak kısa fiziksel tepkiyi gördüysen/duyduysan **ve** backend başlangıç değerini doğruladıysa **Yes, observed** seç. Sonuç `PASSED_USER` (insan gözlemi) olur; otomatik PASS veya ölçülmüş RPM değildir. Aksi hâlde **Not observed** (`FAILED_USER`) seç.
-6. Gerçekten takılı güvenli cihazlar için ayrı ayrı tekrarla. Her testten sonra fan hızı, LED rengi ve kullanıcı tarafından `visual` olarak tanımlanmış çıkışların değerlerinin başlangıca döndüğünü kontrol et. İptal, kuyruk/baskı engeli, eksik profil ve disconnect davranışını sahte/denetimli koşullarda doğrula; değerli donanımda uyarım sürerken tehlikeli bağlantı kesintisi oluşturma.
+İmzalı SHA, tam hedef/yöntem, kullanıcı yanıtı, controller sonucu ve geri yükleme kanıtını kaydedin. Kanonik JSON ve iki kabul çizelgesini yalnız açık kullanıcı onayından sonra güncelleyin. CI fiziksel kabul vermez. Geçici aday checkout kullanıldıysa özgün systemd ayarını geri getirip boşta daemon-reload ve servis restart yapın; hangi checkout'un çalıştığını varsaymak yerine gerçek WorkingDirectory/ExecStart'ı doğrulayın.
 
-**Diagnostics** menüsünü ayrıca incele. S01/S02/S03/S05/S08/S10 yalnız izinli sayısal/metinsel bilgileri gösterir. Moonraker token'ları veya baskı dosya adları ekranda olmamalıdır.
+## Tarihsel Aşama 8 saha bulguları
 
-## Master'a dönüş ve kabul kaydı
-
-Geçici systemd override'ını kaldır, `sudo systemctl daemon-reload` ve `sudo systemctl restart Petrel.service` çalıştır; aktif servisin `ExecStart=/home/sezgynpi/petrel-env/bin/python /home/sezgynpi/Petrel/run.py`, `WorkingDirectory=/home/sezgynpi/Petrel` ve master'ın temiz olduğunu doğrula. Güç/bağlantı problemi veya çözümlenmemiş donanım durumu varsa fiziksel testleri durdurup Pi'yi denetle. Feature imzalı SHA, kullanılan izin profilleri, her cihazın gözlemi, geri yüklenen değer, sonuç ve operatör yanıtını kaydet. Testler gerçek Pi'de yapılıncaya kadar Aşama 8 fiziksel kabulü **BEKLEMEDE** kalır.
-
-
-## Rol tabanlı profiller (feature dalı)
-
-Güncel genel Maintenance dalında yalnız sürüm-2 `actuators` rol eşleştirmeleri geçerlidir; eski `case_light`/`buzzer_output` alanları izin vermez. S18 cihaz bazlıdır; **gerçek** `pwm_cycle_time <ad>` satırını seç. O03 de sabit case-light adını değil, izinli `output_pin <ad>` nesnesini kullanır. [Profil geçişine](maintenance-profiles_TR.md) bak. Aşağıdaki eski Pi gözlemleri tarihsel tanılama örnekleridir; **kaynak koda gömülü pin veya cihaz adları değildir**.
+Aşağıdaki tarihli hatalar eski sürümleri açıklar; güncel kabul çizelgededir. Geçici branch yolları, eski profil anahtarları ve bekleme durumları kurulum talimatı değildir. Özellikle eski `buzzer_output` yerine sürüm-2 aktüatör rolleri geçmiştir; referans yazıcının sonraki F01/S18/O04/F02 kabulleri korunur.
 
 ## F01 saha bulgusu ve sonraki doğrulama
 

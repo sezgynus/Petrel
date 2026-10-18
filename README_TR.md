@@ -95,6 +95,8 @@ Bağlantı kurulurken Moonraker nesne listesi ve yapılandırma okunur; yeniden 
 
 [Katkı](CONTRIBUTING_TR.md), [testler](tests/README_TR.md), [PNG/GIF yeniden üretimi](docs/ui-emulator_TR.md#dokümantasyon-ekranlarını-çevrimdışı-üretme) ve [ikon kaynakları](assets/icons/README_TR.md) ile başlayın. Fiziksel panel çalışmaları için isteğe bağlı [protokol referansını](docs/t5uic1-reference.md) kullanın.
 
+Açılış bağlantı bekleyişi ve açık Klipper hatası farklı [kurtarma davranışı](docs/klipper-recovery_TR.md) kullanır; normal boot firmware'i otomatik yeniden başlatmaz.
+
 ## Katkılar ve lisans
 
 Proje [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) ve [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD) çalışmalarından gelişti. Özgün telif bildirimleri ve Git geçmişi korunur.

@@ -25,6 +25,8 @@ For user-visible changes, update the relevant guide and screenshots. **English a
 
 ## Run and verify
 
+The regression workflow runs on every branch push and master-targeted pull request. Push each logical change, wait for commit signing, then verify CI on that final signed HEAD before continuing. Do not treat checks on the superseded unsigned SHA as the final gate. The commands below document optional local contributor tools; they are not required by the CI-first project workflow.
+
 On an installed Pi, the existing application environment contains the runtime dependencies. Run tests from the development checkout:
 
 ```bash

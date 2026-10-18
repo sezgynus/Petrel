@@ -18,17 +18,17 @@ LCD or Pi service was exercised by that audit. Its isolated suite contained
 
 The original finding IDs and commit references are retained below.
 
-| ID | Düzeltme ve doğrulama | Commit |
+| ID | Resolution and validation | Commit |
 |---|---|---|
-| A01 | Hata fazında gerçek GPIO Enter girdisi onayı mümkün; bekleme girdileri engelleniyor. Producer→owner regresyonu. | eddca211 |
-| A02 | Z offset Enter, mevcut runtime offset ile başlatılan editör hedefini gönderiyor; sonlu değer ve aralık kontrolü var. | fc2f5d5 |
-| A03 | Editör hedefi abonelik alanından ayrıldı; tick kullanıcının düzenlemesini ezmiyor. Prepare ve Tune aynı giriş yolunu kullanıyor. | 3bcfb8b |
-| A04 | Info metni panel politikasına çevrilip kısaltıldıktan sonra merkezleniyor; uzun sürüm negatif koordinat üretmiyor. | 0e3ceb8 |
-| A05 | SAVE ayrı istekte doğrulanıyor. Hareket hatasında yalnız RESTORE MOVE=0 deneniyor; belirsiz durumda yeni hareket/baskı engelleniyor ve açık kurtarma seçeneği gösteriliyor. Hareket tekrar gönderilmiyor. | 96cd675 |
-| A06 | Her encoder adımından önce state/capability epoch eşleştiriliyor; menü değişirse girdi atılıyor. Backend de eski state ile yeni bağlantıya komut göndermiyor. | c0b6a03 |
-| A07 | Epoch değişiminde dosya listesi ve UI dosya görünümü geçersiz kılınıyor; aynı revision eski cache'i korumuyor. | 600399e |
-| A08 | Yüksek seviyeli UART paketleri bütün alanları doğruladıktan sonra atomik kuruluyor. QR UTF-8 byte boyutu ve pixel sınırı kontrol ediliyor. Hatalı çağrı sonraki paketi bozmuyor. | 7ef391c |
-| A09 | Sayısal taşma exception yerine alan genişliğinde # işareti çiziyor; gerçek hedef değişmiyor. İşaret geçişleri alanı temizliyor, Motion değerleri gerektiğinde tam bilimsel gösterim kullanıyor. | 2026-10-05 audit commit |
+| A01 | Real GPIO Enter can confirm error-state actions; waiting input is blocked. Producer-to-owner regression. | eddca211 |
+| A02 | Z-offset Enter sends the editor target initialized from the runtime value, with finite/range checks. | fc2f5d5 |
+| A03 | Editor draft is separate from subscription state; ticks cannot overwrite edits. Prepare/Tune share input ownership. | 3bcfb8b |
+| A04 | Info text is normalized/truncated before centering; long versions cannot produce negative coordinates. | 0e3ceb8 |
+| A05 | SAVE is verified separately. Failed motion attempts only RESTORE MOVE=0; uncertainty blocks new movement/printing and offers recovery. Motion is not replayed. | 96cd675 |
+| A06 | Every encoder step checks state/capability epoch; changed menus discard stale input. Backend rejects commands from an old connection state. | c0b6a03 |
+| A07 | Epoch changes invalidate file lists and UI file views even when the revision matches. | 600399e |
+| A08 | UART packets are built atomically after field validation; QR byte length and panel bounds are checked. | 7ef391c |
+| A09 | Numeric overflow draws # within the field instead of raising; the actual target stays unchanged. Sign changes clear the field; Motion can use scientific notation. | 2026-10-05 audit commit |
 
 
 The audit also corrected the three-digit 100% field, completed-minute duration

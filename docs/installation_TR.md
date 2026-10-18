@@ -62,6 +62,8 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 2. Enkoderi çevirip bir menü açın; sıcaklıkların web arayüzüyle uyuştuğunu kontrol edin.
 3. Yazılar/ikonlar yanlışsa [LCD kaynak rehberini](lcd-assets_TR.md), bağlantı hatası varsa aşağıdaki sorun giderme tablosunu izleyin.
 
+Olağan soğuk açılış MCU bağlantı gecikmesinde boot ekranı 30 saniyeye kadar korunur; açık hata/shutdown kurtarmayı hemen açar. Yenileme/restart için [bağlantı ve kurtarma](user-guide_TR.md#yazıcı-bağlantısı-ve-kurtarma) bölümüne bakın.
+
 Moonraker, Petrel bağlantısına izin vermelidir. Kimlik doğrulama gerekiyorsa `MOONRAKER_API_KEY` ayarlayın. Seri port ve GPIO erişimi için servis kullanıcısının izinlerini kontrol edin; installer `dialout` ve `gpio` gruplarını yapılandırır.
 
 ## Ayarları değiştirme

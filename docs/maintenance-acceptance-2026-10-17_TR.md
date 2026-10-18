@@ -1,5 +1,7 @@
 # 17 Ekim 2026 fiziksel kayıt incelemesi
 
+> Aşağıdaki tarihli kayıt/denetim notları kaydedildikleri sürümü açıklar; güncel çalıştırma talimatı veya kabul toplamı değildir. [Güncel kullanım rehberini](user-guide_TR.md#maintenance) ve [kabul çizelgesini](maintenance-reference-printer-acceptance_TR.md) kullanın. Daha sonraki değişiklikler eski test erişimi, güvenlik eşiği ve kabul bekleme ifadelerinin yerini alır.
+
 Oturum: `dec3042495ca4ab78b58b947e2b3c73a`; çalışan HEAD: `32a8e14991e6d1d308909602084ab2e1f7b7d815`.
 Yerel saat: 13:47:51–13:56:35. 2.844 sıralı olay; kayıp, yazma hatası ve dosya döndürme yok.
 
@@ -8,7 +10,7 @@ Terminal sonuçlar: 7 INCONCLUSIVE, 20 BLOCKED, 5 kullanıcı iptali ABORTED, 2 
 
 | Kapsam | Kanıt / sonuç |
 |---|---|
-| H01 extruder, run 1 | Hedef 60°C, test tavanı 70°C, ölçüm 70,37°C, güç 0. Güvenlik shutdown'u; restore doğrulanmadı. Tavan kaldırılmaz. |
+| H01 extruder, run 1 | Hedef 60°C, test tavanı 70°C, ölçüm 70,37°C, güç 0. Güvenlik shutdown'u; restore doğrulanmadı. Bu eski sürümün hedefe bağlı tavanı daha sonra kaldırıldı; güncel firmware sınırları korunur. |
 | Sonraki 15 H denemesi | `thermal_busy_or_locked`; ısıtma komutu gönderilmedi. Bunlar bağımsız 15 termal arıza değildir. |
 | M03/M04/M05/M06/M12, runs 17–27 | `motion_requires_cold_idle_heaters`; sıcak hotend nedeniyle komut öncesi BLOCKED. |
 | M01 X/Y, runs 28/29 | Yanıt `stepper_x=open`, `stepper_y=open` iken kod yalnız x/y arıyordu. Kayıtla doğrulanmış parser hatası düzeltildi; fiziksel kabul hâlâ bekliyor. |
@@ -18,7 +20,7 @@ Terminal sonuçlar: 7 INCONCLUSIVE, 20 BLOCKED, 5 kullanıcı iptali ABORTED, 2 
 | P04, run 40 | Otomatik PASSED: X/Y=117,5 mm, Z=-0,021667 mm. Önceki iki denemede Z yükseltme önkoşulu eksikti. |
 | E03, run 41 | Yok→var gözlendi; son yok adımı onaylanmadan kullanıcı iptal etti. Sensör enabled=true restore kanıtı var. |
 | E01/E02/E07 | Aktif extruder ön ısıtması eksik; komut öncesi BLOCKED. |
-| E11 | MMU açık olduğundan önkoşul reddi. Önce normal menüden MMU disable gerekir. |
+| E11 | MMU açık olduğundan önkoşul reddi. Tarihsel ön koşuldur; E11 artık park edilmiştir ve elle MMU disable istememelidir. |
 | E12, run 47 | Grip seçimi hazırlıkta ValueError; hareket gönderilmedi. Eski kayıt mesajı gizlediği için kesin MMU engeli bu dosyadan çıkarılamaz. Bilinen MMU hata metinleri sonraki kayıtta sabit güvenli kodlara çevrilir. |
 | S15, run 48 | GPIO +2/-3/basma 1; açık observe(true); PASSED_USER, restore=true. Kabul edildi. |
 | S16, run 50 | Beş renk adımı + açık observe(true); PASSED_USER, restore=true. Kabul edildi. Sonraki iptal edilmiş yeniden açış bu kabulü silmez. |
@@ -34,11 +36,11 @@ Ekran satırlarındaki “ / ” işaretinin kayıt filtresinde gereksiz gizlend
 
 ## Yeniden test
 
-- H güvenlik kilidini atlama. Donanım güvenli/OFF doğrulandıktan sonra yeni Petrel oturumu ile ilerle; H01 aşım nedenini ele almadan tavanı gevşetme.
+- H güvenlik kilidini atlama. Donanım güvenli/OFF doğrulandıktan sonra yeni Petrel oturumu ile ilerle; H01 aşımını güncel termal sözleşmeyle incele; eski hedefe bağlı tavan yürürlükte değildir.
 - Önce soğuk testler; hotend soğukken M hareket grubu, home/Z şartları sağlanmışken P grubu.
 - M01 düzeltmesinden sonra X/Y fiziksel released→pressed→released.
 - E03'te son Remove filament adımında “read” seç; Cancel seçimi testi iptal eder.
-- E11 için MMU disable; E01/E02/E07 için ayrı kararlı ön ısıtma.
+- E11/E12 park edilmiştir; test için MMU disable yapmayın. E01/E02/E07 için ayrı kararlı ön ısıtma sağlayın.
 - E12'yi yeni ayrıntılı kod ile yeniden kaydet.
 - S15/S16/S17 kabulü tamamlandı; sadece yeni regresyon varsa tekrar gerekir.
 

@@ -8,6 +8,8 @@ Framed previews are for presentation; the **PNG link** opens native panel pixels
 
 Usage steps: [Daily use](user-guide.md) · [Print/Tune](print-controls.md) · [MMU](mmu-guide.md). Capture and regeneration: [Emulator guide](ui-emulator.md).
 
+Static captures illustrate documented example states. Values, labels and available controls can differ by capture revision, printer capabilities and font. Use the current text guides for connection/recovery and time-estimation behavior; follow the reproduction guide to refresh the images.
+
 ## Home and startup
 
 | Screen | Preview | Panel PNG |

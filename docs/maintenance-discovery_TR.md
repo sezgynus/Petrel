@@ -52,12 +52,12 @@ Benchmark; keşif süresi, `tracemalloc` kalıcı tahsis farkı, en yüksek izle
 
 **Kabul hedefi, ölçülmüş garanti değil:** Yeni kalıcı worker/soket/polling yok; gerçekçi cihaz envanteri için 100 KiB altında kalıcı snapshot; baskının sıcak kod yolunda keşif yok; Klipper READY sonrasında ilave kararlı RSS için 1 MiB altı hedef. Ölçüm hedefi aşarsa işlevi etkinleştirmeden önce mimari gözden geçirilir.
 
-## Sonraki aşamalar
+## Süren entegrasyon gereksinimleri
 
 1. Kalan tanınabilir test adaptörlerini doğrulanmış API kanıtları ve ayrı regresyon testleriyle tamamla.
 2. Snapshot'ı Maintenance ziyaretleri arasında backend'de koru; yalnız yeni Klipper READY döneminde yeniden keşfet.
 3. Moonraker servis kanıtını READY döneminde bir kez al; ek test telemetrisine yalnız kullanıcı test başlattığında abone ol.
-4. Test yürütme/güvenlik koordinasyonunu keşiften bağımsız tasarla; UI'yi keşif matrisi doğrulandıktan sonra oluştur.
+4. Adaptörler geliştikçe uygulanmış UI/controller ayrımını keşiften bağımsız koru.
 
 ## Genişletilmiş API tabanlı keşif ve 121 kimliğin tamamı
 
@@ -82,16 +82,7 @@ yetenek uydurulmaz.
 
 ### Yalnızca READY döneminde servis kanıtı
 
-`maintenance_services.parse_evidence(responses)` doğrulanmış Moonraker JSON
-cevaplarını sınıflandırır. `probe(client, cancelled)` Klipper READY olduğunda bir kez
-çağrıldığında `/server/info`, `/machine/proc_stats`,
-`/machine/system_info` ve `/server/history/totals` için küçük salt-okunur
-istekler yapar. Mevcut HTTP transport ve read worker yeniden kullanılır;
-baskı döngüsünde yeni bağlantı veya keşif sorgusu yoktur. Opsiyonel API
-hataları yetenek üretmez. `MaintenanceDiscoveryManager` yalnızca küçük değişmez snapshot'ı, kilidi ve
-bağlantı nesil bilgisini tutar. Mevcut bakım worker'ı kısa servis sorgusunu bir kez
-yapar; yanıt yalnız doğru READY dönemine aitse yayınlanır. Menü giriş ve çıkışında
-API isteği veya yeniden keşif gerçekleştirilmez.
+`maintenance_services.parse_evidence(responses)` doğrulanmış Moonraker JSON yanıtlarını sınıflandırır. `probe(client, cancelled)`, **Klipper READY olduktan sonra bir kez** altı küçük salt-okunur uç noktayı çağırır: `/server/info`, `/machine/proc_stats`, `/server/spoolman/spool_id`, `/server/history/totals`, `/printer/objects/query?heaters=available_monitors` ve `/server/files/roots`. Mevcut HTTP transport ve okuma worker'ı kullanılır; yeni bağlantı oluşturulmaz. Her yanıt küçük kanıt token'larına çevrilip sonraki istekten önce bırakılır. Sonuç yalnız ilk READY epoch'u hâlâ geçerliyse yayımlanır. Menüye giriş/çıkış API isteği başlatmaz.
 
 Diğer `maintenance.*` ve `petrel.*` etiketleri, **gelecekte bağımsız olarak
 doğrulanmış entegrasyonların** olumlu kanıt sözleşmesidir. Henüz var olmayan
@@ -118,21 +109,21 @@ Her Klipper READY döneminde mevcut read worker, sınırlı Moonraker servis sor
 
 Tanınan Klipper TMC nesnelerinde belgelenen yapılandırılmış `drv_status` alanı, motor devre dışıyken `null` olabilir. Bu nedenle yalnız M07, açılışta başarılı test değil tanılama **yeteneği** olarak keşfedilir. M10 numarası ayrılmıştır, keşfedilmez. Gerçek hata değerlendirmesi güncel ve `null` olmayan durumla sürücüye özel bit çözümlemesi gerektirir. Keşif sırasında `DUMP_TMC` gönderilmez; sürücü sıcaklığı yalnız `heaters.available_monitors` ile belirlenir.
 
-CI artık tam regresyon paketinin yanında sentetik 150 fanlık Maintenance keşfinin süresini, Python tahsislerini ve mevcutsa Linux RSS/PSS/USS değerlerini de raporlar. GitHub runner sonuçları erken regresyon göstergesidir; **Pi Zero 2 W kabul ölçümünün yerine geçmez**. Master'a birleşmeden önce gerçek Petrel process'inde önce/sonra karşılaştırması gereklidir.
+CI artık tam regresyon paketinin yanında sentetik 150 fanlık Maintenance keşfinin süresini, Python tahsislerini ve mevcutsa Linux RSS/PSS/USS değerlerini de raporlar. GitHub runner sonuçları erken regresyon göstergesidir; **Pi Zero 2 W kabul ölçümünün yerine geçmez**. Hedefe özgü bellek iddiası için gerçek Petrel process'inde önce/sonra karşılaştırması gerekir.
 
 **Benchmark yorumlama:** RSS/PSS/USS için enstrümansız process, Python tahsisleri için ayrı `--trace` process çalıştırılır. İzleme mekanizması RSS'yi ciddi biçimde artırabilir; izlemeli RSS **üretim ortamındaki tüketim değildir**. Her iki GitHub runner ölçümü de gerçek Pi Zero 2 W üzerindeki Petrel process karşılaştırmasının yerine geçmez. Değişmez snapshot'ın yaklaşık boyutu ayrıca raporlanır.
 
-### Sınırlı başlangıç kanıtı ve bellek temizliği
+### Sınırlı başlangıç kanıtı işleme
 
-READY keşfi yalnız beş küçük belgelenmiş API uç noktasını sorgular (`/server/info`, `/machine/proc_stats`, `/server/history/totals`, `/printer/objects/query?heaters=available_monitors`, `/server/files/roots`). Kullanılmayan, büyük olabilen `/machine/system_info` isteği kaldırıldı. Her JSON yanıtı kısa kanıt etiketlerine çevrilir ve **bir sonraki sorgudan önce** bırakılır; tam API yanıtlarının bir listesi veya sözlüğü tutulmaz. Disk alanı keşif sırasında tahmin edilmez, gerektiğinde sorgulanır.
+READY keşfi altı küçük uç nokta okur: `/server/info`, `/machine/proc_stats`, `/server/spoolman/spool_id`, `/server/history/totals`, `/printer/objects/query?heaters=available_monitors`, `/server/files/roots`. Büyük olabilen `/machine/system_info` başlangıçta okunmaz. Her yanıt küçük kanıta çevrilip sonraki istekten önce bırakılır; yanıt sözlükleri biriktirilmez. Disk kapasitesi yalnız kullanıcı isteğiyle okunur.
 
 ### Dinamik menü listesi ve rezonans eksenleri
 
 `available_features()` ve cihaz adı verilmeden çağrılan `method(feature)`, cihazlara ait maskelerle genel yetenekleri birlikte hesaplar. Cihazlar `instances(feature)` ile ayrı listelenir. Rezonans işlevlerinde `snapshot.axes('R02'|'R03'|'R04', device=None)`, Klipper'ın ortak XY veya ayrı accel_chip_x/accel_chip_y/accel_chip_z tanımlarına uygun X/Y/Z bit maskesi (1/2/4) verir; atanmamış eksen ölçülebilir gösterilmez. Kalıcı özellik sözlüğü veya indeks oluşturulmaz.
 
-Depolama S04 artık küçük `GET /server/files/roots` yanıtında okunabilir `gcodes` kökü varsa keşfedilir. Moonraker, `disk_usage` alanını `GET /server/files/directory?path=gcodes` yanıtında sunar; çok sayıda dosya içerebilecek bu dizin sorgusu **READY anında asla yapılmaz**. Gerçek boş/toplam alan sonraki depolama ekranında gerektiğinde okunabilir. Kökün varlığı ölçülen boş alanı değil, yöntem desteğini kanıtlar. READY keşfinde beş salt-okunur API isteği vardır. <https://moonraker.readthedocs.io/en/latest/external_api/file_manager/>
+Depolama S04 artık küçük `GET /server/files/roots` yanıtında okunabilir `gcodes` kökü varsa keşfedilir. Moonraker, `disk_usage` alanını `GET /server/files/directory?path=gcodes` yanıtında sunar; çok sayıda dosya içerebilecek bu dizin sorgusu **READY anında asla yapılmaz**. Gerçek boş/toplam alan sonraki depolama ekranında gerektiğinde okunabilir. Kökün varlığı ölçülen boş alanı değil, yöntem desteğini kanıtlar. READY keşfinde altı salt-okunur API isteği vardır. <https://moonraker.readthedocs.io/en/latest/external_api/file_manager/>
 
-### Gerçek Pi Zero 2 W kabul ölçümü (merge öncesi zorunlu)
+### Gerçek Pi Zero 2 W kaynak doğrulaması
 
 Sentetik Python tahsisleri yerine çalışan Petrel process'ini ölçmek için `tools/measure_petrel_resources.py` kullanılır. Aynı yazıcı yapılandırmasıyla Pi'ye **master** kurulup Klipper READY olduktan sonra, kontrollü boşta veya eşdeğer baskı yükünde servis process'i ölçülür:
 

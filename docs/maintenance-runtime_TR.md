@@ -8,6 +8,6 @@
 
 `live_safety_context(printer, evidence)`, kalıcı config ağacını yeniden kopyalamadan ihtiyaç anında subscription snapshot alır, etkin Petrel işlemlerini (jog/recovery, ayar kaydı, bed mesh, screws tilt, probe wizard, MMU) kontrol eder ve var olan fail-closed `precheck` için güncel `SafetyContext` üretir. Eksik print/pause/virtual SD/webhooks durumu reddedilir. UI menüsü boşta diye başka bir işlem güvenli sayılmaz.
 
-**Önemli:** Aşama 5 yalnız provider tanımlar. Sonraki backend entegrasyonunda kuyruk GET işlemleri Petrel'in mevcut bounded worker'ında (UI thread'de değil) çalışmalı ve her telemetri güncellemesinde kuyruk sorgulanmamalıdır. Haricî Moonraker istemcileri kontroller arasında durum değiştirebilir; fiziksel komutlar için ayrıca dispatch-time güvenlik denetimi gerekecektir.
+**Güncel entegrasyon:** Controller katmanları kuyruk GET işlemlerini mevcut sınırlı worker üzerinde yapar; UI thread üzerinde veya her normal telemetri güncellemesinde çalıştırmaz. Kabul/gönderim için üç saniyelik tazelik sınırı vardır; aktif controller katmanları ayrıca kendi sınırlı izleme/yeniden okuma sözleşmelerini tanımlar. Harici istemciler kontroller arasında durum değiştirebildiğinden fiziksel gönderimde canlı durum da yeniden doğrulanır. Aktif çalışma kuralları için hareket, termal ve rezonans rehberlerine bakın.
 
 Regresyonlar: `tests/test_maintenance_runtime.py`; bütün testler push'ta GitHub Actions üzerinde çalışır.

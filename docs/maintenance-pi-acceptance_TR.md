@@ -4,6 +4,8 @@
 
 **Durum:** GitHub CI regresyonları ve simüle asenkron akışları doğrular, fakat gerçek Pi donanım kabulünü **kanıtlamaz**. Bu belge ve yalnız açıkça çalıştırılan smoke aracı, henüz kullanıcının yazıcısında yürütülmüş test sonuçları değil, saha prosedürüdür.
 
+Maintenance motoru master içindedir. Bunlar açık saha doğrulama araçlarıdır; birleştirilmemiş özellik kanıtı değildir. A/B için iki gerçek sürüm seçip kaydedin ve servisin her birini gerçekten çalıştırdığını doğrulayın; aynı master checkout'ları önce/sonra karşılaştırması olmaz. Geçici worktree bütün ölçümler bitene kadar kalmalıdır. Aşağıdaki virtualenv yolu geneldir; gerçek servis ortamını kullanın.
+
 ## 1. Çalışan master'ı koru, yazıcının boşta olduğunu doğrula
 
 Baskı, pause, MMU operasyonu, kalibrasyon veya kararsız bağlantı sırasında feature branch'i devreye alma; `Petrel.service` kesintiye uğratma. Yazıcı config'i, parola, API anahtarı ve gizli verileri GitHub artifact'larına taşıma. Test sırasında güç aç/kapat veya G-code çalıştırma.
@@ -12,17 +14,15 @@ Normal Petrel master'da çalışırken, mevcut servis deposunun dalını değiş
 
 ```sh
 cd ~/Petrel
-git fetch origin feature/maintenance-test-engine
-git worktree add --detach /tmp/petrel-maintenance-acceptance origin/feature/maintenance-test-engine
+git fetch origin master
+git worktree add --detach /tmp/petrel-maintenance-acceptance origin/master
 cd /tmp/petrel-maintenance-acceptance
-/home/sezgynpi/petrel-env/bin/python tools/validate_maintenance_pi.py --output /tmp/petrel-maintenance-readonly.json
+~/petrel-env/bin/python tools/validate_maintenance_pi.py --output /tmp/petrel-maintenance-readonly.json
 ```
 
-Python yolu kabul testi yapılan Pi'nin doğrulanan Petrel sanal ortamıdır. Doğrudan çalıştırılan araç proje import'larını artık PYTHONPATH gerektirmeden bulur. Araç **geçici ikinci Petrel backend bağlantısı** açıp yalnız bilgi kontrollerini yapar; DWIN UI göstermez, heater/motion testi yapmaz, çıkışta tüm bağlantıları kapatır. `READ_ONLY_SMOKE_OK`, S01 ve S08 için güncel/geçerli bilginin okunduğunu gösterir; fiziksel donanım PASS'i **değildir**. `INCOMPLETE` veya `BLOCKED` başarı sayılmaz; nedenini incele. Meşgul kuyruk, baskı, manual probe, MMU, eksik alan veya bağlantı geçişinde sorgu engellenmelidir, güvenlik atlatılmamalıdır.
+Örnekteki Python yolu standart servis sanal ortamıdır; hedef Pi'nin gerçek ortamını kullanın. Doğrudan çalıştırılan araç proje import'larını artık PYTHONPATH gerektirmeden bulur. Araç **geçici ikinci Petrel backend bağlantısı** açıp yalnız bilgi kontrollerini yapar; DWIN UI göstermez, heater/motion testi yapmaz, çıkışta tüm bağlantıları kapatır. `READ_ONLY_SMOKE_OK`, S01 ve S08 için güncel/geçerli bilginin okunduğunu gösterir; fiziksel donanım PASS'i **değildir**. `INCOMPLETE` veya `BLOCKED` başarı sayılmaz; nedenini incele. Meşgul kuyruk, baskı, manual probe, MMU, eksik alan veya bağlantı geçişinde sorgu engellenmelidir, güvenlik atlatılmamalıdır.
 
-```sh
-git -C ~/Petrel worktree remove /tmp/petrel-maintenance-acceptance
-```
+
 
 ## 2. Gerçek servis belleği ve akıcılığı: kontrollü A/B karşılaştırma
 
@@ -47,3 +47,10 @@ python3 tools/measure_petrel_resources.py compare --baseline /tmp/petrel-master.
 ## Kabul koşulu
 
 Cihaz/OS/Python sürümü, Petrel HEAD SHA, Moonraker/Klipper sürümleri, job queue var/yok bilgisi, gizli veri içermeyen smoke JSON, master/feature RSS/USS/CPU farkları ve manuel UI akıcılığı notlarını kaydet. Gizli config ve anahtarları paylaşma. **Komutlar gerçek Pi üzerinde çalıştırılıp ölçümler geçmeden Pi kabulünü tamamlanmış sayma.** GitHub CI'daki `tests/test_maintenance_pi_acceptance.py` yalnız taklit verilerle çalışır; gerçek yazıcı testinin yerine geçmez.
+
+
+Bütün ölçümlerden sonra geçici checkout'u kaldırın:
+
+```sh
+git -C ~/Petrel worktree remove /tmp/petrel-maintenance-acceptance
+```

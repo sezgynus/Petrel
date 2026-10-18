@@ -52,6 +52,14 @@ Print shows the preview, progress, elapsed/remaining time, estimated finish and 
 
 Use **Tune** for Speed, **Flow**, temperatures/fan, Z offset, SCV, minimum cruise ratio, PA/smoothing and firmware retraction. Fields depend on configuration and telemetry. AFTER JOB switches only change policy pins; your macros implement the end-of-job actions. Z offset is not permanent probe calibration. See [fields, units and error behavior](print-controls.md).
 
+Elapsed is total job time, including preparation/pauses. Progress, Remaining and Finish use [Mainsail-default calculations](print-controls.md#print-time-and-progress); Remaining averages file/filament estimates, while Finish also includes slicer time. `+1` beside Finish means tomorrow (more generally, the calendar-day offset); missing estimates show `--:--`. Mainsail browser-specific options are not imported.
+
+## Printer connection and recovery
+
+At cold boot or a printer/display relay power cycle, the splash keeps **Connecting to printer...** or **Starting Klipper...** for up to 30 seconds while the connection is pending. An explicit Klipper error/shutdown opens recovery immediately. If connection takes longer, **Printer connection** explains the delay; retries continue without automatic restart. A disconnect after normal startup opens recovery immediately.
+
+The recovery page shows scrollable error text and fixed actions. **Refresh connection** only reads status. **Restart Klipper** and **Firmware Restart** appear for error/shutdown; when Klipper is disconnected, **Restart Klipper service** appears only if Moonraker identifies that instance's exact service. An unreachable Moonraker only offers refresh. Initial focus is Refresh; restart executes on one explicit press after a fresh state check. Turn left past the first action to scroll the error; press to return to the actions. Connection recovery returns Home without resuming an interrupted test or command. See [recovery details](klipper-recovery.md).
+
 ## Prepare and Live jog
 
 <p align="center">
@@ -131,7 +139,7 @@ During measurement, each probe result appears at its corresponding point. On com
   <img src="assets/screens/framed/mesh-pei.png" width="360" alt="Mesh height map">
 </p>
 
-**Cancel → Stop during measurement is an emergency stop:** Klipper enters shutdown. Use `FIRMWARE_RESTART` from the web console to recover. Cancel the confirmation if you want measurement to continue.
+**Cancel → Stop during measurement is an emergency stop:** Klipper enters shutdown. After checking the printer, use **Firmware Restart** on the recovery screen or `FIRMWARE_RESTART` from the web console. Cancel the confirmation if you want measurement to continue.
 
 ## Probe-offset calibration
 
@@ -284,6 +292,8 @@ Scan the project QR to open the repository. To update from the LCD:
 3. Select **Update** to install Petrel. Moonraker restarts the service afterwards. This does not update every printer component.
 
 If the checkout is dirty or invalid, **Soft recovery** offers a second **Confirm recovery** step. Recovery discards local repository changes; back up anything you need first. Rotating cancels confirmation. Recovery does not automatically install an update. If a result is unconfirmed, check Mainsail Update Manager before retrying.
+
+Info uses a fixed right-hand position scrollbar. Only exposed content, changed values and the narrow scrollbar gutter are updated during scrolling; unavailable fields are not invented.
 
 ## Case light
 

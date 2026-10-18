@@ -267,8 +267,9 @@ skipped. Failed automatic writes are guarded against repeated programming
 inside a reconnect loop. The emulator uses the same JPEG sources.
 
 All UI icons use `show_icon(3, id, x, y)`. Boot splash uses `show_jpeg(0)`
-directly, followed by progress/animation rendering; no temporary cache or
-full-screen copy is needed. General JPEG/cache protocol commands remain
+directly, followed by progress/animation rendering. Progress updates restore only
+the lower splash rectangle from Area 0 through `copy_cache()` before drawing
+the new bar/status; they do not repeatedly copy the full screen. General JPEG/cache protocol commands remain
 available for their documented uses.
 
 See the [JPEG source guide](../assets/icons/README.md) for adding icons,

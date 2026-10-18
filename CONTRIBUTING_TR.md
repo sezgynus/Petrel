@@ -25,6 +25,8 @@ Kullanıcının gördüğü değişikliklerde ilgili rehberi ve ekran görüntü
 
 ## Çalıştırma ve doğrulama
 
+Regresyon iş akışı her dal push'unda ve master hedefli pull requestlerde çalışır. Her mantıksal değişikliği gönderip imzalamayı bekleyin; devam etmeden son imzalı HEAD üzerindeki CI'ı doğrulayın. Yerini imzalı commit'e bırakan SHA üzerindeki kontroller son kalite kapısı değildir. Aşağıdaki komutlar isteğe bağlı yerel katkı araçlarını belgeler; CI öncelikli proje akışında zorunlu değildir.
+
 Kurulu Pi'de mevcut uygulama ortamı çalışma bağımlılıklarını içerir. Testleri geliştirme kopyasından çalıştırın:
 
 ```bash

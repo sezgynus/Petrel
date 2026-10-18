@@ -1,38 +1,29 @@
-# Maintenance Stage 8 — Real Raspberry Pi physical acceptance
+# Maintenance physical acceptance
 
-[Türkçe](maintenance-stage8-acceptance_TR.md) · [Optional output profiles](maintenance-profiles.md) · [LCD user flow](maintenance-ui.md) · **[Live operator-accepted reference-printer checklist](maintenance-reference-printer-acceptance.md)**
-
-> **Current acceptance status:** The initial-stage examples below are historical evidence. For the latest operator-confirmed device-level physical PASS/OBSERVED records, use the linked tracker and its JSON ledger.
+[English](maintenance-stage8-acceptance.md) · [Türkçe](maintenance-stage8-acceptance_TR.md) · [Profiles](maintenance-profiles.md) · [LCD guide](user-guide.md#maintenance) · [Acceptance ledger](maintenance-reference-printer-acceptance.md)
 
 ## Scope and prerequisites
 
-Stage 8 implementation has GitHub regression coverage, but mock CI does **not** prove real actuation, restored outputs, audible tones or LED light. These must be explicitly accepted on a real printer. The previous **Stage 7** read-only test was completed on a Raspberry Pi with six information sources observed; that does not cover Stage 8.
+Maintenance is integrated into master. CI validates software contracts, not actual movement, sound, light, heat or restoration. Acceptance is specific to the feature/device/version recorded in the ledger; do not reset accepted records merely because this procedure is revised.
 
-Verify printer standby, `virtual_sdcard.is_active=false`, `pause_resume.is_paused=false`, no queued jobs, no MMU/probe/calibration activity and no unresolved jog recovery. Keep an operator watching the printer throughout. Never perform an actuator test during a print or while relying on fan cooling for hot components. The case-light/buzzer/generic-fan/LED options are disabled until explicitly enabled with matching real hardware in `maintenance-test-profiles.json`. Part cooling fan F01 needs no extra profile.
-
-## Deployment without merging into master
-
-Use your existing `/tmp/petrel-maintenance-acceptance` detached worktree; fetch and update it to the latest **signed, CI-passing** `feature/maintenance-test-engine` HEAD. Never checkout the feature branch within the running `~/Petrel` master directory. For an interactive LCD test, the **actual Petrel.service** must be temporarily started with `WorkingDirectory` and `ExecStart` set to the detached feature worktree via a temporary systemd drop-in, as in the earlier successful Stage-7 A/B measurement. Keep a rollback trap and confirm the service is on that feature worktree before testing. Any service restart is forbidden while printing.
+Use a signed, CI-passing revision and verify the running service's checkout. Update/restart only while idle: no print/pause, queued job, MMU/probe/calibration activity or unresolved jog recovery. Clear the physical path and inspect the relevant group's requirements. Physical actuation requires an attending operator. Optional visual/audible/generic-fan/standalone-LED outputs need version-2 role declarations; recognized Happy Hare LEDs use their verified controller mapping. Part-fan candidates need no extra profile.
 
 ## On-device manual sequence
 
-1. On LCD select **Maintenance → Self Tests**. Only exact discovered, explicitly safe choices may appear. Entry must not move the printer or change outputs.
-2. Select **F01 fan** or one approved optional output. Wait for on-demand queue and original-state checks; if BLOCKED, do not circumvent the safety gate.
-3. Rotate from the default **Cancel** to **Run short pulse**, press to confirm before the three-second expiration. The compiler produces one bounded script that attempts to restore the original output afterward.
-4. Wait for the backend's post-command GET restoration verification. Never claim the hardware is restored merely because the G-code command was queued. If the result is INCONCLUSIVE, inspect the physical output and Klipper state before any new test.
-5. The UI prompts for an explicit operator observation. Choose **Yes, observed** only if the brief physical response was seen/heard *and* the backend verified the original output. The status is `PASSED_USER` (human-observed), not automatic PASS or measured RPM. Otherwise choose **Not observed** (`FAILED_USER`).
-6. Repeat independently for safe, actually installed devices. Confirm original fan speed, LED color and operator-declared visual-output value after each test. Validate cancellation, deny while queued/printing, missing profile, and disconnect with fakes/controlled conditions; never force a dangerous mid-actuation disconnect on valuable hardware.
+1. Open **Maintenance → Check printer**, select the functional group and exact device, then **Prepare check**. Preparation reads state and does not actuate hardware.
+2. Read the preparation and separate confirmation. Choose **Start check**, or **Home axes and continue** when offered. Controller-specific actions may say **Run short pulse**, **Run speed steps**, **Run color sequence** or **Run PID**. There is **no operator-answer timeout**. Stale safety evidence requires fresh checks, never a timed-out human response.
+3. Observe the requested physical behavior and follow the selected workflow. F02 has three 2-second stages; O04 is red → blue → green → white; F12 requires physical standstill confirmation. Thermal H01 produces seven component metrics in one heater cycle, not seven separate menu trials.
+4. Inspect restoration evidence and the result. Only explicit observation with supported readback can produce `PASSED_USER`. S18 and Happy Hare O04 use `OBSERVED_USER`, `restore_verified=False`; do not invent electronic restoration for them. A measured criterion failure is different from a failed procedure.
+5. Review **Details**, pages and any recommendations. **Back to checks** returns to the originating device. Active cancellation follows the group's disclosed safety procedure; heating/uncertain motion may request Klipper shutdown. Never replay an ambiguous command blindly.
+6. Read independent information under **Maintenance → Diagnostics**. Readings are reports, not hardware PASS. Support recording/export is under **Diagnostics → Support tools**.
 
-Check **Diagnostics** independently. S01/S02/S03/S05/S08/S10 return only whitelisted scalar information. The resulting UI must not display Moonraker tokens or print filenames.
+## Record and rollback
 
-## Rollback and acceptance record
+Record the tested signed SHA, exact target/method, operator answer, controller result and restoration evidence. Update the canonical JSON and both acceptance trackers only after explicit operator approval. CI never grants physical acceptance. For a temporary candidate checkout, restore the original systemd configuration, daemon-reload and restart while idle; verify the actual WorkingDirectory/ExecStart rather than assuming which checkout is running.
 
-Remove the temporary systemd override, run `sudo systemctl daemon-reload` and `sudo systemctl restart Petrel.service`, and verify active service `ExecStart=/home/sezgynpi/petrel-env/bin/python /home/sezgynpi/Petrel/run.py`, `WorkingDirectory=/home/sezgynpi/Petrel`, with master clean. If power/connection problems or unresolved hardware state are observed, stop physical testing and inspect on the Pi. Record feature signed SHA, safe output profiles used, evidence for each device, restored value, result and operator response. Stage-8 real-hardware acceptance stays **PENDING** until this is actually performed.
+## Historical Stage 8 field findings
 
-
-## Role-based profiles (feature branch)
-
-The current generic Maintenance branch accepts only version-2 `actuators` role mappings; old `case_light`/`buzzer_output` keys no longer grant permission. S18 is a device-scoped test, so select the **actual** `pwm_cycle_time <name>` row. O03 similarly operates on an explicitly approved `output_pin <name>`, not a fixed case-light name. See [profile migration](maintenance-profiles.md). Previous Pi observations below are historical diagnostic examples, **not embedded target names or pins**.
+The following dated failures describe earlier revisions; current acceptance is in the ledger. Their temporary branch paths, legacy profile keys and previous pending states are not deployment instructions. In particular, legacy `buzzer_output` is replaced by version-2 actuator roles, and later reference-printer F01/S18/O04/F02 acceptances remain intact.
 
 ## F01 field finding and follow-up verification
 

@@ -14,4 +14,4 @@ S16 offers explicit red/green/blue/white/black observation patches on the physic
 
 S20 explicitly writes ~/.config/Petrel/maintenance-report.json. Remote Display can download the last export at /maintenance-report.json using its existing Host/Origin boundary. Download never generates a report or starts a test. No raw config, filenames, URLs or API keys are exported.
 
-All reads/preflights are bounded and asynchronous. Physical panel observations remain pending real-printer acceptance.
+All reads/preflights are bounded and asynchronous. Physical panel observations require per-device operator acceptance; reference S15/S16/S17 acceptances are recorded in the [ledger](maintenance-reference-printer-acceptance.md).

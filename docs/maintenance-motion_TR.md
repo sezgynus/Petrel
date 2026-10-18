@@ -27,7 +27,7 @@ okunur. Hareket ve last_query tekrar kullanımı yoktur. Sorular süresizdir;
 uyuşmayan durum açıkça yeniden okunabilir. Sanal/sensorless endstop'lar hariçtir.
 Son gözlem geçişlerden ayrıdır; serbest okuma geri yükleme kanıtıdır.
 M07 desteklenen TMC'lerde artık önbellekteki drv_status alanına bağımlı değildir.
-Kullanıcı seçtiğinde `DUMP_TMC STEPPER=<doğrulanmış-stepper> REGISTER=DRV_STATUS`
+Kullanıcı seçtiğinde `DUMP_TMC STEPPER=<verified-stepper> REGISTER=DRV_STATUS`
 komutunu bir kez gönderir; G28, motor enable ve yapılandırma/register yazımı yoktur.
 Klipper'ın gerçek register yanıtı G-code RPC sonucunda değil,
 `notify_gcode_response` bildiriminde gelir. Petrel mevcut sınırlı yanıt

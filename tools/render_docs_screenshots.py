@@ -642,6 +642,9 @@ def write_galleries():
         guide = ('Kullanım adımları: [Günlük kullanım](user-guide_TR.md) · [Print/Tune](print-controls_TR.md) · [MMU](mmu-guide_TR.md). Görüntü alma ve yeniden üretme: [Emülatör rehberi](ui-emulator_TR.md).' if turkish else
                  'Usage steps: [Daily use](user-guide.md) · [Print/Tune](print-controls.md) · [MMU](mmu-guide.md). Capture and regeneration: [Emulator guide](ui-emulator.md).')
         lines = [f'# {title}', '', '[English](screenshots.md) · [Türkçe](screenshots_TR.md)', '', intro, '', links, '', guide, '']
+        capture_note = ('Statik görüntüler belgelenmiş örnek durumları gösterir. Değer, etiket ve mevcut kontroller çekim sürümü, yazıcı yetenekleri ve fonta göre farklı olabilir. Bağlantı/kurtarma ve süre hesaplarında güncel metin rehberlerini kullanın; görselleri yenilemek için aşağıdaki üretim rehberini izleyin.' if turkish else
+                        'Static captures illustrate documented example states. Values, labels and available controls can differ by capture revision, printer capabilities and font. Use the current text guides for connection/recovery and time-estimation behavior; follow the reproduction guide to refresh the images.')
+        lines += [capture_note, '']
         for group, english, translated in groups:
             lines += [f'## {translated if turkish else english}', '',
                       '| Ekran | Önizleme | Panel PNG |' if turkish else '| Screen | Preview | Panel PNG |', '|---|---|---|']

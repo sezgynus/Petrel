@@ -52,6 +52,14 @@ Print önizlemeyi, ilerlemeyi, geçen/kalan süreyi, tahmini bitişi ve varsa ka
 
 **Tune** ile Speed, **Flow**, sıcaklık/fan, Z offset, SCV, minimum cruise ratio, PA/yumuşatma ve firmware retraction ayarlarını değiştirin. Alanlar yapılandırma ve durum verisine bağlıdır. AFTER JOB switchleri yalnız politika pinlerini değiştirir; baskı sonu eylemini makrolarınız belirler. Z offset kalıcı probe kalibrasyonu değildir. [Alanlar, birimler ve hata davranışları](print-controls_TR.md).
 
+Elapsed hazırlık/duraklamalar dahil toplam iş süresidir. İlerleme, Remaining ve Finish [Mainsail-varsayılan hesaplarını](print-controls_TR.md#baskı-süresi-ve-ilerleme) kullanır; Remaining dosya/filament tahminlerini ortalar, Finish dilimleyici süresini de katar. Finish yanındaki `+1` yarın demektir (genelde takvim günü farkı); tahmin yoksa `--:--` gösterilir. Mainsail tarayıcısına özel seçenekler aktarılmaz.
+
+## Yazıcı bağlantısı ve kurtarma
+
+İlk açılışta veya yazıcı/ekran röle güç çevriminde bağlantı beklenirken boot ekranında 30 saniyeye kadar **Connecting to printer...** veya **Starting Klipper...** kalır. Açık Klipper error/shutdown kurtarmayı hemen açar. Bağlantı uzarsa **Printer connection** gecikmeyi açıklar; otomatik restart yapılmadan yeniden bağlantı denenir. Normal açılıştan sonraki kopma kurtarmayı hemen açar.
+
+Kurtarma sayfasında kaydırılabilir hata metni ve sabit eylemler vardır. **Refresh connection** yalnız durum okur. **Restart Klipper** ve **Firmware Restart** error/shutdown için görünür; Klipper bağlantısı kopuksa **Restart Klipper service** yalnız Moonraker o örneğin tam servisini belirlerse sunulur. Moonraker erişilemiyorsa yalnız yenileme vardır. İlk seçim Refresh'tir; restart taze durum kontrolünden sonra tek açık basışla çalışır. İlk eylemin soluna dönerek hata metnini kaydırın; basınca eylemlere dönersiniz. Bağlantı toparlanınca yarıda kalan test/komut sürdürülmeden Home açılır. [Kurtarma ayrıntılarına](klipper-recovery_TR.md) bakın.
+
 ## Prepare ve Live jog
 
 <p align="center">
@@ -284,6 +292,8 @@ Repoyu açmak için proje QR kodunu tarayın. LCD'den güncellemek için:
 3. Petrel'i yüklemek için **Update** seçin. Moonraker ardından servisi yeniden başlatır. Bu işlem tüm yazıcı bileşenlerini güncellemez.
 
 Repo kirli veya geçersizse **Soft recovery**, ikinci bir **Confirm recovery** adımı sunar. Kurtarma yerel repo değişikliklerini siler; gerekenleri önceden yedekleyin. Çevirmek onayı iptal eder. Kurtarma otomatik güncelleme yüklemez. Sonuç doğrulanmamışsa tekrar denemeden önce Mainsail Update Manager'dan kontrol edin.
+
+Info sağda sabit konum çubuğu kullanır. Kaydırmada yalnız açılan içerik, değişen değer ve dar çubuk kenarı yenilenir; olmayan alanlar uydurulmaz.
 
 ## Kabin ışığı
 

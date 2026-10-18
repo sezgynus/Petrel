@@ -122,9 +122,11 @@
 
 ## Next implementation
 
+The dated entries below are chronological snapshots, not the current tally; use the summary and JSON ledger above. The current O04 command order is red → blue → green → white; historical operator wording is retained verbatim.
+
 **F12 implementation and operator acceptance are complete for the reference fan target.** Other pending tests require their own discovery, physical safety and restoration contracts. Do not infer measured RPM or electrical PWM from the accepted commanded threshold search. Merely conditional devices are **not automatically safe or runnable**.
 
-**H implementation status:** All 16 reference physical H targets have adapters; none has physical acceptance yet. See the [thermal guide](maintenance-thermal.md) for final batch order and H01–H18 scope.
+**H implementation status:** All 16 reference physical H procedures have adapters and operator acceptance. Extruder H07/H08 retain FAILED_METRIC; accepting their procedure does not accept performance. See the [thermal guide](maintenance-thermal.md) for final batch order and H01–H18 scope.
 
 **M implementation status:** All 14 confirmed M physical targets have adapters and operator acceptance. The four M07 drivers are INFORMATION-only Diagnostics, excluded from physical acceptance. H acceptance states are unchanged by this development. [Motion guide](maintenance-motion.md).
 

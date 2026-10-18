@@ -122,9 +122,11 @@
 
 ## Sıradaki uygulama
 
+Aşağıdaki tarihli kayıtlar kronolojik anlık durumlardır; güncel toplam için üst özeti ve JSON çizelgesini kullanın. Güncel O04 komut sırası kırmızı → mavi → yeşil → beyazdır; geçmiş kullanıcı anlatımı aynen korunur.
+
 **F12 uygulaması ve bu referans fan hedefinin kullanıcı kabulü tamamlandı.** Sıradaki bekleyen testler için bağımsız keşif, fiziksel güvenlik ve geri yükleme kuralları gerekir. Kalkış eşik komutundan ölçülmüş RPM veya elektriksel PWM çıkarılmaz. Koşullu donanım *otomatik olarak güvenli veya çalıştırılabilir* sayılmaz.
 
-**H uygulama durumu:** Referans yazıcının 16 fiziksel H hedefinin adaptörleri hazır; hiçbirinin fiziksel kabulü henüz yapılmadı. Toplu test sırası ve H01–H18 kapsamı için [termal rehber](maintenance-thermal_TR.md).
+**H uygulama durumu:** Referans yazıcının 16 fiziksel H prosedürünün adaptörleri ve kullanıcı kabulü vardır. Hotend H07/H08 FAILED_METRIC kalır; prosedür kabulü performans kabulü değildir. Toplu test sırası ve H01–H18 kapsamı için [termal rehber](maintenance-thermal_TR.md).
 
 **M uygulama durumu:** 14 doğrulanmış M fiziksel hedefinde adaptör mevcut; 14 hedef kullanıcı tarafından kabul edildi. M07'nin dört cihazı yalnız Diagnostics kapsamındadır ve fiziksel kabul listesinde değildir. H kabul durumları bu geliştirmeyle değiştirilmedi. [Hareket rehberi](maintenance-motion_TR.md).
 

@@ -95,6 +95,8 @@ Discovery reads Moonraker's object list and configuration when a connection is e
 
 Start with [Contributing](CONTRIBUTING.md), [tests](tests/README.md), [PNG/GIF reproduction](docs/ui-emulator.md#render-documentation-screens-offline) and [icon sources](assets/icons/README.md). For physical panel work use the optional [protocol reference](docs/t5uic1-reference.md).
 
+Startup connection delays and explicit Klipper errors have separate [recovery behavior](docs/klipper-recovery.md); normal boot does not automatically restart firmware.
+
 ## Credits and license
 
 This project grew from [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) and [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD). Original copyright notices and Git history are retained.

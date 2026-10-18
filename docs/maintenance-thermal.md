@@ -4,8 +4,8 @@ device-specific Diagnostics reads. They use the shared bounded worker and fresh
 queue/session guards. Klipper eventtime is included; missing/nonfinite fields
 are inconclusive. Duty is a reported fraction, not electrical power measurement.
 No hardware PASS or physical acceptance is produced. No startup polling.
-Physical H tests and calibration remain unavailable until their independent
-thermal safety controller is installed. Existing acceptance is unchanged.
+Physical H characterization and PID calibration are implemented in the separate
+thermal safety controller described below. Diagnostics alone never grants acceptance.
 
 ## Measurement contract
 H01/H05/H06/H07/H08/H09/H13 have independent evaluators over at most 256
@@ -25,7 +25,7 @@ require an explicit application profile; no chamber temperature is guessed.
 The pure compiler includes OFF after its finite dwell. No SAVE_CONFIG.
 
 ## Physical controller
-Self Tests now offers one **Thermal Characterization** entry (H01) per standard
+Check printer offers one **Thermal Characterization** entry (H01) per standard
 heater. One finite heating/dwell/OFF/cooling run produces separate H01/H05/H06/
 H07/H08/H09/H13 metrics and operator-reviewed results. These seven identifiers
 remain independent in the catalog, trace and history; only their physical
@@ -47,9 +47,9 @@ proof. The finite script also ends OFF if Petrel exits; Klipper protections
 are retained. Petrel is not a hardware safety controller.
 Cold idle admission, configured limits, lifecycle/epoch identity and fresh
 dispatch guard are mandatory. No heater target is restored to a nonzero
-value. Physical acceptance remains pending for every H target until the
-operator's final batch test. Generic/application-specific and advanced
-calibration adapters remain unavailable at this stage.
+value. Reference extruder/bed procedures, including H02/H03, have operator acceptance
+in the [ledger](maintenance-reference-printer-acceptance.md). This does not
+accept another printer or optional generic/advanced applications.
 
 ## PID calibration
 H02 hotend and H03 bed use separate calibration registrations and Klipper
@@ -111,20 +111,18 @@ generic tests. Standard extruder/bed tests need no profile file.
 | H18 | Conditional: no repeatable authorized fan/heater A/B profile; not exposed |
 
 **Scope boundary:** all 16 confirmed reference-printer physical H targets are
-implemented and pending physical acceptance. H10/H12/H15/H17/H18 are not
+implemented and operator-accepted as procedures in the reference ledger. H10/H12/H15/H17/H18 are not
 implemented hardware adapters; discovery or a catalog row does not change
 that. Additional evidence and independent contracts are required before those
 optional tests can be enabled. This is not a claim that all 18 IDs are runnable.
 
-## Final batch acceptance
+## Physical acceptance procedure
 No physical commands were sent during development. On the real idle printer,
 verify checkout/service HEAD and effective heater limits first.
 1. Inspect H11/H14 and any actually available H16 in Diagnostics.
 2. Run H01 independently for hotend and bed. Read the target and shutdown
    notice before confirming. Confirm the observed heating and OFF behavior.
-3. With heaters cooled to cold admission, run H05, H06, H07, H08, H09 and H13
-   separately for each target. Each row is an independent trial and result;
-   no acceptance propagates to adjacent rows.
+3. Review all seven component results from each H01 run: H01/H05/H06/H07/H08/H09/H13. They are not separate physical menu trials. Accepting the procedure does not turn a failed metric into PASS.
 4. Run H02 and H03 last, supervised, one heater at a time. Existing pending
    config blocks calibration; decide how to handle any previously pending PID
    result yourself. Petrel never saves/restarts Klipper automatically.
@@ -138,6 +136,12 @@ CI is not physical acceptance. No local tests or emulator were run.
 PID additionally requires observed positive duty and measured arrival in the target-minus-5 C band. Heater reactivation during cooling requests shutdown. The selected test's primary metric appears first on the LCD result.
 
 The heat script uses M400 after G4 to await actual dwell completion before OFF. Configurations overriding G4/M400 or thermal commands with macros are not admitted as this trusted protocol.
+
+## Historical 16 October 2026 operator trial and correction
+
+Earlier H01/H05/H07/H08/H09/H13 and hotend H06 attempts reported webhooks shutdown or a return to Run. H02/H03 reported `pid_calibrate interrupted`; H03 heated for about 10 seconds. Bed H05/H07 were blocked; bed H06 recorded PASSED_USER, 33.57 seconds to target, 122 samples and a 153.8-second window. H11/H14 reads were reported working; informational reads did not grant physical acceptance.
+
+The controller was corrected to consume completed queue evidence before judging the previous sample's age. Admission remains three seconds; active thermal monitoring uses its five-second watchdog. A definitive pre-send guard refusal blocks a cold test without shutdown; sent or uncertain commands retain shutdown handling. Klipper's target/target-minus-5 C PID behavior was already supported. Cold admission limits are 35 C bed and 45 C hotend. These statements describe that earlier revision; subsequent accepted thermal/PID runs are recorded in the current ledger.
 
 ## **Single-consent thermal safety refresh (17 October 2026)**
 
@@ -180,5 +184,5 @@ operator observation is FAILED_USER. The parent result reports an aggregate;
 the history stores seven sibling feature records with one shared timestamp
 and one bounded worker write. Trace emits one result event with seven
 component identities and evidence; no acceptance JSON is updated by CI.
-The LCD scrolls seven status/evidence pairs and returns to the original
-Self Tests row. The existing 120 s dwell is not extended automatically.
+The LCD presents paginated component results/evidence and returns to the originating
+Check printer row. The existing 120 s dwell is not extended automatically.

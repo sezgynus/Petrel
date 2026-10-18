@@ -37,7 +37,7 @@ Multiple flags can coexist. 121 standardized IDs (`F01–F13`, `H01–H18`, `M01
 
 The discovery implementation covers configured heaters, the common Klipper fan families, physical endstop candidates, motion/stepper entries, a conservative subset of TMC fields, standard and load-cell probe support, manual and automatic bed-mesh prerequisites, resonance/accelerometer prerequisites, filament sensors, a restricted group of environmental sensors and LEDs, and explicitly confirmed host/service capabilities.
 
-**Not yet claimed as automatically supported:** unproven TMC register fields, hidden advanced analysis without historical baselines, unknown actuator functions, arbitrary G-code macros, arbitrary servo motions, unconfigured diagnostic integrations, and tests whose sensor reports cannot be accessed as structured data. Those IDs remain hidden until their adapter and evidence policy are implemented.
+**Not automatically authorized:** unproven TMC register interpretations, hidden advanced analysis without historical baselines, unknown actuator functions, arbitrary G-code macros, arbitrary servo motions, unconfigured diagnostic integrations, and tests whose sensor reports cannot be accessed as structured data. Execution remains unavailable until the exact adapter and evidence policy are implemented; capability discovery alone grants no command permission.
 
 Fan `tachometer_pin` indicates potential automatic RPM verification. The test runner must still subscribe to actual RPM and validate samples before recording a pass. Heater/control fan tests must not bypass Klipper's automatic safety logic. Motion telemetry is not physical position feedback.
 
@@ -52,12 +52,12 @@ The benchmark reports discovery duration, `tracemalloc` retained allocation delt
 
 **Acceptance target, not a measured guarantee:** no extra persistent worker/socket/polling; under 100 KiB retained snapshot for the supported realistic device inventory; no discovery work in the printing hot path; aim for under 1 MiB additional steady-state RSS after Klipper READY. If the measured budget is exceeded, revisit the architecture before enabling the feature.
 
-## Next stages
+## Ongoing integration requirements
 
 1. Complete the remaining recognized test adapters with verified API evidence and dedicated regression cases.
 2. Preserve the current READY-epoch snapshot between Maintenance visits and invalidate it on disconnect.
 3. Read Moonraker service evidence once at READY; subscribe to any additional test telemetry only when a user starts a test.
-4. Build execution/safety arbitration independently from discovery; design the UI only after the discovery matrix is verified.
+4. Build execution/safety arbitration independently from discovery; preserve the implemented UI/controller separation as adapters evolve.
 
 ## Extended API-backed discovery and complete ID contract
 
@@ -83,8 +83,9 @@ integration/baseline/safe operating profile; they cannot be inferred by name.
 
 `maintenance_services.parse_evidence(responses)` classifies verified Moonraker
 JSON responses. `probe(client, cancelled)` performs small read-only calls to
-`/server/info`, `/machine/proc_stats`, `/machine/system_info`, and
-`/server/history/totals`, **once after Klipper reports READY**.
+`/server/info`, `/machine/proc_stats`, `/server/spoolman/spool_id`,
+`/server/history/totals`, `/printer/objects/query?heaters=available_monitors`,
+and `/server/files/roots`, **once after Klipper reports READY**.
 It reuses Petrel's existing HTTP transport and read worker; it does not create
 connections or run during the regular print tick. Optional endpoints fail
 closed. `MaintenanceDiscoveryManager` owns only a small immutable snapshot, lock and
@@ -118,21 +119,21 @@ On each Klipper READY epoch, the existing read worker makes a single read-only `
 
 For recognized Klipper TMC driver objects, the documented structured `drv_status` attribute may be `null` while the motor is disabled. M07 alone is therefore recognized as a driver diagnostic **capability**, never a PASSED test at startup. M10 is reserved and is not discovered. Runtime fault checks must obtain a fresh non-null status and apply driver-specific bit interpretation. No `DUMP_TMC` is sent during discovery; driver temperature remains gated on `heaters.available_monitors`.
 
-CI runs the full regression suite and reports synthetic 150-fan Maintenance discovery timing, Python allocations and available Linux RSS/PSS/USS. These Linux runner values are an early regression signal, **not** the Pi Zero 2 W acceptance measurement; a real before/after Petrel process test on that target remains mandatory before merge.
+CI runs the full regression suite and reports synthetic 150-fan Maintenance discovery timing, Python allocations and available Linux RSS/PSS/USS. These Linux runner values are an early regression signal, **not** the Pi Zero 2 W acceptance measurement; a real before/after Petrel process test on that target is required to support a target-specific memory claim.
 
 **Benchmark interpretation:** Run the uninstrumented process separately from the `--trace` Python-allocation process. Tracing can itself inflate RSS substantially; its RSS is *not* the production footprint. Neither runner result replaces a real Pi Zero 2 W Petrel process comparison. The approximate immutable snapshot size is printed separately.
 
 ### Bounded startup evidence handling
 
-READY discovery requests five small documented API endpoints (`/server/info`, `/machine/proc_stats`, `/server/history/totals`, `/printer/objects/query?heaters=available_monitors`). The unnecessary potentially large `/machine/system_info` request has been removed. Each JSON response is parsed into short evidence tokens and discarded **before** the next request; no list or dictionary of full endpoint replies is retained. Disk space remains an on-demand feature, not guessed at startup.
+READY discovery requests six small documented API endpoints (`/server/info`, `/machine/proc_stats`, `/server/spoolman/spool_id`, `/server/history/totals`, `/printer/objects/query?heaters=available_monitors`, `/server/files/roots`). The unnecessary potentially large `/machine/system_info` request has been removed. Each JSON response is parsed into short evidence tokens and discarded **before** the next request; no list or dictionary of full endpoint replies is retained. Disk space remains an on-demand feature, not guessed at startup.
 
 ### Dynamic menu enumeration and resonance axes
 
 `available_features()` and the device-unspecified `method(feature)` now aggregate all per-device method masks together with global capabilities. Individual instances remain inspectable via `instances(feature)`. Resonance capabilities also expose `snapshot.axes('R02'|'R03'|'R04', device=None)` with a compact X/Y/Z bitmask (1/2/4), reflecting Klipper's shared XY or separate accel_chip_x/accel_chip_y/accel_chip_z bindings; unassigned axes must never be offered as measurable. No per-feature dictionary or persistent index is allocated.
 
-Storage S04 is now positively discovered via the **small** `GET /server/files/roots` response if a readable `gcodes` root is registered. Moonraker documents `disk_usage` on `GET /server/files/directory?path=gcodes`; that potentially large directory listing is **never requested at READY**. A later storage screen can request the actual free/total values on demand. Roots existence indicates a supported method, not measured free space. READY discovery now has five read-only API requests. <https://moonraker.readthedocs.io/en/latest/external_api/file_manager/>
+Storage S04 is now positively discovered via the **small** `GET /server/files/roots` response if a readable `gcodes` root is registered. Moonraker documents `disk_usage` on `GET /server/files/directory?path=gcodes`; that potentially large directory listing is **never requested at READY**. A later storage screen can request the actual free/total values on demand. Roots existence indicates a supported method, not measured free space. READY discovery has six read-only API requests. <https://moonraker.readthedocs.io/en/latest/external_api/file_manager/>
 
-### Real Pi Zero 2 W acceptance (required before merge)
+### Real Pi Zero 2 W resource validation
 
 To check the actual running Petrel process rather than synthetic Python allocations, use `tools/measure_petrel_resources.py`. Install **master** on the Pi with the same printer config, let Klipper become READY, and record the service's main process in a controlled idle or equivalent print workload:
 

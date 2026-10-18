@@ -1,5 +1,7 @@
 # Maintenance resonance
 
+> Dated trace/audit notes below describe their recorded revision. They are not current run instructions or acceptance totals. Use the [current usage guide](user-guide.md#maintenance) and [acceptance ledger](maintenance-reference-printer-acceptance.md). Later changes supersede earlier test availability, safety-threshold and pending-acceptance statements.
+
 [Turkish](maintenance-resonance_TR.md)
 
 R01 queries the exact discovered chip and validates its actual acceleration vector. R03 parses noise only for the chip's assigned axes. R02/R04 offer an explicit axis choice when one sensor serves several axes. Unsupported axes never appear.

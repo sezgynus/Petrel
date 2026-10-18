@@ -4,12 +4,12 @@ Bu araç yalnızca Maintenance fiziksel kabul çalışması içindir. Normal tes
 
 ## Kullanım
 
-1. Maintenance → **Start test recording**.
-2. Self Tests veya Diagnostics listesinden testleri sırayla çalıştırın.
+1. Maintenance → Diagnostics → Support tools → **Start test recording**.
+2. Check printer veya Diagnostics listesinden testleri sırayla çalıştırın.
 3. Soruları cevaplayın ve istenen gerçek ölçümleri ekrandan girin. Bu cevaplar da kaydedilir.
 4. Bir sorun oluşursa tekrar tekrar denemeden sonraki teste geçebilir veya sonucu not edebilirsiniz. Test aktifse mevcut güvenli bitirme/iptal akışını kullanın.
-5. İşiniz bittiğinde Maintenance → **Stop test recording**.
-6. [Remote Display](http://openeye3dpi.local:8088/) içindeki **Download test recording** bağlantısından tek ZIP indirin; dosyayı sohbete ekleyin.
+5. İşiniz bittiğinde Maintenance → Diagnostics → Support tools → **Stop test recording**.
+6. [Remote Display](ui-emulator_TR.md#isteğe-bağlı-canlı-remote-display-8088-portu) içindeki **Download test recording** bağlantısından tek ZIP indirin; dosyayı sohbete ekleyin.
 
 Genel adres: `http://<petrel-host>:8088/maintenance-test-trace.zip`.
 Mevcut Diagnostics S20 sonucu ile bu ayrıntılı kayıt farklıdır; S20 çalıştırmanız gerekmez.
