@@ -91,6 +91,33 @@ class MaintenanceServiceUI(unittest.TestCase):
         self.assertEqual(d._maintenance_page,'notice')
         self.assertFalse(d._maintenance_records_ready)
 
+    def test_usage_reminder_requires_basis_interval_review_and_explicit_save(self):
+        d=self.view()
+        d.pd.maintenance_service_bases=Mock(return_value=('calendar_s','sampled_print_s'))
+        d.pd.maintenance_ui_records=Mock(return_value=Future())
+        d._maintenance_dispatch(Choice('Lubricate','service_kind',('stepper_z','lubricate')))
+        self.assertEqual(d._maintenance_page,'service_basis')
+        choice=next(c for c in d._maintenance_screen().choices if c.value==('stepper_z','lubricate','sampled_print_s'))
+        d._maintenance_dispatch(choice)
+        d._maintenance_dispatch(d._maintenance_screen().choices[0])
+        policy=d._maintenance_context
+        self.assertEqual(policy.basis,'sampled_print_s')
+        self.assertEqual(policy.interval,30*3600)
+        d.pd.maintenance_ui_records.assert_not_called()
+        d._maintenance_dispatch(next(c for c in d._maintenance_screen().choices if c.action=='service_save'))
+        d.pd.maintenance_ui_records.assert_called_once_with('save_policy',policy=policy,history=False)
+
+    def test_usage_due_survives_render_and_coverage_remains_visible(self):
+        d=self.view();d._maintenance_page='service'
+        p=ServicePolicy('lubricate','stepper_z','sampled_print_s',100,'user')
+        d._maintenance_options=Mock(return_value=((NS(device='stepper_z'),),()))
+        d._maintenance_records_ready=True;d._maintenance_records_identity=d._maintenance_identity()
+        d._maintenance_records_data=(((p,{'timestamp':10,'counter':0,'counter_id':'a'},'due'),),())
+        screen=d._maintenance_screen()
+        self.assertIn('Service is due',str(screen))
+        d._maintenance_dispatch(next(c for c in screen.choices if c.action=='service_task'))
+        self.assertIn('lower bound',str(d._maintenance_screen()))
+
     def test_maintenance_entry_invalidates_prior_screen_cache(self):
         d=self.view();d.Draw_Maintenance_Menu();d.lcd.reset_mock()
         d.Enter_Maintenance_Menu()

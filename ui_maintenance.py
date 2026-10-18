@@ -94,6 +94,9 @@ class MaintenanceViewMixin:
             subjects={f.device for f in report.findings+report.trends if f.state in ('attention','issue')} if report else set()
             heading=('%d device%s need%s review' % (len(subjects),'s' if len(subjects)!=1 else '',
                      '' if len(subjects)!=1 else 's')) if subjects else 'Start with a guided check'
+            due=self._maintenance_service_due_count()
+            if not subjects and due:
+                heading='%d service reminder%s due'%(due,'s' if due!=1 else '')
             return Screen('Maintenance',heading,('Choose a guided check.',),(
 
                 Choice('Back','home'),Choice('Check printer','open','groups'),
@@ -232,7 +235,11 @@ class MaintenanceViewMixin:
             lines=tuple(part for value in context for part in (textwrap.wrap(str(value),30) or ['']))
             return Screen('Full instructions',choices=(back,)+tuple(Choice(line,'none') for line in lines),kind='list')
         if page.startswith('service'):
-            return self._maintenance_service_screen()
+            screen=self._maintenance_service_screen()
+            if sum(max(1,len(textwrap.wrap(str(line),30))) for line in screen.lines)>7:
+                from dataclasses import replace
+                screen=replace(screen,choices=screen.choices+(Choice('Read full instructions','instructions',screen.lines),))
+            return screen
         if page=='history':
             return self._maintenance_history_screen()
         if page=='history_records':
@@ -323,6 +330,19 @@ class MaintenanceViewMixin:
         snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
         return (getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
 
+    def _maintenance_policy_due(self,policy,last,cached):
+        from maintenance_assessment_store import service_due
+        return (service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
+                if policy.basis=='calendar_s' else cached)
+
+    def _maintenance_service_due_count(self):
+        if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():
+            return 0
+        snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
+        devices={d.name for d in getattr(snapshot,'devices',())}
+        return sum(1 for policy,last,cached in self._maintenance_records_data[0]
+                   if policy.device in devices and self._maintenance_policy_due(policy,last,cached)=='due')
+
     def _maintenance_service_screen(self):
         from maintenance_ui_records import TASKS
         from maintenance_assessment_store import ServicePolicy, service_due
@@ -340,8 +360,8 @@ class MaintenanceViewMixin:
             choices=[back,Choice('Add calendar reminder','service_add'),Choice('Refresh records','load_services')]
             for policy,last,due in tasks:
                 if policy.device not in devices: continue
-                due=service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
-                detail={'due':'Service is due','not_due':'Within your interval','unknown':'No reliable service date'}[due]
+                due=self._maintenance_policy_due(policy,last,due)
+                detail={'due':'Service is due','not_due':'Within your interval','unknown':'Not proven due / refresh'}[due]
                 choices.append(Choice(TASKS.get(policy.task_id,policy.task_id),'service_task',(policy,last,due),device_name(policy.device)+' / '+detail))
             if not tasks:
                 return Screen('Service plan','No reminders configured',('Choose the device and task.','No interval or last-service date','will be invented.'),tuple(choices))
@@ -356,14 +376,27 @@ class MaintenanceViewMixin:
             if device.startswith('extruder'): tasks.append('nozzle_inspect')
             if device.startswith(('stepper_','manual_stepper ')): tasks.append('lubricate')
             return Screen('Choose service task',choices=(back,)+tuple(Choice(TASKS[k],'service_kind',(device,k)) for k in tasks),kind='list')
+        if page=='service_basis':
+            device,task=self._maintenance_context
+            provider=getattr(self.pd,'maintenance_service_bases',None)
+            bases=provider(device) if callable(provider) else ('calendar_s',)
+            if not isinstance(bases,(tuple,list)): bases=('calendar_s',)
+            names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
+                   'sampled_on_s':'Sampled powered hours'}
+            return Screen('Choose reminder basis',choices=(back,)+tuple(
+                Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
-            device,task,days=self._maintenance_context
-            return Screen('Choose your interval',str(days)+' calendar days',('Turn to change the interval.','Use your maintenance guidance.','This is a reminder, not wear','measurement.'),
+            device,task,amount=self._maintenance_context[:3]
+            basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
+            return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else ' sampled hours'),
+                ('Turn to change the interval.','Use your maintenance guidance.',
+                 'Sampled time is a lower bound.' if basis!='calendar_s' else 'This reminder does not measure wear.'),
                 (Choice('Review reminder','service_review'),))
         if page=='service_review':
             policy=self._maintenance_context
             return Screen('Confirm reminder',TASKS.get(policy.task_id,policy.task_id),
-                (device_name(policy.device),'Every %d calendar days' % (policy.interval/86400),
+                (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
+                 else ('After %d sampled hours' % (policy.interval/3600)),
                  'Source: user-defined interval.','No service is marked completed.'),
                 (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
         if page=='service_task':
@@ -371,12 +404,15 @@ class MaintenanceViewMixin:
             physical,reads=self._maintenance_options()
             if policy.device not in {r.device for r in physical+reads}:
                 return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),(back,))
-            due=service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
-            date=strftime('%Y-%m-%d',localtime(last['timestamp'])) if last and type(last.get('timestamp')) in (int,float) else 'Not recorded'
+            due=self._maintenance_policy_due(policy,last,due)
+            stamp=last.get('timestamp') if last else None
+            date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
+            coverage=() if policy.basis=='calendar_s' else (
+                'Sampled time is a lower bound.','Below limit does not prove not due.')
             return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
                 (device_name(policy.device),'Last service: '+date,
                  {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':'Due date cannot be determined.'}[due],
-                 'Follow manufacturer guidance.'),
+                 'Follow manufacturer guidance.')+coverage,
                 (back,Choice('I completed this service','service_confirm',policy)),tone='attention' if due=='due' else 'normal')
         if page=='service_confirm':
             return Screen('Confirm completed service','Did you finish the work?',('Only confirm actual maintenance.','This writes a service date,','not a hardware test result.'),
@@ -533,11 +569,14 @@ class MaintenanceViewMixin:
             return self._maintenance_show('service')
         if action=='service_add': return self._maintenance_open('service_devices')
         if action=='service_device': return self._maintenance_open('service_kind',value)
-        if action=='service_kind': return self._maintenance_open('service_interval',(value[0],value[1],30))
+        if action=='service_kind': return self._maintenance_open('service_basis',value)
+        if action=='service_basis': return self._maintenance_open('service_interval',(value[0],value[1],30,value[2]))
         if action=='service_review':
             from maintenance_assessment_store import ServicePolicy
-            device,task,days=self._maintenance_context
-            return self._maintenance_open('service_review',ServicePolicy(task,device,'calendar_s',days*86400,'user-defined interval'))
+            device,task,amount=self._maintenance_context[:3]
+            basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
+            return self._maintenance_open('service_review',ServicePolicy(task,device,basis,
+                amount*(86400 if basis=='calendar_s' else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
         if action in ('service_save','service_complete'):
@@ -651,10 +690,12 @@ class MaintenanceViewMixin:
             owner.adjust_measurement(.01*steps*(1 if event==self.ENCODER_DIFF_CW else -1))
             self._maintenance_show('pulse');return
         if self._maintenance_page=='service_interval' and event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
-            device,task,days=self._maintenance_context
+            device,task,days=self._maintenance_context[:3]
+            tail=self._maintenance_context[3:]
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
-            days=max(1,min(3650,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
-            self._maintenance_context=(device,task,days)
+            maximum=87600 if tail and tail[0]!='calendar_s' else 3650
+            days=max(1,min(maximum,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
+            self._maintenance_context=(device,task,days)+tail
             self.Draw_Maintenance_Menu();self.lcd.update();return
         if self._maintenance_page=='reference_limit' and event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             outcome,percent=self._maintenance_context
