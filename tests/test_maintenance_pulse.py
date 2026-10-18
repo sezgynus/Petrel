@@ -66,9 +66,9 @@ class PhysicalPulseTests(unittest.TestCase):
         self.assertEqual(p.feature_id, 'F02')
         self.assertEqual(p.duration_ms, 6000)
         self.assertEqual(p.stimulus.splitlines(),
-                         ['M106 S99', 'M106 S164', 'M106 S230'])
+                         ['M106 S110', 'M106 S182', 'M106 S255'])
         self.assertEqual(p.script.count('G4 P2000'), 3)
-        self.assertTrue(p.script.endswith('M106 S89'))
+        self.assertTrue(p.script.endswith('M106 S99'))
         self.assertIn('low/mid/high', p.observation)
         self.assertTrue(restored(p, status))
         self.assertFalse(restored(p, {'fan': {'speed': .9}}))
@@ -140,6 +140,22 @@ class PhysicalPulseTests(unittest.TestCase):
         status['fan_generic part_aux']['template'] = 'pulse'
         with self.assertRaises(ValueError):
             compile_pulse(guided_plan(snap)[0], snap, status, settings)
+
+    def test_scaled_pwm_baseline_is_inverted_before_restore_command(self):
+        for feature in ('F01','F02','F04'):
+            for maximum in (.6,.8,1.):
+                with self.subTest(feature=feature,maximum=maximum):
+                    snap, settings, status = environment((feature,))
+                    row = guided_plan(snap)[0]
+                    settings[row.device]['max_power'] = maximum
+                    original = .5 * maximum
+                    status[row.device]['speed'] = original
+                    program = compile_pulse(row,snap,status,settings)
+                    command = float(program.restore.rsplit('SPEED=',1)[1]) if feature=='F04' else float(program.restore.split('S')[-1])/255
+                    # Match Klipper: cutoff on the request, then max_power.
+                    actual = min(maximum,command*maximum)
+                    self.assertAlmostEqual(actual,original,delta=.003)
+                    self.assertTrue(restored(program,{row.device:{'speed':actual}}))
 
     def test_generic_visual_output_requires_role_pwm_and_restores(self):
         snap, settings, status = environment(
@@ -229,3 +245,4 @@ class PhysicalPulseTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

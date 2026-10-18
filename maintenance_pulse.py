@@ -158,6 +158,17 @@ def compile_pulse(row, snapshot, status, settings, *, pin_command_name=None):
         original = current.get('speed')
         if not _unit(original):
             raise ValueError('fan_speed_unavailable')
+        maximum, cutoff = cfg.get('max_power', 1), cfg.get('off_below', 0)
+        if (not _unit(maximum) or maximum <= 0 or not _unit(cutoff)
+                or original > maximum + 1e-6):
+            raise ValueError('fan_pwm_range_unavailable')
+        # Klipper reports scaled PWM, but M106/SET_FAN_SPEED take an
+        # unscaled request. Never apply max_power a second time on restore.
+        restore_ratio = min(1., original / maximum)
+        if original > 0 and restore_ratio < cutoff:
+            raise ValueError('fan_baseline_below_cutoff')
+        restore_s = max(round(restore_ratio * 255),
+                        math.ceil(cutoff * 255) if original > 0 else 0)
         levels_for_user = ()
         if feature == 'F12':
             # Klipper fan.py sends max_power for kick_start_time on EVERY
@@ -193,25 +204,27 @@ def compile_pulse(row, snapshot, status, settings, *, pin_command_name=None):
                 raise ValueError('fan_power_limits_invalid')
             # Three visible command steps, safely above off_below, without
             # crossing the configured max_power duty ceiling.
-            levels = tuple(lo + (hi - lo) * share for share in (.4, .7, 1.))
+            levels = tuple(lo + (1. - lo) * share for share in (.4, .7, 1.))
             speeds = tuple(min(255, max(0, round(v * 255))) for v in levels)
             if len(set(speeds)) != 3:
                 raise ValueError('fan_pwm_step_resolution_insufficient')
             start = '\n'.join('M106 S%d' % s for s in speeds)
-            restore = 'M106 S%d' % round(original * 255)
+            restore = 'M106 S%d' % restore_s
             observation = ('Fan low/mid/high then back? '
                            'Did the part fan visibly change speed in three '
                            'steps, then return to its original setting?')
         elif feature == 'F01':
             start = 'M106 S191'  # 75% commanded, never inferred tachometer RPM
-            restore = 'M106 S%d' % round(original * 255)
+            restore = 'M106 S%d' % restore_s
             observation = 'Did the part-cooling fan rotate during the pulse?'
         else:
             fan_name = _name(target[len('fan_generic '):])
             if ('template' in current and current['template']):
                 raise ValueError('fan_template_active')
             start = 'SET_FAN_SPEED FAN=%s SPEED=0.75' % fan_name
-            restore = 'SET_FAN_SPEED FAN=%s SPEED=%.4f' % (fan_name, original)
+            restore_ratio = max(round(restore_ratio, 4),
+                math.ceil(cutoff * 10000) / 10000 if original > 0 else 0)
+            restore = 'SET_FAN_SPEED FAN=%s SPEED=%.4f' % (fan_name, restore_ratio)
             observation = 'Did the selected generic fan rotate?'
         evidence = (float(original),)
         object_name = target
@@ -512,3 +525,4 @@ def restored(program, status):
                                 for value, old in zip(rgba, baseline))
                         for rgba, baseline in zip(colors, program.original)))
     return False
+
