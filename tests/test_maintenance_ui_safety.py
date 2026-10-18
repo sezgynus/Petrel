@@ -80,13 +80,14 @@ class MaintenanceUISafety(unittest.TestCase):
                   Finding('check.H08','extruder','attention','thermal.stability_review'))
         d.pd.maintenance_assessment.has_current_evidence=Mock(return_value=True)
         d.pd.maintenance_assessment_details=Mock(return_value=NS(findings=findings,trends=()))
-        self.assertEqual(d._maintenance_screen().heading,'1 device needs review')
+        self.assertEqual(d._maintenance_screen().choices[4].label,'Recommendations (2)')
+        self.assertEqual(len(d._maintenance_screen().choices),5)
         d.pd.maintenance_assessment_details.return_value=NS(findings=(),trends=())
-        self.assertEqual(d._maintenance_screen().heading,'Start with a guided check')
+        self.assertEqual(d._maintenance_screen().heading,'Load saved care plans')
 
     def test_empty_evidence_home_never_builds_a_report_or_plan(self):
         d=self.view();d._maintenance_page='root'
         d.pd.maintenance_assessment_details=Mock(side_effect=AssertionError('unexpected planning'))
         d.pd.maintenance=NS(snapshot=NS(epoch=1,config_marker=123))
-        self.assertEqual(d._maintenance_screen().heading,'Start with a guided check')
+        self.assertEqual(d._maintenance_screen().heading,'Load saved care plans')
         d.pd.maintenance_assessment_details.assert_not_called()

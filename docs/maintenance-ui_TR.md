@@ -27,3 +27,5 @@ Metin, çubuk ve seçim çizgisi ayrı imzalarla önbelleklenir. Değişmeyen se
 Tam H01 sonucundan Heating speed reference açılır. Bilinen sağlam donanım ve açık onay olmadan referans kaydedilmez. Karşılaştırma, seçilmiş inceleme sınırı ve aynı donanım/soğutma koşullarını gerektirir. Hedef, süre, ilk sıcaklık bandı, fan durumu, firmware/yapılandırma farkı ve eski kanıt geçersiz karşılaştırmayı önler. Donanım değişiminde referans açıkça silinir. Isıtıcı eskimesi veya kalan ömür tanısı konmaz.
 
 Regresyonlar her imzalı commit için GitHub Actions'ta çalışır. Yerel test veya geliştirme emülatörü çalıştırılmaz. CI arayüz entegrasyonunu ve sınırlı çizimi doğrular; fiziksel panel kabulünün yerine geçmez.
+
+Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretmez. Bakım hedefleri, keşif cihaz adından farklı olabilen eksen adları dahil kayıtlı planları izler.

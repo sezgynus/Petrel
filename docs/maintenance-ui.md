@@ -27,3 +27,5 @@ Rendering caches independent text, bar and cursor signatures. Turning between un
 A complete H01 result exposes Heating speed reference. Saving requires known-working hardware and explicit confirmation. Comparison requires a chosen review limit and unchanged hardware/cooling conditions. Target, duration, initial-temperature band, fan state, firmware/config changes and stale evidence prevent invalid comparison. Hardware changes require explicit reference removal. No result diagnoses heater ageing or remaining life.
 
 Regression tests run in GitHub Actions on each signed commit. No local test or development emulator run is required or performed. CI validates UI integration and bounded drawing; it does not replace physical panel acceptance.
+
+The empty-evidence root does not build an assessment report or controller plan. Service targets follow registered plans, including axis names that differ from discovery device names.

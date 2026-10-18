@@ -68,8 +68,9 @@ class MaintenanceViewMixin:
     def _maintenance_care(self):
         if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():
             return ()
-        snapshot=getattr(self.pd.maintenance,'snapshot',None)
-        devices={d.name for d in getattr(snapshot,'devices',())}
+        if not self._maintenance_records_data[0]: return ()
+        physical,reads=self._maintenance_options()
+        devices={r.device for r in physical+reads}
         return care_items(self._maintenance_records_data[0],devices,time())
 
     def _maintenance_back_home(self):
@@ -115,8 +116,9 @@ class MaintenanceViewMixin:
         context=self._maintenance_context
         back=Choice('Back','back')
         if page=='root':
-            report=self.pd.maintenance_assessment_details()
-            findings=tuple(f for f in report.findings+report.trends if f.state in ('attention','issue'))
+            evidence=self.pd.maintenance_assessment.has_current_evidence(self.pd.maintenance.snapshot)
+            report=self.pd.maintenance_assessment_details() if evidence else None
+            findings=tuple(f for f in report.findings+report.trends if f.state in ('attention','issue')) if report else ()
             items=self._maintenance_care()
             heading=('Care records unavailable' if self._maintenance_records_failed else
                      ('Loading care schedule' if self._maintenance_records_future is not None else 'Load saved care plans') if not self._maintenance_records_ready else

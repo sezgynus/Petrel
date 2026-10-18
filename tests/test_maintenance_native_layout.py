@@ -54,13 +54,14 @@ class NativeMaintenanceLayout(unittest.TestCase):
     def set_plans(self,d,count=5):
         devices=[NS(name='fan'+str(i)) for i in range(count)]
         real=d._maintenance_identity()
-        d.pd.maintenance._result=NS(epoch=real[0],config_marker=real[1],devices=devices)
+        d.pd.maintenance=NS(snapshot=NS(epoch=real[0],config_marker=real[1],devices=devices))
         d._maintenance_records_ready=True
         d._maintenance_records_identity=d._maintenance_identity()
         d._maintenance_records_data=(tuple((ServicePolicy('inspect_clean',x.name,'calendar_s',100,'user'),
             {'timestamp':i*10},'not_due') for i,x in enumerate(devices)),())
         d._maintenance_options=Mock(return_value=(tuple(NS(device=x.name) for x in devices),()))
         d.pd.maintenance_assessment_details=Mock(return_value=NS(findings=(),trends=()))
+        d.pd.maintenance_assessment.has_current_evidence=Mock(return_value=True)
 
     def test_root_stays_five_choices_with_five_plans_and_many_recommendations(self):
         d=self.view();self.set_plans(d)
