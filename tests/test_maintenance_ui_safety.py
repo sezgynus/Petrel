@@ -56,3 +56,20 @@ class MaintenanceUISafety(unittest.TestCase):
             self.assertLessEqual(call.args[-1],359)
         d.lcd.reset_mock();d.Draw_Maintenance_Menu()
         d.lcd.draw_rectangle.assert_not_called()
+
+    def test_cancelled_power_overlay_repaints_maintenance_without_restarting_check(self):
+        d=self.view();d._maintenance_page='root';d.Draw_Maintenance_Menu()
+        d._power_origin=d.MaintenanceMenu
+        d._restore_power_editor=Mock(return_value=False)
+        d.pd.start_maintenance_physical=Mock()
+        d.lcd.reset_mock()
+        d._restore_power_origin()
+        d.lcd.show_icon.assert_called()
+        d.pd.start_maintenance_physical.assert_not_called()
+        self.assertEqual(d.checkkey,d.MaintenanceMenu)
+
+    def test_external_measurement_preparation_mentions_instrument(self):
+        from maintenance_experience import preparation
+        row=NS(feature_id='M06',method=4)
+        self.assertIn('ruler',' '.join(preparation(row)))
+        self.assertIn('travel path',' '.join(preparation(row)))

@@ -3638,6 +3638,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _restore_power_origin(self):
         # Both the hold capsule and confirmation can overwrite cached rows.
+        self._maintenance_frame = None
         self._list_render = None
         self._info_render_scroll = None
         origin = self._power_origin

@@ -81,6 +81,8 @@ def preparation(row):
     if domain=='heater':
         return ('Printer must be idle.','Keep clear of hot surfaces.',
                 'Stop during heating requests','a Klipper safety shutdown.')
+    if row.method==4:
+        return ('Prepare a ruler or caliper.','Clear the bed and travel path.','Enter the measured distance,','not the commanded distance.')
     if domain in ('motion','calibration'):
         return ('Clear the bed and travel path.','Axes may home before the check.',
                 'Changes are not auto-saved.')
@@ -92,8 +94,6 @@ def preparation(row):
     if row.feature_id in ('E03','M01','P01'):
         return ('Printer must be cold and idle.','Follow the sensor instructions.',
                 'Only touch accessible parts.')
-    if row.method==4:
-        return ('Prepare a ruler or caliper.','Enter the measured value,','not the requested distance.')
     return ('Follow the on-screen steps.','Observe the physical effect.','A command alone is not proof.')
 
 

@@ -17,3 +17,5 @@ Recent check history is separately loaded and explicitly marked historical. Exis
 ## Final interaction guards
 
 An ENTER captured against changed actions redraws instead of dispatching. Controller phase changes reset focus to the safe first action. Long controller instructions remain reachable on a separate scrollable page. Multiple findings for the same device are grouped, with all explanations retained. Rendering stays above the normal status strip and unchanged pages emit no redraw packets. The existing accepted physical backends remain the authority; CI validates UI integration but is not physical acceptance of the new screen layout.
+
+Cancelled global power overlays also invalidate the Maintenance canvas before restoration; no check is replayed. External measurement preparation explicitly calls for an instrument and a clear travel path.

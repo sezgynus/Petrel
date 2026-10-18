@@ -17,3 +17,5 @@ Son kontrol geçmişi ayrıca yüklenir ve tarihsel olarak işaretlenir. Baskı 
 ## Son etkileşim korumaları
 
 Eylemler değişmişse yakalanan ENTER komut göndermek yerine ekranı yeniler. Controller faz değişimi odağı güvenli ilk eyleme döndürür. Uzun controller talimatları ayrı kaydırılan sayfadan okunur. Aynı cihazın bulguları gruplanır; açıklamalar korunur. Çizimler normal durum şeridinin üstünde kalır ve değişmeyen ekranlar yeni çizim paketi üretmez. Fiziksel backend'ler yetkili kalır; CI UI entegrasyonunu doğrular, yeni ekran düzeninin fiziksel kabulü değildir.
+
+İptal edilen global güç penceresi dönüşünde Maintenance yüzeyi yeniden çizilir; kontrol tekrarlanmaz. Harici ölçüm hazırlığında ölçü aleti ve açık hareket yolu özellikle belirtilir.
