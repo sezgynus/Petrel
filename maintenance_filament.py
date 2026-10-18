@@ -8,7 +8,7 @@ import re
 import uuid
 
 from maintenance_discovery import AUTOMATIC, USER, EXTERNAL, CALIBRATION
-from maintenance_workflow import FirmwareWorkflow, safe_name, query
+from maintenance_workflow import FirmwareWorkflow, SafetyViolation, safe_name, query
 from maintenance_motion import number, modal, vector
 from maintenance_runtime import read_queue_evidence
 from mmu_control import MMUState
@@ -361,7 +361,7 @@ class MaintenanceFilamentController(FirmwareWorkflow):
             actual = values.get(p['object'],{})
             if (not number(actual.get('temperature')) or actual['temperature']>=p['ceiling']
                     or actual.get('target') not in (0,p['target'])):
-                raise ValueError('dryer_thermal_limit')
+                raise SafetyViolation('dryer_thermal_limit')
         return queue
 
     def completed(self,values,lines):
@@ -593,3 +593,4 @@ class MaintenanceFilamentController(FirmwareWorkflow):
             self._schedule('abort',True)
             return None
         return super().cancel()
+

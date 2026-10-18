@@ -18,6 +18,10 @@ from maintenance_safety import precheck
 from maintenance_motion import idle_heaters, vector, number
 
 
+class SafetyViolation(ValueError):
+    """Positive unsafe hardware evidence; never a retryable transport failure."""
+
+
 @dataclass(frozen=True, slots=True)
 class WorkflowResult:
     feature_id: str
@@ -350,6 +354,8 @@ class FirmwareWorkflow:
                 if self._safety_future is not None and self._safety_future.done():
                     try:
                         queue = self._safety_future.result()
+                    except SafetyViolation as exc:
+                        return self._shutdown(str(exc))
                     except Exception:
                         queue = None  # Worker/HTTP failure is not an unsafe queue.
                     if queue is None:
@@ -494,3 +500,4 @@ class FirmwareWorkflow:
         else:
             self.cancel()
         self._closed = True
+
