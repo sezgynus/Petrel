@@ -40,7 +40,7 @@ def register(scene,canvas,finish):
     def draw(page='root',selection=0,configure=None):
         v=view(page,selection)
         if configure: configure(v)
-        with patch('ui_maintenance.time',return_value=NOW):
+        with patch.dict(v._maintenance_care.__func__.__globals__,time=lambda:NOW):
             v.Draw_Maintenance_Menu()
         return finish(v)
 

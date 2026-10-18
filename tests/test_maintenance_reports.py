@@ -89,3 +89,26 @@ class MaintenanceReports(unittest.TestCase):
         section=screen.sections[0]
         screen=replace(screen,sections=(replace(section,facts=(('Reading 0','80 %'),)+section.facts[1:]),))
         draw_maintenance(d,screen);compare()
+
+    def test_documentation_care_records_have_real_mixed_progress(self):
+        from tools import render_docs_screenshots as renderer
+        from tools.maintenance_doc_scenes import register
+        captures=[]
+        def observe(v):
+            captures.append(v._maintenance_last_screen)
+            return None
+        scenes=[]
+        def scene(*metadata):
+            return lambda draw:scenes.append((metadata[0],draw))
+        register(scene,renderer.canvas,observe)
+        next(draw for name,draw in scenes if name=='maintenance')()
+        screen=captures[-1]
+        self.assertEqual(screen.heading,'5 plans / 0 due')
+        self.assertEqual(len(screen.care),2)
+        self.assertTrue(all(0<item.progress<1 and item.remaining>0 for item in screen.care))
+
+    def test_host_units_are_readable_and_cpu_names_are_unambiguous(self):
+        from maintenance_evidence_view import evidence_lines
+        lines=evidence_lines('S01',(('memory.available',193992),('cpu.cpu0',42.1)))
+        self.assertIn('Memory available: 189.4 MiB',lines)
+        self.assertIn('Core 0: 42.1 %',lines)

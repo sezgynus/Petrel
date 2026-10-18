@@ -52,10 +52,10 @@ def evidence_lines(feature,evidence):
             lines.append('Heater output: '+_format(value*100,'%'))
         elif key.startswith('cpu.') and _number(value):
             suffix=key[4:]
-            name='CPU '+suffix if re.fullmatch(r'cpu[0-9]{1,2}',suffix) else 'CPU load'
+            name='Core '+suffix[3:] if re.fullmatch(r'cpu[0-9]{1,2}',suffix) else 'CPU load'
             lines.append(name+': '+_format(value,'%'))
         elif key.startswith('memory.') and key[7:] in ('total','available','used') and _number(value):
-            lines.append('Memory '+key[7:]+': '+_format(value,'KiB'))
+            lines.append('Memory '+key[7:]+': '+_format(value/1024,'MiB'))
         elif key in ('total_bytes','used_bytes','free_bytes') and _number(value):
             lines.append('Disk '+key.partition('_')[0]+': '+_format(value/1073741824,'GiB'))
         elif key=='throttled_bits' and type(value) is int:

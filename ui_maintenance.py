@@ -242,7 +242,7 @@ class MaintenanceViewMixin:
             else: choices.append(Choice('Heating speed reference','reference',outcome))
             return Screen('Check result',heading,lines=tuple(lines),choices=tuple(choices),kind='report',tone=tone,
                 badge='NEEDS REVIEW' if tone in ('attention','danger') else 'RESULT',
-                report_icon=ICON_MAINTENANCE_CHECK,
+                report_icon=ICON_MAINTENANCE_RECOMMENDATIONS if tone in ('attention','danger') else ICON_MAINTENANCE_CHECK,
                 sections=(ReportSection('What this means',tuple(lines)),))
         if page=='reference':
             from maintenance_reference import heating_observation
