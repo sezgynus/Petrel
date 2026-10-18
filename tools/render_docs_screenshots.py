@@ -169,7 +169,6 @@ for name, method, en, tr in (
         ('temperature', 'Draw_Temperature_Menu', 'Temperature targets', 'Sıcaklık hedefleri'),
         ('motion-runtime', 'Draw_Motion_Menu', 'Runtime motion settings', 'Çalışma anındaki hareket ayarları'),
         ('move', 'Draw_Move_Menu', 'Move with Live jog disabled', 'Live jog kapalı hareket menüsü'),
-        ('maintenance', 'Draw_Maintenance_Menu', 'Maintenance placeholder', 'Bakım menüsü'),
         ('display', 'Draw_Display_Menu', 'Brightness and idle dimming', 'Parlaklık ve boşta karartma')):
     scene(name, 'controls', en, tr)(lambda method=method: menu(method))
 
@@ -615,6 +614,9 @@ def print_stopping():
     view._focus_draw_buttons()
     return finish(view)
 
+from tools.maintenance_doc_scenes import register as register_maintenance_scenes
+register_maintenance_scenes(scene,canvas,finish)
+
 # Follow menu navigation rather than source registration order.
 MENU_ORDER = {
     'controls': 'prepare prepare-preheat preheat-settings move move-live-jog control temperature temperature-edit motion-runtime case-light case-light-off display display-sound-settings display-volume-edit buzzer hold-start hold-progress hold-ready hold-cancel power-confirm power-blocked maintenance'.split(),
@@ -627,6 +629,7 @@ def write_galleries():
     groups = [('home', 'Home and startup', 'Ana ekran ve açılış'),
               ('printing', 'Files and printing', 'Dosyalar ve baskı'),
               ('controls', 'Printer and display controls', 'Yazıcı ve ekran kontrolleri'),
+              ('maintenance', 'Maintenance checks, care and diagnostics', 'Maintenance testleri, bakım ve diagnostik'),
               ('leveling', 'Bed leveling and calibration', 'Tabla ayarı ve kalibrasyon'),
               ('mmu', 'MMU and filament', 'MMU ve filament'),
               ('info', 'System information and updates', 'Sistem bilgileri ve güncellemeler')]
@@ -659,10 +662,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-directory', type=Path, default=ROOT/'docs/assets/screens')
     parser.add_argument('--frame', action='store_true', help='Also save framed presentation copies; native PNGs remain unchanged')
+    parser.add_argument('--group', help='Render only one scene group; galleries still describe every registered scene')
     args=parser.parse_args()
+    selected_scenes=[item for item in SCENES if args.group is None or item[1]==args.group]
+    if not selected_scenes: raise SystemExit('No scenes in selected group')
     repository_output = args.output_directory.resolve() == (ROOT/'docs/assets/screens').resolve()
     render_frames = args.frame or repository_output
-    names = [item[0] for item in SCENES]
+    names = [item[0] for item in selected_scenes]
     if len(names) != len(set(names)):
         raise SystemExit('Duplicate screenshot filenames in scene list')
     logging.getLogger().setLevel(logging.ERROR)
@@ -671,7 +677,7 @@ def main():
             patch.object(time, 'strftime', return_value='12:34'), patch('mmu_filament_view.time.monotonic', return_value=3.6):
         output=Path(temporary)
         errors=[]
-        for name,group,en,tr,draw in SCENES:
+        for name,group,en,tr,draw in selected_scenes:
             try:
                 image=draw()
                 if image.size!=(272,480) or image.mode!='RGB': raise ValueError('Invalid panel image')
@@ -697,7 +703,7 @@ def main():
                 shutil.copyfile(image,framed/image.name)
     if repository_output:
         write_galleries()
-    print('Rendered %d real-UI emulator screenshots.'%len(SCENES))
+    print('Rendered %d real-UI emulator screenshots.'%len(selected_scenes))
 
 
 if __name__=='__main__': main()

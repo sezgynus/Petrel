@@ -243,6 +243,61 @@ def _detail(v,screen):
         v.lcd.draw_rectangle(1,color if color is not None else BG,16,206,255,226)
 
 
+def _report(v,screen):
+    """Read-only report canvas; cursor navigation belongs only to actions."""
+    from maintenance_report import report_pages
+    choices=screen.choices
+    if choices:
+        _row(v,'back',choices[0],0,31,52,13)
+    color=WARNING if screen.tone in ('attention','danger') else ACCENT
+    icon=screen.report_icon
+    if _cached(v,'report_icon',icon):
+        v.lcd.draw_rectangle(1,BG,20,92,43,115)
+        if icon is not None: show_icon(v.lcd,ICON_LIBRARY_ID,icon,20,92)
+    _text(v,'report_badge',screen.badge,50,92,26,True,color)
+    for i,line in enumerate((textwrap.wrap(screen.heading,25)+['',''])[:2]):
+        _text(v,('report_heading',i),line,50,109+i*17,25)
+    pages=report_pages(screen.sections)
+    page=min(screen.report_page,len(pages)-1)
+    _text(v,'report_page','%d/%d'%(page+1,len(pages)) if len(pages)>1 else '',222,92,6,True,MUTED)
+    blocks=pages[page]
+    structure=(page,tuple((kind,height,tuple((len(c[0]),len(c[1]),c[2]) for c in content) if kind=='facts' else ())
+                          for kind,content,height in blocks))
+    if _cached(v,'report_structure',structure):
+        _forget(v,'report_body')
+        v.lcd.draw_rectangle(1,BG,16,146,259,279)
+    y=148
+    for index,(kind,content,height) in enumerate(blocks):
+        token=('report_body',index)
+        if kind in ('section','text'):
+            _text(v,token,content[0],20,y,38,True,ACCENT if kind=='section' else MUTED)
+        else:
+            for column,(labels,values,small) in enumerate(content):
+                x=20+column*122
+                for i,line in enumerate(labels):
+                    _text(v,(token,column,'label',i),line,x,y+i*12,18,True,MUTED)
+                value_y=y+len(labels)*12+4
+                for i,line in enumerate(values):
+                    _text(v,(token,column,'value',i),line,x,value_y+i*(12 if small else 16),18 if small else 13,small)
+        y+=height
+    if _cached(v,'report_divider',True):
+        v.lcd.draw_line(LINE,16,282,256,282)
+    total=max(0,len(choices)-1)
+    selected=max(0,v._maintenance_selection-1)
+    old_start=getattr(v,'_maintenance_scroll',0)
+    start=min(max(0,min(old_start,selected),selected-1),max(0,total-2))
+    _move_viewport(v,'action',old_start,start,2,36,286)
+    v._maintenance_scroll=start
+    for slot in range(2):
+        index=1+start+slot
+        if index<len(choices):
+            _row(v,('action',index),choices[index],index,286+slot*36,34,None)
+        elif _cached(v,('empty',slot),(index,total)):
+            v.lcd.draw_rectangle(1,BG,0,286+slot*36,259,321+slot*36)
+            _forget(v,('action',index))
+    _scroll(v,start,total,2,286,70)
+
+
 def draw_maintenance(v,screen):
     v._maintenance_selection=max(0,min(v._maintenance_selection,max(0,len(screen.choices)-1)))
     pinned=bool(screen.choices and screen.choices[0].action in ('back','home','result_back'))
@@ -256,7 +311,9 @@ def draw_maintenance(v,screen):
         v._header_clock_drawn=None
         v.Draw_Title(screen.title)
     v._maintenance_drawn_choices=tuple((c.action,c.value) for c in screen.choices)
-    if screen.kind=='home':
+    if screen.kind=='report':
+        _report(v,screen)
+    elif screen.kind=='home':
         _home(v,screen)
     elif screen.kind in ('list','care') and screen.choices:
         _list(v,screen)

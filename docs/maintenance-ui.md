@@ -41,3 +41,7 @@ Encoder rotation reuses the displayed model; ENTER still rebuilds and validates 
 ## Semantic icons
 
 Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recommendations and Care schedule. They use master line weight/caps and palette, baseline 4:2:0 JPEG sources, the existing library ID and unchanged 9-block footprint. Submenu icons are selected from action, topic, test feature and service task contracts: heaters, bed, fan, axes/homing, probe, filament, driver, host, buzzer, lights, history and storage use their corresponding existing icons. Info is used only for actual Details; unknown actions and numeric facts do not receive an Info fallback. Care and menu labels remain native LCD text.
+
+## Read-only reports
+
+Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions separate information from actions. Reports use a status heading, muted explanation, two-column labeled measurements and explicit Previous/Next page actions. Numeric facts never become selectable rows. All text remains reachable through bounded pages above the shared dashboard. Focus redraws only action cursor strips; a changed measurement repaints only its value field. CI compares incremental report pixels with clean frames and renders current Maintenance documentation scenes through the production UI. Example screenshots are not physical test evidence.

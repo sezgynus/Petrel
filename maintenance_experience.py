@@ -41,6 +41,10 @@ class Screen:
     kind: str = 'detail'
     tone: str = 'normal'
     care: tuple = ()
+    sections: tuple = ()
+    badge: str = ''
+    report_icon: object = None
+    report_page: int = 0
 
 
 def device_name(name):

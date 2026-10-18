@@ -7,12 +7,14 @@ from types import SimpleNamespace
 from time import monotonic, strftime, localtime, time
 import textwrap
 from maintenance_experience import (Choice, Screen, grouped, label, device_name,
-                                    preparation, result_summary, result_details)
+                                    preparation, result_summary, result_details, LABELS)
 from graphite_theme import show_icon
 from maintenance_care_view import care_items
 from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
-from maintenance_icons import icon_for
+from maintenance_icons import icon_for, feature_icon
+from maintenance_report import ReportSection, section_from_lines, report_pages
+from lcd_resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIONS, ICON_MAINTENANCE_DIAGNOSTICS
 
 
 class MaintenanceViewMixin:
@@ -26,6 +28,7 @@ class MaintenanceViewMixin:
             self._maintenance_history=[]
             self._maintenance_page='root'
             self._maintenance_selection=0
+            self._maintenance_report_page=0
             self._maintenance_context=None
             self._maintenance_frame=None
             self._maintenance_regions={}
@@ -86,6 +89,8 @@ class MaintenanceViewMixin:
 
     def _maintenance_show(self,page,selection=0):
         self._maintenance_init()
+        if page!=self._maintenance_page:
+            self._maintenance_report_page=0
         self._maintenance_page=page
         self._maintenance_selection=selection
         self.Draw_Maintenance_Menu()
@@ -95,6 +100,7 @@ class MaintenanceViewMixin:
         self._maintenance_init()
         self._maintenance_history.append((self._maintenance_page,self._maintenance_selection,self._maintenance_context))
         self._maintenance_context=context
+        self._maintenance_report_page=0
         self._maintenance_notice=''
         self._maintenance_show(page)
 
@@ -122,6 +128,16 @@ class MaintenanceViewMixin:
                 from dataclasses import replace
                 screen=replace(screen,choices=screen.choices+(Choice('Read full instructions','instructions',
                     (screen.heading,)+screen.lines),))
+        if screen.kind=='report':
+            from dataclasses import replace
+            pages=report_pages(screen.sections)
+            page=max(0,min(getattr(self,'_maintenance_report_page',0),len(pages)-1))
+            self._maintenance_report_page=page
+            navigation=()
+            if page>0: navigation+=(Choice('Previous page','report_page',page-1),)
+            if page+1<len(pages): navigation+=(Choice('Next page','report_page',page+1),)
+            screen=replace(screen,report_page=page,
+                choices=screen.choices[:1]+navigation+screen.choices[1:])
         return screen
 
     def _maintenance_screen_model(self):
@@ -203,8 +219,10 @@ class MaintenanceViewMixin:
             if getattr(outcome,'status','') is None and getattr(outcome,'evidence',()):
                 from maintenance_evidence_view import evidence_lines
                 facts=evidence_lines(getattr(outcome,'feature_id',''),outcome.evidence)
-                return Screen('Diagnostic data',choices=(Choice('Back','result_back'),)+tuple(
-                    Choice(line,'none') for line in facts),kind='list')
+                return Screen('Diagnostic data',LABELS.get(getattr(outcome,'feature_id',''),'Recorded information'),
+                    choices=(Choice('Back','result_back'),),kind='report',badge='INFORMATION',
+                    report_icon=feature_icon(getattr(outcome,'feature_id',''),getattr(outcome,'device',None)),
+                    sections=section_from_lines('',facts))
             heading,lines,tone=result_summary(outcome)
             if self._maintenance_storage_errors():
                 lines=tuple(lines)+('Some records could not be saved.','Review storage and history.')
@@ -222,7 +240,10 @@ class MaintenanceViewMixin:
             try: heating_observation(outcome)
             except (ValueError,TypeError,AttributeError): pass
             else: choices.append(Choice('Heating speed reference','reference',outcome))
-            return Screen('Check result',heading,lines,tuple(choices),tone=tone)
+            return Screen('Check result',heading,lines=tuple(lines),choices=tuple(choices),kind='report',tone=tone,
+                badge='NEEDS REVIEW' if tone in ('attention','danger') else 'RESULT',
+                report_icon=ICON_MAINTENANCE_CHECK,
+                sections=(ReportSection('What this means',tuple(lines)),))
         if page=='reference':
             from maintenance_reference import heating_observation
             item=heating_observation(context)
@@ -254,10 +275,20 @@ class MaintenanceViewMixin:
         if page=='reference_wait':
             return Screen('Heating speed reference','Processing reference',('No hardware action is running.',),())
         if page=='details':
-            lines=[]
-            for text in result_details(context):
-                lines.extend(textwrap.wrap(text,30) or [''])
-            return Screen('Evidence details',choices=(back,)+tuple(Choice(t,'none') for t in lines),kind='list')
+            from maintenance_evidence_view import evidence_lines
+            sections=[]
+            historical=str(getattr(context,'reason','')).startswith('Historical')
+            if historical: sections.append(ReportSection(text=('Historical record; not current health.',)))
+            for outcome in (getattr(context,'components',()) or (context,))[:16]:
+                feature=getattr(outcome,'feature_id','')
+                sections.extend(section_from_lines(LABELS.get(feature,'Recorded evidence'),
+                    (outcome_text(getattr(outcome,'status',None)),)+evidence_lines(feature,getattr(outcome,'evidence',()))))
+            restored=getattr(context,'restore_verified',None)
+            if restored is not None:
+                sections.append(ReportSection(text=('Previous state restored' if restored else 'Previous state not confirmed',)))
+            return Screen('Evidence details',device_name(getattr(context,'device',None)),choices=(back,),
+                kind='report',badge='HISTORY' if historical else 'MEASUREMENTS',
+                report_icon=feature_icon(getattr(context,'feature_id',''),getattr(context,'device',None)),sections=tuple(sections))
         if page=='findings':
             report=self.pd.maintenance_assessment_details()
             findings=tuple(f for f in report.findings+report.trends if f.state in ('attention','issue'))
@@ -286,13 +317,12 @@ class MaintenanceViewMixin:
                     if row is not None and (feature,row.device) not in offered:
                         choices.append(Choice(label(row),'prepare',row));offered.add((feature,row.device))
             # Keep all explanations reachable rather than silently dropping text.
-            lines=tuple(part for explanation in explanations for part in textwrap.wrap(explanation,30))
-            if len(lines)>7:
-                choices.append(Choice('Read all findings','instructions',lines))
-            return Screen('Recommendation',device_name(findings[0].device),lines[:7],tuple(choices),tone='attention')
+            return Screen('Recommendation',device_name(findings[0].device),choices=tuple(choices),kind='report',
+                tone='attention',badge='RECOMMENDATION',report_icon=ICON_MAINTENANCE_RECOMMENDATIONS,
+                sections=tuple(ReportSection('What to review' if i==0 else '',(text,)) for i,text in enumerate(explanations)))
         if page=='instructions':
-            lines=tuple(part for value in context for part in (textwrap.wrap(str(value),30) or ['']))
-            return Screen('Full instructions',choices=(back,)+tuple(Choice(line,'none') for line in lines),kind='list')
+            return Screen('Full instructions','Read at your own pace',choices=(back,),kind='report',badge='GUIDANCE',
+                report_icon=ICON_MAINTENANCE_DIAGNOSTICS,sections=(ReportSection(text=tuple(context)),))
         if page.startswith('service'):
             screen=self._maintenance_service_screen()
             if sum(max(1,len(textwrap.wrap(str(line),30))) for line in screen.lines)>7:
@@ -511,6 +541,10 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
+        if action=='report_page':
+            self._maintenance_report_page=value
+            self._maintenance_selection=0
+            self.Draw_Maintenance_Menu();self.lcd.update();return
         if action=='reference': return self._maintenance_open('reference',value)
         if action=='reference_limit': return self._maintenance_open('reference_limit',(value,20))
         if action=='reference_confirm': return self._maintenance_open('reference_confirm',value)

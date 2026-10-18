@@ -35,7 +35,9 @@ class DiagnosticPresentation(unittest.TestCase):
             evidence=(('cpu_temp_c',52.6),),reason='observed_information')
         screen=d._maintenance_screen()
         self.assertEqual(screen.title,'Diagnostic data')
-        self.assertIn('52.6 C',str(screen.choices))
+        self.assertIn('52.6 C',str(screen.sections))
+        self.assertEqual(screen.kind,'report')
+        self.assertTrue(all(c.action!='none' for c in screen.choices))
         self.assertEqual(screen.choices[0].action,'result_back')
         self.assertNotIn('observed_information',str(screen))
 

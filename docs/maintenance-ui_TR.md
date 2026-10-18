@@ -41,3 +41,7 @@ Enkoder dönüşü çizilmiş modeli kullanır; ENTER eylem kimliğini gönderme
 ## Anlamlı ikonlar
 
 Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recommendations ve Care schedule girişlerini ayırır. Master çizgi kalınlığı/uçları ve paleti, baseline 4:2:0 JPEG kaynakları, mevcut kütüphane ID’si ve değişmeyen 9 blok alanı kullanılır. Alt menü ikonları eylem, konu, test özelliği ve bakım işi sözleşmelerinden seçilir: ısıtıcı, tabla, fan, eksen/homing, prob, filament, sürücü, host, buzzer, ışık, geçmiş ve depolama ilgili mevcut ikonu kullanır. Info yalnız gerçek Details için kullanılır; bilinmeyen eyleme ve sayısal veriye Info atanmaz. Bakım/menü etiketleri LCD’nin native metnidir.
+
+## Salt okunur raporlar
+
+Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler bilgiyi işlemlerden ayırır. Raporlar durum başlığı, sakin açıklama, iki sütunda etiketli ölçümler ve açık Previous/Next page işlemleri kullanır. Sayısal veriler seçilebilir satır olmaz. Tüm metin ortak dashboard üzerindeki sınırlı sayfalardan erişilebilir kalır. Odak yalnız işlem seçim çizgilerini; değişen ölçüm yalnız kendi değer alanını yeniden çizer. CI artımlı rapor piksellerini temiz çizimle karşılaştırır ve güncel Maintenance dokümantasyon görsellerini üretim arayüzünden oluşturur. Örnek ekran görüntüleri fiziksel test kanıtı değildir.
