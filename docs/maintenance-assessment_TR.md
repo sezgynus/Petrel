@@ -11,3 +11,5 @@ Petrel tamamlanan sonuçları sınırlı epoch/config kapsamlı değerlendirme �
 Firmware bulguları aktif throttling ile geçmiş bayrakları, Klipper durumunu ve desteklenen sürücü hatalarını ayırır. Sayısal politikalar açık kaynak/sürüm ve sonlu sınırlar gerektirir. Trend karşılaştırması gösterge niteliğindedir; arızalı parçayı teşhis etmez. Eksik kanıt kuralı sağlamaz.
 
 Backend detailed_report API'si kaynaklı metrik politikaları, capability'ye bağlı bakım görevleri ve karşılaştırılabilir trend kanıtlarını kabul eder. Desteklenmeyen hedefler dışarıda kalır. Güncel gözlemler yapılandırılabilir tazelik süresinden sonra bilinmeyen olur; bu kullanıcı etkileşimi zaman aşımı değildir. Depolama istekleri mevcut worker ve izinli işlem listesiyle çalışır. Otomatik test başlatma veya fiziksel komut yoktur.
+
+Bakım politikaları onaylanmış bakım olaylarından ayrı saklanır. Kalibrasyonun tamamlanması donanım sağlığı anlamına gelmez. Anlam metinleri UI tasarımı dayatmadan EN/TR eşli sunulur. Dışa aktarım işlem, koşul ve geri yükleme kanıtını korur. Petrel ayrıntılı backend raporu için maintenance_assessment_details sunar.

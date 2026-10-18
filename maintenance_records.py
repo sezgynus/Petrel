@@ -190,6 +190,10 @@ class MaintenanceBook:
             for item in history.get('records',[])[-32:]:
                 if isinstance(item,dict):
                     record = {k:safe_scalar(item.get(k)) for k in ('feature','device','method','status','reason','timestamp','epoch','firmware','config_marker','config_digest')}
+                    record['restore_verified'] = item.get('restore_verified') if type(item.get('restore_verified')) is bool else None
+                    record['operation_id'] = safe_scalar(item.get('operation_id'))
+                    record['conditions'] = [(k,safe_scalar(v)) for k,v in item.get('conditions',[])[:16]
+                        if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k) and safe_scalar(v) is not None]
                     record['evidence'] = [(k,safe_scalar(v)) for k,v in item.get('evidence',[])[:16]
                         if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k) and safe_scalar(v) is not None]
                     records.append(record)

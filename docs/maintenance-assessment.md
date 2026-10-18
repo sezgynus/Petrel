@@ -11,3 +11,5 @@ Petrel ingests completed results into a bounded epoch/config-scoped assessment c
 Firmware facts distinguish active throttling from historical flags, Klipper state and supported driver faults. Numeric policies require explicit source/version and finite limits. Trend comparison is indicative and never identifies a failed part. Missing evidence cannot satisfy a rule.
 
 The backend detailed_report API accepts sourced metric policies, capability-bound service tasks and comparable trend evidence. Unsupported subjects are omitted. Current observations expire after a configurable freshness window (not a user-interaction timeout); stale data becomes unknown. Storage requests use the existing worker and an operation allowlist. No test scheduling or physical command is automatic.
+
+Service policies persist separately from confirmed completion events. Calibration completion never implies hardware health. Semantic messages have matching English/Turkish text without prescribing a UI. Export retains operation, conditions and restore provenance. Petrel exposes maintenance_assessment_details for the detailed backend report.

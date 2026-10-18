@@ -574,6 +574,11 @@ class PrinterData:
                     logging.warning('Maintenance assessment evidence rejected')
         return result
 
+    def maintenance_assessment_details(self, **policies):
+        rows = tuple(self.maintenance_read_plan()) + tuple(self.maintenance_guided_plan())
+        return self.maintenance_assessment.detailed_report(
+            self.maintenance.snapshot, rows, **policies)
+
     def maintenance_assessment_report(self):
         rows = tuple(self.maintenance_read_plan()) + tuple(self.maintenance_guided_plan())
         return self.maintenance_assessment.report(self.maintenance.snapshot, rows)

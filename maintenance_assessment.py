@@ -92,8 +92,8 @@ def assess(plan, evidence):
             state,message,confidence = 'unknown','check.not_completed','observed'
         elif item.status in _FAILURE:
             state,message,confidence = 'attention','check.requires_review','indicative'
-        elif item.method == 16:
-            state,message,confidence = 'unknown','information.available','observed'
+        elif item.method in (8,16):
+            state,message,confidence = 'unknown',('calibration.completed' if item.method == 8 else 'information.available'),'observed'
         else:
             state,message = 'clear','check.completed_in_scope'
             confidence = 'user_verified' if 'USER' in item.status else 'observed'

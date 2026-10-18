@@ -85,7 +85,8 @@ class MaintenanceAssessment:
     @staticmethod
     def storage_request(worker,path,operation,*args,**kwargs):
         """Only explicit requests mutate baselines/services. Errors stay on Future."""
-        methods = {'set_baseline','baseline','complete_service','invalidate_device','load'}
+        methods = {'set_baseline','baseline','complete_service','invalidate_device','load',
+                   'set_service_policy','service_policies','latest_service'}
         if operation not in methods:
             raise ValueError('unsupported_assessment_storage_operation')
         return worker.submit(lambda:getattr(AssessmentStore(path),operation)(*args,**kwargs),

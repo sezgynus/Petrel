@@ -100,6 +100,30 @@ class AssessmentStore:
         data['services'] = (data['services']+[record])[-128:]
         self._save(data)
 
+    def set_service_policy(self,policy):
+        if not isinstance(policy,ServicePolicy):
+            raise ValueError('invalid_service_policy')
+        data = self.load()
+        policies = data.get('policies',[])
+        if type(policies) is not list or len(policies)>64:
+            raise ValueError('invalid_service_policies')
+        policies = [p for p in policies if (p.get('task_id'),p.get('device')) !=
+                    (policy.task_id,policy.device)]
+        if len(policies)>=64:
+            raise ValueError('service_policy_capacity')
+        data['policies'] = policies+[asdict(policy)]
+        self._save(data)
+
+    def service_policies(self):
+        items = self.load().get('policies',[])
+        if type(items) is not list or len(items)>64:
+            raise ValueError('invalid_service_policies')
+        return tuple(ServicePolicy(**item) for item in items)
+
+    def latest_service(self,task_id,device):
+        return next((dict(item) for item in reversed(self.load()['services'])
+                     if item.get('task')==task_id and item.get('device')==device),None)
+
     def invalidate_device(self,device):
         data = self.load()
         data['baselines'] = {k:v for k,v in data['baselines'].items()
