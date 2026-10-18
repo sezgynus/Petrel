@@ -540,7 +540,7 @@ class MaintenanceViewMixin:
         if action=='fan_stop':
             result,reason=self.pd.confirm_maintenance_f12_stopped()
             if result is True: self._maintenance_show('pulse')
-            elif result is not None: self._maintenance_complete(result)
+            elif result is not None and type(result) is not bool: self._maintenance_complete(result)
             else: self._maintenance_complete(SimpleNamespace(status='BLOCKED',reason=reason))
             return
         if action in ('load_services','history_read','export'):
@@ -638,3 +638,4 @@ class MaintenanceViewMixin:
                 self._maintenance_result=result
                 if visible: self._maintenance_complete(result)
             if hasattr(self,'_loop'): self._loop.set_interval(.1)
+

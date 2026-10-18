@@ -103,6 +103,15 @@ class MaintenanceUIFlows(unittest.TestCase):
         d.pd.confirm_maintenance_f12_stopped=Mock(return_value=(True,'queued'))
         self.choose(d,'fan_stop');self.assertEqual(d._maintenance_page,'pulse')
 
+    def test_fan_stop_rejected_round_shows_blocked_reason(self):
+        d=self.view();self.owner(d,'f12_await_stop','F12')
+        d.pd.confirm_maintenance_f12_stopped=Mock(return_value=(False,'maintenance_busy'))
+        self.choose(d,'fan_stop')
+        self.assertEqual(d._maintenance_page,'result')
+        self.assertEqual(d._maintenance_result.status,'BLOCKED')
+        self.assertEqual(d._maintenance_result.reason,'maintenance_busy')
+        self.assertEqual(d._maintenance_screen().heading,'Preparation required')
+
     def test_pending_cancellation_never_manufactures_completion(self):
         d=self.view();self.owner(d,'running','H01')
         d.pd.cancel_maintenance_physical=Mock(return_value=None)
@@ -200,3 +209,4 @@ class MaintenanceUIFlows(unittest.TestCase):
         self.assertFalse((root/'assets/icons/155.jpg').exists())
         for index in range(156,164):
             self.assertTrue((root/('assets/icons/%d.jpg'%index)).exists())
+
