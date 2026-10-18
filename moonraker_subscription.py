@@ -17,6 +17,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from moonraker_client import MoonrakerError
 from print_tuning import JOB_OBJECTS
+from petrel_version import client_version
 
 
 OBJECTS = ('webhooks', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard',
@@ -574,7 +575,7 @@ class MoonrakerSubscription:
         raise MoonrakerError('Moonraker RPC timed out: ' + method)
 
     def _bootstrap(self):
-        identify = {'client_name': 'Petrel', 'version': '3.0.0',
+        identify = {'client_name': 'Petrel', 'version': client_version(),
                     'type': 'display', 'url': 'https://github.com/sezgynus/Petrel'}
         if self._api_key:
             identify['api_key'] = self._api_key

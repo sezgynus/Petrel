@@ -5,7 +5,7 @@ from threading import Thread
 import logging
 import time
 
-from thumbnail_preview import load_preview
+from thumbnail_preview import load_preview, NoThumbnail
 from preview_metadata import PreviewData
 
 
@@ -117,7 +117,10 @@ class ThumbnailCache:
                             if victim is None:
                                 break
                             del self.details[victim]
+                        retryable = data.retryable
                         data = data.jpeg
+                        if data is None and not retryable:
+                            raise NoThumbnail('No thumbnail')
                         if data is None:
                             raise ValueError('No thumbnail')
                     if not isinstance(data, bytes) or not 0 < len(data) <= self.capacity:
@@ -131,7 +134,7 @@ class ThumbnailCache:
                                            started=time.monotonic())
                 except Exception as error:
                     self.errors[key] = str(error)
-                    if str(error) != 'LCD cache full':
+                    if str(error) != 'LCD cache full' and not isinstance(error, NoThumbnail):
                         self.retry_at[key] = time.monotonic()+10.0
                     logging.info('Thumbnail cache unavailable %s: %s', key[0], error)
             else:

@@ -17,6 +17,14 @@ class FilePreviewMixin:
                  self.pd.file_name if self.pd.status in ('printing','paused','pausing','complete','cancelled') else None)
         if stamp == getattr(self, '_thumbnail_stamp', None):
             return
+        previous = getattr(self, '_thumbnail_stamp', None)
+        if previous is not None and revision != previous[2]:
+            reader = getattr(self.pd.subscription, 'file_identity', None)
+            for key in tuple(self._thumbnail_cache.errors):
+                identity = reader(key[0]) if callable(reader) else None
+                if not isinstance(identity, tuple) or identity[1] > previous[2]:
+                    self._thumbnail_cache.errors.pop(key, None)
+                    self._thumbnail_cache.retry_at.pop(key, None)
         self._thumbnail_stamp = stamp
         if getattr(self.pd, '_file_thumbnail_list', None) is self.pd.files:
             self._thumbnail_keys = self.pd._file_thumbnail_keys

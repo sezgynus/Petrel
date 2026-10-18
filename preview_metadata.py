@@ -26,6 +26,7 @@ class PreviewDetails:
 class PreviewData:
     jpeg: bytes | None
     details: PreviewDetails
+    retryable: bool = True
 
 
 def number(value):

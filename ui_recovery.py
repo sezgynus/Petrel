@@ -46,30 +46,51 @@ class RecoveryViewMixin:
         offset = max(0, min(getattr(self, '_recovery_scroll', 0),
                             max(0, len(lines)-self.RECOVERY_TEXT_ROWS)))
         self._recovery_scroll = offset
-        self.Clear_Popup_Area()
-        self.Draw_Title('Printer connection' if delayed else recovery.state.title)
+        title = 'Printer connection' if delayed else recovery.state.title
+        old = getattr(self, '_recovery_drawn', None)
+        frame = (id(self.lcd), title, buttons)
+        full = old is None or old['frame'] != frame
+        if full:
+            self.Clear_Popup_Area()
+            self.Draw_Title(title)
+            old = {'frame': frame, 'lines': (), 'hint': None, 'notice': None, 'buttons': {}}
         lcd = self.lcd
-        # Error text is plain text, never a selectable menu row or icon list.
-        for i, line in enumerate(lines[offset:offset+self.RECOVERY_TEXT_ROWS]):
-            lcd.draw_text(False, False, lcd.font8x16, lcd.Color_White,
-                          lcd.Color_Bg_Black, 12, self.RECOVERY_TEXT_TOP+i*18, line)
+        visible = lines[offset:offset+self.RECOVERY_TEXT_ROWS]
+        previous = old['lines']
+        for i in range(max(len(previous), len(visible))):
+            line = visible[i] if i < len(visible) else ''
+            if full or i >= len(previous) or previous[i] != line:
+                y = self.RECOVERY_TEXT_TOP+i*18
+                lcd.draw_rectangle(1, lcd.Color_Bg_Black, 12, y, 259, y+17)
+                if line:
+                    lcd.draw_text(False, False, lcd.font8x16, lcd.Color_White,
+                                  lcd.Color_Bg_Black, 12, y, line)
         hint = ('Turn: scroll / Press: keys' if selected == -1 else
                 'Turn left past first: text')
-        lcd.draw_text(False, False, lcd.font8x16, 0x7BEF, lcd.Color_Bg_Black, 12, 278, hint)
-        if recovery.notice:
-            for i, line in enumerate(error_lines(recovery.notice)[:2]):
+        if hint != old['hint']:
+            lcd.draw_rectangle(1, lcd.Color_Bg_Black, 12, 278, 259, 293)
+            lcd.draw_text(False, False, lcd.font8x16, 0x7BEF, lcd.Color_Bg_Black, 12, 278, hint)
+        if recovery.notice != old['notice']:
+            lcd.draw_rectangle(1, lcd.Color_Bg_Black, 12, 296, 259, 327)
+            for i, line in enumerate(error_lines(recovery.notice)[:2] if recovery.notice else ()):
                 lcd.draw_text(False, False, lcd.font8x16, 0xFBAE,
                               lcd.Color_Bg_Black, 12, 296+i*16, line)
+        states = {}
         for i, (action, label) in enumerate(buttons):
-            y = self.RECOVERY_BUTTON_TOP+i*self.RECOVERY_BUTTON_HEIGHT
             active = i == selected
             disabled = recovery.busy and action != 'refresh'
+            states[i] = (active, disabled)
+            if not full and old['buttons'].get(i) == states[i]:
+                continue
+            y = self.RECOVERY_BUTTON_TOP+i*self.RECOVERY_BUTTON_HEIGHT
             fill = 0x063B if active else 0x18C4
             lcd.draw_rectangle(1, fill, 12, y, 259, y+35)
             lcd.draw_rectangle(0, lcd.Color_White if active else fill, 12, y, 259, y+35)
             lcd.draw_text(False, False, lcd.font8x16,
                           0x7BEF if disabled else lcd.Color_White, fill,
                           (272-len(label)*8)//2, y+10, label)
+        self._recovery_drawn = dict(frame=frame, lines=visible, hint=hint,
+                                    notice=recovery.notice, buttons=states)
         lcd.update()
         self._recovery_render = (recovery.state, recovery.notice, recovery.busy, selected, offset)
 
@@ -100,6 +121,7 @@ class RecoveryViewMixin:
                 self._boot_connection_delayed = False
         first = getattr(self, 'checkkey', None) != self.RecoveryScreen
         if first:
+            self._recovery_drawn = None
             if getattr(self, '_boot_animation_running', False):
                 self.lcd.configure_animation(0, False, self._boot_animation_active_library,
                                             250, 254, self._boot_animation_x, 320, 10)
