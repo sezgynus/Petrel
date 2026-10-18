@@ -34,6 +34,7 @@ from maintenance_filament import MaintenanceFilamentController
 from maintenance_panel import MaintenancePanelController
 from maintenance_auxiliary import MaintenanceAuxiliaryController
 from maintenance_records import MaintenanceBook
+from maintenance_assessment_service import MaintenanceAssessment
 from maintenance_system import travel_profile
 from maintenance_physical import MaintenancePulseController
 from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
@@ -212,6 +213,7 @@ class PrinterData:
         self._jog_state_name = '_PETREL_JOG_' + uuid.uuid4().hex
         self.state = PrinterState()
         self.maintenance_book = MaintenanceBook(self._maintenance_worker)
+        self.maintenance_assessment = MaintenanceAssessment()
         self._maintenance_panel_api = None
         self.maintenance = MaintenanceDiscoveryManager()
         self.capabilities = PrinterCapabilities()
@@ -564,7 +566,17 @@ class PrinterData:
             book = getattr(self,'maintenance_book',None)
             if book is not None:
                 book.record(result,method,self.state,plan)
+            assessment = getattr(self,'maintenance_assessment',None)
+            if assessment is not None:
+                try:
+                    assessment.ingest(result,method,self.state)
+                except (ValueError, TypeError, AttributeError):
+                    logging.warning('Maintenance assessment evidence rejected')
         return result
+
+    def maintenance_assessment_report(self):
+        rows = tuple(self.maintenance_read_plan()) + tuple(self.maintenance_guided_plan())
+        return self.maintenance_assessment.report(self.maintenance.snapshot, rows)
 
     def maintenance_read_plan(self):
         return self.maintenance_reader.available()

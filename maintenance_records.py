@@ -75,7 +75,12 @@ class MaintenanceBook:
                     'reason':safe_scalar(getattr(outcome,'reason','')),
                     'timestamp':stamp,'epoch':getattr(plan,'epoch',state.epoch),
                     'config_marker':marker,
-                    'firmware':safe_scalar(state.software_version),'evidence':[]}
+                    'firmware':safe_scalar(state.software_version),'evidence':[],
+                    'restore_verified':getattr(outcome,'restore_verified',None),
+                    'operation_id':safe_scalar(getattr(outcome,'operation_id','')),
+                    'conditions':[(k,safe_scalar(v)) for k,v in getattr(outcome,'conditions',())[:16]
+                                  if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k)
+                                  and safe_scalar(v) is not None]}
             for key,value in getattr(outcome, 'evidence', ())[:16]:
                 cleaned = safe_scalar(value)
                 if cleaned is not None and isinstance(key,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',key):

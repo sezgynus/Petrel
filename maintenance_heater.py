@@ -6,7 +6,8 @@ No autonomous retries, threads, config writes or acceptance updates.
 """
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from uuid import uuid4
 from time import monotonic
 from urllib.parse import quote
 
@@ -46,6 +47,8 @@ class ThermalResult:
     restore_verified: bool = False
     evidence: tuple = ()
     components: tuple = ()
+    conditions: tuple = ()
+    operation_id: str = ''
 
 
 # These catalog IDs share one finite H01 heating/cooling observation.
@@ -162,6 +165,8 @@ class MaintenanceHeaterController:
         row = next((r for r in self.available() if r.feature_id == feature_id and r.device == device), None)
         if row is None:
             return False, 'thermal_adapter_unavailable'
+        self._assessment_operation = uuid4().hex
+        self._assessment_initial = None
         self._row, self._phase = row, 'preflight'
         self._series = ThermalSeries()
         self._off_matches = 0
@@ -181,8 +186,17 @@ class MaintenanceHeaterController:
         return True, 'thermal_preflight_queued'
 
     def _finish(self, status, reason, restored=False, components=()):
+        c = self._contract
+        conditions = (('profile_version', 1),)
+        if c is not None:
+            conditions += (('target_c', c.target), ('duration_s', c.duration))
+        if getattr(self, '_assessment_initial', None) is not None:
+            conditions += (('initial_temperature_c', self._assessment_initial),)
+        operation = getattr(self, '_assessment_operation', '')
+        components = tuple(replace(child, conditions=conditions, operation_id=operation)
+                           for child in components)
         result = ThermalResult(self.feature_id, self._row.device, status, reason,
-                               restored, self._metrics, components)
+                               restored, self._metrics, components, conditions, operation)
         _LOG.info('Thermal result feature=%s heater=%s status=%s reason=%s restored=%s',
                   self.feature_id, self._row.device, status, reason, restored)
         self._phase = None
@@ -338,6 +352,7 @@ class MaintenanceHeaterController:
                         str(exc) == 'existing_or_unknown_pending_config'):
                     return self._finish('BLOCKED', 'existing_or_unknown_pending_config')
                 return self._finish('BLOCKED', 'cold_idle_thermal_preflight_required')
+            self._assessment_initial = point.temperature
             self._queue, self._contract = evidence, c
             self._future = None
             if self._refreshing_consent:
