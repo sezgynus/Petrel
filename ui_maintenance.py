@@ -44,6 +44,7 @@ class MaintenanceViewMixin:
             self._maintenance_records_return='service'
             self._maintenance_records_background=False
             self._maintenance_records_failed=False
+            self._maintenance_records_refresh_at=0.
 
     def Enter_Maintenance_Menu(self):
         self._maintenance_init()
@@ -53,14 +54,17 @@ class MaintenanceViewMixin:
         self._maintenance_frame=None
         self._maintenance_regions={}
         self._maintenance_show('root')
+        self._maintenance_records_refresh_at=0.
         self._maintenance_prefetch_records()
 
     def _maintenance_prefetch_records(self):
         if self._maintenance_records_future is not None:
             return
-        if self._maintenance_records_ready and self._maintenance_records_identity==self._maintenance_identity():
+        same_identity=self._maintenance_records_identity==self._maintenance_identity()
+        if self._maintenance_records_ready and same_identity and monotonic()<self._maintenance_records_refresh_at:
             return
-        self._maintenance_records_ready=False
+        if not same_identity: self._maintenance_records_ready=False
+        self._maintenance_records_refresh_at=monotonic()+60.
         try:
             self._maintenance_records_future=self.pd.maintenance_ui_records('load',policy=None,history=False)
             self._maintenance_records_request_identity=self._maintenance_identity()
@@ -731,6 +735,11 @@ class MaintenanceViewMixin:
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
+        if (visible and active_page in ('root','service','service_task')
+                and self._maintenance_records_ready and not self._maintenance_records_failed
+                and not getattr(owner,'pending',False) and not getattr(reader,'pending',False)
+                and monotonic()>=self._maintenance_records_refresh_at):
+            self._maintenance_prefetch_records()
         reference=self._maintenance_reference_future
         if reference is not None and reference.done():
             self._maintenance_reference_future=None
@@ -760,6 +769,7 @@ class MaintenanceViewMixin:
                 self._maintenance_records_data=future.result()
                 self._maintenance_records_identity=self._maintenance_records_request_identity
                 self._maintenance_records_ready=self._maintenance_records_identity==self._maintenance_identity()
+                self._maintenance_records_refresh_at=monotonic()+60.
                 target=self._maintenance_records_return
             except Exception:
                 target='notice'
@@ -770,7 +780,11 @@ class MaintenanceViewMixin:
             self._maintenance_records_failed=target=='notice'
             if background:
                 if target=='notice': self._maintenance_notice='Care records unavailable: retry in Care schedule'
-                if visible and active_page in ('root','service'):
+                if visible and active_page=='service_task' and target!='notice':
+                    policy=self._maintenance_context[0]
+                    fresh=next((row for row in self._maintenance_records_data[0] if row[0]==policy),None)
+                    if fresh is not None: self._maintenance_context=fresh
+                if visible and active_page in ('root','service','service_task'):
                     self.Draw_Maintenance_Menu();self.lcd.update()
             elif visible and active_page=='storage':
                 if target!='notice':
