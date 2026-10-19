@@ -16,7 +16,7 @@ Her seçim önce salt okunur ön kontrol yapar, ardından açık Start ister. So
 - P21 CALC_MEASURED_SKEW öncesinde haricen ölçülmüş AC, BD ve AD girişlerini zorunlu tutar. Düzeltme uygulamaz.
 - P22 firmware sıcaklık kayması kalibrasyonuna Next/Complete sağlar. Isıtıcı başlatmaz; dışarıdan ısıtma kullanıcının kontrolündedir.
 
-Belirsiz aktif hareketin iptali Klipper emergency_stop ister. Firmware kalibrasyonu canlı kompanzasyonu değiştirebilir veya bekleyen konfigürasyon bırakabilir; akışı bitirmek geri alma iddiası değildir. CI fiziksel kabul kaydetmez. Testler yalnız imzalı branch HEAD üzerinde Driver Branch Regression ile çalışır.
+Belirsiz aktif hareketin iptali Klipper emergency_stop ister. Firmware kalibrasyonu canlı kompanzasyonu değiştirebilir veya bekleyen konfigürasyon bırakabilir; akışı bitirmek geri alma iddiası değildir. CI fiziksel kabul kaydetmez. Testler yalnız imzalı branch HEAD üzerinde Petrel Regression Suite ile çalışır.
 
 ## Eksik homing hazırlığı
 

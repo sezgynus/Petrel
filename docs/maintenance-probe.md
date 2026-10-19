@@ -16,7 +16,7 @@ Each selection runs read-only preflight first, then requires explicit Start. Eve
 - P21 requires explicit external AC, BD and AD measurements before CALC_MEASURED_SKEW. It does not apply a correction.
 - P22 provides Next/Complete for firmware temperature-drift calibration. It never starts a heater; external warming remains operator-controlled.
 
-Cancellation of an uncertain active movement requests Klipper emergency_stop. A firmware calibration may change live compensation or leave pending config; ending the workflow does not claim rollback. No physical acceptance is recorded by CI. Tests run only through Driver Branch Regression on the signed branch HEAD.
+Cancellation of an uncertain active movement requests Klipper emergency_stop. A firmware calibration may change live compensation or leave pending config; ending the workflow does not claim rollback. No physical acceptance is recorded by CI. Tests run only through Petrel Regression Suite on the signed branch HEAD.
 
 ## Missing homing preparation
 
