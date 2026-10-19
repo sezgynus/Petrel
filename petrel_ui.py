@@ -3580,7 +3580,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     # --------------------------------------------------------------#
 
     def _each_moment_update_untraced(self):
-        self.pd.refresh_wifi_status()  # Read-worker polling only; never run iw on the UI thread.
+        wifi_changed = self.pd.refresh_wifi_status()  # Worker only; also invalidate visible Info rows.
         self._poll_case_light_live()
         self._sync_case_light_tracking()
         self._poll_case_light_state()
@@ -3630,7 +3630,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
-            if system_changed:
+            if system_changed or wifi_changed:
                 self.Draw_Info_Menu()
                 self.lcd.update()
             elif info_update:
