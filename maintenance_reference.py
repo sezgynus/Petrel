@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from time import time
-import hashlib
+from configuration_identity import stable_digest, legacy_digest
 import json
 import math
 from maintenance_assessment import Observation
@@ -50,7 +50,7 @@ def request(worker,operation,result,state,*,confirmed=False,relative_limit=None,
         if not current(): raise ValueError('reference_session_changed')
         initial=dict(observation.conditions)['initial_temperature_c']
         band=math.floor(initial/5)*5
-        digest=hashlib.sha256(json.dumps(state.settings,sort_keys=True,default=str).encode()).hexdigest()
+        digest=stable_digest(state.settings)
         evidence=typed_evidence(observation,observed_at=time(),config_digest=digest,
             verified_conditions=(('initial_band','%d..%d C'%(band,band+5)),
                 ('hardware_revision','operator_confirmed_unchanged')))
@@ -66,7 +66,7 @@ def request(worker,operation,result,state,*,confirmed=False,relative_limit=None,
             store.set_baseline(key,evidence,confirmed=True)
             return ReferenceResult('Heating reference saved',('Only the measured heating speed is a reference.',
                 'Hardware health and remaining life are not certified.'),evidence.operation_id,reset_device=evidence.device)
-        baseline=store.baseline(key,evidence)
+        baseline=store.baseline(key,evidence,legacy_digest=legacy_digest(state.settings))
         if baseline is None or not comparable(evidence,baseline):
             return ReferenceResult('No compatible reference',('Target, duration, start-temperature band,',
                 'fan state, firmware and configuration must match.'),evidence.operation_id)

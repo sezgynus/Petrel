@@ -1,5 +1,5 @@
 """Explicit baseline and service policy storage; no assumed service intervals."""
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 import json
 import math
@@ -82,11 +82,13 @@ class AssessmentStore:
         data['baselines'][key] = encode(evidence)
         self._save(data)
 
-    def baseline(self,key,current):
+    def baseline(self,key,current,*,legacy_digest=None):
         raw = self.load()['baselines'].get(key)
         if raw is None:
             return None
         reference = decode(raw)
+        if legacy_digest and reference.config_digest == legacy_digest:
+            reference = replace(reference,config_digest=current.config_digest)
         return reference if comparable(current,reference) else None
 
     def complete_service(self,policy,*,timestamp,confirmed=False,counter=None,counter_id=None):

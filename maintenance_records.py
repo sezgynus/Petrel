@@ -1,6 +1,6 @@
 """Bounded result history, sampled usage and sanitized explicit report export."""
 from collections.abc import Mapping
-import hashlib
+from configuration_identity import stable_digest
 import json
 import logging
 from pathlib import Path
@@ -150,7 +150,7 @@ class MaintenanceBook:
                     item['evidence'].append((key,cleaned))
             items.append(item)
         def work():
-            digest = (hashlib.sha256(json.dumps(state.settings,sort_keys=True,default=str).encode()).hexdigest()
+            digest = (stable_digest(state.settings)
                       if marker == id(state.settings) else None)
             for item in items:
                 item['config_digest'] = digest
