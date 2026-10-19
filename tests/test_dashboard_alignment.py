@@ -46,6 +46,9 @@ class DashboardAlignmentTests(unittest.TestCase):
                 self.values(v,wide);self.values(reference,wide)
                 v.Draw_Status_Area(True)
                 reference.Draw_Status_Area(False)
+                # The emulator presents drawn packets only after an LCD update.
+                v.lcd.update()
+                reference.lcd.update()
                 actual=v.framebuffer.snapshot()[0].crop((0,360,272,480))
                 expected=reference.framebuffer.snapshot()[0].crop((0,360,272,480))
                 self.assertIsNone(ImageChops.difference(actual,expected).getbbox())

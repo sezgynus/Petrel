@@ -111,9 +111,17 @@ class AuditRenderingTests(unittest.TestCase):
         result.pd.feedrate_percentage = 1000
         result.pd.thermalManager['temp_hotend'][0]['target'] = 1200
         result.Draw_Status_Area(False)
-        self.assertTrue(any(frame[11:-4] == b'###' for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11))
+        texts = [frame[11:-4] for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11]
+        actual = result.pd.thermalManager['temp_hotend'][0]['celsius']
+        self.assertIn(('%d/1200' % actual).encode('ascii'), texts)
+        # The shared dashboard field now fits nine characters; verify overflow
+        # against a value that truly exceeds the column, not the old limit.
+        result.pd.thermalManager['temp_hotend'][0]['target'] = 120000
+        result.Draw_Status_Area(True)
+        texts = [frame[11:-4] for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11]
+        self.assertIn(b'#########', texts)
         self.assertEqual(result.pd.feedrate_percentage, 1000)
-        self.assertEqual(result.pd.thermalManager['temp_hotend'][0]['target'], 1200)
+        self.assertEqual(result.pd.thermalManager['temp_hotend'][0]['target'], 120000)
         result.lcd.draw_signed_scaled_float_text(1, 0, 3, 1, 216, 50, 1234567890)
         self.assertEqual(result.lcd.MYSERIAL1.frames[-1][11:-4], b'######')
         result.lcd.draw_signed_scaled_float_text(1, 0, 3, 1, 216, 50, 5)
