@@ -44,6 +44,16 @@ Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü beklen
 | R02 | Worker üzerinde yeniden sıralama | Uygulandı |
 | R03 | Dosya cache ömrü | Uygulandı |
 | R04 | Tek bakım tick’i ve interval | Uygulandı |
-| R05 | Kullanım sayacı kapasitesi | Bekliyor |
-| R06 | Kabul edilmiş sonuç kayıtlarını boşaltma | Bekliyor |
+| R05 | Kullanım sayacı kapasitesi | Uygulandı |
+| R06 | Kabul edilmiş sonuç kayıtlarını boşaltma | Uygulandı |
 | R07 | Güvenli thumbnail deneme bütçesi | Uygulandı |
+
+### İkinci audit doğrulaması ve davranış
+
+- İlk beş ön yükleme girdisi dışındaki soğuk preview hemen geçerlidir; gerçek dosyanın değiştirilmesi veya silinmesi yine onu geçersizleştirir. Güvensiz görsel yolları dört indirmelik deneme bütçesini tüketmez.
+- Sıralama tercihi değişikliği, özel liste ve yolları read worker üzerinde hazırlar. Yayın için kaynak liste, epoch, dosya revizyonu ve sıralama revizyonu aynı kalmalıdır. Disconnect/epoch değişiminde backend indeksleri ve UI alias’ları birlikte bırakılır; başlamış bir iş, bitene kadar kendi girdilerini tutabilir.
+- Bir UI tick’i tek model güncellemesini paylaşır. Aktif Maintenance, daha hızlı çizim işini yavaşlatmadan nihai aralığı en fazla 100 ms tutar; tick dışındaki giriş olayları hâlâ güncel durumu ister. Hold, popup ve UART kaybı yollarında kontroller ilerler.
+- Yeni kullanım kayıtları en fazla 32 adlandırılmış sayaç kabul eder. Dolu kayıt mevcut değerleri ve kimliğini korur, baskı süresi/mevcut sayaç güncellemelerini sürdürür; yeni adların reddini kayıt hataları ve journal üzerinden bildirir. En fazla 64 ad içeren eski taşmış kayıt grupları okunabilir kalır ve mevcut sayaçlarını korur; daha fazla büyüyemez. Sayaçlar sessizce silinmez veya sıfırlanmaz.
+- Düzenli kapanış, worker kapanırken kuyruktaki Future’ları iptal edilmiş olsa bile kabul edilmiş en fazla sekiz yerel sonuç grubunu tamamlar. Başlamış yerel yazı transaction kilidi üzerinden beklenir; başarılı veya hatalı denemeden sonra tekrar denenmez. Disk hatası açık kayıt hatası/journal uyarısı olarak kalır. Yazıcı komutu yeniden oynatılmaz.
+
+Donanım kabulü bekleniyor. Önceki listeye ek olarak daha önce açılmamış altıncı/sonraki dosyayı, gezinirken sıralama değişimini ve kontrol sonucu hemen ardından normal restart’ı dene. Bu değişiklikler için master merge yetkisi yoktur.

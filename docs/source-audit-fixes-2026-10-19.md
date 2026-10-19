@@ -44,6 +44,16 @@ Client identification now uses the installed checkout's cached `git describe --t
 | R02 | Worker-based resort | Implemented |
 | R03 | File cache lifetime | Implemented |
 | R04 | Single maintenance tick and interval | Implemented |
-| R05 | Usage counter capacity | Pending |
-| R06 | Drain accepted result writes | Pending |
+| R05 | Usage counter capacity | Implemented |
+| R06 | Drain accepted result writes | Implemented |
 | R07 | Safe thumbnail attempt budget | Implemented |
+
+### Second-audit validation and behavior
+
+- A cold preview beyond the first five preload entries is valid immediately; replacing or deleting its actual file still invalidates it. Unsafe image paths do not consume the four-download attempt budget.
+- Sort preference changes prepare a private list and paths on the read worker. Publication requires the same source list, epoch, file revision and sort revision. Disconnect/epoch changes release backend indexes and UI aliases together; an already running job may retain its private inputs until it finishes.
+- One UI tick shares one model update. Active Maintenance caps the final interval at 100 ms without slowing a faster render task; input events outside the tick still request fresh state. Hold, popup and UART-loss paths keep advancing checks.
+- New usage ledgers admit at most 32 named counters. A full ledger preserves its existing values and identity, continues print-time/existing-counter updates, and reports rejection of new names through record errors and the journal. Legacy oversized batches up to 64 names remain readable and retain all existing counters; they cannot grow further. Counters are not silently removed or reset.
+- Orderly shutdown finalizes up to eight accepted local result batches, even when their queued Futures were cancelled during worker close. A started local write is joined through its transaction lock and is never attempted again after success or failure. Disk failure remains an explicit record error/journal warning. No printer command is replayed.
+
+Hardware acceptance remains pending. In addition to the earlier list, check a previously unopened sixth/later file, a sort change while browsing, and normal restart immediately after a check result. These changes have no merge authorization for master.

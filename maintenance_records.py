@@ -2,12 +2,43 @@
 from collections.abc import Mapping
 import hashlib
 import json
+import logging
 from pathlib import Path
 import re
 import uuid
 from threading import Lock
 from time import monotonic, time
 from maintenance_motion import number
+
+
+MAX_USAGE_COUNTERS = 32
+# Older writers could add one batch beyond 32. Keep those values/ledger IDs;
+# do not silently drop service baselines. No new names grow a full ledger.
+MAX_LEGACY_USAGE_COUNTERS = 64
+
+
+class ResultWrite:
+    """One local transaction, callable by its worker or shutdown finalizer."""
+    def __init__(self, work):
+        self._work = work
+        self._lock = Lock()
+        self._attempted = False
+        self._error = None
+
+    def __call__(self):
+        with self._lock:
+            if self._attempted:
+                if self._error is not None:
+                    raise self._error
+                return
+            self._attempted = True
+            try:
+                self._work()
+            except Exception as error:
+                self._error = error
+                raise
+            finally:
+                self._work = None
 
 
 def root():
@@ -55,11 +86,16 @@ class MaintenanceBook:
         self._save = None
         self.errors = 0
         self._record_futures = []
+        self._record_jobs = {}
+        self._closed = False
         self._inventory_key = None
         self._names = ()
         self._observed = set()
 
     def record(self,result,method,state,plan=None):
+        if self._closed:
+            self.errors += 1
+            return
         self.poll_records()
         if len(self._record_futures) >= 8:
             self.errors += 1
@@ -99,13 +135,17 @@ class MaintenanceBook:
                       if marker == id(state.settings) else None)
             for item in items:
                 item['config_digest'] = digest
-            data = read_json('maintenance-history.json',{'version':1,'records':[]})
-            records = data.get('records')
-            if not isinstance(records,list) or len(records)>64:
-                raise ValueError('maintenance_history_invalid')
-            write_json('maintenance-history.json',{'version':1,'records':(records+items)[-64:]})
+            with self._disk:
+                data = read_json('maintenance-history.json',{'version':1,'records':[]})
+                records = data.get('records')
+                if not isinstance(records,list) or len(records)>64:
+                    raise ValueError('maintenance_history_invalid')
+                write_json('maintenance-history.json',{'version':1,'records':(records+items)[-64:]})
+        job = ResultWrite(work)
         try:
-            self._record_futures.append(self._worker.submit(work,queue_timeout=8))
+            future = self._worker.submit(job,queue_timeout=8)
+            self._record_futures.append(future)
+            self._record_jobs[future] = job
             self.poll_records()
         except Exception:
             self.errors += 1
@@ -122,11 +162,15 @@ class MaintenanceBook:
                 future.result()
             except Exception:
                 self.errors += 1
+                logging.warning('Maintenance result record was not confirmed')
+            self._record_jobs.pop(future, None)
         self._record_futures = pending
         return self.errors != before
 
     def note(self,state,now=None):
         """No I/O; bounded lower-bound sampled ON time, never exact lifetime."""
+        if self._closed:
+            return
         self.poll_records()
         now = monotonic() if now is None else now
         active = {}
@@ -185,10 +229,14 @@ class MaintenanceBook:
         try:
             data = read_json('maintenance-usage.json',{'version':1,'sampled_on_s':{}})
             counters = data.get('sampled_on_s',{})
-            if not isinstance(counters,dict) or len(counters)>32:
+            if not isinstance(counters,dict) or len(counters)>MAX_LEGACY_USAGE_COUNTERS:
                 raise ValueError('maintenance_usage_invalid')
+            rejected = 0
             for name,value in pending.items():
                 if name=='@printing': continue
+                if name not in counters and len(counters) >= MAX_USAGE_COUNTERS:
+                    rejected += 1
+                    continue
                 old = counters.get(name,0.)
                 if not number(old) or old<0:
                     raise ValueError('maintenance_usage_invalid')
@@ -203,6 +251,9 @@ class MaintenanceBook:
             write_json('maintenance-usage.json',{'version':1,'sampled_on_s':counters,
                 'sampled_print_s':printing+pending.get('@printing',0.),'counter_id':identity,
                 'coverage':'sampled_lower_bound_not_lifetime','saved_at':time()})
+            if rejected:
+                self.errors += rejected
+                logging.warning('Maintenance usage capacity reached; new device counters not recorded')
         except Exception:
             with self._lock:
                 for name,value in pending.items():
@@ -210,11 +261,30 @@ class MaintenanceBook:
             raise
 
     def close(self):
-        """Shutdown is outside drawing; preserve the final sampled tail."""
+        """Finalize accepted local records once, including cancelled queued jobs."""
+        if self._closed:
+            return
+        self._closed = True
+        for future in self._record_futures:
+            job = self._record_jobs[future]
+            try:
+                if future.cancel() or not future.done():
+                    # cancel succeeds only before worker dispatch. ResultWrite's
+                    # lock also waits for an already started local transaction;
+                    # it NEVER repeats an attempted write, even after an error.
+                    job()
+                else:
+                    future.result()
+            except Exception:
+                self.errors += 1
+                logging.warning('Maintenance result record unconfirmed during shutdown')
+        self._record_futures = []
+        self._record_jobs.clear()
         try:
             self.flush()
         except Exception:
             self.errors += 1
+            logging.warning('Maintenance usage tail unconfirmed during shutdown')
 
     def service_counters(self):
         """Worker-only durable lower bounds, with a persisted ledger identity."""
