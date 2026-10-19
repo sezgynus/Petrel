@@ -3,6 +3,10 @@ from unittest.mock import patch
 from test_capabilities import display, snapshot
 from test_regressions import ui
 from test_mmu_control import mmu_snapshot
+from printer_state import PrinterState
+from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
+from unittest.mock import call
 
 
 class IncrementalDashboardTests(unittest.TestCase):
@@ -29,8 +33,8 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.lcd.reset_mock()
         v.pd.thermalManager['temp_hotend'][0]['celsius'] = 201
         v.Draw_Status_Area(True)
-        self.assertEqual(len(v.lcd.method_calls), 1)
-        self.assertEqual(v.lcd.draw_integer_text.call_args.args[-3:], (28, 380, 201))
+        self.assertEqual(len(v.lcd.method_calls), 2)
+        self.assertEqual(v.lcd.draw_text.call_args.args[-3:], (28,380,'201/205'))
 
     @patch.object(ui.time, 'monotonic', return_value=4)
     def test_sub_display_precision_does_not_redraw(self, clock):
@@ -52,6 +56,119 @@ class IncrementalDashboardTests(unittest.TestCase):
         self.assertEqual(rect[-3], 380)
         self.assertEqual(rect[-1], 399)
         v.lcd.show_icon.assert_not_called()
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_homing_bars_are_14x3_under_each_axis_and_cached(self, clock):
+        data = snapshot()
+        data['status']['toolhead']['homed_axes'] = 'xz'
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        bars = [call.args for call in v.lcd.draw_rectangle.call_args_list
+                if call.args[-2:] == (118, 472) or
+                   call.args[-2:] == (20, 472) or
+                   call.args[-2:] == (216, 472)]
+        self.assertEqual(bars, [
+            (1, AXIS_HOMED_COLOR, 7, 470, 20, 472),
+            (1, AXIS_UNHOMED_COLOR, 105, 470, 118, 472),
+            (1, AXIS_HOMED_COLOR, 203, 470, 216, 472),
+        ])
+        v.lcd.reset_mock()
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [])
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_homing_change_only_repaints_the_changed_axis(self, clock):
+        data = snapshot()
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        v.lcd.reset_mock()
+        data['status']['toolhead']['homed_axes'] = 'xz'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [
+            unittest.mock.call.draw_rectangle(1, AXIS_UNHOMED_COLOR, 105, 470, 118, 472)])
+        v.lcd.reset_mock()
+        data['status']['toolhead']['homed_axes'] = 'xyz'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [
+            unittest.mock.call.draw_rectangle(1, AXIS_HOMED_COLOR, 105, 470, 118, 472)])
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_disconnected_or_missing_homing_evidence_is_grey_not_homed(self, clock):
+        data = snapshot()
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        v.lcd.reset_mock()
+        data['state'] = 'connecting'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [
+            unittest.mock.call(1, AXIS_UNKNOWN_COLOR, x, 470, x + 13, 472)
+            for x in (7, 105, 203)])
+        v.lcd.reset_mock()
+        data['state'] = 'ready'
+        data['status']['toolhead'].pop('homed_axes')
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        # Non-homing indicators may legitimately restore their known states.
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [])
+        v.lcd.reset_mock()
+        data['status']['toolhead']['homed_axes'] = ''
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [
+            unittest.mock.call(1, AXIS_UNHOMED_COLOR, x, 470, x + 13, 472)
+            for x in (7, 105, 203)])
+        v.lcd.reset_mock()
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [])
+
+    @patch.object(ui.time, 'strftime', return_value='12:34')
+    def test_wifi_header_uses_native_transparent_icons_only_when_band_changes(self, clock):
+        v = self.make()
+        v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
+        self.assertTrue(v._draw_header_clock())
+        v.lcd.show_icon.assert_called_once_with(
+            v.ICON, ICON_WIFI_STRONG, 200, 4, background=False, enhanced=True)
+        v.lcd.reset_mock()
+        self.assertFalse(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [])
+        for rssi, expected in ((-65, ICON_WIFI_MEDIUM), (-71, ICON_WIFI_POOR),
+                               (-60, ICON_WIFI_STRONG)):
+            v.pd.system_info['wifi_rssi'] = rssi
+            self.assertTrue(v._draw_header_clock())
+            self.assertEqual(v.lcd.method_calls, [
+                call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23),
+                call.show_icon(v.ICON, expected, 200, 4, background=False, enhanced=True)])
+            v.lcd.reset_mock()
+        v.pd.system_info['wifi_rssi'] = None
+        self.assertTrue(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
+        v.lcd.reset_mock()
+        self.assertFalse(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [])
+
+    @patch.object(ui.time, 'strftime', return_value='12:34')
+    def test_wifi_header_repaints_after_title_clear_and_ignores_ethernet(self, clock):
+        v = self.make()
+        v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-60)
+        v.Clear_Title_Bar()
+        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
+                         (ICON_WIFI_STRONG, 200, 4))
+        v.lcd.reset_mock()
+        v.Clear_Title_Bar()
+        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
+                         (ICON_WIFI_STRONG, 200, 4))
+        v.lcd.reset_mock()
+        v.pd.system_info.update(network='Online', wifi_ssid='Disconnected', wifi_rssi=None)
+        self.assertTrue(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
 
     def test_unchanged_mmu_sends_no_drawing(self):
         v = self.make(mmu_snapshot())

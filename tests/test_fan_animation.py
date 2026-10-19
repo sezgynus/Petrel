@@ -57,7 +57,7 @@ class FanAnimationTests(unittest.TestCase):
         self.assertEqual(values[-1], 1)
         self.assertEqual(values, sorted(values, reverse=True))
 
-    def test_dashboard_fan_shows_percent_with_fixed_width(self):
+    def test_dashboard_fan_shows_percent_at_icon_relative_anchor(self):
         v = self.view(100)
         v.lcd.DWIN_WIDTH, v.lcd.DWIN_HEIGHT = 272, 480
         v.Draw_Status_Area(False)
@@ -66,7 +66,9 @@ class FanAnimationTests(unittest.TestCase):
             v.Draw_Status_Area(True)
             texts = [c.args[-1] for c in v.lcd.draw_text.call_args_list
                      if c.args[-3:-1] == (224, 380)]
-            self.assertEqual(texts[-1], '{:3d}%'.format(speed))
+            self.assertEqual(texts[-1], '{}%'.format(speed))
+            self.assertFalse(texts[-1].startswith(' '))
+            self.assertLessEqual(224 + len(texts[-1]) * 8, 272)
 
     def test_status_text_cleanup_uses_its_own_background_and_font_size(self):
         v = self.view()

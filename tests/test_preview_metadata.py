@@ -24,8 +24,8 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual([f.material for f in details.filaments],['PLA','PLA'])
         self.assertEqual([f.grams for f in details.filaments],[2.05,20.36])
         self.assertEqual(details.filaments[1].color,0x13DB)
-        self.assertEqual(duration(details.seconds),'3h 20m')
-        self.assertEqual(amount(details.millimeters/1000,'m')+'/'+amount(details.grams,'g'),'7.51m/22.41g')
+        self.assertEqual(duration(details.seconds),'3h 20m 33s')
+        self.assertEqual(amount(details.millimeters/1000,'m')+'/'+amount(details.grams,'g'),'7.51m/22g')
 
     def test_all_four_tools_and_plain_single_material(self):
         data=sample();data['referenced_tools']=[3,1,0,2,1];data['filament_type']=['PETG','PLA','ABS','TPU']
@@ -87,7 +87,7 @@ class MetadataTests(unittest.TestCase):
         texts=[c.args[-1] for c in view.lcd.draw_text.call_args_list]
         self.assertIn('T1',texts);self.assertIn('T2',texts)
         self.assertNotIn('T0',texts);self.assertNotIn('T3',texts)
-        self.assertIn('2.05g',texts);self.assertIn('20.36g',texts)
+        self.assertIn('2g',texts);self.assertIn('20g',texts)
         self.assertIn('Print',texts);self.assertIn('Cancel',texts)
 
     def test_four_rows_fit_and_metadata_is_not_redrawn_on_every_poll(self):

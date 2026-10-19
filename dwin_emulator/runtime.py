@@ -29,6 +29,7 @@ class Emulator:
         self.model = None
         self.online = False
         self.baseline = False
+        self._generation = 0
         self.set_enabled(enabled)
 
     def set_enabled(self, enabled):
@@ -43,12 +44,14 @@ class Emulator:
                 self.model = self.factory()
             else:
                 self.model = None
+            self._generation += 1
             self.baseline = False
             self.online = False
 
     def reset_panel(self):
         with self.lock:
             if self.model is not None:
+                self._generation += 1
                 self.model.reset()
                 self.baseline = True
                 self.online = True
@@ -76,6 +79,18 @@ class Emulator:
             if not self.online or not self.baseline:
                 raise RuntimeError('LCD is disconnected or a fresh panel baseline is required')
             return self.model.snapshot()
+
+    def snapshot_if_changed(self, previous):
+        with self.lock:
+            if self.model is None or not self.online or not self.baseline:
+                raise RuntimeError('LCD framebuffer unavailable')
+            if self.model.errors or self.model.presented is None:
+                raise RuntimeError('LCD framebuffer incomplete')
+            token = (self._generation, self.model.frame_token())
+            if previous == token:
+                return None, token
+            image, _ = self.model.snapshot()
+            return image, token
 
     def close(self):
         self.set_enabled(False)

@@ -2,7 +2,7 @@
 
 [English](maintenance-filament.md)
 
-E01/E07 bilinen aktif ekstrüder, min_extrude_temp üzerinde kararlı sıcaklık, can_extrude, açık yol ve homing ister. Onaylı SAVE/hareket/hareketsiz temizleme ile 1 mm/s hızda 5 mm komut eder; modal durum geri okunur. E02 10 mm komut eder, haricen ölçülmüş uzunluğu zorunlu tutar ve farkı gösterir; rotation_distance yazmaz.
+E01/E07 bilinen aktif ekstrüder, min_extrude_temp üzerinde kararlı sıcaklık, can_extrude ve açık filament yolu ister. Yalnız ekstrüzyon yapan bu kontroller XYZ eksenlerini hareket ettirmez ve XYZ homing gerektirmez. Onaylı SAVE/hareket/hareketsiz temizleme ile 1 mm/s hızda 5 mm komut eder; modal durum geri okunur. E02 10 mm komut eder, haricen ölçülmüş uzunluğu zorunlu tutar ve farkı gösterir; rotation_distance yazmaz.
 
 E03 ENABLE=0 ile sensör takma/runout makrolarını bastırır; yok → var → yok geçişini ölçer ve başlangıç etkinlik durumunu geri yükler. E04 eşleşen ekstrüderle 5 mm besleme ve güncel false → true hareket bildirimi ister. Yeni geçiş olmadan kilitli true sinyali yeterli değildir; sensör bildirimi ölçülmüş besleme uzunluğu değildir. Belirsiz geri yükleme açıkça bildirilir.
 
@@ -19,3 +19,5 @@ E11/E12 **şimdilik Maintenance altında çalıştırılamaz ve menüde görünm
 E14 yalnız beyan edilmiş kurutucuyu, güncel termal kontroller ve OFF geri okumasıyla sınırlı bekletme parçalarında çalıştırır. İptal veya belirsiz aktif komut Klipper emergency_stop ister. Genel ısıtıcı kendiliğinden kurutucu sayılmaz. E13 gerçek Spoolman API kanıtı ister; beyan edilmiş bağlantılı kullanımı gösterir, aşınmayı ölçmez. E15 hazne nemini gösterir, filamentin iç nemini değil. İkisi INFORMATION tanılamasıdır.
 
 Sonraki her eylem kuyruk/bağlantı kontrolünü yeniler. Kullanıcı sorularının süresi dolmaz. Firmware hatası hareketi tekrar göndermez. CI fiziksel kabul değildir.
+
+Kurutucu menü hedefleri READY keşfinde tutulan küçük hedef kayıtlarından gelir. Hedef listelemek profil dosyasını yeniden açmaz. Açıkça başlatılan test, onay veya fiziksel komuttan önce profili mevcut worker üzerinde yükleyip doğrular.

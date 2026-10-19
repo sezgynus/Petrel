@@ -18,3 +18,5 @@ Typed evidence bridges live observations and saved results using an explicit uni
 
 
 Sampled printing and component ON time are bound to service records through a durable counter identity. Completion stores its date, counter and identity; missing/reset counters or identity changes stay unknown. A sampled lower bound above the interval can prove due; below it cannot prove not due. Calendar and usage bases use distinct completion records.
+
+Configuration fingerprints use canonical JSON converted recursively from frozen mappings; key insertion order does not change identity. Exact legacy fingerprints remain readable for compatible heating references without implicit rewriting. New width captures migrate an exact legacy key to its canonical identity.

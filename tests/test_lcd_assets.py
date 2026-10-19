@@ -26,6 +26,18 @@ class AssetContracts(unittest.TestCase):
         self.assertEqual(build_library(source),
                          (ROOT / 'assets/emulator' / ICON_LIBRARY_FILENAME).read_bytes())
 
+    def test_wifi_icon_sources_are_20px_and_use_filtered_background(self):
+        from PIL import Image
+        from dwin_emulator.assets import PanelAssets
+        from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
+        assets = PanelAssets()
+        for number in (ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG):
+            with self.subTest(icon=number):
+                with Image.open(ROOT / 'assets/icons' / ('%d.jpg' % number)) as icon:
+                    self.assertEqual(icon.size, (20, 20))
+                    self.assertLess(max(icon.getpixel((0, 0))), 32)
+                self.assertEqual(assets.icon(ICON_LIBRARY_ID, number).size, (20, 20))
+
     def test_ui_icon_ids_match_verified_stock_manifest(self):
         manifest = json.loads((ROOT / 'docs/lcd-assets.json').read_text())
         tree = ast.parse((ROOT / 'petrel_ui.py').read_text())

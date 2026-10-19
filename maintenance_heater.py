@@ -16,7 +16,7 @@ from urllib.parse import quote
 from maintenance_catalog import definition_for
 from maintenance_thermal_profiles import profile_for
 from maintenance_discovery import AUTOMATIC, CALIBRATION
-from maintenance_planner import AdapterRegistration, build_plan, visible_plan
+from maintenance_planner import AdapterRegistration, registered_plan
 from maintenance_runtime import read_queue_evidence, live_safety_context
 from maintenance_safety import precheck
 from maintenance_thermal import ACTIVE, PID, ThermalSeries, contract, sample, pid_evidence, heater_name
@@ -32,7 +32,7 @@ def thermal_adapters():
 
 
 def thermal_plan(snapshot):
-    return tuple(r for r in visible_plan(build_plan(snapshot, thermal_adapters()))
+    return tuple(r for r in registered_plan(snapshot, thermal_adapters())
                  if r.device == 'heater_bed' or
                  (isinstance(r.device, str) and r.device.startswith('extruder')
                   and (r.device == 'extruder' or r.device[8:].isdigit())) or
@@ -79,6 +79,7 @@ class MaintenanceHeaterController:
         self._metrics = ()
         self._component_metrics = ()
         self._refreshing_consent = False
+        self._tracking_generation = 0
 
     @property
     def phase(self):
@@ -170,6 +171,17 @@ class MaintenanceHeaterController:
             raise ValueError('existing_or_unknown_pending_config')
         return evidence, point, c, pid_evidence(config, row.device) if row.feature_id in PID else ()
 
+    def _initial_read(self, generation):
+        if generation != self._tracking_generation or not self.pending:
+            raise ValueError('thermal_preflight_cancelled')
+        subscription = self._printer.subscription
+        tracker = getattr(type(subscription), 'set_thermal_tracking', None)
+        if callable(tracker):
+            subscription.set_thermal_tracking(True).result(timeout=5)
+        if generation != self._tracking_generation or not self.pending:
+            raise ValueError('thermal_preflight_cancelled')
+        return self._read(True)
+
     def start(self, feature_id, device=None, **kwargs):
         if self._closed or self._blocked or self.pending:
             return False, 'thermal_busy_or_locked'
@@ -190,13 +202,19 @@ class MaintenanceHeaterController:
         self._dispatch_rejected = False
         self._deadline = monotonic()+12
         try:
-            self._future = self._worker.submit(lambda: self._read(True), queue_timeout=8)
+            self._tracking_generation += 1
+            generation = self._tracking_generation
+            self._future = self._worker.submit(lambda: self._initial_read(generation), queue_timeout=8)
         except Exception:
             self._phase = None
             return False, 'thermal_worker_rejected'
         return True, 'thermal_preflight_queued'
 
     def _finish(self, status, reason, restored=False, components=()):
+        self._tracking_generation += 1
+        subscription = self._printer.subscription
+        if callable(getattr(type(subscription), 'set_thermal_tracking', None)):
+            subscription.set_thermal_tracking(False)
         c = self._contract
         conditions = (('profile_version', 1),)
         if c is not None:

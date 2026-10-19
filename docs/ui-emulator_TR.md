@@ -118,7 +118,7 @@ Bütün durumlar gerçek UI/driver ile örnek verilerden üretilir; fiziksel yaz
 
 ## İsteğe bağlı canlı Remote Display (8088 portu)
 
-Petrel, LCD framebuffer'ını küçük bir HTTP sunucusuyla canlı sunabilir ve sanal enkoder girişlerini kabul eder: mouse tekerleği enkoderi döndürür, orta tuş ENTER üretir. Ekrandaki **CCW**, **Enter** ve **CW** butonları, dokunmatik ekranlar dahil aynı girişleri sağlar. Her döndürme butonu tıklaması enkoderi bir adım ilerletir. Gerçek LCD ve enkoder de çalışmaya devam eder.
+Petrel, LCD framebuffer'ını küçük bir HTTP sunucusuyla canlı sunabilir ve sanal enkoder girişlerini kabul eder: mouse tekerleği enkoderi döndürür, orta tuş veya klavyedeki Enter tuşu ENTER üretir. Ekrandaki **CCW**, **Enter** ve **CW** butonları, dokunmatik ekranlar dahil aynı girişleri sağlar. Her döndürme butonu tıklaması enkoderi bir adım ilerletir. Gerçek LCD ve enkoder de çalışmaya devam eder.
 
 `~/.config/Petrel/Petrel.env` dosyasında etkinleştir:
 
@@ -126,6 +126,8 @@ Petrel, LCD framebuffer'ını küçük bir HTTP sunucusuyla canlı sunabilir ve 
 PETREL_REMOTE=1
 PETREL_REMOTE_PORT=8088
 ```
+
+Sunucu aynı anda en fazla 8 bağlantı kabul eder; boşta kalan okumaları 2 saniye sonra kapatır ve giriş gövdesi için toplam 2 saniye süre verir. Görünen içerik veya animasyon karesi değişene kadar tek JPEG izleyiciler arasında paylaşılır. Klavye Enter kısayolu izleyici odaktayken çalışır; odaktaki butonlar normal klavye davranışını korur.
 
 Varsayılan dinleme adresi artık **`0.0.0.0:8088`**, yani bütün IPv4 ağ arayüzleridir. `PETREL_REMOTE_HOST=0.0.0.0` satırı isteğe bağlıdır (zaten varsayılan). Feature sürümü çalışırken yerel ağdan **`http://<PI_LAN_IP>:8088`** veya Tailscale üzerinden **`http://<PI_TAILSCALE_IP>:8088`** adresini açabilirsin. SSH tüneli veya Tailscale Serve gerekmez. Tailscale IP'si `tailscale ip -4` ile öğrenilebilir.
 
@@ -136,3 +138,5 @@ Açık internetten erişim için ayrıca **dışarıdan erişilebilir bir IP/adr
 Sunucu isteğe bağlıdır; `PETREL_REMOTE` kapatılıp Petrel yeniden başlatıldığında dinleme durur. Daha dar erişim tercih edilirse `PETREL_REMOTE_HOST=tailscale` (sadece mevcut Tailscale IPv4) veya `PETREL_REMOTE_HOST=127.0.0.1` (yalnız Pi) kullanılabilir. Ayarları değiştirdikten sonra yazıcı boşta iken Petrel'i yeniden başlat. `PETREL_REMOTE=1` emülatörü otomatik açar.
 
 Görüntü kareleri istek üzerine yaklaşık 4 FPS hızında, 272×480 boyutunda üretilir; sanal enkoder girişleri fiziksel girdilerle aynı oturum kontrollü UI olay kuyruğundan geçer. Uzaktan orta tuşu basılı tutmak güç uzun basışını bilerek tetiklemez. Ekran tek başına fan, LED veya buzzer'ın fiziksel çalıştığını doğrulamaz.
+
+Branch CI, regresyonlardan sonra dört yenileme komutunu çalıştırır; normal/çerçeveli PNG ve GIF çıktılarını birlikte display-documentation artifact'ine yükler. Çıktıları aynı başarılı, imzalı kaynak sürümünden yayımlayın.

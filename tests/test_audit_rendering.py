@@ -111,9 +111,17 @@ class AuditRenderingTests(unittest.TestCase):
         result.pd.feedrate_percentage = 1000
         result.pd.thermalManager['temp_hotend'][0]['target'] = 1200
         result.Draw_Status_Area(False)
-        self.assertTrue(any(frame[11:-4] == b'###' for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11))
+        texts = [frame[11:-4] for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11]
+        actual = result.pd.thermalManager['temp_hotend'][0]['celsius']
+        self.assertIn(('%d/1200' % actual).encode('ascii'), texts)
+        # The shared dashboard field now fits nine characters; verify overflow
+        # against a value that truly exceeds the column, not the old limit.
+        result.pd.thermalManager['temp_hotend'][0]['target'] = 120000
+        result.Draw_Status_Area(True)
+        texts = [frame[11:-4] for frame in result.lcd.MYSERIAL1.frames if frame[1] == 0x11]
+        self.assertIn(b'#########', texts)
         self.assertEqual(result.pd.feedrate_percentage, 1000)
-        self.assertEqual(result.pd.thermalManager['temp_hotend'][0]['target'], 1200)
+        self.assertEqual(result.pd.thermalManager['temp_hotend'][0]['target'], 120000)
         result.lcd.draw_signed_scaled_float_text(1, 0, 3, 1, 216, 50, 1234567890)
         self.assertEqual(result.lcd.MYSERIAL1.frames[-1][11:-4], b'######')
         result.lcd.draw_signed_scaled_float_text(1, 0, 3, 1, 216, 50, 5)
@@ -151,21 +159,21 @@ class AuditRenderingTests(unittest.TestCase):
         result.Draw_Move_Menu()
         frames = [f for f in result.lcd.MYSERIAL1.frames if f[1] == 0x11]
         rendered = [f[11:-4].strip() for f in frames
-                    if int.from_bytes(f[7:9], 'big') == 208
+                    if int.from_bytes(f[7:9], 'big') in (208,216)
                     and int.from_bytes(f[9:11], 'big') in (102, 155, 208, 261)]
-        self.assertEqual(rendered, [b'-1.5', b'12.3', b'2.5', b'-4.5'])
+        self.assertEqual(rendered, [b'-1.50', b'12.30', b'2.5', b'-4.5'])
         result.select_axis.set(1)
         result.get_encoder_state = lambda: result.ENCODER_DIFF_ENTER
         result.HMI_AxisMove()
         self.assertEqual(result.pd.HMI_ValueStruct.Move_X_scale, -15)
         frames = [f for f in result.lcd.MYSERIAL1.frames if f[1] == 0x11]
-        self.assertEqual(frames[-1][11:-4].strip(), b'-1.5')
+        self.assertEqual(frames[-1][11:-4].strip(), b'-1.50')
         result.pd.sendGCode.assert_not_called()
 
     def test_move_menu_without_hotend_draws_only_xyz(self):
         result = display(snapshot(hotend=False))
         result.Draw_Move_Menu()
-        self.assertEqual(result.lcd.draw_scaled_float_text.call_count, 3)
+        self.assertEqual(len([c for c in result.lcd.draw_text.call_args_list if c.args[5]==216]),3)
         result.lcd.draw_signed_scaled_float_text.assert_not_called()
 
 

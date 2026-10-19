@@ -10,8 +10,9 @@ import time
 import uuid
 from urllib.parse import quote
 from collections.abc import Mapping
-from concurrent.futures import Future
+from concurrent.futures import Future, CancelledError
 from threading import Lock
+from display_numbers import js_round
 from background_reads import ReadWorker, ReadPending
 from operation_guards import motion_dispatch_guard
 from motion_settings import PARAMETERS, validate as validate_motion
@@ -264,6 +265,7 @@ class PrinterData:
         }
         self._system_info_refresh_at = 0.0
         self._system_info_refresh_interval = 5.0
+        self._wifi_status_refresh_at = 0.0
         self._preset_refresh_at = 0.0
         self._preset_refresh_interval = 5.0
         self.refresh_mainsail_presets(force=True)
@@ -277,6 +279,12 @@ class PrinterData:
         if not self.material_preset and not self.presets_from_mainsail:
             self.material_preset = copy.deepcopy(type(self).material_preset)
         self.files = []
+        self._files_generation = 0
+        self._root_prefetch_unretained = None
+        self._files_paths_snapshot = ()
+        self._file_thumbnail_keys = {}
+        self._file_thumbnail_list = None
+        self._file_sort_pending = None
         self.file_error = None
         self._files_loaded = False
         self._file_epoch = -1
@@ -309,7 +317,10 @@ class PrinterData:
 
     def _read(self, key, work, stamp=None):
         if stamp is None:
-            stamp = self.subscription.snapshot().get('epoch', 0) if hasattr(self, 'subscription') else 0
+            reader = getattr(self.subscription, 'lifecycle', None) if hasattr(self, 'subscription') else None
+            life = reader() if callable(reader) else None
+            stamp = (life.get('epoch', 0) if isinstance(life, dict) else
+                     self.subscription.snapshot().get('epoch', 0) if hasattr(self, 'subscription') else 0)
         job = self._read_jobs.get(key)
         if job is not None and job[0] != stamp:
             job[1].cancel()
@@ -326,6 +337,23 @@ class PrinterData:
         self._read_jobs.pop(key)
         return job[1].result()
 
+    def refresh_wifi_status(self):
+        """Keep header RSSI fresh on the existing read worker, without blocking UI."""
+        now = time.monotonic()
+        if now < self._wifi_status_refresh_at:
+            return False
+        try:
+            ssid, rssi = self._read('wifi_status', wifi_info)
+        except ReadPending:
+            return False
+        except (MoonrakerError, CancelledError, OSError, ValueError, TypeError, UnicodeError) as error:
+            logging.debug('Wi-Fi status read unavailable: %s', error)
+            ssid, rssi = 'Unavailable', None
+        self._wifi_status_refresh_at = now + 5.0
+        previous = (self.system_info.get('wifi_ssid'), self.system_info.get('wifi_rssi'))
+        self.system_info['wifi_ssid'], self.system_info['wifi_rssi'] = ssid, rssi
+        return previous != (ssid, rssi)
+
     def refresh_system_info(self, force=False):
         """Refresh component versions and host IPv4 without mutating printer state."""
         now = time.monotonic()
@@ -335,21 +363,14 @@ class PrinterData:
         previous = dict(self.system_info)
         current = dict(previous)
         try:
-            def read_info():
-                wireless = wifi_info()
-                try:
-                    return wireless, self.client.get('/machine/update/status'), None
-                except MoonrakerError as error:
-                    return wireless, None, error
             # lifecycle() reads only connection metadata; snapshot() deep-copies
             # all subscribed objects and is unnecessary on every pending poll.
             lifecycle = self.subscription.lifecycle()
             epoch = (lifecycle.get('epoch', 0) if isinstance(lifecycle, Mapping)
                      else self.subscription.snapshot().get('epoch', 0))
-            wireless, response, error = self._read('system_info', read_info, stamp=epoch)
-            current['wifi_ssid'], current['wifi_rssi'] = wireless
-            if error is not None:
-                raise error
+            # Header and Info share one throttled Wi-Fi reader and its cache.
+            response = self._read('system_info',
+                lambda: self.client.get('/machine/update/status'),stamp=epoch)
             versions = response.get('result', {}).get('version_info', {})
             if not isinstance(versions, Mapping):
                 raise ValueError('Invalid update-manager status')
@@ -408,7 +429,8 @@ class PrinterData:
                         pass
                 temperature = None
                 for sensor_mcu, sensor_temperature in temperatures:
-                    if object_name.endswith(sensor_mcu):
+                    mcu_name = object_name if object_name == 'mcu' else object_name.split(' ', 1)[1]
+                    if mcu_name == sensor_mcu:
                         temperature = sensor_temperature
                         break
                 mcus.append({'name': object_name, 'load': load,
@@ -495,6 +517,9 @@ class PrinterData:
         self.recovery.close()
         self.maintenance_pulse.close()
         self.maintenance_reader.close()
+        barrier = getattr(self.subscription, 'wait_for_emergency_requests', None)
+        if callable(barrier) and not barrier(timeout=3.0):
+            logging.error('Maintenance safety stop unconfirmed during shutdown')
         self.maintenance.clear()
         # TEMPORARY MAINTENANCE TEST TRACE: preserve shutdown tail.
         trace = getattr(self,'maintenance_test_trace',None)
@@ -503,8 +528,24 @@ class PrinterData:
         self.subscription.close()
         self._read_worker.close()
         self._maintenance_worker.close()
+        self.maintenance_book.close()
         self.spoolman_client.close()
-        self.client.close()
+        # Started HTTP reads cannot be forcibly cancelled. Release their shared
+        # transport only after BOTH workers have relinquished ownership.
+        workers = [w for w in (self._read_worker, self._maintenance_worker)
+                   if callable(getattr(type(w), 'on_stopped', None))]
+        remaining = len(workers)
+        release_lock = Lock()
+        def release():
+            nonlocal remaining
+            with release_lock:
+                remaining -= 1
+                if remaining == 0:
+                    self.client.close()
+        if not workers:
+            self.client.close()
+        for worker in workers:
+            worker.on_stopped(release)
         if trace is not None:
             trace.flush()
 
@@ -584,7 +625,7 @@ class PrinterData:
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
-        return bases+(('sampled_on_s',) if device in self.maintenance_book._names else ())
+        return bases+(('sampled_on_s',) if device in self.maintenance_book._observed else ())
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
         from maintenance_reference import request
@@ -699,7 +740,7 @@ class PrinterData:
         snapshot = self.subscription.snapshot()
         if (self.connection_error or not self.state.ready or snapshot['state'] != 'ready'
                 or snapshot['epoch'] != self.state.epoch):
-            from concurrent.futures import Future
+            from concurrent.futures import Future, CancelledError
             future = Future()
             future.cleanup_complete = cleanup is not None
             future.set_exception(MoonrakerError('Printer connection is not ready'))
@@ -789,8 +830,60 @@ class PrinterData:
         # Bootstrap and reconnection run on the subscription thread.
         return self.update_variable()
 
+    def _invalidate_files(self):
+        """Release all owners of file data together across backend sessions."""
+        self._files_generation += 1
+        self.files = []
+        self._files_paths_snapshot = ()
+        self._file_thumbnail_keys = {}
+        self._file_thumbnail_list = None
+        self._files_loaded = self._files_loading = self._directory_loading = False
+        self._file_retry_at = 0.
+        self._directory_cache.clear()
+        self._directory_retry_at.clear()
+        self._directory_revision_key = None
+        self._root_prefetch_unretained = None
+        for name in ('_directory_cache_sizes', '_directory_orders'):
+            getattr(self, name, {}).clear()
+        pending, self._file_sort_pending = self._file_sort_pending, None
+        if pending is not None:
+            pending[2].cancel()
+        for key in tuple(self._read_jobs):
+            if key == 'files' or isinstance(key, tuple) and key[0] in ('directory', 'directory_sort'):
+                self._read_jobs.pop(key)[1].cancel()
+
+    def _file_sort_identity(self):
+        return (self.state.epoch, self.state.file_revision, id(self.files), self.file_sort_revision)
+
+    def _poll_file_sort(self, now):
+        identity, preference, future = self._file_sort_pending
+        if identity != self._file_sort_identity():
+            future.cancel()
+            self._file_sort_pending = None
+            self._file_sort_refresh_at = 0.
+            return False
+        if not future.done():
+            return False
+        self._file_sort_pending = None
+        self._file_sort_refresh_at = now + 5.
+        try:
+            files, paths = future.result()
+        except Exception as error:
+            logging.debug('File resort unavailable: %s', type(error).__name__)
+            return False
+        old_files = self.files
+        self.files = files
+        self._files_paths_snapshot = paths
+        if self._file_thumbnail_list is old_files:
+            self._file_thumbnail_list = files
+        self.file_sort = preference
+        self.file_sort_revision += 1
+        return True
+
     def refresh_file_sort(self, force=False):
         now = time.monotonic()
+        if self._file_sort_pending is not None:
+            return self._poll_file_sort(now)
         if not force and now < self._file_sort_refresh_at:
             return False
         try:
@@ -811,14 +904,19 @@ class PrinterData:
             preference = ('modified', True)
         if preference == self.file_sort:
             return False
-        self.file_sort = preference
-        self.file_sort_revision += 1
-        self._sort_files()
-        return True
+        # Work on a private copy; queued results bind to this exact list/session.
+        source = self.files
+        identity = self._file_sort_identity()
+        def resort():
+            files = list(source)
+            self._sort_files(files, preference=preference)
+            return files, tuple(item['path'] for item in files)
+        self._file_sort_pending = (identity, preference, self._read_worker.submit(resort))
+        return self._poll_file_sort(now)
 
-    def _sort_files(self, entries=None):
+    def _sort_files(self, entries=None, preference=None):
         items = self.files if entries is None else entries
-        field, descending = self.file_sort
+        field, descending = self.file_sort if preference is None else preference
         # Deterministic ties and full paths preserve distinct nested files.
         items.sort(key=lambda item: (item['path'].casefold(), item['path']))
         def value(item):
@@ -834,21 +932,31 @@ class PrinterData:
         self.refresh_file_sort()
         if not self._files_loaded or refresh:
             if time.monotonic() < self._file_retry_at and not refresh:
-                return tuple(item['path'] for item in self.files)
+                return self._files_paths_snapshot
             self._files_loaded = False
             self._files_loading = True
             try:
-                files = self._read('files', lambda: self.getREST('/server/files/list'),
-                                   (self.state.epoch, self.state.file_revision))['result']
-                if not isinstance(files, list) or not all(
-                        isinstance(item, dict) and isinstance(item.get('path'), str)
-                        and item['path'] for item in files):
-                    raise ValueError('Invalid file list')
-                paths = [item['path'] for item in files]
-                if len(paths) != len(set(paths)):
-                    raise ValueError('Duplicate file paths')
-                self.files = list(files)
-                self._sort_files()
+                preference = self.file_sort
+                revision = self.state.file_revision
+                def prepare():
+                    files = self.getREST('/server/files/list')['result']
+                    if not isinstance(files, list) or not all(
+                            isinstance(item, dict) and isinstance(item.get('path'), str)
+                            and item['path'] for item in files):
+                        raise ValueError('Invalid file list')
+                    paths = {item['path'] for item in files}
+                    if len(paths) != len(files):
+                        raise ValueError('Duplicate file paths')
+                    self._sort_files(files, preference=preference)
+                    keys = {item['path']: (item['path'], item.get('modified'), item.get('size'),
+                            revision if item.get('modified') is None else None) for item in files}
+                    return files, tuple(item['path'] for item in files), keys
+                files, paths, keys = self._read('files', prepare,
+                    (self.state.epoch, revision, self.file_sort_revision))
+                self.files = files
+                self._files_paths_snapshot = paths
+                self._file_thumbnail_keys = keys
+                self._file_thumbnail_list = files
                 self.file_error = None
                 self._files_loaded = True
                 self._files_loading = False
@@ -860,14 +968,15 @@ class PrinterData:
                 self._files_loaded = False
                 self._files_loading = False
                 self._file_retry_at = time.monotonic() + 5
-        return tuple(item['path'] for item in self.files)
+        return getattr(self, '_files_paths_snapshot', tuple())
 
     def prefetch_files(self):
         """Warm the root browser cache using the existing nonblocking read worker."""
         if not self.state.ready:
             return
         key = (self.state.epoch, self.state.file_revision, '')
-        if not self._files_loaded or key not in self._directory_cache:
+        if not self._files_loaded or (key not in self._directory_cache
+                                     and key != self._root_prefetch_unretained):
             self.GetDirectory('')
 
     DIRECTORY_CACHE_BYTES = 2 * 1024 * 1024
@@ -888,47 +997,66 @@ class PrinterData:
         return size
 
     def GetDirectory(self, directory=''):
-        self._directory_loading = False
+        # A snapshot stays unresolved through read failures and retry backoff.
+        # Only a successful directory result (including empty) may clear this.
+        self._directory_loading = True
         self.GetFiles()
         if self.file_error or self._files_loading:
             return ()
         if directory and any(part in ('', '.', '..') for part in directory.split('/')):
             raise ValueError('Invalid directory path')
         key = (self.state.epoch, self.state.file_revision, directory)
+        orders = getattr(self, '_directory_orders', {})
+        self._directory_orders = orders
         sizes = getattr(self, '_directory_cache_sizes', {})
         self._directory_cache_sizes = sizes
         for old in tuple(sizes):
             if old not in self._directory_cache:
                 del sizes[old]
+                orders.pop(old, None)
         if self._directory_revision_key != key[:2]:
             self._directory_cache.clear()
             sizes.clear()
+            orders.clear()
             self._directory_retry_at.clear()
             self._directory_revision_key = key[:2]
+            self._root_prefetch_unretained = None
         try:
             if key not in self._directory_cache:
                 if time.monotonic() < self._directory_retry_at.get(key, 0):
                     return ()
                 self._directory_loading = True
-                response = self._read(('directory', directory),
-                    lambda: self.getREST('/server/files/directory?path=' + quote('gcodes/' + directory, safe='')), key)
-                data = response['result']
-                entries = []
-                for group, name_key, is_dir in (('dirs', 'dirname', True), ('files', 'filename', False)):
-                    for item in data[group]:
-                        name = item[name_key]
-                        if not isinstance(name, str) or not name or '/' in name or name in ('.', '..'):
-                            raise ValueError('Invalid directory entry')
-                        if name.startswith('.') or (not is_dir and not name.lower().endswith('.gcode')):
-                            continue
-                        path = (directory + '/' if directory else '') + name
-                        entries.append(dict(item, path=path + ('/' if is_dir else ''), isDirectory=is_dir))
-                if len({item['path'] for item in entries}) != len(entries):
-                    raise ValueError('Duplicate directory entries')
-                size = self._directory_size(entries)
+                preference = self.file_sort
+                def prepare_directory():
+                    data = self.getREST('/server/files/directory?path=' + quote('gcodes/' + directory, safe=''))['result']
+                    entries = []
+                    for group, name_key, is_dir in (('dirs', 'dirname', True), ('files', 'filename', False)):
+                        for item in data[group]:
+                            name = item[name_key]
+                            if not isinstance(name, str) or not name or '/' in name or name in ('.', '..'):
+                                raise ValueError('Invalid directory entry')
+                            if name.startswith('.') or (not is_dir and not name.lower().endswith('.gcode')):
+                                continue
+                            path = (directory + '/' if directory else '') + name
+                            entries.append(dict(item, path=path + ('/' if is_dir else ''), isDirectory=is_dir))
+                    if len({item['path'] for item in entries}) != len(entries):
+                        raise ValueError('Duplicate directory entries')
+                    size = self._directory_size(entries)
+                    self._sort_files(entries, preference=preference)
+                    entries.sort(key=lambda item: not item['isDirectory'])
+                    return entries, size, tuple(item['path'] for item in entries)
+                entries, size, paths = self._read(('directory', directory), prepare_directory,
+                    (key, preference))
                 if size <= self.DIRECTORY_CACHE_BYTES:
                     self._directory_cache[key] = entries
                     sizes[key] = size
+                    orders[key] = (preference, paths)
+                if not directory:
+                    # A successful oversized root needs no further automatic
+                    # prefetch in this revision. Keep only its identity, not data.
+                    # Explicit GetDirectory calls still fetch and return paths.
+                    self._root_prefetch_unretained = (
+                        key if size > self.DIRECTORY_CACHE_BYTES else None)
                 self._directory_loading = False
                 self._directory_retry_at.pop(key, None)
             # Insertion-ordered cache: keep the root and current parent available
@@ -946,13 +1074,27 @@ class PrinterData:
                     victim = next(iter(self._directory_cache))
                 del self._directory_cache[victim]
                 retained -= sizes.pop(victim, 0)
-            self._sort_files(entries)
-            entries.sort(key=lambda item: not item['isDirectory'])
-            return tuple(item['path'] for item in entries)
+                orders.pop(victim, None)
+            order = orders.get(key)
+            if order is not None and order[0] != self.file_sort:
+                preference = self.file_sort
+                source = entries
+                def resort():
+                    items = list(source)
+                    self._sort_files(items, preference=preference)
+                    items.sort(key=lambda item: not item['isDirectory'])
+                    return items, tuple(item['path'] for item in items)
+                self._directory_loading = True
+                entries, paths = self._read(('directory_sort', directory), resort, (key, preference))
+                self._directory_loading = False
+                self._directory_cache[key] = entries
+                orders[key] = (preference, paths)
+            self._directory_loading = False
+            return orders[key][1] if key in orders else paths
         except ReadPending:
             return ()
         except (MoonrakerError, KeyError, TypeError, ValueError) as error:
-            self._directory_loading = False
+            self._directory_loading = True
             self._directory_retry_at[key] = time.monotonic() + 5
             # Only the newest retry deadlines may survive in the current revision.
             for old in list(self._directory_retry_at)[:-64]:
@@ -965,15 +1107,15 @@ class PrinterData:
     def _spool_remaining_percent(spool):
         try:
             remaining = float(spool['remaining_weight'])
-            initial = float(spool.get('initial_weight') or 0)
-            if initial <= 0:
-                used = float(spool.get('used_weight') or 0)
-                initial = remaining + used
+            initial = spool.get('initial_weight')
+            if initial is None:
+                initial = (spool.get('filament') or {}).get('weight')
+            initial = float(initial)
             if (not math.isfinite(remaining) or not math.isfinite(initial)
                     or initial <= 0 or remaining < 0):
                 return None
-            return max(0, min(100, int(round(remaining * 100.0 / initial))))
-        except (KeyError, TypeError, ValueError):
+            return math.ceil(max(0, min(100, remaining / initial * 100)))
+        except (KeyError, TypeError, ValueError, AttributeError):
             return None
 
     def _poll_spoolman_percentages(self, spool_ids):
@@ -1057,6 +1199,8 @@ class PrinterData:
                     self.maintenance_pulse.cancel()
                     self.maintenance_reader.cancel()
                     self.maintenance.clear()
+                if self.state.ready or self.files or self._files_loaded:
+                    self._invalidate_files()
                 self.state = state
                 self._note_maintenance_state(state)
                 self._files_loaded = False
@@ -1118,7 +1262,7 @@ class PrinterData:
                 else:
                     target['celsius'] = int(data[obj]['temperature'])
                     target['target'] = int(data[obj]['target'])
-            thermal['fan_speed'][0] = int(data['fan']['speed'] * 100) if caps.fan else 0
+            thermal['fan_speed'][0] = js_round(data['fan']['speed'] * 100) if caps.fan else 0
             mmu = None
             spoolman_changed = False
             if 'mmu' in data:
@@ -1199,15 +1343,14 @@ class PrinterData:
             # rediscover on menu entry or during ordinary print updates.
             self.maintenance.ready(state, self.client, self._maintenance_worker,
                                    lambda: self.state, integrations=self.maintenance_integrations(state))
-            self._files_loaded = False
-            self.files = []
+            self._invalidate_files()
             self._file_epoch = state.epoch
         if state.file_revision != self._file_revision:
             self._files_loaded = False
             self._file_revision = state.file_revision
         self.thermalManager = thermal
-        self.feedrate_percentage = round(speed_percent)
-        self.flow_percentage = round(flow_percent)
+        self.feedrate_percentage = js_round(speed_percent)
+        self.flow_percentage = js_round(flow_percent)
         self.live_velocity = live_velocity
         self.live_extruder_velocity = live_extruder_velocity
         self.volumetric_flow = volumetric_flow
@@ -1233,13 +1376,20 @@ class PrinterData:
     def printingIsPaused(self):
         return self.job_Info['print_stats']['state'] == "paused" or self.job_Info['print_stats']['state'] == "pausing"
 
+    def _print_file_identity(self, filename):
+        reader = getattr(self.subscription, 'file_identity', None)
+        identity = reader(filename) if callable(reader) else None
+        return identity if isinstance(identity, tuple) and len(identity) == 2 else (self.state.epoch, self.state.file_revision)
+
     def _refresh_print_metadata(self):
         """One bounded asynchronous metadata read per job/file revision."""
         filename = self.job_Info['print_stats'].get('filename', '')
-        stamp = (self.state.epoch, self.state.file_revision, filename)
+        stamp = (*self._print_file_identity(filename), filename)
         if stamp != getattr(self, '_print_metadata_stamp', None):
+            old = getattr(self, '_print_metadata_stamp', None)
             self._print_metadata_stamp = stamp
-            self._print_metadata = {}
+            if old is None or old[0] != stamp[0] or old[2] != filename:
+                self._print_metadata = {}
             self._print_metadata_loaded = False
             self._print_metadata_retry = 0.
             job = self._read_jobs.pop('print_metadata', None)
@@ -1270,7 +1420,7 @@ class PrinterData:
         if stamp is None or stamp[2] != filename:
             return {}
         state = getattr(self, 'state', None)
-        if state is not None and stamp[:2] != (state.epoch, state.file_revision):
+        if state is not None and stamp[0] != state.epoch:
             return {}
         return getattr(self, '_print_metadata', {})
 
@@ -1505,7 +1655,7 @@ class PrinterData:
             return None
         if not math.isfinite(value) or not 0 <= value <= 1:
             return None
-        return value > 0, int(round(value * 100))
+        return value > 0, js_round(value * 100)
 
     def set_case_light_brightness(self, percent):
         percent = float(percent)

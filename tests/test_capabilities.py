@@ -74,6 +74,31 @@ def display(data):
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_wifi_dashboard_refresh_reuses_background_read_and_is_throttled(self):
+        data = snapshot()
+        result = printer(data)
+        with patch.object(backend, 'wifi_info', return_value=('Workshop', -64.5)) as read, \
+                patch.object(backend.time, 'monotonic', return_value=100.0):
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_ssid'], 'Workshop')
+            self.assertEqual(result.system_info['wifi_rssi'], -64.5)
+            self.assertFalse(result.refresh_wifi_status())
+            read.assert_called_once()
+        with patch.object(backend, 'wifi_info', return_value=('Workshop', -54.0)) as read, \
+                patch.object(backend.time, 'monotonic', return_value=106.0):
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_rssi'], -54.0)
+            read.assert_called_once()
+
+    def test_wifi_pending_refresh_does_not_mutate_displayed_signal(self):
+        result = printer(snapshot())
+        with patch.object(result, '_read', side_effect=[backend.ReadPending(), ('Workshop', -70)]), \
+                patch.object(backend.time, 'monotonic', return_value=200.0):
+            self.assertFalse(result.refresh_wifi_status())
+            self.assertIsNone(result.system_info['wifi_rssi'])
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_rssi'], -70)
+
     def test_effective_limits_and_negative_axis_minimum(self):
         caps = PrinterCapabilities.from_state(PrinterState.from_snapshot(snapshot(probe=True)))
         self.assertEqual(caps.active_hotend.maximum, 305)
@@ -113,13 +138,11 @@ class CapabilityTests(unittest.TestCase):
         result.lcd.reset_mock()
         with patch.object(ui.time, 'monotonic', return_value=0):
             result.Draw_Status_Area(True)
-        calls = result.lcd.draw_integer_text.call_args_list
-        coordinates = [(call.args[7], call.args[8]) for call in calls]
-        self.assertIn((28, 380), coordinates)
-        self.assertIn((60, 380), coordinates)
-        self.assertIn((28, 414), coordinates)
-        self.assertIn((60, 414), coordinates)
-        self.assertLess(60 + 3 * 8, 102)
+        calls = [c.args for c in result.lcd.draw_text.call_args_list if c.args[5]==28]
+        self.assertEqual([(a[5],a[6],a[-1]) for a in calls if a[6] in (380,414)],
+                         [(28,380,'200/205'),(28,414,'55/60')])
+        for args in calls:
+            self.assertLessEqual(args[5]+len(args[-1])*8,102)
 
     def test_printer_data_initializes_mmu_before_first_status_update(self):
         with patch.object(backend, 'MoonrakerClient'), \
@@ -161,10 +184,10 @@ class CapabilityTests(unittest.TestCase):
                 {'remaining_weight': 580, 'initial_weight': 1000, 'used_weight': 420}),
             58)
 
-    def test_spoolman_remaining_percentage_falls_back_to_used_weight(self):
+    def test_spoolman_remaining_percentage_falls_back_to_filament_weight(self):
         self.assertEqual(
             backend.PrinterData._spool_remaining_percent(
-                {'remaining_weight': 400, 'used_weight': 600}),
+                {'remaining_weight': 400, 'used_weight': 600, 'filament': {'weight':1000}}),
             40)
         self.assertIsNone(
             backend.PrinterData._spool_remaining_percent(
@@ -553,8 +576,8 @@ class CapabilityMenuTests(unittest.TestCase):
         result.pd.system_info['host_ram'] = None
         self.assertIn(('row', 'RAM', 'N/A'), result._info_items())
         self.assertIn(('section', 'MCU: mcu', None), items)
-        self.assertIn(('row', 'Load', '1.2%'), items)
-        self.assertIn(('row', 'Temp', '42.5 C'), items)
+        self.assertIn(('row', 'Load', '1%'), items)
+        self.assertIn(('row', 'Temp', '43 C'), items)
         self.assertIn(('section', 'MCU: mmu', None), items)
         self.assertIn(('row', 'Temp', 'N/A'), items)
         result.Draw_Info_Menu()

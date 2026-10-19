@@ -2,7 +2,7 @@
 
 [Turkish](maintenance-filament_TR.md)
 
-E01/E07 require a known active extruder, stable temperature above min_extrude_temp, can_extrude, clear path and homing. They command 5 mm at 1 mm/s using acknowledged SAVE/movement/non-moving cleanup. Modal state is read back. E02 commands 10 mm, requires an external measured length, and reports the error; it never rewrites rotation_distance.
+E01/E07 require a known active extruder, stable temperature above min_extrude_temp, can_extrude and a clear filament path. These extrusion-only checks do not move XYZ and do not require XYZ homing. They command 5 mm at 1 mm/s using acknowledged SAVE/movement/non-moving cleanup. Modal state is read back. E02 commands 10 mm, requires an external measured length, and reports the error; it never rewrites rotation_distance.
 
 E03 suppresses sensor insert/runout macros with ENABLE=0, then measures absent → present → absent and restores the original enabled state. E04 uses a 5 mm feed with the matched extruder and requires a fresh false → true motion indication. A latched true signal without a fresh transition is insufficient; sensor indication is not measured feed length. Unknown restoration is explicitly reported.
 
@@ -19,3 +19,5 @@ Optional role file: ~/.config/Petrel/maintenance-filament.json, version 1. Suppo
 E14 runs only declared dryers, in bounded hold segments with fresh thermal checks and OFF readback. Cancel or an unknown active command requests Klipper emergency_stop. No generic heater is assumed to be a dryer. E13 requires actual Spoolman API evidence and reports declared linked usage, not wear. E15 reports chamber humidity, not moisture inside filament. Both are INFORMATION diagnostics.
 
 Every subsequent action refreshes queue/lifecycle checks. Human questions never expire. Firmware failure does not trigger movement replay. CI is not physical acceptance.
+
+Dryer menu targets come from compact READY-time discovery tokens. Listing targets never reopens the profile file. An explicit test start loads and validates the profile on the existing worker before consent or actuation.

@@ -9,7 +9,7 @@ from time import monotonic
 
 from maintenance_discovery import MaintenanceSnapshot
 from maintenance_executor import MaintenanceReadExecutor, ReadResult, read_only_adapters
-from maintenance_planner import build_plan, visible_plan
+from maintenance_planner import registered_plan
 from maintenance_runtime import live_safety_context, read_queue_evidence
 
 
@@ -43,7 +43,7 @@ class MaintenanceReadController:
         snap = self._printer.maintenance.snapshot
         if not isinstance(snap, MaintenanceSnapshot):
             return ()
-        return visible_plan(build_plan(snap, read_only_adapters()))
+        return registered_plan(snap, read_only_adapters())
 
     def start(self, feature_id, timeout=8.0, device=None):
         """Queue preflight; call poll() later for completion and result."""

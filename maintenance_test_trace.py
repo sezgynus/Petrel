@@ -9,6 +9,7 @@ from pathlib import Path
 from threading import Lock
 from time import monotonic, time
 import hashlib
+from configuration_identity import stable_digest
 import json
 import math
 import re
@@ -386,7 +387,7 @@ class TestTrace:
                     self.emit('source',{'head':sha})
                 while self._configs:
                     context,settings,epoch,firmware = self._configs.popleft()
-                    digest = hashlib.sha256(json.dumps(settings,sort_keys=True,default=str).encode()).hexdigest()
+                    digest = stable_digest(settings)
                     self.emit('config_context',{'epoch':epoch,'firmware':firmware,'sha256':digest},context)
                 if self.directory.is_symlink():
                     raise ValueError('trace_directory_symlink')
@@ -508,6 +509,9 @@ class OwnerProxy(Proxy):
 
 
 class WorkerProxy(Proxy):
+    def on_stopped(self, callback):
+        return self._target.on_stopped(callback)
+
     def submit(self,work,*args,**kwargs):
         trace,context = self._trace,dict(self._trace.context())
         def observed():

@@ -10,7 +10,7 @@ Denetim tabanı: `7830d04fb7794f541004f4289931a7e649ebd9a9` (master). **92 izlen
 
 | ID | Belgeler | Düzeltme | Kaynak sınırı |
 |---|---|---|---|
-| D01 | tests/README*, CONTRIBUTING* | CI yalnız master için gösteriliyordu; bütün dal pushları ve imzalı HEAD kalite kapısı düzeltildi. | `.github/workflows/driver-regression.yml`, `sign-commits.yml` |
+| D01 | tests/README*, CONTRIBUTING* | CI yalnız master için gösteriliyordu; bütün dal pushları ve imzalı HEAD kalite kapısı düzeltildi. | `.github/workflows/regression.yml`, `sign-commits.yml` |
 | D02 | maintenance-backend*, read-executor* | Altı okuyucu/UI yok/entegrasyon bekliyor iddiaları kaldırıldı; üretim kayıtları, yerel okuyucular ve M07 istisnası açıklandı. | `maintenance_executor.py`, `maintenance_controller.py`, `ui_maintenance.py` |
 | D03 | maintenance-test-catalog*, test-planner*, safety*, runtime*, guided* | Saf modül sorumluluğu mevcut controller/UI entegrasyonundan ayrıldı; F02/F12 kayıtları eklendi. | `maintenance_catalog.py`, `maintenance_planner.py`, `maintenance_guided.py` |
 | D04 | maintenance-discovery* | READY sorgusu Spoolman ve roots dahil tam altı endpoint ile eşlendi; eski merge-öncesi ifadeler kaldırıldı. | `maintenance_services._ENDPOINTS` |

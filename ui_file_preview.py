@@ -1,37 +1,72 @@
 """File thumbnail confirmation screen; UART drawing stays on the UI owner."""
 import logging
 import time
+from itertools import islice
 from thumbnail_cache import ThumbnailCache
-from preview_metadata import PreviewDetails, amount, duration
+from preview_metadata import PreviewDetails, amount, duration, filament_length
 
 
 class FilePreviewMixin:
+    def _sync_file_lifecycle(self):
+        generation = getattr(self.pd, '_files_generation', None)
+        if type(generation) is not int:
+            return
+        previous = getattr(self, '_ui_files_generation', None)
+        self._ui_files_generation = generation
+        if previous is None or previous == generation:
+            return
+        self._thumbnail_stamp = None
+        self._thumbnail_keys = {}
+        self._file_paths = ()
+        self._print_thumbnail_key = None
+        cache = getattr(self, '_thumbnail_cache', None)
+        if cache is not None:
+            cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch, generation), (), ())
+
     def _sync_thumbnail_cache(self):
+        self._sync_file_lifecycle()
         if not hasattr(self, '_thumbnail_cache'):
             self._thumbnail_cache = ThumbnailCache(self.pd.client)
         # File size/mtime identify replacements without flushing unrelated images.
         revision = self.pd.state.file_revision
         stamp = (getattr(self, '_uart_epoch', 0), self.pd.state.epoch, revision,
                  self.pd.file_sort_revision, id(self.pd.files), getattr(self, '_file_paths', ()),
+                 getattr(self, '_preview_cache_key', None), getattr(self.pd, '_files_generation', 0),
                  self.pd.file_name if self.pd.status in ('printing','paused','pausing','complete','cancelled') else None)
         if stamp == getattr(self, '_thumbnail_stamp', None):
             return
+        previous = getattr(self, '_thumbnail_stamp', None)
+        if previous is not None and revision != previous[2]:
+            reader = getattr(self.pd.subscription, 'file_identity', None)
+            for key in tuple(self._thumbnail_cache.errors):
+                identity = reader(key[0]) if callable(reader) else None
+                if not isinstance(identity, tuple) or identity[1] > previous[2]:
+                    self._thumbnail_cache.errors.pop(key, None)
+                    self._thumbnail_cache.retry_at.pop(key, None)
         self._thumbnail_stamp = stamp
-        self._thumbnail_keys = {
-            item['path']: (item['path'], item.get('modified'), item.get('size'),
-                           revision if item.get('modified') is None else None)
-            for item in self.pd.files
-        }
-        priority = tuple(self._thumbnail_keys[path] for path in getattr(self, '_file_paths', ())
-                         if path in self._thumbnail_keys and not path.endswith('/'))[:5]
+        if getattr(self.pd, '_file_thumbnail_list', None) is self.pd.files:
+            self._thumbnail_keys = self.pd._file_thumbnail_keys
+        else:
+            self._thumbnail_keys = {
+                item['path']: (item['path'], item.get('modified'), item.get('size'),
+                               revision if item.get('modified') is None else None)
+                for item in self.pd.files}
+        priority = tuple(islice((self._thumbnail_keys[path] for path in getattr(self, '_file_paths', ())
+                         if path in self._thumbnail_keys and not path.endswith('/')), 5))
         path = stamp[-1]
         self._print_thumbnail_key = None
-        valid = list(self._thumbnail_keys.values())
+        retained = set(self._thumbnail_cache.entries) | set(self._thumbnail_cache.details)
+        valid = [key for key in retained if self._thumbnail_keys.get(key[0]) == key]
+        valid.extend(priority)
+        preview = getattr(self, '_preview_cache_key', None)
+        if preview is not None and self._thumbnail_keys.get(preview[0]) == preview:
+            valid.append(preview)
         if path:
             base = self._thumbnail_keys.get(path, (path, None, None, revision))
             self._print_thumbnail_key = base + (88,)
             valid.append(self._print_thumbnail_key)
-        self._thumbnail_cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch),
+        self._thumbnail_cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch,
+                                    getattr(self.pd, '_files_generation', 0)),
                                    valid, priority)
 
     def _poll_thumbnail_preload(self):
@@ -45,6 +80,8 @@ class FilePreviewMixin:
         self._preview_epoch = self.pd.state.epoch
         self._preview_choice = 1  # Cancel is the safe initial selection.
         self._preview_cache_key = self._thumbnail_keys.get(path)
+        # Foreground identity is independent of preload order/cache residency.
+        self._sync_thumbnail_cache()
         self._thumbnail_cache.errors.pop(self._preview_cache_key, None)
         self._thumbnail_cache.retry_at.pop(self._preview_cache_key, None)
         self._preview_error = None
@@ -88,7 +125,7 @@ class FilePreviewMixin:
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 144, 68, 271, 207)
         for y, label, value in ((70, 'Print time', duration(details.seconds)),
                                 (114, 'Tool changes', str(details.changes) if details.changes is not None else '--'),
-                                (158, 'Total usage', amount(details.millimeters/1000 if details.millimeters is not None else None,'m')
+                                (158, 'Total usage', filament_length(details.millimeters)
                                  + '/' + amount(details.grams,'g'))):
             self._draw_menu_text(label, 148, y)
             if label == 'Total usage' and len(value) > 14:

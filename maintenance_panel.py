@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from time import monotonic
 from maintenance_discovery import USER
-from maintenance_planner import build_plan,visible_plan
+from maintenance_planner import registered_plan
 from maintenance_workflow import adapters,WorkflowResult
 from maintenance_runtime import read_queue_evidence,live_safety_context
 from maintenance_safety import precheck
@@ -48,7 +48,7 @@ class MaintenancePanelController:
         return 'Directions and click seen?' if self.feature_id=='S15' else 'Sequence and restore seen?'
 
     def available(self):
-        return visible_plan(build_plan(self._printer.maintenance.snapshot,adapters(METHODS,'panel')))
+        return registered_plan(self._printer.maintenance.snapshot,adapters(METHODS,'panel'))
 
     def _api(self,action,*args):
         provider = getattr(self._printer,'_maintenance_panel_api',None)

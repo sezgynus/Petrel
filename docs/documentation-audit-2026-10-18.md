@@ -10,7 +10,7 @@ Review covered current user flows, API/command contracts, identifiers, constants
 
 | ID | Documents | Correction | Source boundary |
 |---|---|---|---|
-| D01 | tests/README*, CONTRIBUTING* | Branch CI incorrectly described as master-only; documented signing and all-branch CI gate. | `.github/workflows/driver-regression.yml`, `sign-commits.yml` |
+| D01 | tests/README*, CONTRIBUTING* | Branch CI incorrectly described as master-only; documented signing and all-branch CI gate. | `.github/workflows/regression.yml`, `sign-commits.yml` |
 | D02 | maintenance-backend*, read-executor* | Removed six-reader/no-UI/pending-integration claims; documented production registries, local readers and M07 exception. | `maintenance_executor.py`, `maintenance_controller.py`, `ui_maintenance.py` |
 | D03 | maintenance-test-catalog*, test-planner*, safety*, runtime*, guided* | Separated pure module responsibilities from implemented controller/UI composition; added F02/F12 registrations. | `maintenance_catalog.py`, `maintenance_planner.py`, `maintenance_guided.py` |
 | D04 | maintenance-discovery* | Reconciled READY probing with the exact six endpoints, including Spoolman and roots; removed obsolete pre-merge wording. | `maintenance_services._ENDPOINTS` |

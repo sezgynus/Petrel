@@ -1,15 +1,21 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
-from graphite_theme import show_icon as show_theme_icon, draw_scrollbar
+from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
+                            AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR,
+                            KLIPPER_ERROR_COLOR)
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
 import display_settings
+from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
+import math
 import textwrap
+from collections.abc import Mapping
 from software_update import SoftwareUpdate
 from info_qr import PROJECT_URL, draw_project_qr, extra_info_rows
 from shared_artwork import PICTURE_ID as SHARED_PICTURE_ID
-from system_info import wifi_signal_text
+from system_info import wifi_signal_text, wifi_signal_level
 import time
 import logging
 from concurrent.futures import Future
@@ -719,7 +725,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     def _poll_boot(self):
         snapshot = self.pd.subscription.snapshot()
         if snapshot['state'] != 'ready':
-            self.pd.update_variable()
+            self._update_ui_state()
             if not self._poll_recovery_ui():
                 kind = getattr(getattr(self.pd, 'recovery', None), 'state', None)
                 message = ('Starting Klipper...' if getattr(kind, 'kind', None) == 'startup'
@@ -727,7 +733,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self._draw_boot_progress(70, message=message)
             return
         self._draw_boot_progress(80)
-        self.pd.update_variable()
+        self._update_ui_state()
         snapshot = self.pd.subscription.snapshot()
         if (snapshot['state'] != 'ready' or self.pd.connection_error
                 or not self.pd.state.ready or self.pd.state.epoch != snapshot['epoch']):
@@ -739,6 +745,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             started = time.monotonic()
             self._boot_files_started = (snapshot['epoch'], started)
         if ((self.pd._files_loading is True or self.pd._directory_loading is True)
+                and not self.pd.file_error
                 and time.monotonic() - started < 5.0):
             self._draw_boot_progress(90, message='Preparing file list')
             return
@@ -815,12 +822,40 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.Draw_Buzzer_Menu()
                 self.lcd.update()
 
+    def _update_ui_state(self):
+        if getattr(self, '_tick_active', False) and self._tick_state_update is not None:
+            return self._tick_state_update
+        changed = self.pd.update_variable()
+        self._sync_file_lifecycle()
+        if getattr(self, '_tick_active', False):
+            self._tick_state_update = changed
+        return changed
+
     def _ui_tick(self):
+        self._tick_active = True
+        self._tick_state_update = None
+        try:
+            self._ui_tick_body()
+        finally:
+            self._tick_active = False
+            if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
+                   for name in ('maintenance_pulse', 'maintenance_reader')):
+                if hasattr(self, '_loop'):
+                    self._loop.cap_interval(.1)
+
+    def _ui_tick_body(self):
+        # Operation deadlines must not depend on the visible screen or LCD.
+        self._maintenance_advanced_this_tick = False
+        if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
+               for name in ('maintenance_pulse', 'maintenance_reader')):
+            self._update_ui_state()
+            self._advance_maintenance_operations()
+            self._maintenance_advanced_this_tick = True
         self._poll_panel_power()
         self._sync_case_light_tracking()
         if not self._uart_online:
             # Keep status current while the panel is disconnected.
-            self.pd.update_variable()
+            self._update_ui_state()
             self.pd.bed_mesh.update()
             self.pd.mmu_session.update()
             self._ensure_uart()
@@ -878,6 +913,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             elif getattr(self, 'checkkey', None) == self.FilePreview:
                 if not getattr(self, '_pending_start', None) and not getattr(self, '_start_error_visible', False):
                     self._poll_file_preview()
+                if not getattr(self, '_pending_start', None) and hasattr(self, '_loop'):
+                    active = (not getattr(self, '_start_error_visible', False)
+                              and self._preview_epoch == self.pd.state.epoch
+                              and self._thumbnail_cache.has_foreground_work(self._preview_cache_key))
+                    self._loop.set_interval(.02 if active else .5)
                 if time.monotonic() < getattr(self, '_preview_status_at', 0):
                     return
                 self._preview_status_at = time.monotonic() + .5
@@ -1111,17 +1151,18 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             value, painter = None, None
             if name in ('temperature', 'tune', 'preheat'):
                 if key == 'TEMP':
-                    value = preset.hotend_temp if preset else self.pd.thermalManager['temp_hotend'][0]['target']
+                    value = preset.hotend_temp if preset else self.pd.state.status[self.pd.capabilities.active_hotend.name]['target']
                 elif key == 'BED':
-                    value = preset.bed_temp if preset else self.pd.thermalManager['temp_bed']['target']
+                    value = preset.bed_temp if preset else self.pd.state.status['heater_bed']['target']
                 elif key == 'FAN':
                     value = self.pd.thermalManager['fan_speed'][0]
                 elif key == 'SPEED':
                     value = self.pd.feedrate_percentage
                 elif key == 'ZOFF':
                     value = self.pd.BABY_Z_VAR * 100
-                    painter = lambda row, v=value: self.lcd.draw_signed_scaled_float_text(
-                        self.lcd.font8x16, self.lcd.Color_Bg_Black, 2, 2, 202, self.MBASE(row), v)
+                    painter = lambda row, v=value: self._draw_offset_value(v,self.MBASE(row),self.lcd.Color_Bg_Black)
+                if key in ('TEMP','BED') and value is not None:
+                    painter = lambda row, v=value: self._draw_thermal_target(v,self.MBASE(row),self.lcd.Color_Bg_Black)
                 if value is not None and painter is None:
                     painter = lambda row, v=value: self.lcd.draw_integer_text(
                         True, True, 0, self.lcd.font8x16, self.lcd.Color_White,
@@ -1145,19 +1186,45 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         values = self.pd.HMI_ValueStruct
         if key == 'TEMP':
             self.checkkey = self.ETemp
-            values.E_Temp = preset.hotend_temp if preset else self.pd.thermalManager['temp_hotend'][0]['target']
+            values.E_Temp = preset.hotend_temp if preset else self.pd.state.status[self.pd.capabilities.active_hotend.name]['target']
             value = values.E_Temp
         elif key == 'BED':
             self.checkkey = self.BedTemp
-            values.Bed_Temp = preset.bed_temp if preset else self.pd.thermalManager['temp_bed']['target']
+            values.Bed_Temp = preset.bed_temp if preset else self.pd.state.status['heater_bed']['target']
             value = values.Bed_Temp
         else:
             self.checkkey = self.FanSpeed
             values.Fan_speed = self.pd.thermalManager['fan_speed'][0]
             value = values.Fan_speed
-        self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
-                               self.lcd.Color_White, self.lcd.Select_Color,
-                               3, 216, self.MBASE(self._thermal_edit_row), value)
+        if key in ('TEMP','BED'):
+            self._draw_thermal_target(value,self.MBASE(self._thermal_edit_row),self.lcd.Select_Color)
+        else:
+            self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
+                                   self.lcd.Color_White, self.lcd.Select_Color,
+                                   3, 216, self.MBASE(self._thermal_edit_row), value)
+
+    def _draw_number_cell(self,text,x,y,cells,bg):
+        if len(text)>cells:
+            text = '#' * cells
+        self.lcd.draw_text(False,True,self.lcd.font8x16,self.lcd.Color_White,bg,
+                           x,y,text.rjust(cells))
+
+    def _draw_thermal_target(self,value,y,bg):
+        text = compact(value)
+        if len(text)>7:
+            text = str(int(value))
+        self._draw_number_cell(text,216,y,7,bg)
+
+    def _draw_axis_value(self,index,scaled,y,bg):
+        value = scaled/self.MINUNITMULT
+        text = fit_decimal(value,7) if index==2 else fixed(value,2)
+        if len(text)>7:
+            text = fixed(value,1)
+        self._draw_number_cell(text,216,y,7,bg)
+
+    def _draw_offset_value(self,scaled,y,bg):
+        text = fit_decimal(scaled/100,7)
+        self._draw_number_cell(text,202,y,7,bg)
 
     def lcdExit(self):
         self._loop.close()
@@ -1169,7 +1236,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if self._closed:
             return
         self._closed = True
-        for resource in (getattr(self, '_remote_display', None),
+        for resource in (getattr(self, '_software_update', None),
+                         getattr(self, '_remote_display', None),
                          getattr(self, '_buzzer_player', None),
                          getattr(self, '_screenshot_server', None),
                          getattr(self, '_emulator', None),
@@ -1199,7 +1267,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 or (not recovering and feedback is not None
                     and not (feedback.phase == 'error' and kind == 'press'))):
             return False
-        snapshot = self.pd.subscription.snapshot()
+        snapshot = self._ui_lifecycle()
         if (snapshot['state'] != 'ready'
                 and getattr(self, 'checkkey', None) != self.MMUMenu
                 and not (recovering and kind in ('rotate', 'press'))):
@@ -1266,7 +1334,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _sync_input_state(self, event):
         previous_epoch = self.pd.state.epoch
-        self.pd.update_variable()
+        self._update_ui_state()
         if self._mmu_power_popup_stale():
             self._restore_power_origin()
             self.lcd.update()
@@ -1638,6 +1706,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.update()
 
     def _refresh_file_snapshot(self):
+        self._sync_file_lifecycle()
         paths = self.pd.GetDirectory(getattr(self, '_file_directory', ''))
         if self.pd.file_error or self.pd._files_loading or self.pd._directory_loading:
             return False
@@ -2040,29 +2109,17 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.checkkey = self.Move_X
                 self._invalidate_list_row(1)
                 self.pd.HMI_ValueStruct.Move_X_scale = self.pd.state.status['gcode_move']['position'][0] * self.MINUNITMULT
-                self.lcd.draw_scaled_float_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-                    3, 1, 216, self.MBASE(1),
-                    self.pd.HMI_ValueStruct.Move_X_scale
-                )
+                self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Select_Color)
             elif self.select_axis.now == 2:  # Y axis move
                 self.checkkey = self.Move_Y
                 self._invalidate_list_row(2)
                 self.pd.HMI_ValueStruct.Move_Y_scale = self.pd.state.status['gcode_move']['position'][1] * self.MINUNITMULT
-                self.lcd.draw_scaled_float_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-                    3, 1, 216, self.MBASE(2),
-                    self.pd.HMI_ValueStruct.Move_Y_scale
-                )
+                self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Select_Color)
             elif self.select_axis.now == 3:  # Z axis move
                 self.checkkey = self.Move_Z
                 self._invalidate_list_row(3)
                 self.pd.HMI_ValueStruct.Move_Z_scale = self.pd.state.status['gcode_move']['position'][2] * self.MINUNITMULT
-                self.lcd.draw_scaled_float_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-                    3, 1, 216, self.MBASE(3),
-                    self.pd.HMI_ValueStruct.Move_Z_scale
-                )
+                self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Select_Color)
             elif self.select_axis.now == 4 and self.pd.HAS_HOTEND:  # Extruder
                 # window tips
                 if self.pd.PREVENT_COLD_EXTRUSION:
@@ -2091,11 +2148,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self.lcd.draw_scaled_float_text(
-                True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                3, 1, 216, self.MBASE(1),
-                self.pd.HMI_ValueStruct.Move_X_scale
-            )
+            self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Color_Bg_Black)
             if not getattr(self, '_live_jog', False):
                 self._action("Jog X", lambda: self.pd.moveAbsolute('X', self.pd.HMI_ValueStruct.Move_X_scale / self.MINUNITMULT, 5000), silent=True)
             self.lcd.update()
@@ -2115,9 +2168,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             applied = (self.pd.HMI_ValueStruct.Move_X_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('X', applied, self._live_jog_speed('X'))
-        self.lcd.draw_scaled_float_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-            3, 1, 216, self.MBASE(1), self.pd.HMI_ValueStruct.Move_X_scale)
+        self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_Y(self):
@@ -2127,11 +2178,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self.lcd.draw_scaled_float_text(
-                True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                3, 1, 216, self.MBASE(2),
-                self.pd.HMI_ValueStruct.Move_Y_scale
-            )
+            self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Color_Bg_Black)
 
             if not self._live_jog:
                 self._action("Jog Y", lambda: self.pd.moveAbsolute('Y', self.pd.HMI_ValueStruct.Move_Y_scale / self.MINUNITMULT, 5000), silent=True)
@@ -2152,9 +2199,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             applied = (self.pd.HMI_ValueStruct.Move_Y_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('Y', applied, self._live_jog_speed('Y'))
-        self.lcd.draw_scaled_float_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-            3, 1, 216, self.MBASE(2), self.pd.HMI_ValueStruct.Move_Y_scale)
+        self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_Z(self):
@@ -2164,11 +2209,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self.lcd.draw_scaled_float_text(
-                True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                3, 1, 216, self.MBASE(3),
-                self.pd.HMI_ValueStruct.Move_Z_scale
-            )
+            self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Color_Bg_Black)
             if not self._live_jog:
                 self._action("Jog Z", lambda: self.pd.moveAbsolute('Z', self.pd.HMI_ValueStruct.Move_Z_scale / self.MINUNITMULT, 600), silent=True)
             self.lcd.update()
@@ -2188,9 +2229,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             applied = (self.pd.HMI_ValueStruct.Move_Z_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('Z', applied, self._live_jog_speed('Z'))
-        self.lcd.draw_scaled_float_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-            3, 1, 216, self.MBASE(3), self.pd.HMI_ValueStruct.Move_Z_scale)
+        self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_E(self):
@@ -2328,28 +2367,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if (encoder_diffState == self.ENCODER_DIFF_ENTER):
             if (self.pd.HMI_ValueStruct.show_mode == -1):  # temperature
                 self.checkkey = self.TemperatureID
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(temp_line),
-                    self.pd.HMI_ValueStruct.E_Temp
-                )
+                self._draw_thermal_target(self.pd.HMI_ValueStruct.E_Temp,self.MBASE(temp_line),self.lcd.Color_Bg_Black)
             elif (self.pd.HMI_ValueStruct.show_mode == -2):
                 self.checkkey = self.PLAPreheat
                 profile = getattr(self, '_active_preset', 0)
                 self.pd.material_preset[profile].hotend_temp = self.pd.HMI_ValueStruct.E_Temp
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(temp_line),
-                    self.pd.material_preset[profile].hotend_temp
-                )
+                self._draw_thermal_target(self.pd.material_preset[profile].hotend_temp,self.MBASE(temp_line),self.lcd.Color_Bg_Black)
                 return
             else:  # tune
                 self.checkkey = self.Tune
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(temp_line),
-                    self.pd.HMI_ValueStruct.E_Temp
-                )
+                self._draw_thermal_target(self.pd.HMI_ValueStruct.E_Temp,self.MBASE(temp_line),self.lcd.Color_Bg_Black)
             self._action("Hotend target", lambda: self.pd.setExtTemp(self.pd.HMI_ValueStruct.E_Temp), silent=True)
             return
 
@@ -2368,11 +2395,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if heater and 0 < self.pd.HMI_ValueStruct.E_Temp < heater.minimum:
             self.pd.HMI_ValueStruct.E_Temp = heater.minimum if encoder_diffState == self.ENCODER_DIFF_CW else 0
         # E_Temp value
-        self.lcd.draw_integer_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-            3, 216, self.MBASE(temp_line),
-            self.pd.HMI_ValueStruct.E_Temp
-        )
+        self._draw_thermal_target(self.pd.HMI_ValueStruct.E_Temp,self.MBASE(temp_line),self.lcd.Select_Color)
 
     def HMI_BedTemp(self):
         encoder_diffState = self.get_encoder_state()
@@ -2390,28 +2413,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if (encoder_diffState == self.ENCODER_DIFF_ENTER):
             if (self.pd.HMI_ValueStruct.show_mode == -1):  # temperature
                 self.checkkey = self.TemperatureID
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(bed_line),
-                    self.pd.HMI_ValueStruct.Bed_Temp
-                )
+                self._draw_thermal_target(self.pd.HMI_ValueStruct.Bed_Temp,self.MBASE(bed_line),self.lcd.Color_Bg_Black)
             elif (self.pd.HMI_ValueStruct.show_mode == -2):
                 self.checkkey = self.PLAPreheat
                 profile = getattr(self, '_active_preset', 0)
                 self.pd.material_preset[profile].bed_temp = self.pd.HMI_ValueStruct.Bed_Temp
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(bed_line),
-                    self.pd.material_preset[profile].bed_temp
-                )
+                self._draw_thermal_target(self.pd.material_preset[profile].bed_temp,self.MBASE(bed_line),self.lcd.Color_Bg_Black)
                 return
             else:  # tune
                 self.checkkey = self.Tune
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                    3, 216, self.MBASE(bed_line),
-                    self.pd.HMI_ValueStruct.Bed_Temp
-                )
+                self._draw_thermal_target(self.pd.HMI_ValueStruct.Bed_Temp,self.MBASE(bed_line),self.lcd.Color_Bg_Black)
             self._action("Bed target", lambda: self.pd.setBedTemp(self.pd.HMI_ValueStruct.Bed_Temp), silent=True)
             return
 
@@ -2430,11 +2441,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if heater and 0 < self.pd.HMI_ValueStruct.Bed_Temp < heater.minimum:
             self.pd.HMI_ValueStruct.Bed_Temp = heater.minimum if encoder_diffState == self.ENCODER_DIFF_CW else 0
         # Bed_Temp value
-        self.lcd.draw_integer_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-            3, 216, self.MBASE(bed_line),
-            self.pd.HMI_ValueStruct.Bed_Temp
-        )
+        self._draw_thermal_target(self.pd.HMI_ValueStruct.Bed_Temp,self.MBASE(bed_line),self.lcd.Select_Color)
 
 
     def HMI_Motion(self):
@@ -2592,8 +2599,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.checkkey = self.Homeoffset
         self.pd.HMI_ValueStruct.show_mode = mode
         self._zoffset_target = self.pd.BABY_Z_VAR * 100
-        self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16, self.lcd.Select_Color,
-                                   2, 2, 202, self.MBASE(row), self._zoffset_target)
+        self._draw_offset_value(self._zoffset_target,self.MBASE(row),self.lcd.Select_Color)
 
     def HMI_Zoffset(self):
         encoder_diffState = self.get_encoder_state()
@@ -2612,10 +2618,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._action("Runtime Z offset", lambda: self.pd.setZOffset(self._zoffset_target / 100.0), silent=True)
 
             self.checkkey = self.Prepare if self.pd.HMI_ValueStruct.show_mode == -4 else self.Tune
-            self.lcd.draw_signed_scaled_float_text(
-                self.lcd.font8x16, self.lcd.Color_Bg_Black, 2, 2, 202, self.MBASE(zoff_line),
-                self._zoffset_target
-            )
+            self._draw_offset_value(self._zoffset_target,self.MBASE(zoff_line),self.lcd.Color_Bg_Black)
 
             self.lcd.update()
             return
@@ -2633,11 +2636,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.last_zoffset = self.dwin_zoffset
         self.dwin_zoffset = self._zoffset_target / 100.0
 
-        self.lcd.draw_signed_scaled_float_text(
-            self.lcd.font8x16, self.lcd.Select_Color, 2, 2, 202,
-            self.MBASE(zoff_line),
-            self._zoffset_target
-        )
+        self._draw_offset_value(self._zoffset_target,self.MBASE(zoff_line),self.lcd.Select_Color)
         self.lcd.update()
 
     # --------------------------------------------------------------#
@@ -2672,13 +2671,80 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             # Long telemetry text can reach the next column. Restore only
             # the fields touched by the erasure when they are drawn below.
             for other in list(cache):
-                if other != key and x < other[1] <= right and y - 1 <= other[2] <= y + 19:
+                # Status markers have their own cache signatures and never
+                # overlap a numeric text glyph; only invalidate draw fields.
+                if (other[0] not in ('axis_home', 'dashboard_indicator')
+                        and other != key and x < other[1] <= right
+                        and y - 1 <= other[2] <= y + 19):
                     del cache[other]
         if method == 'show_icon':
             show_theme_icon(self.lcd, *args)
         else:
             getattr(self.lcd, method)(*args)
         cache[key] = value
+
+    def _draw_dashboard_value(self, text, icon_x, y):
+        # Native icons occupy a 20 px tile; every value begins 4 px after it.
+        # No leading numeric padding: digit count never moves the first glyph.
+        x = icon_x + 24
+        cells = (min(272,icon_x+98)-x)//8
+        if len(text)>cells:
+            text = '#' * cells
+        self._draw_status_field('draw_text',False,True,self.lcd.font8x16,
+            self.lcd.Color_White,0x18C4,x,y,text)
+
+    def _draw_axis_home_indicator(self, icon_x, homed):
+        # 14x3 px, two pixels below the 20x20 XYZ icon; no text/icon overlap.
+        color = (AXIS_HOMED_COLOR if homed is True else
+                 AXIS_UNHOMED_COLOR if homed is False else AXIS_UNKNOWN_COLOR)
+        key = ('axis_home', icon_x + 3, 470)
+        if self._status_render.get(key) == color:
+            return
+        self.lcd.draw_rectangle(1, color, icon_x + 3, 470, icon_x + 16, 472)
+        self._status_render[key] = color
+
+    def _draw_dashboard_indicator(self, key, x, y, width, height, color):
+        # Status-only rectangle: no asset, animation or full-screen invalidation.
+        # Clearing a marker paints the exact previous footprint in dashboard BG.
+        cache_key = ('dashboard_indicator', key)
+        previous = self._status_render.get(cache_key)
+        if previous == color:
+            return
+        self.lcd.draw_rectangle(1, 0x18C4 if color is None else color,
+                                x, y, x + width - 1, y + height - 1)
+        self._status_render[cache_key] = color
+
+    def _draw_heater_indicator(self, key, x, y, heater):
+        cache_key = ('dashboard_indicator', key)
+        previous = self._status_render.get(cache_key)
+        color = AXIS_UNKNOWN_COLOR
+        if isinstance(heater, Mapping):
+            actual, target = heater.get('temperature'), heater.get('target')
+            if (isinstance(actual, (int, float)) and not isinstance(actual, bool)
+                    and isinstance(target, (int, float)) and not isinstance(target, bool)
+                    and math.isfinite(actual) and math.isfinite(target)):
+                if target <= 0:
+                    color = self.lcd.Line_Color  # Heat disabled
+                else:
+                    # 2 C entry / 3 C exit hysteresis suppresses threshold flicker.
+                    ready_band = 3.0 if previous == AXIS_HOMED_COLOR else 2.0
+                    color = (AXIS_HOMED_COLOR if abs(actual - target) <= ready_band
+                             else AXIS_UNHOMED_COLOR)
+        self._draw_dashboard_indicator(key, x + 3, y + 22, 14 if key == 'bed_heat' else 12,
+                                       3, color)
+
+    def _draw_status_decimal(self, value, x, y):
+        # Only the two bounded Z fields use this cache. Formatting runs when
+        # their raw input changes; redraws still use the normal LCD diff cache.
+        cache = getattr(self, '_status_decimal_values', None)
+        if cache is None:
+            cache = self._status_decimal_values = {}
+        key = (x,y)
+        previous = cache.get(key)
+        if previous is None or previous[0] != value:
+            previous = (value,fit_decimal(value,6).ljust(6))
+            cache[key] = previous
+        self._draw_dashboard_value(previous[1],x-24,y)
 
     def _sync_fan_animation(self, visible, force=False):
         percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
@@ -2721,19 +2787,24 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         # in a wider left column and compact the two telemetry columns.
         x1, x2, x3 = 4, 102, 200
         value1, value2, value3 = 28, 126, 224
+        # Use already subscribed Klipper state; dashboard markers do not poll.
+        state = self.pd.state
+        status = state.status if state.ready else {}
+        hotend_name = getattr(getattr(self.pd.capabilities, 'active_hotend', None),
+                              'name', None)
+        hotend = status.get(hotend_name) if hotend_name else None
+        bed = status.get('heater_bed')
 
         if self.pd.HAS_HOTEND:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3, value1, y1,
-                self.pd.thermalManager['temp_hotend'][0]['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4,
-                value1 + 3 * 8, y1, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * 8, y1,
-                self.pd.thermalManager['temp_hotend'][0]['target'])
+            self._draw_status_field('show_icon',self.ICON,self.ICON_HotendTemp,x1,y1)
+            temps = self.pd.thermalManager['temp_hotend'][0]
+            self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y1)
+            self._draw_heater_indicator('hotend_heat', x1, y1, hotend)
+            can_extrude = hotend.get('can_extrude') if isinstance(hotend, Mapping) else None
+            self._draw_dashboard_indicator(
+                'extrude_ready', x1 + 16, y1 + 22, 4, 3,
+                AXIS_HOMED_COLOR if can_extrude is True else
+                AXIS_UNHOMED_COLOR if can_extrude is False else AXIS_UNKNOWN_COLOR)
 
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
@@ -2742,28 +2813,23 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if phase:
             speed_text = '{:.0f}%'.format(self.pd.feedrate_percentage)
         else:
-            speed_text = '{:.0f}mm/s'.format(abs(self.pd.live_velocity))
-        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-            self.lcd.Color_White, 0x18C4, value2, y1, speed_text)
+            speed_text = fixed(abs(self.pd.live_velocity))+'mm/s'
+        self._draw_dashboard_value(speed_text,x2,y1)
+        self._draw_dashboard_indicator(
+            'speed_override', x2 + 3, y1 + 22, 14, 3,
+            AXIS_UNHOMED_COLOR if state.ready and self.pd.feedrate_percentage != 100
+            else None)
 
         if self.pd.HAS_FAN:
             self._sync_fan_animation(True, force=redraw)
             percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
-            self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, value3, y1, '{:3d}%'.format(percent))
+            self._draw_dashboard_value(str(percent)+'%',x3,y1)
 
         if self.pd.HAS_HEATED_BED:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3, value1, y2,
-                self.pd.thermalManager['temp_bed']['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4,
-                value1 + 3 * 8, y2, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * 8, y2,
-                self.pd.thermalManager['temp_bed']['target'])
+            self._draw_status_field('show_icon',self.ICON,self.ICON_BedTemp,x1,y2)
+            temps = self.pd.thermalManager['temp_bed']
+            self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y2)
+            self._draw_heater_indicator('bed_heat', x1, y2, bed)
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
@@ -2771,39 +2837,110 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if phase:
             flow_text = '{:.0f}%'.format(self.pd.flow_percentage)
         else:
-            flow_text = ('{:.1f}mm3/s' if abs(self.pd.volumetric_flow) < 100 else '{:.0f}mm3/s').format(self.pd.volumetric_flow)
-        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-            self.lcd.Color_White, 0x18C4, value2, y2, flow_text)
+            value = max(0.,self.pd.volumetric_flow)
+            # Three digits plus a decimal and unit exceed this 74 px column.
+            flow_text = fixed(value,1 if value<100 else 0)+'mm3/s'
+        self._draw_dashboard_value(flow_text,x2,y2)
+        self._draw_dashboard_indicator(
+            'flow_override', x2 + 3, y2 + 22, 14, 3,
+            AXIS_UNHOMED_COLOR if state.ready and self.pd.flow_percentage != 100
+            else None)
 
         if self.pd.HAS_ZOFFSET_ITEM:
             self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2)
-            self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.font8x16, 0x18C4,
-                2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
+            self._draw_status_decimal(self.pd.BABY_Z_VAR,value3,y2)
+            # The active mesh, not the set of saved profiles, controls compensation.
+            mesh = status.get('bed_mesh')
+            matrix = mesh.get('mesh_matrix') if isinstance(mesh, Mapping) else None
+            self._draw_dashboard_indicator(
+                'mesh_active', x3 + 8, y2 + 22, 4, 4,
+                AXIS_HOMED_COLOR if isinstance(matrix, (tuple, list)) and
+                bool(matrix) and isinstance(matrix[0], (tuple, list)) and
+                bool(matrix[0]) else None)
 
         positions = self.pd.live_position
-        for icon, xpos, value_x, position in (
-                (self.ICON_MaxSpeedX, x1, value1, positions[0]),
-                (self.ICON_MaxSpeedY, x2, value2, positions[1]),
-                (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
+        # Read the already-subscribed authoritative Klipper state, not cached
+        # position flags which may outlive a disconnect or Klipper restart.
+        homed_axes = status.get('toolhead', {}).get('homed_axes')
+        if not isinstance(homed_axes, str) or any(axis not in 'xyz' for axis in homed_axes):
+            homed_axes = None
+        for axis, icon, xpos, value_x, position in (
+                ('x', self.ICON_MaxSpeedX, x1, value1, positions[0]),
+                ('y', self.ICON_MaxSpeedY, x2, value2, positions[1]),
+                ('z', self.ICON_MaxSpeedZ, x3, value3, positions[2])):
             self._draw_status_field('show_icon', self.ICON, icon, xpos, y3)
-            self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.font8x16, 0x18C4,
-                3, 1, value_x, y3, position * 10)
+            self._draw_axis_home_indicator(xpos, None if homed_axes is None else axis in homed_axes)
+            if value_x == value3:
+                self._draw_status_decimal(position,value_x,y3)
+            else:
+                self._draw_dashboard_value(fixed(position,2),xpos,y3)
+
+    def _invalidate_header(self):
+        self._header_clock_drawn = None
+        self._header_wifi_drawn = None
+        self._header_klipper_drawn = None
 
     def Draw_Title(self, title):
+        # Reserve x=200 onward for Wi-Fi, clock and Klipper state, even when
+        # Wi-Fi is temporarily absent. Native font8x16 permits 23 title cells.
+        title = T5UIC1Display._panel_text(str(title))
+        if len(title)>23:
+            title = title[:20]+'...'
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
         self._draw_header_clock()
+
+    def _draw_wifi_signal(self):
+        # Native JPEG backgrounds are black; Graphite's enhanced filter makes
+        # those pixels transparent. Clear the old icon only when its band changes.
+        info = self.pd.system_info
+        ssid = info.get('wifi_ssid')
+        level = wifi_signal_level(info.get('wifi_rssi')) if ssid not in (None, 'Unavailable', 'Disconnected') else None
+        icon = {'Poor': ICON_WIFI_POOR, 'Medium': ICON_WIFI_MEDIUM,
+                'Strong': ICON_WIFI_STRONG}.get(level)
+        key = (id(self.lcd), icon)
+        previous = getattr(self, '_header_wifi_drawn', None)
+        if key == previous:
+            return False
+        self._header_wifi_drawn = key
+        if icon is None and previous is None:
+            return False
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 200, 4, 219, 23)
+        if icon is not None:
+            show_theme_icon(self.lcd, self.ICON, icon, 200, 4)
+        return True
+
+    def _draw_klipper_state(self):
+        # No new icon or polling. The subscription snapshot distinguishes
+        # ready / connecting / disconnected, even when Wi-Fi is unavailable.
+        connection = self.pd.state.connection
+        if connection == 'ready' and not self.pd.connection_error:
+            color = AXIS_HOMED_COLOR
+        elif connection == 'connecting':
+            color = AXIS_UNHOMED_COLOR
+        elif connection in ('disconnected', 'error', 'shutdown') or self.pd.connection_error:
+            color = KLIPPER_ERROR_COLOR
+        else:
+            color = AXIS_UNKNOWN_COLOR
+        key = (id(self.lcd), color)
+        if key == getattr(self, '_header_klipper_drawn', None):
+            return False
+        # Clock text ends at x=263; Wi-Fi occupies x=200..219.
+        # A 4x4 dot at x=267..270 leaves both regions untouched.
+        self.lcd.draw_rectangle(1, color, 267, 12, 270, 15)
+        self._header_klipper_drawn = key
+        return True
 
     def _draw_header_clock(self):
         value = time.strftime('%H:%M', time.localtime())
         key = (id(self.lcd), value)
-        if key == getattr(self, '_header_clock_drawn', None):
-            return False
-        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                           self.lcd.Color_Bg_Blue, 224, 6, value)
-        self._header_clock_drawn = key
-        return True
+        clock_changed = key != getattr(self, '_header_clock_drawn', None)
+        if clock_changed:
+            self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
+                               self.lcd.Color_Bg_Blue, 224, 6, value)
+            self._header_clock_drawn = key
+        wifi_changed = self._draw_wifi_signal()
+        klipper_changed = self._draw_klipper_state()
+        return clock_changed or wifi_changed or klipper_changed
 
     def Draw_Popup_Bkgd_105(self):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 105, 258, 374)
@@ -3026,9 +3163,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             ('row', 'RSSI', wifi_signal_text(info.get('wifi_rssi'))),
             ('row', 'IP', info.get('ip', 'Unavailable')),
             ('section', 'Host', None),
-            ('row', 'CPU', 'N/A' if cpu is None else '{:.0f}%'.format(cpu)),
-            ('row', 'RAM', 'N/A' if ram is None else '{:.0f}%'.format(ram)),
-            ('row', 'CPU temp', 'N/A' if temp is None else '{:.1f} C'.format(temp)),
+            ('row', 'CPU', 'N/A' if cpu is None else str(js_round(cpu))+'%'),
+            ('row', 'RAM', 'N/A' if ram is None else str(js_round(ram))+'%'),
+            ('row', 'CPU temp', 'N/A' if temp is None else fixed(temp)+' C'),
 
         ]
         mcus = info.get('mcus') or ()
@@ -3041,8 +3178,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             items.extend((
                 ('section', 'MCU: ' + name, None),
                 ('row', 'Status', 'Connected'),
-                ('row', 'Load', 'N/A' if load is None else '{:.1f}%'.format(load)),
-                ('row', 'Temp', 'N/A' if temperature is None else '{:.1f} C'.format(temperature)),
+                ('row', 'Load', 'N/A' if load is None else str(js_round(load))+'%'),
+                ('row', 'Temp', 'N/A' if temperature is None else fixed(temperature)+' C'),
             ))
         items.extend([
             ('section', 'Software', None),
@@ -3153,7 +3290,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             editing = self.checkkey == self.MotionValue and self._motion_field == field
             if editing:
                 value = self._motion_target
-            text = '{:g}'.format(value)
+            text = motion_text(field,value)
             if len(text) > 9:
                 text = '{:.3g}'.format(value)
             if len(text) > 9:
@@ -3175,8 +3312,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                     self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16,
                         self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
                 else:
-                    self.lcd.draw_scaled_float_text(True, True, 0, self.lcd.font8x16,
-                        self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
+                    self._draw_axis_value(index,v,self.MBASE(row),self.lcd.Color_Bg_Black)
             entries.append((label, self.ICON_MoveX + index, value, painter))
         live = bool(getattr(self, '_live_jog', False))
         entries.append(('Live jog', ICON_LIVE_JOG, live,
@@ -3204,7 +3340,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     def Clear_Title_Bar(self):
         self._info_render_scroll = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH - 1, 30)
-        self._header_clock_drawn = None
+        self._invalidate_header()
         self._draw_header_clock()
 
     def Clear_Menu_Area(self):
@@ -3423,7 +3559,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     def Item_Prepare_Offset(self, row):
         if self.pd.HAS_BED_PROBE:
             self._draw_menu_text('Z offset', self.LBLX, self.MBASE(row))  # "Z-Offset"
-            self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16, self.lcd.Color_Bg_Black, 2, 2, 202, self.MBASE(row), self.pd.BABY_Z_VAR * 100)
+            self._draw_offset_value(self.pd.BABY_Z_VAR * 100,self.MBASE(row),self.lcd.Color_Bg_Black)
         else:
             self._draw_menu_text('Set home', self.LBLX, self.MBASE(row))  # "..."
         self.Draw_Menu_Line(row, self.ICON_SetHome)
@@ -3444,11 +3580,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     # --------------------------------------------------------------#
 
     def _each_moment_update_untraced(self):
+        wifi_changed = self.pd.refresh_wifi_status()  # Worker only; also invalidate visible Info rows.
         self._poll_case_light_live()
         self._sync_case_light_tracking()
         self._poll_case_light_state()
         # variable update
-        update = self.pd.update_variable()
+        update = self._update_ui_state()
         self._poll_maintenance_ui()
         self._focus_tick_quiet()
         if self.pd.connection_error:
@@ -3493,7 +3630,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
-            if system_changed:
+            if system_changed or wifi_changed:
                 self.Draw_Info_Menu()
                 self.lcd.update()
             elif info_update:
@@ -3543,10 +3680,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                             self.lcd.font8x16, self.lcd.Select_Color,
                             3, 1, 216, row, scale)
                     else:
-                        self.lcd.draw_scaled_float_text(
-                            True, True, 0, self.lcd.font8x16,
-                            self.lcd.Color_White, self.lcd.Select_Color,
-                            3, 1, 216, row, scale)
+                        self._draw_axis_value(index,scale,row,self.lcd.Select_Color)
         if self.last_status != self.pd.status:
             self._present_print_state()
         if getattr(self, '_print_error_visible', False):

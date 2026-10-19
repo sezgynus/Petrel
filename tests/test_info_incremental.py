@@ -135,6 +135,7 @@ class InfoPendingReadTests(unittest.TestCase):
     def test_pending_reads_skip_local_metrics_and_snapshot_copies(self):
         data = printer(snapshot())
         future = Future()
+        data.system_info.update(wifi_ssid='AP', wifi_rssi=-50)
         data._read_jobs.clear()
         data._read_worker = Mock()
         data._read_worker.submit.return_value = future
@@ -151,8 +152,10 @@ class InfoPendingReadTests(unittest.TestCase):
             memory.assert_not_called()
             data.subscription.snapshot.assert_not_called()
             data._read_worker.submit.assert_called_once()
-            future.set_result((('AP', -50), {'result': {'version_info': {}}}, None))
+            future.set_result({'result': {'version_info': {}}})
             self.assertTrue(data.refresh_system_info())
+            self.assertEqual((data.system_info['wifi_ssid'], data.system_info['wifi_rssi']),
+                             ('AP', -50))
             network.assert_called_once()
             metrics.assert_called_once()
             memory.assert_called_once()

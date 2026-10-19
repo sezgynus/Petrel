@@ -5,7 +5,7 @@ from threading import Thread
 import logging
 import time
 
-from thumbnail_preview import load_preview
+from thumbnail_preview import load_preview, NoThumbnail
 from preview_metadata import PreviewData
 
 
@@ -71,6 +71,15 @@ class ThumbnailCache:
         return bool(self.job or self.upload or any(
             key not in self.entries and key not in self.errors for key in self.priority))
 
+    def has_foreground_work(self, key):
+        """Fast polling only for this preview, including retries that are due."""
+        if key not in self.valid or key in self.entries:
+            return False
+        if key not in self.errors:
+            return True
+        retry = self.retry_at.get(key)
+        return retry is not None and time.monotonic() >= retry
+
     def _hole(self, size):
         address = 0
         for start, length in sorted(self.entries.values()):
@@ -117,7 +126,10 @@ class ThumbnailCache:
                             if victim is None:
                                 break
                             del self.details[victim]
+                        retryable = data.retryable
                         data = data.jpeg
+                        if data is None and not retryable:
+                            raise NoThumbnail('No thumbnail')
                         if data is None:
                             raise ValueError('No thumbnail')
                     if not isinstance(data, bytes) or not 0 < len(data) <= self.capacity:
@@ -131,7 +143,7 @@ class ThumbnailCache:
                                            started=time.monotonic())
                 except Exception as error:
                     self.errors[key] = str(error)
-                    if str(error) != 'LCD cache full':
+                    if str(error) != 'LCD cache full' and not isinstance(error, NoThumbnail):
                         self.retry_at[key] = time.monotonic()+10.0
                     logging.info('Thumbnail cache unavailable %s: %s', key[0], error)
             else:

@@ -19,7 +19,15 @@ The three dashboard rows are shown below. Speed/flow fields alternate every two 
 | 2 | Bed actual/target (°C) | Flow override (%) / volumetric flow (mm³/s) | Session Z offset (mm) |
 | 3 | X (mm) | Y (mm) | Z (mm) |
 
+The other compact markers provide live diagnostics without adding icons: a 12×3 px line beneath the nozzle and a 14×3 px line beneath the bed indicate **heating off** (muted grey), **adjusting toward target** (amber) or **within the target band** (cyan, with hysteresis). A separate 4×3 px dot beneath the nozzle indicates **extrusion allowed** (cyan), **not allowed** (amber) or **unknown** (grey), using Klipper's `can_extrude`. A thin amber line under Speed/Flow appears when the corresponding override differs from 100%; it disappears at 100%, including when the alternating numeric field is showing live telemetry. A tiny cyan dot under Z-offset indicates an **active Bed Mesh** (including an unnamed adaptive mesh); it disappears when no mesh matrix is active. Only changed markers redraw, and all markers read existing subscribed data.
+
+A 14×3 px bar below each X/Y/Z icon indicates Klipper homing status: **cyan** means homed, **amber** means not homed, and **grey** means the reading is unavailable (such as a disconnect). Each bar updates only when that axis status changes; position values and icon spacing are unaffected.
+
 The fan icon uses panel-native animation; its speed follows the fan percentage, rounded to 10 ms intervals. Unchanged intervals send no new command; 0% stops it.
+
+A 4×4 px dot immediately to the **right of the header clock** shows the **Klipper connection**: cyan = ready, amber = connecting, muted red = disconnected/shutdown/error, grey = unknown. This uses the existing Moonraker subscription state, independently of Wi-Fi, and updates only if the state changes. The dot is a native filled rectangle, not an extra icon asset.
+
+A compact Wi-Fi icon beside the header clock shows host RSSI using the same thresholds as Info: **strong** (≥ −60 dBm, three active arcs), **medium** (−70 to below −60 dBm, two arcs) or **poor** (below −70 dBm, one arc). No signal-strength icon is shown when Wi-Fi is disconnected or signal information is unavailable. Ethernet connectivity is independent of this indicator. Its native icon is refreshed only when the band changes.
 
 ![Panel-native fan animation at 0, 1, 50 and 100 percent](assets/framed/fan-animation-demo.gif)
 

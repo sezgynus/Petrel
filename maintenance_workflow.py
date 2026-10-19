@@ -12,7 +12,7 @@ import re
 
 from maintenance_homing import begin_homing, poll_homing
 from maintenance_catalog import definition_for
-from maintenance_planner import AdapterRegistration, build_plan, visible_plan
+from maintenance_planner import AdapterRegistration, registered_plan
 from maintenance_runtime import QueueEvidence, read_queue_evidence, live_safety_context
 from maintenance_safety import precheck
 from maintenance_motion import idle_heaters, vector, number
@@ -116,8 +116,8 @@ class FirmwareWorkflow:
         return ()
 
     def available(self):
-        return visible_plan(build_plan(self._printer.maintenance.snapshot,
-                            adapters(self.methods, self.domain)))
+        return registered_plan(self._printer.maintenance.snapshot,
+                               adapters(self.methods, self.domain))
 
     def _current(self):
         try:

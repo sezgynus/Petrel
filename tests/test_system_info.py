@@ -38,6 +38,16 @@ class SystemInfoTests(unittest.TestCase):
             self.assertLessEqual(len(text), 17)
         self.assertEqual(system_info.wifi_signal_text(None), 'N/A')
 
+    def test_dashboard_wifi_signal_uses_info_thresholds_and_rejects_invalid_readings(self):
+        for rssi, band in ((-100, 'Poor'), (-71, 'Poor'),
+                           (-70, 'Medium'), (-61, 'Medium'),
+                           (-60, 'Strong'), (-30, 'Strong')):
+            self.assertEqual(system_info.wifi_signal_level(rssi), band)
+            self.assertIn('({})'.format(band), system_info.wifi_signal_text(rssi))
+        for value in (None, float('nan'), float('inf'), 'bad', True):
+            self.assertIsNone(system_info.wifi_signal_level(value))
+            self.assertEqual(system_info.wifi_signal_text(value), 'N/A')
+
     def test_updater_version_prefers_full_git_description(self):
         versions = {'Petrel': {
             'version': 'v0.4.0-2',

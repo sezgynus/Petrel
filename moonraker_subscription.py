@@ -3,20 +3,21 @@
 Long-running commands may be sent as JSON-RPC notifications so transport acknowledgement
 is decoupled from physical completion. Completion is confirmed from subscribed printer state.
 """
-from collections import deque
+from collections import deque, OrderedDict
 import copy
 import json
 import math
 import re
 import socket
 import time
-from concurrent.futures import Future
+from concurrent.futures import Future, wait
 from queue import Empty, Full, Queue
 from threading import Event, Lock, Thread
 from urllib.parse import urlsplit, urlunsplit
 
 from moonraker_client import MoonrakerError
 from print_tuning import JOB_OBJECTS
+from petrel_version import client_version
 
 
 OBJECTS = ('webhooks', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard',
@@ -63,6 +64,8 @@ class MoonrakerSubscription:
         self._status = {}
         self._objects = []
         self._base_subscription = {}
+        self._thermal_objects = ()
+        self._thermal_generation = 0
         self._case_light_tracking = False
         self._case_light_callback = None
         self._case_light_generation = 0
@@ -73,6 +76,8 @@ class MoonrakerSubscription:
         self._epoch = 0
         self._revision = 0
         self._file_revision = 0
+        self._file_changes = OrderedDict()
+        self._file_change_floor = 0
         self._power_devices = {}
         self._power_off_serial = {}
         self._subscribing = False
@@ -80,6 +85,7 @@ class MoonrakerSubscription:
         self._outbound = Queue(maxsize=32)
         self._outbound_wakeup = Event()
         self._completion_requests = set()
+        self._emergency_requests = set()
         self._pending_requests = {}
         self._pending_deadlines = {}
         self.gcode_responses = Queue(maxsize=64)
@@ -106,6 +112,18 @@ class MoonrakerSubscription:
                     'power_devices': dict(self._power_devices),
                     'power_off_serial': dict(self._power_off_serial)}
 
+    def file_identity(self, filename):
+        with self._lock:
+            return self._epoch, max(self._file_change_floor, self._file_changes.get(filename, 0))
+
+    def buzzer_snapshot(self):
+        """Copy only the tiny PWM configuration needed by the sound worker."""
+        with self._lock:
+            return {'state': self._state, 'epoch': self._epoch,
+                    'objects': [n for n in self._objects if n.startswith('pwm_cycle_time ')],
+                    'settings': {n: copy.deepcopy(v) for n, v in self._settings.items()
+                                 if n.startswith('pwm_cycle_time ')}}
+
     def snapshot(self, include_settings=True):
         with self._lock:
             result = {'state': self._state, 'error': self._error,
@@ -119,6 +137,44 @@ class MoonrakerSubscription:
                 result['settings'] = copy.deepcopy(self._settings)
             return result
 
+    def _subscription_objects(self):
+        objects = copy.deepcopy(self._base_subscription)
+        if self._case_light_tracking and 'output_pin case_light' in self._objects:
+            objects['output_pin case_light'] = ['value']
+        for name in self._thermal_objects:
+            objects[name] = ['temperature', 'target', 'power']
+        return objects
+
+    def set_thermal_tracking(self, enabled):
+        """Lease optional heater telemetry only for an explicit thermal check."""
+        with self._lock:
+            self._thermal_generation += 1
+            generation, epoch = self._thermal_generation, self._epoch
+            self._thermal_objects = tuple(name for name, cfg in self._settings.items()
+                if enabled and name in self._objects and name not in self._base_subscription
+                and isinstance(cfg, dict) and 'heater_pin' in cfg)
+            names = self._thermal_objects
+            objects = self._subscription_objects()
+            for name in tuple(self._status):
+                if name.startswith('heater_generic ') and name not in names:
+                    self._status.pop(name, None)
+        future = self.request('printer.objects.subscribe', {'objects': objects})
+        def receive(done):
+            if done.cancelled() or done.exception(): return
+            result = done.result()
+            if not isinstance(result, dict): return
+            status = result.get('status', {})
+            if not isinstance(status, dict): return
+            with self._lock:
+                if generation != self._thermal_generation or epoch != self._epoch: return
+                # Seed only missing objects; never overwrite newer deltas.
+                for name in names:
+                    if name not in self._status and isinstance(status.get(name), dict):
+                        self._status[name] = copy.deepcopy(status[name])
+                        self._revision += 1
+        future.add_done_callback(receive)
+        return future
+
     def set_case_light_tracking(self, enabled, callback=None):
         """Replace the subscription while retaining every baseline printer object."""
         with self._lock:
@@ -126,7 +182,7 @@ class MoonrakerSubscription:
             self._case_light_callback = callback if enabled else None
             self._case_light_generation += 1
             generation, epoch = self._case_light_generation, self._epoch
-            objects = copy.deepcopy(self._base_subscription)
+            objects = self._subscription_objects()
             if enabled and 'output_pin case_light' in self._objects:
                 objects['output_pin case_light'] = ['value']
             if not enabled:
@@ -161,6 +217,8 @@ class MoonrakerSubscription:
 
     def _invalidate(self, error):
         with self._lock:
+            self._thermal_objects = ()
+            self._thermal_generation += 1
             self._state = 'disconnected'
             self._error = error
             self._status = {}
@@ -185,6 +243,9 @@ class MoonrakerSubscription:
             else:
                 for name, fields in status.items():
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
+            for name in tuple(self._status):
+                if name.startswith('heater_generic ') and name not in self._thermal_objects:
+                    self._status.pop(name, None)
             self._eventtime = eventtime
             self._revision += 1
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):
@@ -255,6 +316,21 @@ class MoonrakerSubscription:
         elif method == 'notify_filelist_changed':
             with self._lock:
                 self._file_revision += 1
+                event = params[0] if isinstance(params, list) and len(params) == 1 else {}
+                items = [event.get(k) for k in ('item', 'source_item')] if isinstance(event, dict) else []
+                relevant = [i for i in items if isinstance(i, dict) and i.get('root') == 'gcodes']
+                if not items or not any(isinstance(i, dict) for i in items):
+                    self._file_change_floor = self._file_revision
+                for item in relevant:
+                    path = item.get('path')
+                    if not isinstance(path, str) or event.get('action', '').endswith('dir'):
+                        self._file_change_floor = self._file_revision
+                        continue
+                    self._file_changes.pop(path, None)
+                    self._file_changes[path] = self._file_revision
+                    while len(self._file_changes) > 128:
+                        _, revision = self._file_changes.popitem(last=False)
+                        self._file_change_floor = max(self._file_change_floor, revision)
         elif method == 'notify_gcode_response':
             if isinstance(params, list) and len(params) == 1 and isinstance(params[0], str):
                 with self._lock:
@@ -343,6 +419,9 @@ class MoonrakerSubscription:
                               >= self.MAX_PENDING_REQUESTS - (0 if method == 'printer.emergency_stop' else 1))
                 if not overloaded:
                     self._completion_requests.add(future)
+                    if method == 'printer.emergency_stop':
+                        self._emergency_requests = {f for f in self._emergency_requests if not f.done()}
+                        self._emergency_requests.add(future)
             if overloaded:
                 future.set_exception(MoonrakerError('Too many outstanding Moonraker requests'))
                 return future
@@ -541,7 +620,7 @@ class MoonrakerSubscription:
         raise MoonrakerError('Moonraker RPC timed out: ' + method)
 
     def _bootstrap(self):
-        identify = {'client_name': 'Petrel', 'version': '3.0.0',
+        identify = {'client_name': 'Petrel', 'version': client_version(),
                     'type': 'display', 'url': 'https://github.com/sezgynus/Petrel'}
         if self._api_key:
             identify['api_key'] = self._api_key
@@ -644,6 +723,15 @@ class MoonrakerSubscription:
                     except Exception:
                         pass
             self._stop.wait(self.retry_delay)
+
+    def wait_for_emergency_requests(self, timeout=3.0):
+        """Observe already queued safety requests before closing; never replay."""
+        with self._lock:
+            pending = tuple(self._emergency_requests)
+        if not pending:
+            return True
+        _, unfinished = wait(pending, timeout=timeout)
+        return not unfinished and all(not f.cancelled() and f.exception() is None for f in pending)
 
     def close(self):
         self._stop.set()

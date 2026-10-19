@@ -79,12 +79,20 @@ class Player:
         self.thread = Thread(target=self._run, name='petrel-buzzer', daemon=True)
         self.thread.start()
 
+    def _snapshot(self):
+        reader = getattr(type(self.subscription), 'buzzer_snapshot', None)
+        return (self.subscription.buzzer_snapshot() if callable(reader)
+                else self.subscription.snapshot())
+
     def play(self, settings, kind):
         settings.validate()
         tone = settings.click if kind == 'press' else settings.encoder
         if not settings.output or not settings.volume or not tone:
             return False
-        snapshot = self.subscription.snapshot()
+        with self.condition:
+            if self.stopped or self.busy or self.pending is not None:
+                return False
+        snapshot = self._snapshot()
         name = resolve_output(settings.output, available(snapshot))
         if snapshot['state'] != 'ready' or not name:
             return False
@@ -104,7 +112,7 @@ class Player:
 
     def _send(self, script, epoch, guard=None):
         def ready():
-            snapshot = self.subscription.snapshot()
+            snapshot = self._snapshot()
             return snapshot['state'] == 'ready' and snapshot['epoch'] == epoch and (guard is None or guard())
         self.subscription.notify_immediate('printer.gcode.script', {'script': script}, guard=ready).result(timeout=1)
 
@@ -119,7 +127,7 @@ class Player:
                 self.busy = True
             active = False
             try:
-                snapshot = self.subscription.snapshot()
+                snapshot = self._snapshot()
                 key = ('pwm_cycle_time ' + settings.output).casefold()
                 config = next((value for section, value in snapshot.get('settings', {}).items()
                                if section.casefold() == key), {})
@@ -131,7 +139,7 @@ class Player:
                         if self.stopped or generation != self.generation:
                             break
                     def valid():
-                        current = self.subscription.snapshot()
+                        current = self._snapshot()
                         return (not self.stopped and generation == self.generation and
                                 time.monotonic() - queued < .5 and
                                 settings.output in available(current))
@@ -143,7 +151,7 @@ class Player:
                     with self.condition:
                         self.condition.wait_for(lambda: self.stopped or generation != self.generation, timeout=duration)
                     self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
-                               lambda: settings.output in available(self.subscription.snapshot()))
+                               lambda: settings.output in available(self._snapshot()))
                     active = False
             except Exception:
                 # Sounds are optional and must not interrupt UI/printer actions.
@@ -152,7 +160,7 @@ class Player:
                 try:
                     if active:
                         self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
-                                   lambda: settings.output in available(self.subscription.snapshot()))
+                                   lambda: settings.output in available(self._snapshot()))
                 except Exception:
                     pass
                 with self.condition:

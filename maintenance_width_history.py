@@ -1,5 +1,5 @@
 """Bounded, explicit width captures; never extrapolated lifetime usage."""
-import hashlib
+from configuration_identity import stable_digest, legacy_digest
 import json
 from pathlib import Path
 from time import time
@@ -7,7 +7,7 @@ from maintenance_motion import number
 
 def capture(device,settings,version,diameter):
     target = Path.home()/'.config'/'Petrel'/'maintenance-width-history.json'
-    key = hashlib.sha256(json.dumps((device,settings,version),sort_keys=True,default=str).encode()).hexdigest()
+    key = stable_digest((device,settings,version))
     records = {}
     try:
         if target.stat().st_size <= 65536:
@@ -18,6 +18,9 @@ def capture(device,settings,version,diameter):
         pass
     if len(records)>8:
         raise ValueError('width_history_capacity')
+    old_key = legacy_digest((device,settings,version))
+    if key not in records and old_key in records:
+        records[key] = records.pop(old_key)
     prior = records.get(key,[])
     if not isinstance(prior,list) or len(prior)>64 or any(not isinstance(p,list) or len(p)!=2 or not all(number(v) for v in p) or not 0 < p[1] < 5 for p in prior):
         raise ValueError('width_history_invalid')

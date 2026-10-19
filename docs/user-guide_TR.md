@@ -19,7 +19,15 @@ Alt durum alanının üç satırı aşağıdadır. Hız/akış alanları iki san
 | 2 | Tabla gerçek/hedef (°C) | Akış çarpanı (%) / hacimsel akış (mm³/s) | Oturum Z offset (mm) |
 | 3 | X (mm) | Y (mm) | Z (mm) |
 
+Diğer küçük göstergeler de yeni ikon gerektirmeden mevcut Klipper verilerini gösterir: nozul altındaki 12×3 ve tabla altındaki 14×3 piksellik çizgiler, **ısıtma kapalı** (soluk gri), **hedef sıcaklığa yaklaşıyor** (amber) veya **hedef toleransında** (turkuaz; titreşimi önleyen histerezisle) anlamına gelir. Nozul altındaki ayrı 4×3 piksellik nokta, Klipper `can_extrude` bilgisine göre **ekstrüzyona izin var** (turkuaz), **izin yok** (amber), **durum bilinmiyor** (gri) durumunu belirtir. Speed/Flow altındaki ince amber çizgi, ilgili çarpan %100 dışındayken görünür ve %100'de kaybolur; değer alanı anlık telemetriyi gösterirken de görünmeye devam eder. Z-offset altındaki küçük turkuaz nokta **aktif Bed Mesh**'i (isimsiz/adaptif mesh dahil) belirtir; aktif mesh matrisi yoksa kaybolur. Yalnız değişen göstergeler yeniden çizilir.
+
+X/Y/Z simgelerinin altındaki 14×3 piksellik çizgi Klipper referans durumunu belirtir: **turkuaz** referanslanmış, **amber** referanslanmamış, **gri** ise (örneğin bağlantı kesildiğinde) durum bilgisinin alınamadığı anlamına gelir. Her çizgi yalnız ilgili eksenin durumu değiştiğinde güncellenir; konum değerleri ve ikon aralıkları etkilenmez.
+
 Fan simgesi panelin kendi animasyonuyla döner; hız fan yüzdesinden hesaplanır ve 10 ms aralıklara yuvarlanır. Aynı interval için yeniden komut gönderilmez; %0’da durur.
+
+Saatin **hemen sağındaki 4×4 piksellik nokta**, **Klipper bağlantısını** gösterir: turkuaz = hazır, amber = bağlanıyor, soluk kırmızı = bağlantı kesildi/shutdown/hata, gri = durum bilinmiyor. Mevcut Moonraker abonelik durumunu kullanır; Wi-Fi'dan bağımsızdır ve yalnız durum değişiminde güncellenir. Nokta yeni ikon dosyası değil, panelin yerel dolu dikdörtgen çizimidir.
+
+Saatin yanındaki küçük Wi-Fi simgesi, Info ekranıyla aynı RSSI eşiklerini kullanır: **güçlü** (≥ −60 dBm, üç etkin yay), **orta** (−70 ile −60 dBm arası, iki yay) veya **zayıf** (−70 dBm altı, tek yay). Wi-Fi bağlantısı yoksa ya da RSSI bilinmiyorsa güç seviyesi simgesi gösterilmez. Ethernet bağlantısı bu göstergeden bağımsızdır. Yerel ikon yalnız seviye değiştiğinde yeniden çizilir.
 
 ![Fan 0, 1, 50 ve 100 yüzde iken panel-native animasyon örneği](assets/framed/fan-animation-demo.gif)
 

@@ -70,6 +70,10 @@ class UIEventLoop:
             raise ValueError('UI interval must be positive')
         self._interval = interval
 
+    def cap_interval(self, maximum):
+        """Apply an operation deadline without slowing a faster render task."""
+        self.set_interval(min(self._interval, maximum))
+
     def _run(self):
         try:
             try:

@@ -54,9 +54,11 @@ def filament_services(state):
         result.append('maintenance.chamber_humidity_sensor')
     if isinstance(data.get('dryers'),list):
         for item in data['dryers'][:4]:
-            if isinstance(item,dict) and item.get('object') in state.objects:
+            name = item.get('object') if isinstance(item,dict) else None
+            if (isinstance(name,str) and name.startswith('heater_generic ')
+                    and name in state.objects):
                 result.append('maintenance.dryer_profile')
-                break
+                result.append('maintenance.dryer_target:'+name)
     if 'mmu' in state.objects and 'mmu_machine' in state.objects:
         result.append('petrel.mmu_test_adapter')
     return tuple(result)
@@ -88,11 +90,11 @@ class MaintenanceFilamentController(FirmwareWorkflow):
         rows = []
         for row in super().available():
             if row.feature_id=='E14':
-                dryers = profile().get('dryers',[])
-                if isinstance(dryers,list):
-                    rows.extend(replace(row,device=p['object']) for p in dryers[:4]
-                        if isinstance(p,dict) and isinstance(p.get('object'),str)
-                        and p['object'] in self._printer.state.objects)
+                snapshot = self._printer.maintenance.snapshot
+                names = tuple(token.split(':',1)[1] for token in snapshot.service_key
+                              if token.startswith('maintenance.dryer_target:'))[:4]
+                rows.extend(replace(row,device=name) for name in dict.fromkeys(names)
+                            if name in self._printer.state.objects)
             else:
                 rows.append(row)
         return tuple(rows)
@@ -161,7 +163,7 @@ class MaintenanceFilamentController(FirmwareWorkflow):
         self._measurement,self._measured = None,False
         self._samples,self._owned_loadcell = [],False
         self._operation = None
-        self._profile = profile()
+        self._profile = {}
         self._remaining = 0.
         self._tare_done = self._calibrated = False
         self._sensor_disabled = self._restoring = False
@@ -171,6 +173,12 @@ class MaintenanceFilamentController(FirmwareWorkflow):
         self._gram_edit = False
         self._token = 'PETREL_E_'+uuid.uuid4().hex
         return super().start(*args,**kwargs)
+
+    def _prepare(self, action):
+        # Executed only by the existing worker, including explicit start.
+        if not self._sent and action == 'start':
+            self._profile = profile()
+        return super()._prepare(action)
 
     def fields(self):
         fields = super().fields()
@@ -601,4 +609,5 @@ class MaintenanceFilamentController(FirmwareWorkflow):
             self._schedule('abort',True)
             return None
         return super().cancel()
+
 

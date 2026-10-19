@@ -8,6 +8,12 @@ from PIL import Image
 from preview_metadata import PreviewData, details_from_metadata
 
 MIN_FOREGROUND_LUMA = 48
+MAX_CANDIDATES = 4
+
+
+class NoThumbnail(ValueError):
+    """Positive metadata evidence that this file has no usable image path."""
+
 
 
 def _protect_dark_foreground(rgba):
@@ -58,26 +64,39 @@ def load_thumbnail(client, filename, metadata=None, size=128):
     # Prefer a source large enough for the preview, rather than a tiny icon.
     candidates.sort(key=lambda t: (max(t['width'], t['height']) < 128,
                                    abs(max(t['width'], t['height'])-128)))
+    attempts = 0
     for thumb in candidates:
         relative = thumb['relative_path']
         path = posixpath.normpath(posixpath.join(posixpath.dirname(filename), relative))
         if relative.startswith('/') or path.startswith('../') or path == '..':
             continue
-        data = client.get_bytes('/server/files/gcodes/' + quote(path, safe='/'), max_bytes=2_000_000)
-        downloaded = time.monotonic()
-        jpeg = image_jpeg(data,size=size)
+        if attempts >= MAX_CANDIDATES:
+            break
+        attempts += 1
+        try:
+            data = client.get_bytes('/server/files/gcodes/' + quote(path, safe='/'), max_bytes=2_000_000)
+            downloaded = time.monotonic()
+            jpeg = image_jpeg(data,size=size)
+        except Exception as error:
+            logging.info('Thumbnail candidate unavailable: %s', type(error).__name__)
+            continue
         logging.info('Thumbnail %s: download %.3fs, conversion %.3fs, %d JPEG bytes',
                      filename, downloaded-started, time.monotonic()-downloaded, len(jpeg))
         return jpeg
-    raise ValueError('No thumbnail')
+    if attempts:
+        raise ValueError('Thumbnail candidates unavailable')
+    raise NoThumbnail('No thumbnail')
 
 
 def load_preview(client, filename, size=128):
     metadata = client.get('/server/files/metadata?filename=' + quote(filename, safe=''))['result']
     details = details_from_metadata(metadata)
+    retryable = True
     try:
         jpeg = load_thumbnail(client, filename, metadata=metadata, size=size)
+    except NoThumbnail:
+        jpeg, retryable = None, False
     except Exception as error:
         logging.info('Thumbnail unavailable %s: %s', filename, error)
         jpeg = None
-    return PreviewData(jpeg, details)
+    return PreviewData(jpeg, details, retryable=retryable)

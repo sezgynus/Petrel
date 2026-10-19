@@ -3,8 +3,20 @@
 from spool_view import SpoolView
 from mmu_filament_view import MMUFilamentView, filament_color
 from mmu_control import MMUState
+from display_numbers import fixed, compact
 
 class MMUViewMixin:
+    def _mmu_temperature_text(self):
+        heater = self.pd.capabilities.active_hotend
+        if heater is None:
+            return '-- C'
+        raw = self.pd.state.status.get(heater.name,{})
+        text = fixed(raw.get('temperature',0),1)+'/'+compact(raw.get('target',0))+' C'
+        if len(text)>18:
+            temps = self.pd.thermalManager['temp_hotend'][0]
+            return '%d/%d C'%(temps['celsius'],temps['target'])
+        return text
+
     @staticmethod
     def _rgb565(rgb):
         r, g, b = (int(round(max(0.0, min(1.0, value)) * 31)) for value in rgb)
@@ -497,7 +509,7 @@ class MMUViewMixin:
             self._mmu_animation_state = m
             self._mmu_animation_color = active_color
             view.draw(m, active_color=active_color)
-            distance = '--' if m.filament_position is None else '%.1f' % m.filament_position
+            distance = '--' if m.filament_position is None else fixed(m.filament_position,1)
             self._mmu_text('distance', 'Filament: %smm' % distance, 40, 147, 32, small=True)
             self._mmu_text('tool', self._mmu_tool_label(m.tool), 20, 184, 4, bg=view.BLOCK)
             phase = 'DISABLED' if m.enabled is not True else 'PAUSED' if m.locked else m.action
@@ -513,7 +525,7 @@ class MMUViewMixin:
             self._mmu_text('material', material, 160, 266, 16, small=True)
             self._mmu_text('mapping', '%s > %s' % (self._mmu_tool_label(m.tool), self._mmu_gate_label(m.gate)), 160, 287, 16, small=True)
             temps = self.pd.thermalManager['temp_hotend'][0]
-            self._mmu_text('temperature', '%d/%d C' % (temps['celsius'], temps['target']) if self.pd.HAS_HOTEND else '-- C', 26, 396, 18, small=True)
+            self._mmu_text('temperature', self._mmu_temperature_text(), 26, 396, 18, small=True)
         else:
             self._mmu_text('unavailable', 'OFFLINE' if self.pd.connection_error else 'Happy Hare unavailable', 12, 180)
         offset = m.num_gates if m else 0
@@ -526,7 +538,7 @@ class MMUViewMixin:
 
     def _mmu_nozzle(self, y):
         temps = self.pd.thermalManager['temp_hotend'][0]
-        value = 'Nozzle %d/%d C' % (temps['celsius'], temps['target']) if self.pd.HAS_HOTEND else 'Nozzle unavailable'
+        value = 'Nozzle '+self._mmu_temperature_text() if self.pd.HAS_HOTEND else 'Nozzle unavailable'
         self._mmu_text('nozzle', value, 12, y)
 
     def _mmu_path(self, m, y):

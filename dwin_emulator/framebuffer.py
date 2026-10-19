@@ -33,6 +33,13 @@ class Framebuffer:
             self.presented = None
             self.sequence = 0
 
+    def frame_token(self):
+        """Presentation revision plus the current hardware-animation frames."""
+        with self.lock:
+            now = time.monotonic()
+            return self.sequence, tuple((key, int((now - a[7]) / max(.01, a[6] * .01))
+                % (abs(a[5] - a[4]) + 1)) for key, a in self.animations.items())
+
     def snapshot(self):
         with self.lock:
             if self.errors:

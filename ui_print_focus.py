@@ -1,6 +1,7 @@
 """Print-focused views with bounded, field-only rendering and quiet edits."""
 import time
 from print_estimates import finish_text
+from display_numbers import clock_duration, setting_text
 import textwrap
 from concurrent.futures import Future
 from collections.abc import Mapping
@@ -29,10 +30,7 @@ class PrintFocusMixin:
 
     @staticmethod
     def _focus_time(seconds):
-        if seconds is None:
-            return "--:--"
-        minutes = max(0, int(seconds or 0)) // 60
-        return '%02d:%02d' % (minutes//60, minutes%60)
+        return clock_duration(seconds)
 
     def _focus_mmu(self):
         return self.pd.mmu_session.state
@@ -345,7 +343,7 @@ class PrintFocusMixin:
                     show_icon(self.lcd,self.ICON,ICON_JOB_SWITCH_ON if value else ICON_JOB_SWITCH_OFF,226,y+4)
                     if red:self.lcd.draw_rectangle(0,color,224,y+2,255,y+17)
                 else:
-                    text=('%.*f'%(s.decimals,value))+s.unit
+                    text=setting_text(s,value)
                     self._focus_text(text,254-len(text)*8,y+2,color=color)
             cache[key]=token
 
@@ -378,7 +376,7 @@ class PrintFocusMixin:
 
     def _focus_edit_value(self):
         self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,14,156,257,204)
-        s=self._tune_edit;text=('%.*f'%(s.decimals,self._tune_target))+s.unit
+        s=self._tune_edit;text=setting_text(s,self._tune_target)
         self._focus_text(text,(272-len(text)*12)//2,167,self.lcd.font12x24)
 
     def _focus_edit_input(self):

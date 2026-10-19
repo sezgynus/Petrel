@@ -95,8 +95,8 @@ class RecoveryUITests(unittest.TestCase):
         self.assertEqual(view._recovery_scroll, 5)
         positions = {c.args[-1]: c.args[-2] for c in view.lcd.draw_text.call_args_list
                      if c.args[-1] in ('Restart Klipper', 'Firmware Restart', 'Refresh connection')}
-        self.assertEqual(positions, {'Restart Klipper': 340, 'Firmware Restart': 384,
-                                     'Refresh connection': 428})
+        self.assertEqual(positions, {})
+        self.assertTrue(all(c.args[-2] < view.RECOVERY_BUTTON_TOP for c in view.lcd.draw_text.call_args_list))
         view._process_input(self.event(view, 'press'))
         self.assertEqual(view._recovery_selection, 0)
         view.pd.recovery.request.assert_not_called()
