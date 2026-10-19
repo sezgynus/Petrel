@@ -32,14 +32,14 @@ jobs:
         run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20
       - name: Report traced Maintenance allocations
         run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20 --trace
-      - name: Render Maintenance documentation screenshots
-        run: python tools/render_docs_screenshots.py --group maintenance
+      - name: Render documentation screenshots
+        run: python tools/render_docs_screenshots.py
       - uses: actions/upload-artifact@v4
         with:
-          name: maintenance-documentation
+          name: display-documentation
           path: |
-            docs/assets/screens/maintenance*.png
-            docs/assets/screens/framed/maintenance*.png
+            docs/assets/screens/*.png
+            docs/assets/screens/framed/*.png
             docs/screenshots.md
             docs/screenshots_TR.md
           retention-days: 7

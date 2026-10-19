@@ -3,7 +3,7 @@ import logging
 import time
 from itertools import islice
 from thumbnail_cache import ThumbnailCache
-from preview_metadata import PreviewDetails, amount, duration
+from preview_metadata import PreviewDetails, amount, duration, filament_length
 
 
 class FilePreviewMixin:
@@ -125,7 +125,7 @@ class FilePreviewMixin:
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 144, 68, 271, 207)
         for y, label, value in ((70, 'Print time', duration(details.seconds)),
                                 (114, 'Tool changes', str(details.changes) if details.changes is not None else '--'),
-                                (158, 'Total usage', amount(details.millimeters/1000 if details.millimeters is not None else None,'m')
+                                (158, 'Total usage', filament_length(details.millimeters)
                                  + '/' + amount(details.grams,'g'))):
             self._draw_menu_text(label, 148, y)
             if label == 'Total usage' and len(value) > 14:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import json
 import math
 import re
+from display_numbers import fixed
 
 
 @dataclass(frozen=True)
@@ -81,15 +82,30 @@ def details_from_metadata(metadata):
 def amount(value, unit):
     if value is None:
         return '--'+unit
-    text = f'{value:.2f}'.rstrip('0').rstrip('.')
+    text = fixed(value,0 if unit in ('g','mm') else 2)
     if len(text) > 7:
         text = f'{value:.1e}'
     return text+unit
 
 
+def filament_length(millimeters):
+    if millimeters is None:
+        return '--m'
+    return amount(millimeters/1000,'m') if millimeters>1000 else amount(millimeters,'mm').replace('.00mm','mm')
+
+
 def duration(seconds):
     if seconds is None:
         return '--'
-    minutes = int(seconds//60)
-    hours, minutes = divmod(minutes,60)
-    return f'{hours}h {minutes:02d}m' if hours else f'{minutes}m'
+    total = max(0,float(seconds))
+    days, rest = divmod(total,86400)
+    hours, rest = divmod(rest,3600)
+    minutes, second = divmod(rest,60)
+    parts = ([str(int(days))+'d'] if days else [])+([str(int(hours))+'h'] if hours else [])
+    if minutes: parts.append(str(int(minutes))+'m')
+    if second: parts.append(fixed(second)+'s')
+    text = ' '.join(parts) or '--'
+    if len(text)<=14:
+        return text
+    minutes = int(total//60)
+    return '%dh %02dm'%divmod(minutes,60)

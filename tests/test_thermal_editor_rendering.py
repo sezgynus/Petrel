@@ -26,16 +26,18 @@ class ThermalEditorRenderingTests(unittest.TestCase):
                 view.Draw_Temperature_Menu()
                 view.lcd.reset_mock()
                 view._open_thermal_editor(key, logical)
-                self.assertEqual(view.lcd.draw_integer_text.call_args.args[8],
-                                 view.MBASE(logical - 1))
+                opened = (view.lcd.draw_integer_text.call_args.args[8] if key=='FAN'
+                          else view.lcd.draw_text.call_args.args[6])
+                self.assertEqual(opened,view.MBASE(logical-1))
                 for event in (view.ENCODER_DIFF_CW, view.ENCODER_DIFF_CCW,
                               view.ENCODER_DIFF_ENTER):
                     view.get_encoder_state = Mock(return_value=event)
                     view.lcd.reset_mock()
                     getattr(view, handler)()
-                    draws = view.lcd.draw_integer_text.call_args_list
+                    draws = (view.lcd.draw_integer_text.call_args_list if key=='FAN'
+                             else view.lcd.draw_text.call_args_list)
                     if event != view.ENCODER_DIFF_ENTER or key != 'FAN':
-                        self.assertEqual(draws[-1].args[8], view.MBASE(logical - 1))
+                        self.assertEqual(draws[-1].args[8 if key=='FAN' else 6], view.MBASE(logical - 1))
 
     def test_confirm_without_status_echo_repaints_only_edited_row(self):
         view = self.view()

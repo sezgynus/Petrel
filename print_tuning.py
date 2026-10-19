@@ -49,7 +49,7 @@ def settings(printer):
     if caps.bed:
         add('bed', 'Bed', 'PRINT', data['heater_bed']['target'], 0, caps.bed.maximum, unit='C')
     if printer.HAS_ZOFFSET_ITEM:
-        add('z', 'Z offset', 'PRINT', printer.BABY_Z_VAR, printer.Z_PROBE_OFFSET_RANGE_MIN, printer.Z_PROBE_OFFSET_RANGE_MAX, .01, 2, 'mm')
+        add('z', 'Z offset', 'PRINT', printer.BABY_Z_VAR, printer.Z_PROBE_OFFSET_RANGE_MIN, printer.Z_PROBE_OFFSET_RANGE_MAX, .01, 3, 'mm')
     toolhead = data.get('toolhead', {})
     if 'square_corner_velocity' in toolhead:
         add('scv', 'SCV', 'MOTION', toolhead['square_corner_velocity'], 0, 100, .1, 1, 'mm/s')
@@ -65,9 +65,9 @@ def settings(printer):
     if 'firmware_retraction' in state.objects and 'firmware_retraction' in state.settings:
         raw = data.get('firmware_retraction', {})
         for field, label, step, decimals, unit, low, high in (
-            ('retract_length', 'Retract length', .1, 1, 'mm', 0, 20),
+            ('retract_length', 'Retract length', .1, 2, 'mm', 0, 20),
             ('retract_speed', 'Retract speed', 1, 0, 'mm/s', 1, 100),
-            ('unretract_extra_length', 'Unretract extra', .1, 1, 'mm', 0, 20),
+            ('unretract_extra_length', 'Unretract extra', .1, 2, 'mm', 0, 20),
             ('unretract_speed', 'Unretract speed', 1, 0, 'mm/s', 1, 100)):
             if field in raw:
                 add(field, label, 'EXTRUSION', raw[field], low, high, step, decimals, unit)

@@ -92,8 +92,8 @@ class PrintEstimateTests(unittest.TestCase):
         v.pd._print_metadata_stamp=(v.pd.state.epoch,v.pd.state.file_revision,'part.gcode')
         v.pd._print_metadata={'filament_total':1000,'estimated_time':3600}
         v._focus_print_tick()
-        self.assertEqual(v._focus_render['elapsed'],'00:15')
-        self.assertEqual(v._focus_render['remain'],'01:05')
+        self.assertEqual(v._focus_render['elapsed'],'0:15:00')
+        self.assertEqual(v._focus_render['remain'],'1:05:00')
         v.pd.job_Info['print_stats']['print_duration']=0
         v._focus_print_tick()
         self.assertEqual(v._focus_render['remain'],'--:--')

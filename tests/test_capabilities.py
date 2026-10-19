@@ -161,10 +161,10 @@ class CapabilityTests(unittest.TestCase):
                 {'remaining_weight': 580, 'initial_weight': 1000, 'used_weight': 420}),
             58)
 
-    def test_spoolman_remaining_percentage_falls_back_to_used_weight(self):
+    def test_spoolman_remaining_percentage_falls_back_to_filament_weight(self):
         self.assertEqual(
             backend.PrinterData._spool_remaining_percent(
-                {'remaining_weight': 400, 'used_weight': 600}),
+                {'remaining_weight': 400, 'used_weight': 600, 'filament': {'weight':1000}}),
             40)
         self.assertIsNone(
             backend.PrinterData._spool_remaining_percent(
@@ -553,8 +553,8 @@ class CapabilityMenuTests(unittest.TestCase):
         result.pd.system_info['host_ram'] = None
         self.assertIn(('row', 'RAM', 'N/A'), result._info_items())
         self.assertIn(('section', 'MCU: mcu', None), items)
-        self.assertIn(('row', 'Load', '1.2%'), items)
-        self.assertIn(('row', 'Temp', '42.5 C'), items)
+        self.assertIn(('row', 'Load', '1%'), items)
+        self.assertIn(('row', 'Temp', '43 C'), items)
         self.assertIn(('section', 'MCU: mmu', None), items)
         self.assertIn(('row', 'Temp', 'N/A'), items)
         result.Draw_Info_Menu()

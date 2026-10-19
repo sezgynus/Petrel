@@ -8,7 +8,7 @@ Bu görseller güncel Petrel arayüzünden, emülatör aracılığıyla özgün 
 
 Kullanım adımları: [Günlük kullanım](user-guide_TR.md) · [Print/Tune](print-controls_TR.md) · [MMU](mmu-guide_TR.md). Görüntü alma ve yeniden üretme: [Emülatör rehberi](ui-emulator_TR.md).
 
-Statik görüntüler belgelenmiş örnek durumları gösterir. Değer, etiket ve mevcut kontroller çekim sürümü, yazıcı yetenekleri ve fonta göre farklı olabilir. Bağlantı/kurtarma ve süre hesaplarında güncel metin rehberlerini kullanın; görselleri yenilemek için üretim rehberini izleyin.
+Statik görüntüler belgelenmiş örnek durumları gösterir. Değer, etiket ve mevcut kontroller çekim sürümü, yazıcı yetenekleri ve fonta göre farklı olabilir. Bağlantı/kurtarma ve süre hesaplarında güncel metin rehberlerini kullanın; görselleri yenilemek için aşağıdaki üretim rehberini izleyin.
 
 ## Ana ekran ve açılış
 

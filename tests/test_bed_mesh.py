@@ -444,8 +444,8 @@ class MeshViewTests(unittest.TestCase):
         view=self.make()
         view._draw_mesh_grid(3,3,{(0,0):-.12,(2,2):.12})
         strings=view.lcd.draw_text.call_args_list
-        negative=next(c.args for c in strings if c.args[-1]=='-0.12')
-        positive=next(c.args for c in strings if c.args[-1]=='+0.12')
+        negative=next(c.args for c in strings if c.args[-1]=='-0.120')
+        positive=next(c.args for c in strings if c.args[-1]=='0.120')
         self.assertEqual(negative[6],271) # low Y at the bottom
         self.assertEqual(positive[6],49)
         self.assertLess(negative[5],positive[5])

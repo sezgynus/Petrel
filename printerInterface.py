@@ -12,6 +12,7 @@ from urllib.parse import quote
 from collections.abc import Mapping
 from concurrent.futures import Future
 from threading import Lock
+from display_numbers import js_round
 from background_reads import ReadWorker, ReadPending
 from operation_guards import motion_dispatch_guard
 from motion_settings import PARAMETERS, validate as validate_motion
@@ -1094,15 +1095,15 @@ class PrinterData:
     def _spool_remaining_percent(spool):
         try:
             remaining = float(spool['remaining_weight'])
-            initial = float(spool.get('initial_weight') or 0)
-            if initial <= 0:
-                used = float(spool.get('used_weight') or 0)
-                initial = remaining + used
+            initial = spool.get('initial_weight')
+            if initial is None:
+                initial = (spool.get('filament') or {}).get('weight')
+            initial = float(initial)
             if (not math.isfinite(remaining) or not math.isfinite(initial)
                     or initial <= 0 or remaining < 0):
                 return None
-            return max(0, min(100, int(round(remaining * 100.0 / initial))))
-        except (KeyError, TypeError, ValueError):
+            return math.ceil(max(0, min(100, remaining / initial * 100)))
+        except (KeyError, TypeError, ValueError, AttributeError):
             return None
 
     def _poll_spoolman_percentages(self, spool_ids):
@@ -1249,7 +1250,7 @@ class PrinterData:
                 else:
                     target['celsius'] = int(data[obj]['temperature'])
                     target['target'] = int(data[obj]['target'])
-            thermal['fan_speed'][0] = int(data['fan']['speed'] * 100) if caps.fan else 0
+            thermal['fan_speed'][0] = js_round(data['fan']['speed'] * 100) if caps.fan else 0
             mmu = None
             spoolman_changed = False
             if 'mmu' in data:
@@ -1336,8 +1337,8 @@ class PrinterData:
             self._files_loaded = False
             self._file_revision = state.file_revision
         self.thermalManager = thermal
-        self.feedrate_percentage = round(speed_percent)
-        self.flow_percentage = round(flow_percent)
+        self.feedrate_percentage = js_round(speed_percent)
+        self.flow_percentage = js_round(flow_percent)
         self.live_velocity = live_velocity
         self.live_extruder_velocity = live_extruder_velocity
         self.volumetric_flow = volumetric_flow
@@ -1642,7 +1643,7 @@ class PrinterData:
             return None
         if not math.isfinite(value) or not 0 <= value <= 1:
             return None
-        return value > 0, int(round(value * 100))
+        return value > 0, js_round(value * 100)
 
     def set_case_light_brightness(self, percent):
         percent = float(percent)

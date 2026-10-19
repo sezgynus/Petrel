@@ -935,6 +935,6 @@ class MMUUITests(unittest.TestCase):
         data['status']['extruder']['temperature'] = 201
         v.EachMomentUpdate()
         self.assertEqual(v.checkkey,v.MMUMenu)
-        self.assertIn('201/205 C', self.strings(v))
+        self.assertIn('201.0/205 C', self.strings(v))
         self.assertNotIn((1,0x2125,0,0,271,479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
         self.assertFalse(any(c.args[3] == v.STATUS_Y for c in v.lcd.draw_rectangle.call_args_list))

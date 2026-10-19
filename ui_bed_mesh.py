@@ -1,6 +1,7 @@
 from lcd_resources import ICON_ACTIVE_MESH, ICON_MESH_CALIBRATE, ICON_MESH_PROFILE, ICON_PROBE_CALIBRATION, ICON_SCREW_ADJUST
 """Bed mesh screens, profile browsing and encoder navigation."""
 import math
+from display_numbers import fixed
 from functools import lru_cache
 from t5uic1_driver import T5UIC1Display
 
@@ -31,6 +32,10 @@ def point_style(z, columns, color_range=None):
 
 
 def point_label(z, columns):
+    label = fixed(z,3)
+    cells = min(6,int(222/max(1,columns-1)//6))
+    if columns<9 and len(label)<=cells:
+        return label
     if abs(z) < .005:
         return '0.00' if columns < 9 else '0'
     if columns < 9:
@@ -264,7 +269,10 @@ class BedMeshMixin:
                                  {(x,y):z for y,row in enumerate(mesh.points) for x,z in enumerate(row)},
                                  color_range=mesh.extrema, render_later=True)
             low, high = mesh.extrema
-            self._mesh_text('minZ: {:.2f}  maxZ: {:.2f}'.format(low, high), 347, size=6)
+            text = 'minZ: '+fixed(low,3)+'  maxZ: '+fixed(high,3)
+            if len(text)>44:
+                text = 'minZ: {:.2f}  maxZ: {:.2f}'.format(low,high)
+            self._mesh_text(text,347,size=6)
             if session.phase == 'complete':
                 choice = getattr(self, '_mesh_button_selection', 0)
                 self._mesh_button('Save', 26, choice == 0)
