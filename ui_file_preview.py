@@ -14,6 +14,7 @@ class FilePreviewMixin:
         revision = self.pd.state.file_revision
         stamp = (getattr(self, '_uart_epoch', 0), self.pd.state.epoch, revision,
                  self.pd.file_sort_revision, id(self.pd.files), getattr(self, '_file_paths', ()),
+                 getattr(self, '_preview_cache_key', None),
                  self.pd.file_name if self.pd.status in ('printing','paused','pausing','complete','cancelled') else None)
         if stamp == getattr(self, '_thumbnail_stamp', None):
             return
@@ -61,6 +62,8 @@ class FilePreviewMixin:
         self._preview_epoch = self.pd.state.epoch
         self._preview_choice = 1  # Cancel is the safe initial selection.
         self._preview_cache_key = self._thumbnail_keys.get(path)
+        # Foreground identity is independent of preload order/cache residency.
+        self._sync_thumbnail_cache()
         self._thumbnail_cache.errors.pop(self._preview_cache_key, None)
         self._thumbnail_cache.retry_at.pop(self._preview_cache_key, None)
         self._preview_error = None

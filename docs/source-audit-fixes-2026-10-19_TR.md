@@ -35,3 +35,15 @@ Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü beklen
 7. Thumbnail olmayan, ilk thumbnail adayı bozuk olan ve geçici indirme hatası veren dosyaları aç. Eksik görsel sürekli sorgulanmamalı; alternatif adaylar ve geçici hata tekrarları çalışmalı.
 
 İstemci kimliği artık kurulu checkout'un önbelleğe alınmış `git describe --tags --always --dirty` değerini kullanır. Git metadatası okunamıyorsa `unknown` bildirir; sürüm etiketi uydurmaz. Gönderilmiş bir yazılım güncellemesi UI kapatılarak geri alınamaz; kapanış sonraki istekleri engeller ve mevcut istek döndüğünde özel taşıma kaynağını serbest bırakır.
+
+## İkinci audit
+
+| ID | Madde | Uygulama |
+| --- | --- | --- |
+| R01 | Foreground preview kimliği | Uygulandı |
+| R02 | Worker üzerinde yeniden sıralama | Bekliyor |
+| R03 | Dosya cache ömrü | Bekliyor |
+| R04 | Tek bakım tick’i ve interval | Bekliyor |
+| R05 | Kullanım sayacı kapasitesi | Bekliyor |
+| R06 | Kabul edilmiş sonuç kayıtlarını boşaltma | Bekliyor |
+| R07 | Güvenli thumbnail deneme bütçesi | Uygulandı |

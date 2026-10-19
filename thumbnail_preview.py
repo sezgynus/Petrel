@@ -64,13 +64,15 @@ def load_thumbnail(client, filename, metadata=None, size=128):
     # Prefer a source large enough for the preview, rather than a tiny icon.
     candidates.sort(key=lambda t: (max(t['width'], t['height']) < 128,
                                    abs(max(t['width'], t['height'])-128)))
-    attempted = False
-    for thumb in candidates[:MAX_CANDIDATES]:
+    attempts = 0
+    for thumb in candidates:
         relative = thumb['relative_path']
         path = posixpath.normpath(posixpath.join(posixpath.dirname(filename), relative))
         if relative.startswith('/') or path.startswith('../') or path == '..':
             continue
-        attempted = True
+        if attempts >= MAX_CANDIDATES:
+            break
+        attempts += 1
         try:
             data = client.get_bytes('/server/files/gcodes/' + quote(path, safe='/'), max_bytes=2_000_000)
             downloaded = time.monotonic()
@@ -81,7 +83,7 @@ def load_thumbnail(client, filename, metadata=None, size=128):
         logging.info('Thumbnail %s: download %.3fs, conversion %.3fs, %d JPEG bytes',
                      filename, downloaded-started, time.monotonic()-downloaded, len(jpeg))
         return jpeg
-    if attempted:
+    if attempts:
         raise ValueError('Thumbnail candidates unavailable')
     raise NoThumbnail('No thumbnail')
 

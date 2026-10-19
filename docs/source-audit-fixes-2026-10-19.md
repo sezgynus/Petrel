@@ -35,3 +35,15 @@ All 15 items are implemented on this branch. Hardware acceptance is still pendin
 7. Open a file with no thumbnail, one with a broken first thumbnail, and one with a temporary download failure. Missing images should not poll repeatedly; alternatives and transient retries must work.
 
 Client identification now uses the installed checkout's cached `git describe --tags --always --dirty` value. Without readable Git metadata it reports `unknown`; it does not invent a release tag. An already dispatched software update cannot be reversed by closing the UI; closing prevents follow-up requests and releases its private transport when that request returns.
+
+## Second audit
+
+| ID | Item | Implementation |
+| --- | --- | --- |
+| R01 | Foreground preview identity | Implemented |
+| R02 | Worker-based resort | Pending |
+| R03 | File cache lifetime | Pending |
+| R04 | Single maintenance tick and interval | Pending |
+| R05 | Usage counter capacity | Pending |
+| R06 | Drain accepted result writes | Pending |
+| R07 | Safe thumbnail attempt budget | Implemented |
