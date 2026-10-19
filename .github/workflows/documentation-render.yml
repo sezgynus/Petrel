@@ -1,0 +1,43 @@
+name: Petrel Documentation Render
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    env:
+      GPIOZERO_PIN_FACTORY: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install render dependencies
+        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2
+      - name: Compile Python sources
+        run: python -m compileall -q .
+      - name: Render documentation screenshots
+        if: always()
+        run: python tools/render_docs_screenshots.py
+      - name: Render documentation animations
+        if: always()
+        run: |
+          python tools/render_print_controls.py
+          python tools/render_print_controls.py --frame
+          python tools/render_docs_workflows.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: display-documentation
+          path: |
+            docs/assets/screens/*.png
+            docs/assets/screens/framed/*.png
+            docs/assets/*.gif
+            docs/assets/framed/*.gif
+            docs/screenshots.md
+            docs/screenshots_TR.md
+          retention-days: 7
