@@ -92,11 +92,10 @@ class MainsailNumericDisplayTests(unittest.TestCase):
         v.pd.volumetric_flow=100.26
         with patch.object(ui.time,'monotonic',return_value=0):
             v.Draw_Status_Area(False)
-        xyz = [c.args for c in v.lcd.draw_signed_scaled_float_text.call_args_list if c.args[5]==448]
-        self.assertEqual([args[3] for args in xyz],[2,2])
+        xyz = [c.args for c in v.lcd.draw_text.call_args_list if c.args[6]==448]
+        self.assertEqual([args[-1].strip() for args in xyz],['120.13','-10.13','0.306'])
         for args,right in zip(xyz,(102,200,272)):
-            width = (args[2]+1+args[3]+1)*8
-            self.assertLessEqual(args[4]+width,right)
+            self.assertLessEqual(args[5]+len(args[-1])*8,right)
         self.assertIn('100mm3/s',[c.args[-1] for c in v.lcd.draw_text.call_args_list])
         self.assertGreater(len('100.3mm3/s')*8,200-126)
         self.assertGreater(len('-20.000')*8,272-224)

@@ -35,3 +35,7 @@ Telemetry sampling, estimate algorithms and command increments are unchanged. Ma
 CI regressions compare rounding boundaries against the JavaScript runtime, preserve raw command values and check label pixel bounds. The full suite, Maintenance measurements and all documentation screen renders run in CI. Physical display testing remains separate; this report does not claim hardware validation.
 
 Z and Z offset fields start at up to three decimals and reduce precision until the text fits. Raw values/commands are unchanged. Dashboard formatting only runs when the raw input changes, using a bounded two-field cache. Fixed-width padding and existing field erasure prevent stale digits. Mesh and temperature policies are retained.
+
+## Dashboard alignment
+
+Every numeric field starts 4 px after its 20 px icon tile (icon X + 24 px). There is no leading numeric padding; temperature pairs are single compact strings. Z/offset padding is appended only on the right. Shrinking text clears its previous area; unchanged values do not redraw. Unusual values exceeding the column budget use # markers instead of painting over adjacent icons. Numeric precision and raw values are unchanged.

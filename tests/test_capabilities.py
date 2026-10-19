@@ -113,13 +113,11 @@ class CapabilityTests(unittest.TestCase):
         result.lcd.reset_mock()
         with patch.object(ui.time, 'monotonic', return_value=0):
             result.Draw_Status_Area(True)
-        calls = result.lcd.draw_integer_text.call_args_list
-        coordinates = [(call.args[7], call.args[8]) for call in calls]
-        self.assertIn((28, 380), coordinates)
-        self.assertIn((60, 380), coordinates)
-        self.assertIn((28, 414), coordinates)
-        self.assertIn((60, 414), coordinates)
-        self.assertLess(60 + 3 * 8, 102)
+        calls = [c.args for c in result.lcd.draw_text.call_args_list if c.args[5]==28]
+        self.assertEqual([(a[5],a[6],a[-1]) for a in calls if a[6] in (380,414)],
+                         [(28,380,'200/205'),(28,414,'55/60')])
+        for args in calls:
+            self.assertLessEqual(args[5]+len(args[-1])*8,102)
 
     def test_printer_data_initializes_mmu_before_first_status_update(self):
         with patch.object(backend, 'MoonrakerClient'), \

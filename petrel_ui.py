@@ -2674,6 +2674,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             getattr(self.lcd, method)(*args)
         cache[key] = value
 
+    def _draw_dashboard_value(self, text, icon_x, y):
+        # Native icons occupy a 20 px tile; every value begins 4 px after it.
+        # No leading numeric padding: digit count never moves the first glyph.
+        x = icon_x + 24
+        cells = (min(272,icon_x+98)-x)//8
+        if len(text)>cells:
+            text = '#' * cells
+        self._draw_status_field('draw_text',False,True,self.lcd.font8x16,
+            self.lcd.Color_White,0x18C4,x,y,text)
+
     def _draw_status_decimal(self, value, x, y):
         # Only the two bounded Z fields use this cache. Formatting runs when
         # their raw input changes; redraws still use the normal LCD diff cache.
@@ -2683,10 +2693,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         key = (x,y)
         previous = cache.get(key)
         if previous is None or previous[0] != value:
-            previous = (value,fit_decimal(value,6).rjust(6))
+            previous = (value,fit_decimal(value,6).ljust(6))
             cache[key] = previous
-        self._draw_status_field('draw_text',False,True,self.lcd.font8x16,
-            self.lcd.Color_White,0x18C4,x,y,previous[1])
+        self._draw_dashboard_value(previous[1],x-24,y)
 
     def _sync_fan_animation(self, visible, force=False):
         percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
@@ -2731,17 +2740,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         value1, value2, value3 = 28, 126, 224
 
         if self.pd.HAS_HOTEND:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3, value1, y1,
-                self.pd.thermalManager['temp_hotend'][0]['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4,
-                value1 + 3 * 8, y1, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * 8, y1,
-                self.pd.thermalManager['temp_hotend'][0]['target'])
+            self._draw_status_field('show_icon',self.ICON,self.ICON_HotendTemp,x1,y1)
+            temps = self.pd.thermalManager['temp_hotend'][0]
+            self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y1)
 
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
@@ -2751,27 +2752,17 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             speed_text = '{:.0f}%'.format(self.pd.feedrate_percentage)
         else:
             speed_text = fixed(abs(self.pd.live_velocity))+'mm/s'
-        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-            self.lcd.Color_White, 0x18C4, value2, y1, speed_text)
+        self._draw_dashboard_value(speed_text,x2,y1)
 
         if self.pd.HAS_FAN:
             self._sync_fan_animation(True, force=redraw)
             percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
-            self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, value3, y1, '{:3d}%'.format(percent))
+            self._draw_dashboard_value(str(percent)+'%',x3,y1)
 
         if self.pd.HAS_HEATED_BED:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3, value1, y2,
-                self.pd.thermalManager['temp_bed']['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4,
-                value1 + 3 * 8, y2, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
-                self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * 8, y2,
-                self.pd.thermalManager['temp_bed']['target'])
+            self._draw_status_field('show_icon',self.ICON,self.ICON_BedTemp,x1,y2)
+            temps = self.pd.thermalManager['temp_bed']
+            self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y2)
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
@@ -2782,8 +2773,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             value = max(0.,self.pd.volumetric_flow)
             # Three digits plus a decimal and unit exceed this 74 px column.
             flow_text = fixed(value,1 if value<100 else 0)+'mm3/s'
-        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
-            self.lcd.Color_White, 0x18C4, value2, y2, flow_text)
+        self._draw_dashboard_value(flow_text,x2,y2)
 
         if self.pd.HAS_ZOFFSET_ITEM:
             self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2)
@@ -2798,9 +2788,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             if value_x == value3:
                 self._draw_status_decimal(position,value_x,y3)
             else:
-                self._draw_status_field('draw_signed_scaled_float_text',
-                    self.lcd.font8x16,0x18C4,3,2,value_x,y3,
-                    float(fixed(position,2))*100)
+                self._draw_dashboard_value(fixed(position,2),xpos,y3)
 
     def Draw_Title(self, title):
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)

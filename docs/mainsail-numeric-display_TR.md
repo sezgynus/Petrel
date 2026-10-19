@@ -35,3 +35,7 @@ Telemetri toplama sıklığı, tahmin algoritması ve komut adımları değişti
 CI regresyonları JavaScript çalışma zamanı ile yuvarlama sınırlarını, ham komut değerlerini ve etiketlerin piksel sınırlarını karşılaştırır. Tam test paketi, Maintenance ölçümleri ve tüm dokümantasyon ekran renderları CI içinde çalışır. Fiziksel ekran testi ayrıca gerekir; bu rapor donanım testi yapıldığını iddia etmez.
 
 Z ve Z offset alanları en fazla üç ondalıktan başlayıp metin sığana kadar hassasiyeti azaltır. Ham değer/komut değiştirilmez. Dashboard biçimlendirmesi yalnız ham değer değişince hesaplanır; iki alan için sınırlı önbellek kullanılır. Sabit genişlikte boşluk dolgusu ve mevcut alan temizliği eski rakam kalıntılarını önler. Mesh ve sıcaklık kuralları korunur.
+
+## Dashboard hizalaması
+
+Tüm sayısal alanların ilk karakteri 20 px ikon kutusunun 4 px sağından başlar (ikon X + 24 px). Başta dolgu boşluğu kullanılmaz; sıcaklık çiftleri tek, boşluksuz metindir. Z/offset boşluk dolgusu yalnız sağa eklenir. Metin küçülürken önceki alan temizlenir; değişmeyen değer yeniden çizilmez. Sütun bütçesini aşan olağandışı değerler komşu ikona taşmak yerine # ile gösterilir. Sayısal hassasiyet ve ham değerler değişmez.

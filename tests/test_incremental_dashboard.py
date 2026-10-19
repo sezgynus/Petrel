@@ -29,8 +29,8 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.lcd.reset_mock()
         v.pd.thermalManager['temp_hotend'][0]['celsius'] = 201
         v.Draw_Status_Area(True)
-        self.assertEqual(len(v.lcd.method_calls), 1)
-        self.assertEqual(v.lcd.draw_integer_text.call_args.args[-3:], (28, 380, 201))
+        self.assertEqual(len(v.lcd.method_calls), 2)
+        self.assertEqual(v.lcd.draw_text.call_args.args[-3:], (28,380,'201/205'))
 
     @patch.object(ui.time, 'monotonic', return_value=4)
     def test_sub_display_precision_does_not_redraw(self, clock):
