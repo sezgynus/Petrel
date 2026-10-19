@@ -96,6 +96,18 @@ class RemoteDisplayTests(unittest.TestCase):
             self.assertEqual(response.status, 202)
         self.enqueue.assert_called_with("press", 1)
 
+    def test_mobile_enter_is_touch_owned_and_disables_native_long_tap(self):
+        with self.request("/") as response:
+            page = response.read().decode()
+        self.assertIn('button[data-kind="press"] { touch-action:none;', page)
+        self.assertIn('-webkit-touch-callout:none;', page)
+        for token in ('"touchstart"', '"touchend"', '"touchmove"', '"touchcancel"',
+                      'event.preventDefault();', '{passive:false}',
+                      'event.pointerType === "touch"', 'event.pointerType !== "touch"',
+                      'touchIdentifier = null;', '"contextmenu"'):
+            with self.subTest(token=token):
+                self.assertIn(token, page)
+
     def test_remote_hold_uses_server_measured_release_and_no_faked_duration(self):
         with patch("dwin_emulator.remote.monotonic", return_value=100.0):
             with self.request("/input", {"kind": "hold_start"}) as response:
