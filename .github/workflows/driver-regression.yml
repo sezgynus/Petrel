@@ -35,6 +35,12 @@ jobs:
       - name: Render documentation screenshots
         if: always()
         run: python tools/render_docs_screenshots.py
+      - name: Render documentation animations
+        if: always()
+        run: |
+          python tools/render_print_controls.py
+          python tools/render_print_controls.py --frame
+          python tools/render_docs_workflows.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -42,6 +48,8 @@ jobs:
           path: |
             docs/assets/screens/*.png
             docs/assets/screens/framed/*.png
+            docs/assets/*.gif
+            docs/assets/framed/*.gif
             docs/screenshots.md
             docs/screenshots_TR.md
           retention-days: 7

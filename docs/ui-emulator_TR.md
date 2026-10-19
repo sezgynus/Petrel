@@ -138,3 +138,5 @@ Açık internetten erişim için ayrıca **dışarıdan erişilebilir bir IP/adr
 Sunucu isteğe bağlıdır; `PETREL_REMOTE` kapatılıp Petrel yeniden başlatıldığında dinleme durur. Daha dar erişim tercih edilirse `PETREL_REMOTE_HOST=tailscale` (sadece mevcut Tailscale IPv4) veya `PETREL_REMOTE_HOST=127.0.0.1` (yalnız Pi) kullanılabilir. Ayarları değiştirdikten sonra yazıcı boşta iken Petrel'i yeniden başlat. `PETREL_REMOTE=1` emülatörü otomatik açar.
 
 Görüntü kareleri istek üzerine yaklaşık 4 FPS hızında, 272×480 boyutunda üretilir; sanal enkoder girişleri fiziksel girdilerle aynı oturum kontrollü UI olay kuyruğundan geçer. Uzaktan orta tuşu basılı tutmak güç uzun basışını bilerek tetiklemez. Ekran tek başına fan, LED veya buzzer'ın fiziksel çalıştığını doğrulamaz.
+
+Branch CI, regresyonlardan sonra dört yenileme komutunu çalıştırır; normal/çerçeveli PNG ve GIF çıktılarını birlikte display-documentation artifact'ine yükler. Çıktıları aynı başarılı, imzalı kaynak sürümünden yayımlayın.

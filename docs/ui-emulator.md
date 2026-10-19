@@ -138,3 +138,5 @@ Public Internet access additionally requires a **publicly reachable IP/address a
 The server is opt-in; disabling `PETREL_REMOTE` and restarting Petrel closes the listener. If you prefer restriction again, set `PETREL_REMOTE_HOST=tailscale` (only the current Tailscale IPv4) or `PETREL_REMOTE_HOST=127.0.0.1` (local access only). Restart Petrel when the printer is idle after changing these settings. The emulator activates automatically with `PETREL_REMOTE=1`.
 
 Browser video frames are generated on demand (~4 FPS at 272×480); encoder inputs travel through the same epoch-guarded UI event queue as physical input. Remote middle-button hold deliberately does not trigger a power-button long press. Screen display alone cannot verify physical fan, LED or buzzer operation.
+
+The branch CI runs all four refresh commands after regressions and uploads native/framed PNG and GIF outputs together as the display-documentation artifact. Publish those outputs from the same successful signed source revision.

@@ -186,3 +186,5 @@ and one bounded worker write. Trace emits one result event with seven
 component identities and evidence; no acceptance JSON is updated by CI.
 The LCD presents paginated component results/evidence and returns to the originating
 Check printer row. The existing 120 s dwell is not extended automatically.
+
+Optional heater telemetry is subscribed through the existing WebSocket only for an explicit thermal check. The temporary temperature/target/power fields make dispatch-time checks cover configured generic heaters too. Finishing or cancelling the check releases them; ordinary case-light subscription changes preserve the active lease.

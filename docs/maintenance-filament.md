@@ -19,3 +19,5 @@ Optional role file: ~/.config/Petrel/maintenance-filament.json, version 1. Suppo
 E14 runs only declared dryers, in bounded hold segments with fresh thermal checks and OFF readback. Cancel or an unknown active command requests Klipper emergency_stop. No generic heater is assumed to be a dryer. E13 requires actual Spoolman API evidence and reports declared linked usage, not wear. E15 reports chamber humidity, not moisture inside filament. Both are INFORMATION diagnostics.
 
 Every subsequent action refreshes queue/lifecycle checks. Human questions never expire. Firmware failure does not trigger movement replay. CI is not physical acceptance.
+
+Dryer menu targets come from compact READY-time discovery tokens. Listing targets never reopens the profile file. An explicit test start loads and validates the profile on the existing worker before consent or actuation.

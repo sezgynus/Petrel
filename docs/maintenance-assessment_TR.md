@@ -18,3 +18,5 @@ Birim kayıt tablosu canlı gözlem ve kayıtlı sonuçları tipli kanıta dön�
 
 
 Örneklenmiş baskı ve bileşen açık kalma süreleri kalıcı sayaç kimliğiyle bakım kayıtlarına bağlanır. Tamamlanmada tarih, sayaç ve kimlik saklanır; kimlik değişimi, eksik sayaç veya geriye gidiş bilinmeyen kalır. Alt sınır eşik üstündeyse vade kanıtlanabilir; altında olması bakım gerekmediğini kanıtlamaz. Takvim ve kullanım temelleri farklı tamamlanma kayıtları kullanır.
+
+Yapılandırma kimliği, iç içe donmuş sözlükler normal JSON nesnelerine dönüştürülerek kanonik biçimde üretilir; anahtar eklenme sırası kimliği değiştirmez. Eski özet birebir eşleşiyorsa uyumlu ısıtma referansı kendiliğinden yeniden yazılmadan okunabilir. Yeni genişlik kaydı, birebir eşleşen eski anahtarı kanonik kimliğe taşır.
