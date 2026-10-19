@@ -86,3 +86,5 @@ Başarıyla hazırlanıp 2 MiB cache bütçesini aşan kök dizin için yalnız 
 | C01 | Dizin tekrar beklemesinin başarılı boş snapshot sanılması | Uygulandı |
 
 Dizin snapshot’ı genel dosya listesi hatası, dizin hatası ve tekrar beklemesi boyunca tamamlanmamış kalır. Bekleme durumu yalnız gerçekten boş dizin veya cache isabeti dahil başarılı dizin sonucu ile kapanır. Genel dosya listesinin başarısı, dizin okuması beklerken boş snapshot yayımlayamaz veya görüntülenen revizyonu ilerletemez. Mevcut UI poll’u süre dolunca enkoder girdisi olmadan yeniden dener; bekleme hâlâ tekrarlanan HTTP isteklerini engeller. Yenilemede mevcut yollar görünür kalır, parent/back gezinmesi kullanılabilir ve büyük kök dizin ön yükleme işareti değişmez. CI regresyonları gerçek UI yayınlama yolunda yeni revizyonu, aynı revizyonda klasör girişini, genel liste hatasını ve gerçekten boş klasörü kapsar. Donanım kabulü bekleniyor; master değişmedi.
+
+Açılış, isteğe bağlı dosya hazırlığı hata verdiğinde tekrar beklemesini yeni bir ön koşul saymadan hemen tamamlanır. Hatasız ve devam eden hazırlık için mevcut en fazla beş saniyelik bekleme korunur. Ayrı bir açılış regresyonu bu ayrımı kapsar.

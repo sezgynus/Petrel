@@ -242,6 +242,17 @@ class BootSplashTests(unittest.TestCase):
 
 class BootFilePreparationTests(unittest.TestCase):
     view = BootSplashTests.view
+    def test_directory_retry_pending_after_file_error_does_not_delay_boot(self):
+        v = self.view()
+        v.pd.prefetch_files = Mock()
+        v.pd.file_error = 'temporary directory failure'
+        v.pd._files_loading = False
+        v.pd._directory_loading = True
+        v._poll_boot()
+        self.assertFalse(v._boot_active)
+        v.HMI_StartFrame.assert_called_once_with(False)
+        self.assertTrue(v.pd._directory_loading)
+
     def test_boot_prepares_files_before_main_and_does_not_wait_forever(self):
         v = self.view()
         v.pd.prefetch_files = Mock()

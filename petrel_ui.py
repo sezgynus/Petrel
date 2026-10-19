@@ -739,6 +739,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             started = time.monotonic()
             self._boot_files_started = (snapshot['epoch'], started)
         if ((self.pd._files_loading is True or self.pd._directory_loading is True)
+                and not self.pd.file_error
                 and time.monotonic() - started < 5.0):
             self._draw_boot_progress(90, message='Preparing file list')
             return

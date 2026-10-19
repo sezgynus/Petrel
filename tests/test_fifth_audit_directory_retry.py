@@ -3,12 +3,12 @@ from dataclasses import replace
 from unittest.mock import Mock, patch
 import unittest
 
-from test_files import DirectoryBrowserTests, MoonrakerError
+import test_files as files
 
 
 class DirectoryRetryPublicationTests(unittest.TestCase):
     def view(self):
-        v, tree = DirectoryBrowserTests().make()
+        v, tree = files.DirectoryBrowserTests().make()
         v._offline = False
         v.last_status = v.pd.status
         v.Draw_Status_Area = Mock()
@@ -24,7 +24,7 @@ class DirectoryRetryPublicationTests(unittest.TestCase):
         def flaky(path):
             if 'directory?' in path and fail[0]:
                 fail[0] = False
-                raise MoonrakerError('temporary directory failure')
+                raise files.MoonrakerError('temporary directory failure')
             return response(path)
         v.pd.getREST.side_effect = flaky
 
@@ -99,7 +99,7 @@ class DirectoryRetryPublicationTests(unittest.TestCase):
         def flaky(path):
             if path == '/server/files/list' and fail[0]:
                 fail[0] = False
-                raise MoonrakerError('temporary file-list failure')
+                raise files.MoonrakerError('temporary file-list failure')
             return response(path)
         v.pd.getREST.side_effect = flaky
         v.pd._files_loaded = False
