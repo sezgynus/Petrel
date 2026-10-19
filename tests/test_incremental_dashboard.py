@@ -133,7 +133,7 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
         self.assertTrue(v._draw_header_clock())
         v.lcd.show_icon.assert_called_once_with(
-            v.ICON, ICON_WIFI_STRONG, 200, 4, background=False, enhanced=True)
+            v.ICON, ICON_WIFI_STRONG, 193, 4, background=False, enhanced=True)
         v.lcd.reset_mock()
         self.assertFalse(v._draw_header_clock())
         self.assertEqual(v.lcd.method_calls, [])
@@ -142,13 +142,13 @@ class IncrementalDashboardTests(unittest.TestCase):
             v.pd.system_info['wifi_rssi'] = rssi
             self.assertTrue(v._draw_header_clock())
             self.assertEqual(v.lcd.method_calls, [
-                call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23),
-                call.show_icon(v.ICON, expected, 200, 4, background=False, enhanced=True)])
+                call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 193, 4, 212, 23),
+                call.show_icon(v.ICON, expected, 193, 4, background=False, enhanced=True)])
             v.lcd.reset_mock()
         v.pd.system_info['wifi_rssi'] = None
         self.assertTrue(v._draw_header_clock())
         self.assertEqual(v.lcd.method_calls, [
-            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 193, 4, 212, 23)])
         v.lcd.reset_mock()
         self.assertFalse(v._draw_header_clock())
         self.assertEqual(v.lcd.method_calls, [])
@@ -159,16 +159,16 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-60)
         v.Clear_Title_Bar()
         self.assertEqual(v.lcd.show_icon.call_args.args[1:],
-                         (ICON_WIFI_STRONG, 200, 4))
+                         (ICON_WIFI_STRONG, 193, 4))
         v.lcd.reset_mock()
         v.Clear_Title_Bar()
         self.assertEqual(v.lcd.show_icon.call_args.args[1:],
-                         (ICON_WIFI_STRONG, 200, 4))
+                         (ICON_WIFI_STRONG, 193, 4))
         v.lcd.reset_mock()
         v.pd.system_info.update(network='Online', wifi_ssid='Disconnected', wifi_rssi=None)
         self.assertTrue(v._draw_header_clock())
         self.assertEqual(v.lcd.method_calls, [
-            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 193, 4, 212, 23)])
 
     def test_unchanged_mmu_sends_no_drawing(self):
         v = self.make(mmu_snapshot())

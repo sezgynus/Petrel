@@ -41,6 +41,10 @@ jobs:
           python tools/render_print_controls.py
           python tools/render_print_controls.py --frame
           python tools/render_docs_workflows.py
+      - name: Verify rendered maintenance pixels match the production UI
+        env:
+          PETREL_VERIFY_PUBLISHED_SCREENS: '1'
+        run: python -m unittest discover -s tests -p test_maintenance_published_docs.py -v
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -2881,11 +2881,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._header_klipper_drawn = None
 
     def Draw_Title(self, title):
-        # Reserve x=200 onward for Wi-Fi, clock and Klipper state, even when
-        # Wi-Fi is temporarily absent. Native font8x16 permits 23 title cells.
+        # Wi-Fi begins at x=193; an 8x16 title gets at most 22 cells,
+        # leaving a three-pixel gap before the status cluster.
         title = T5UIC1Display._panel_text(str(title))
-        if len(title)>23:
-            title = title[:20]+'...'
+        if len(title)>22:
+            title = title[:19]+'...'
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
         self._draw_header_clock()
 
@@ -2904,9 +2904,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._header_wifi_drawn = key
         if icon is None and previous is None:
             return False
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 200, 4, 219, 23)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 193, 4, 212, 23)
         if icon is not None:
-            show_theme_icon(self.lcd, self.ICON, icon, 200, 4)
+            show_theme_icon(self.lcd, self.ICON, icon, 193, 4)
         return True
 
     def _draw_klipper_state(self):
@@ -2924,9 +2924,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         key = (id(self.lcd), color)
         if key == getattr(self, '_header_klipper_drawn', None):
             return False
-        # Clock text ends at x=263; Wi-Fi occupies x=200..219.
-        # A 4x4 dot at x=267..270 leaves both regions untouched.
-        self.lcd.draw_rectangle(1, color, 267, 12, 270, 15)
+        # Clock occupies x=217..256; Wi-Fi occupies x=193..212.
+        # This 4x4 dot at x=260..263 leaves eight pixels on the right.
+        self.lcd.draw_rectangle(1, color, 260, 12, 263, 15)
         self._header_klipper_drawn = key
         return True
 
@@ -2936,7 +2936,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         clock_changed = key != getattr(self, '_header_clock_drawn', None)
         if clock_changed:
             self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                               self.lcd.Color_Bg_Blue, 224, 6, value)
+                               self.lcd.Color_Bg_Blue, 217, 6, value)
             self._header_clock_drawn = key
         wifi_changed = self._draw_wifi_signal()
         klipper_changed = self._draw_klipper_state()

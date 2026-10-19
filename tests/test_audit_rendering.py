@@ -42,7 +42,7 @@ class AuditRenderingTests(unittest.TestCase):
         self.assertEqual(result.lcd.serial.frames, frames)
         text = next(f for f in frames if f[1] == 0x11)
         self.assertEqual(text[2] & 15, result.lcd.font8x16)
-        self.assertEqual(text[7:11], bytes.fromhex('00 E0 00 06'))
+        self.assertEqual(text[7:11], bytes.fromhex('00 D9 00 06'))
 
     def test_title_does_not_draw_removed_power_icon(self):
         result = self.screen()

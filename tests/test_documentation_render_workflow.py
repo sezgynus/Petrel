@@ -33,6 +33,17 @@ class DocumentationRenderWorkflowTests(unittest.TestCase):
         self.assertIn("if git diff --cached --quiet; then", self.render)
         self.assertIn("git add -A -- docs/assets/ docs/screenshots.md docs/screenshots_TR.md", self.render)
 
+    def test_manual_render_runs_strict_pixel_verification_before_publish(self):
+        self.assertIn("PETREL_VERIFY_PUBLISHED_SCREENS: '1'", self.render)
+        self.assertIn("python -m unittest discover -s tests -p test_maintenance_published_docs.py -v", self.render)
+        self.assertLess(self.render.index('Render documentation animations'),
+                        self.render.index('Verify rendered maintenance pixels'))
+        self.assertLess(self.render.index('Verify rendered maintenance pixels'),
+                        self.render.index('Publish changed documentation'))
+        published = (ROOT / 'tests' / 'test_maintenance_published_docs.py').read_text(encoding='utf-8')
+        self.assertIn("@unittest.skipUnless(os.environ.get('PETREL_VERIFY_PUBLISHED_SCREENS') == '1'", published)
+        self.assertIn('ImageChops.difference(published,actual).getbbox()', published)
+
     def test_regression_does_not_render_or_upload(self):
         self.assertIn("      - name: Run regression suite", self.regression)
         self.assertIn("      - name: Report traced Maintenance allocations", self.regression)
