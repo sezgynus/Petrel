@@ -9,6 +9,8 @@ BACKGROUND_RGB = ((_r << 3) | (_r >> 2), (_g << 2) | (_g >> 4), (_b << 3) | (_b 
 AXIS_HOMED_COLOR = 0x063B
 AXIS_UNHOMED_COLOR = 0xE507
 AXIS_UNKNOWN_COLOR = 0x7BCF
+# Muted Graphite coral: Klipper disconnected / shutdown.
+KLIPPER_ERROR_COLOR = 0xD987
 
 
 def show_icon(lcd, library, icons, x, y):

@@ -1,6 +1,7 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
 from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
-                            AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR)
+                            AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR,
+                            KLIPPER_ERROR_COLOR)
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
@@ -2898,6 +2899,27 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             show_theme_icon(self.lcd, self.ICON, icon, 200, 4)
         return True
 
+    def _draw_klipper_state(self):
+        # No new icon or polling. The subscription snapshot distinguishes
+        # ready / connecting / disconnected, even when Wi-Fi is unavailable.
+        connection = self.pd.state.connection
+        if connection == 'ready' and not self.pd.connection_error:
+            color = AXIS_HOMED_COLOR
+        elif connection == 'connecting':
+            color = AXIS_UNHOMED_COLOR
+        elif connection in ('disconnected', 'error', 'shutdown') or self.pd.connection_error:
+            color = KLIPPER_ERROR_COLOR
+        else:
+            color = AXIS_UNKNOWN_COLOR
+        key = (id(self.lcd), color)
+        if key == getattr(self, '_header_klipper_drawn', None):
+            return False
+        # Clock text ends at x=263; Wi-Fi occupies x=200..219.
+        # A 4x4 dot at x=267..270 leaves both regions untouched.
+        self.lcd.draw_rectangle(1, color, 267, 12, 270, 15)
+        self._header_klipper_drawn = key
+        return True
+
     def _draw_header_clock(self):
         value = time.strftime('%H:%M', time.localtime())
         key = (id(self.lcd), value)
@@ -2906,7 +2928,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
                                self.lcd.Color_Bg_Blue, 224, 6, value)
             self._header_clock_drawn = key
-        return self._draw_wifi_signal() or clock_changed
+        wifi_changed = self._draw_wifi_signal()
+        klipper_changed = self._draw_klipper_state()
+        return clock_changed or wifi_changed or klipper_changed
 
     def Draw_Popup_Bkgd_105(self):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 105, 258, 374)
@@ -3308,6 +3332,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH - 1, 30)
         self._header_clock_drawn = None
         self._header_wifi_drawn = None
+        self._header_klipper_drawn = None
         self._draw_header_clock()
 
     def Clear_Menu_Area(self):
