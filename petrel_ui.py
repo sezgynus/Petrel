@@ -2670,7 +2670,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             # Long telemetry text can reach the next column. Restore only
             # the fields touched by the erasure when they are drawn below.
             for other in list(cache):
-                if other != key and x < other[1] <= right and y - 1 <= other[2] <= y + 19:
+                # Status markers have their own cache signatures and never
+                # overlap a numeric text glyph; only invalidate draw fields.
+                if (other[0] not in ('axis_home', 'dashboard_indicator')
+                        and other != key and x < other[1] <= right
+                        and y - 1 <= other[2] <= y + 19):
                     del cache[other]
         if method == 'show_icon':
             show_theme_icon(self.lcd, *args)

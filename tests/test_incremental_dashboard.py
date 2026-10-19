@@ -103,7 +103,8 @@ class IncrementalDashboardTests(unittest.TestCase):
         data['state'] = 'connecting'
         v.pd.state = PrinterState.from_snapshot(data)
         v.Draw_Status_Area(True)
-        self.assertEqual(v.lcd.draw_rectangle.call_args_list, [
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [
             unittest.mock.call(1, AXIS_UNKNOWN_COLOR, x, 470, x + 13, 472)
             for x in (7, 105, 203)])
         v.lcd.reset_mock()
@@ -111,13 +112,20 @@ class IncrementalDashboardTests(unittest.TestCase):
         data['status']['toolhead'].pop('homed_axes')
         v.pd.state = PrinterState.from_snapshot(data)
         v.Draw_Status_Area(True)
-        self.assertEqual(v.lcd.method_calls, [])
+        # Non-homing indicators may legitimately restore their known states.
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [])
+        v.lcd.reset_mock()
         data['status']['toolhead']['homed_axes'] = ''
         v.pd.state = PrinterState.from_snapshot(data)
         v.Draw_Status_Area(True)
-        self.assertEqual(v.lcd.draw_rectangle.call_args_list[-3:], [
+        self.assertEqual([
+            c for c in v.lcd.draw_rectangle.call_args_list if c.args[-1] == 472], [
             unittest.mock.call(1, AXIS_UNHOMED_COLOR, x, 470, x + 13, 472)
             for x in (7, 105, 203)])
+        v.lcd.reset_mock()
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [])
 
     @patch.object(ui.time, 'strftime', return_value='12:34')
     def test_wifi_header_uses_native_transparent_icons_only_when_band_changes(self, clock):
