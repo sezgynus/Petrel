@@ -60,6 +60,10 @@ class AuditRemoteTests(unittest.TestCase):
             enqueue.assert_not_called()
 
     def test_keyboard_enter_is_scoped_and_repeat_safe(self):
-        self.assertIn('view.addEventListener("keydown"',PAGE)
-        self.assertIn('event.key !== "Enter" || event.repeat',PAGE)
-        self.assertIn('event.target.closest("button, input, textarea, select, [contenteditable]")',PAGE)
+        self.assertIn('view.addEventListener("keydown"', PAGE)
+        self.assertIn('view.addEventListener("keyup"', PAGE)
+        self.assertIn('event.key !== "Enter"', PAGE)
+        self.assertIn('event.target.closest("button, input, textarea, select, [contenteditable]")', PAGE)
+        self.assertIn('event.target !== enter', PAGE)
+        self.assertIn('if (!event.repeat) beginHold();', PAGE)
+        self.assertIn('finishHold();', PAGE)
