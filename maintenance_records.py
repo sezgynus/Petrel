@@ -15,6 +15,25 @@ MAX_USAGE_COUNTERS = 32
 # Older writers could add one batch beyond 32. Keep those values/ledger IDs;
 # do not silently drop service baselines. No new names grow a full ledger.
 MAX_LEGACY_USAGE_COUNTERS = 64
+MAX_RECORD_BYTES = 65536
+
+
+def _encode(value):
+    return json.dumps(value,ensure_ascii=True,separators=(',',':'))
+
+
+def _history_with_results(records, items):
+    """Retain the complete newest group; evict oldest history by count AND bytes."""
+    kept = (records+items)[-64:]
+    sizes = [len(_encode(item)) for item in kept]
+    size = len(_encode({'version':1,'records':[]})) + sum(sizes) + max(0,len(kept)-1)
+    removed = 0
+    while size > MAX_RECORD_BYTES and len(kept)-removed > len(items):
+        size -= sizes[removed] + 1
+        removed += 1
+    if size > MAX_RECORD_BYTES:
+        raise ValueError('maintenance_result_group_capacity')
+    return {'version':1,'records':kept[removed:]}
 
 
 class ResultWrite:
@@ -48,7 +67,7 @@ def root():
 def read_json(name,default):
     path = root()/name
     try:
-        if path.stat().st_size > 65536:
+        if path.stat().st_size > MAX_RECORD_BYTES:
             raise ValueError('maintenance_record_size')
         value = json.loads(path.read_text(encoding='utf-8'))
         return value if isinstance(value,dict) and value.get('version')==1 else default
@@ -58,8 +77,8 @@ def read_json(name,default):
 
 def write_json(name,value):
     target = root()/name
-    raw = json.dumps(value,ensure_ascii=True,separators=(',',':'))
-    if len(raw)>65536:
+    raw = _encode(value)
+    if len(raw)>MAX_RECORD_BYTES:
         raise ValueError('maintenance_record_capacity')
     target.parent.mkdir(parents=True,exist_ok=True)
     temp = target.with_suffix('.tmp')
@@ -140,10 +159,12 @@ class MaintenanceBook:
                 records = data.get('records')
                 if not isinstance(records,list) or len(records)>64:
                     raise ValueError('maintenance_history_invalid')
-                write_json('maintenance-history.json',{'version':1,'records':(records+items)[-64:]})
+                write_json('maintenance-history.json',_history_with_results(records,items))
         job = ResultWrite(work)
         try:
-            future = self._worker.submit(job,queue_timeout=8)
+            # This is a bounded, exactly-once local write, not a staleable read.
+            # Keep it queued until dispatch; orderly close finalizes cancellations.
+            future = self._worker.submit(job,queue_timeout=None)
             self._record_futures.append(future)
             self._record_jobs[future] = job
             self.poll_records()

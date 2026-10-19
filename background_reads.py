@@ -7,6 +7,7 @@ import math
 import logging
 from moonraker_client import MoonrakerError
 
+_DEFAULT_QUEUE_TIMEOUT = object()
 
 class ReadPending(Exception):
     pass
@@ -24,11 +25,15 @@ class ReadWorker:
         self._thread = Thread(target=self._run, name='moonraker-reads', daemon=True)
         self._thread.start()
 
-    def submit(self, work, queue_timeout=None):
-        """Expire stale queued work before starting I/O; execution has its own timeout."""
+    def submit(self, work, queue_timeout=_DEFAULT_QUEUE_TIMEOUT):
+        """Expire queued reads; explicit None preserves accepted local writes.
+
+        Non-expiring work still uses the bounded queue and is cancelled by close.
+        Network reads/commands must retain an admission deadline.
+        """
         future = Future()
-        wait = self.queue_timeout if queue_timeout is None else queue_timeout
-        if not math.isfinite(wait) or wait < 0:
+        wait = self.queue_timeout if queue_timeout is _DEFAULT_QUEUE_TIMEOUT else queue_timeout
+        if wait is not None and (not math.isfinite(wait) or wait < 0):
             future.set_exception(MoonrakerError('Invalid read admission timeout'))
             return future
         with self._lifecycle_lock:
@@ -36,7 +41,7 @@ class ReadWorker:
                 future.set_exception(MoonrakerError('Read worker is closed'))
                 return future
             try:
-                deadline = monotonic() + wait
+                deadline = None if wait is None else monotonic() + wait
                 self._queue.put_nowait((future, work, deadline))
             except Full:
                 future.set_exception(MoonrakerError('Read queue is full'))
@@ -52,7 +57,7 @@ class ReadWorker:
                 try:
                     if not self._stop.is_set() and future.set_running_or_notify_cancel():
                         try:
-                            if monotonic() >= deadline:
+                            if deadline is not None and monotonic() >= deadline:
                                 raise MoonrakerError('Read expired before execution')
                             future.set_result(work())
                         except Exception as error:

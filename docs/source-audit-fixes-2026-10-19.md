@@ -57,3 +57,14 @@ Client identification now uses the installed checkout's cached `git describe --t
 - Orderly shutdown finalizes up to eight accepted local result batches, even when their queued Futures were cancelled during worker close. A started local write is joined through its transaction lock and is never attempted again after success or failure. Disk failure remains an explicit record error/journal warning. No printer command is replayed.
 
 Hardware acceptance remains pending. In addition to the earlier list, check a previously unopened sixth/later file, a sort change while browsing, and normal restart immediately after a check result. These changes have no merge authorization for master.
+
+## Third audit
+
+| ID | Item | Implementation |
+| --- | --- | --- |
+| A01 | Result history byte retention | Implemented |
+| A02 | Non-expiring accepted local writes | Implemented |
+| A03 | Idle preview tick cadence | Pending |
+| A04 | File snapshot during retry backoff | Pending |
+
+Result history retains at most 64 entries and 64 KiB, evicting oldest entries while keeping the complete newest result group. A group that cannot fit on its own is rejected with a record error; the previous file is preserved. Accepted local result writes use the existing bounded worker queue without an admission expiry. Network reads retain their deadlines, queue-full rejection remains explicit, and orderly shutdown still finalizes cancelled local writes exactly once. No disk work is moved onto normal UI ticks and no printer command is replayed. Regression coverage includes wide results, group preservation, subsequent writes, queue ageing, and unchanged network-read expiry. Hardware acceptance is pending.

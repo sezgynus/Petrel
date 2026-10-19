@@ -57,3 +57,14 @@ Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü beklen
 - Düzenli kapanış, worker kapanırken kuyruktaki Future’ları iptal edilmiş olsa bile kabul edilmiş en fazla sekiz yerel sonuç grubunu tamamlar. Başlamış yerel yazı transaction kilidi üzerinden beklenir; başarılı veya hatalı denemeden sonra tekrar denenmez. Disk hatası açık kayıt hatası/journal uyarısı olarak kalır. Yazıcı komutu yeniden oynatılmaz.
 
 Donanım kabulü bekleniyor. Önceki listeye ek olarak daha önce açılmamış altıncı/sonraki dosyayı, gezinirken sıralama değişimini ve kontrol sonucu hemen ardından normal restart’ı dene. Bu değişiklikler için master merge yetkisi yoktur.
+
+## Üçüncü audit
+
+| ID | Madde | Uygulama |
+| --- | --- | --- |
+| A01 | Sonuç geçmişi byte bütçesi | Uygulandı |
+| A02 | Kabul edilmiş yerel yazılarda süre aşımı | Uygulandı |
+| A03 | Durağan preview tick aralığı | Bekliyor |
+| A04 | Hata beklemesinde dosya snapshot’ı | Bekliyor |
+
+Sonuç geçmişi en fazla 64 girdi ve 64 KiB tutar; en eski girdiler çıkarılırken en yeni sonuç grubu bütün olarak korunur. Tek başına sığmayan grup kayıt hatasıyla reddedilir; önceki dosya korunur. Kabul edilmiş yerel sonuç yazıları mevcut sınırlı worker kuyruğunda kabul süresi aşımı olmadan bekler. Ağ okumaları süre sınırlarını korur, dolu kuyruk reddi açıkça bildirilir ve düzenli kapanış iptal edilen yerel yazıları hâlâ yalnız bir kez tamamlar. Normal UI tick’lerine disk işi taşınmaz ve yazıcı komutu yeniden oynatılmaz. Regresyon kapsamı geniş sonuçları, grup bütünlüğünü, sonraki yazıları, kuyruk yaşlanmasını ve ağ okuması süre aşımının korunmasını içerir. Donanım kabulü bekleniyor.
