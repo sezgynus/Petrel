@@ -6,13 +6,27 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: documentation-render-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   render:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     env:
       GPIOZERO_PIN_FACTORY: mock
     steps:
+      - name: Generate signing bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SIGNING_APP_ID }}
+          private-key: ${{ secrets.SIGNING_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ steps.app-token.outputs.token }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -21,10 +35,8 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q .
       - name: Render documentation screenshots
-        if: always()
         run: python tools/render_docs_screenshots.py
       - name: Render documentation animations
-        if: always()
         run: |
           python tools/render_print_controls.py
           python tools/render_print_controls.py --frame
@@ -41,3 +53,25 @@ jobs:
             docs/screenshots.md
             docs/screenshots_TR.md
           retention-days: 7
+      - name: Publish changed documentation to selected branch
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.COMMIT_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          git add -A -- docs/assets/ docs/screenshots.md docs/screenshots_TR.md
+          if git diff --cached --quiet; then
+            echo 'Rendered documentation unchanged; no commit needed.'
+            exit 0
+          fi
+          : "${SIGNING_KEY:?Missing signing key}"
+          signing_key="$RUNNER_TEMP/petrel-docs-signing-key"
+          printf '%s\n' "$SIGNING_KEY" > "$signing_key"
+          chmod 600 "$signing_key"
+          git config --local user.name 'Sezgin AÇIKGÖZ'
+          git config --local user.email 'sezginacikgoz@mail.com'
+          git config --local gpg.format ssh
+          git config --local user.signingkey "$signing_key"
+          git config --local commit.gpgsign true
+          git commit -S -m 'docs(screenshots): refresh generated UI captures'
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
