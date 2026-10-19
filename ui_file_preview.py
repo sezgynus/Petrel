@@ -7,14 +7,31 @@ from preview_metadata import PreviewDetails, amount, duration
 
 
 class FilePreviewMixin:
+    def _sync_file_lifecycle(self):
+        generation = getattr(self.pd, '_files_generation', None)
+        if type(generation) is not int:
+            return
+        previous = getattr(self, '_ui_files_generation', None)
+        self._ui_files_generation = generation
+        if previous is None or previous == generation:
+            return
+        self._thumbnail_stamp = None
+        self._thumbnail_keys = {}
+        self._file_paths = ()
+        self._print_thumbnail_key = None
+        cache = getattr(self, '_thumbnail_cache', None)
+        if cache is not None:
+            cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch, generation), (), ())
+
     def _sync_thumbnail_cache(self):
+        self._sync_file_lifecycle()
         if not hasattr(self, '_thumbnail_cache'):
             self._thumbnail_cache = ThumbnailCache(self.pd.client)
         # File size/mtime identify replacements without flushing unrelated images.
         revision = self.pd.state.file_revision
         stamp = (getattr(self, '_uart_epoch', 0), self.pd.state.epoch, revision,
                  self.pd.file_sort_revision, id(self.pd.files), getattr(self, '_file_paths', ()),
-                 getattr(self, '_preview_cache_key', None),
+                 getattr(self, '_preview_cache_key', None), getattr(self.pd, '_files_generation', 0),
                  self.pd.file_name if self.pd.status in ('printing','paused','pausing','complete','cancelled') else None)
         if stamp == getattr(self, '_thumbnail_stamp', None):
             return
@@ -48,7 +65,8 @@ class FilePreviewMixin:
             base = self._thumbnail_keys.get(path, (path, None, None, revision))
             self._print_thumbnail_key = base + (88,)
             valid.append(self._print_thumbnail_key)
-        self._thumbnail_cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch),
+        self._thumbnail_cache.sync((getattr(self, '_uart_epoch', 0), self.pd.state.epoch,
+                                    getattr(self.pd, '_files_generation', 0)),
                                    valid, priority)
 
     def _poll_thumbnail_preload(self):

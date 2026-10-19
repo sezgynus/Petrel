@@ -41,9 +41,9 @@ Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü beklen
 | ID | Madde | Uygulama |
 | --- | --- | --- |
 | R01 | Foreground preview kimliği | Uygulandı |
-| R02 | Worker üzerinde yeniden sıralama | Bekliyor |
-| R03 | Dosya cache ömrü | Bekliyor |
-| R04 | Tek bakım tick’i ve interval | Bekliyor |
+| R02 | Worker üzerinde yeniden sıralama | Uygulandı |
+| R03 | Dosya cache ömrü | Uygulandı |
+| R04 | Tek bakım tick’i ve interval | Uygulandı |
 | R05 | Kullanım sayacı kapasitesi | Bekliyor |
 | R06 | Kabul edilmiş sonuç kayıtlarını boşaltma | Bekliyor |
 | R07 | Güvenli thumbnail deneme bütçesi | Uygulandı |

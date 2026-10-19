@@ -137,7 +137,7 @@ class PowerShortcutMixin:
     def _power_popup_tick(self):
         if not getattr(self, '_power_hold_popup', False) or self.checkkey != self.PowerConfirm:
             return False
-        self.pd.update_variable()
+        self._update_ui_state()
         for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'):
             getattr(self.pd,name).update()
         self._focus_tick_quiet()

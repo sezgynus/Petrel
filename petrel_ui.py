@@ -719,7 +719,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     def _poll_boot(self):
         snapshot = self.pd.subscription.snapshot()
         if snapshot['state'] != 'ready':
-            self.pd.update_variable()
+            self._update_ui_state()
             if not self._poll_recovery_ui():
                 kind = getattr(getattr(self.pd, 'recovery', None), 'state', None)
                 message = ('Starting Klipper...' if getattr(kind, 'kind', None) == 'startup'
@@ -727,7 +727,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self._draw_boot_progress(70, message=message)
             return
         self._draw_boot_progress(80)
-        self.pd.update_variable()
+        self._update_ui_state()
         snapshot = self.pd.subscription.snapshot()
         if (snapshot['state'] != 'ready' or self.pd.connection_error
                 or not self.pd.state.ready or self.pd.state.epoch != snapshot['epoch']):
@@ -815,19 +815,40 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.Draw_Buzzer_Menu()
                 self.lcd.update()
 
+    def _update_ui_state(self):
+        if getattr(self, '_tick_active', False) and self._tick_state_update is not None:
+            return self._tick_state_update
+        changed = self.pd.update_variable()
+        self._sync_file_lifecycle()
+        if getattr(self, '_tick_active', False):
+            self._tick_state_update = changed
+        return changed
+
     def _ui_tick(self):
+        self._tick_active = True
+        self._tick_state_update = None
+        try:
+            self._ui_tick_body()
+        finally:
+            self._tick_active = False
+            if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
+                   for name in ('maintenance_pulse', 'maintenance_reader')):
+                if hasattr(self, '_loop'):
+                    self._loop.cap_interval(.1)
+
+    def _ui_tick_body(self):
         # Operation deadlines must not depend on the visible screen or LCD.
         self._maintenance_advanced_this_tick = False
         if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
                for name in ('maintenance_pulse', 'maintenance_reader')):
-            self.pd.update_variable()
+            self._update_ui_state()
             self._advance_maintenance_operations()
             self._maintenance_advanced_this_tick = True
         self._poll_panel_power()
         self._sync_case_light_tracking()
         if not self._uart_online:
             # Keep status current while the panel is disconnected.
-            self.pd.update_variable()
+            self._update_ui_state()
             self.pd.bed_mesh.update()
             self.pd.mmu_session.update()
             self._ensure_uart()
@@ -1274,7 +1295,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _sync_input_state(self, event):
         previous_epoch = self.pd.state.epoch
-        self.pd.update_variable()
+        self._update_ui_state()
         if self._mmu_power_popup_stale():
             self._restore_power_origin()
             self.lcd.update()
@@ -1646,6 +1667,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.update()
 
     def _refresh_file_snapshot(self):
+        self._sync_file_lifecycle()
         paths = self.pd.GetDirectory(getattr(self, '_file_directory', ''))
         if self.pd.file_error or self.pd._files_loading or self.pd._directory_loading:
             return False
@@ -3456,7 +3478,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._sync_case_light_tracking()
         self._poll_case_light_state()
         # variable update
-        update = self.pd.update_variable()
+        update = self._update_ui_state()
         self._poll_maintenance_ui()
         self._focus_tick_quiet()
         if self.pd.connection_error:

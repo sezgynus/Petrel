@@ -277,6 +277,11 @@ class PrinterData:
         if not self.material_preset and not self.presets_from_mainsail:
             self.material_preset = copy.deepcopy(type(self).material_preset)
         self.files = []
+        self._files_generation = 0
+        self._files_paths_snapshot = ()
+        self._file_thumbnail_keys = {}
+        self._file_thumbnail_list = None
+        self._file_sort_pending = None
         self.file_error = None
         self._files_loaded = False
         self._file_epoch = -1
@@ -811,8 +816,59 @@ class PrinterData:
         # Bootstrap and reconnection run on the subscription thread.
         return self.update_variable()
 
+    def _invalidate_files(self):
+        """Release all owners of file data together across backend sessions."""
+        self._files_generation += 1
+        self.files = []
+        self._files_paths_snapshot = ()
+        self._file_thumbnail_keys = {}
+        self._file_thumbnail_list = None
+        self._files_loaded = self._files_loading = self._directory_loading = False
+        self._file_retry_at = 0.
+        self._directory_cache.clear()
+        self._directory_retry_at.clear()
+        self._directory_revision_key = None
+        for name in ('_directory_cache_sizes', '_directory_orders'):
+            getattr(self, name, {}).clear()
+        pending, self._file_sort_pending = self._file_sort_pending, None
+        if pending is not None:
+            pending[2].cancel()
+        for key in tuple(self._read_jobs):
+            if key == 'files' or isinstance(key, tuple) and key[0] in ('directory', 'directory_sort'):
+                self._read_jobs.pop(key)[1].cancel()
+
+    def _file_sort_identity(self):
+        return (self.state.epoch, self.state.file_revision, id(self.files), self.file_sort_revision)
+
+    def _poll_file_sort(self, now):
+        identity, preference, future = self._file_sort_pending
+        if identity != self._file_sort_identity():
+            future.cancel()
+            self._file_sort_pending = None
+            self._file_sort_refresh_at = 0.
+            return False
+        if not future.done():
+            return False
+        self._file_sort_pending = None
+        self._file_sort_refresh_at = now + 5.
+        try:
+            files, paths = future.result()
+        except Exception as error:
+            logging.debug('File resort unavailable: %s', type(error).__name__)
+            return False
+        old_files = self.files
+        self.files = files
+        self._files_paths_snapshot = paths
+        if self._file_thumbnail_list is old_files:
+            self._file_thumbnail_list = files
+        self.file_sort = preference
+        self.file_sort_revision += 1
+        return True
+
     def refresh_file_sort(self, force=False):
         now = time.monotonic()
+        if self._file_sort_pending is not None:
+            return self._poll_file_sort(now)
         if not force and now < self._file_sort_refresh_at:
             return False
         try:
@@ -833,11 +889,15 @@ class PrinterData:
             preference = ('modified', True)
         if preference == self.file_sort:
             return False
-        self.file_sort = preference
-        self.file_sort_revision += 1
-        self._sort_files()
-        self._files_paths_snapshot = tuple(item['path'] for item in self.files)
-        return True
+        # Work on a private copy; queued results bind to this exact list/session.
+        source = self.files
+        identity = self._file_sort_identity()
+        def resort():
+            files = list(source)
+            self._sort_files(files, preference=preference)
+            return files, tuple(item['path'] for item in files)
+        self._file_sort_pending = (identity, preference, self._read_worker.submit(resort))
+        return self._poll_file_sort(now)
 
     def _sort_files(self, entries=None, preference=None):
         items = self.files if entries is None else entries
@@ -1113,6 +1173,8 @@ class PrinterData:
                     self.maintenance_pulse.cancel()
                     self.maintenance_reader.cancel()
                     self.maintenance.clear()
+                if self.state.ready or self.files or self._files_loaded:
+                    self._invalidate_files()
                 self.state = state
                 self._note_maintenance_state(state)
                 self._files_loaded = False
@@ -1255,8 +1317,7 @@ class PrinterData:
             # rediscover on menu entry or during ordinary print updates.
             self.maintenance.ready(state, self.client, self._maintenance_worker,
                                    lambda: self.state, integrations=self.maintenance_integrations(state))
-            self._files_loaded = False
-            self.files = []
+            self._invalidate_files()
             self._file_epoch = state.epoch
         if state.file_revision != self._file_revision:
             self._files_loaded = False

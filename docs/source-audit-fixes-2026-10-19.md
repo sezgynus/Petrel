@@ -41,9 +41,9 @@ Client identification now uses the installed checkout's cached `git describe --t
 | ID | Item | Implementation |
 | --- | --- | --- |
 | R01 | Foreground preview identity | Implemented |
-| R02 | Worker-based resort | Pending |
-| R03 | File cache lifetime | Pending |
-| R04 | Single maintenance tick and interval | Pending |
+| R02 | Worker-based resort | Implemented |
+| R03 | File cache lifetime | Implemented |
+| R04 | Single maintenance tick and interval | Implemented |
 | R05 | Usage counter capacity | Pending |
 | R06 | Drain accepted result writes | Pending |
 | R07 | Safe thumbnail attempt budget | Implemented |
