@@ -278,6 +278,7 @@ class PrinterData:
             self.material_preset = copy.deepcopy(type(self).material_preset)
         self.files = []
         self._files_generation = 0
+        self._root_prefetch_unretained = None
         self._files_paths_snapshot = ()
         self._file_thumbnail_keys = {}
         self._file_thumbnail_list = None
@@ -828,6 +829,7 @@ class PrinterData:
         self._directory_cache.clear()
         self._directory_retry_at.clear()
         self._directory_revision_key = None
+        self._root_prefetch_unretained = None
         for name in ('_directory_cache_sizes', '_directory_orders'):
             getattr(self, name, {}).clear()
         pending, self._file_sort_pending = self._file_sort_pending, None
@@ -960,7 +962,8 @@ class PrinterData:
         if not self.state.ready:
             return
         key = (self.state.epoch, self.state.file_revision, '')
-        if not self._files_loaded or key not in self._directory_cache:
+        if not self._files_loaded or (key not in self._directory_cache
+                                     and key != self._root_prefetch_unretained):
             self.GetDirectory('')
 
     DIRECTORY_CACHE_BYTES = 2 * 1024 * 1024
@@ -1002,6 +1005,7 @@ class PrinterData:
             orders.clear()
             self._directory_retry_at.clear()
             self._directory_revision_key = key[:2]
+            self._root_prefetch_unretained = None
         try:
             if key not in self._directory_cache:
                 if time.monotonic() < self._directory_retry_at.get(key, 0):
@@ -1032,6 +1036,12 @@ class PrinterData:
                     self._directory_cache[key] = entries
                     sizes[key] = size
                     orders[key] = (preference, paths)
+                if not directory:
+                    # A successful oversized root needs no further automatic
+                    # prefetch in this revision. Keep only its identity, not data.
+                    # Explicit GetDirectory calls still fetch and return paths.
+                    self._root_prefetch_unretained = (
+                        key if size > self.DIRECTORY_CACHE_BYTES else None)
                 self._directory_loading = False
                 self._directory_retry_at.pop(key, None)
             # Insertion-ordered cache: keep the root and current parent available
