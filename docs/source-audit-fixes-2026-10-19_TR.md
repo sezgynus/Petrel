@@ -78,3 +78,11 @@ Dosya preview’ı yalnız foreground görselin yüklenmesi veya aktarılması g
 | B01 | Büyük kök dizinin tekrarlanan ön yüklemesi | Uygulandı |
 
 Başarıyla hazırlanıp 2 MiB cache bütçesini aşan kök dizin için yalnız epoch/revizyon/yol kimliği tutulur. Otomatik ön yükleme aynı revizyonda tekrarlanmaz; cache bütçesi dışında dizin içeriği tutulmaz. Açık gezinme, yenileme ve sıralama çalışmaya devam eder. Dosya revizyonu değişimi ve yaşam döngüsü temizliği yeni otomatik denemeye izin verir; açık okumanın bütçeye sığması işareti temizleyip normal cache kullanımına döner. Başarısız okumalar mevcut tekrar davranışını korur. CI regresyonları bekleyen işin paylaşılmasını, tekrarlanan ön yüklemeyi, açık erişimi, sıralamayı, cache kabulünü, revizyon/epoch temizliğini ve geçici hatayı kapsar. Donanım kabulü bekleniyor; master değişmedi.
+
+## Beşinci audit
+
+| ID | Madde | Uygulama |
+| --- | --- | --- |
+| C01 | Dizin tekrar beklemesinin başarılı boş snapshot sanılması | Uygulandı |
+
+Dizin snapshot’ı genel dosya listesi hatası, dizin hatası ve tekrar beklemesi boyunca tamamlanmamış kalır. Bekleme durumu yalnız gerçekten boş dizin veya cache isabeti dahil başarılı dizin sonucu ile kapanır. Genel dosya listesinin başarısı, dizin okuması beklerken boş snapshot yayımlayamaz veya görüntülenen revizyonu ilerletemez. Mevcut UI poll’u süre dolunca enkoder girdisi olmadan yeniden dener; bekleme hâlâ tekrarlanan HTTP isteklerini engeller. Yenilemede mevcut yollar görünür kalır, parent/back gezinmesi kullanılabilir ve büyük kök dizin ön yükleme işareti değişmez. CI regresyonları gerçek UI yayınlama yolunda yeni revizyonu, aynı revizyonda klasör girişini, genel liste hatasını ve gerçekten boş klasörü kapsar. Donanım kabulü bekleniyor; master değişmedi.

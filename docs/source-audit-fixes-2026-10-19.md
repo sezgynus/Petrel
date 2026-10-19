@@ -78,3 +78,11 @@ File preview uses a 20 ms interval only while its foreground image needs loading
 | B01 | Repeated prefetch of an oversized root directory | Implemented |
 
 A successfully prepared root directory that exceeds the 2 MiB cache budget leaves only its epoch/revision/path identity. Automatic prefetch does not repeat it in that revision; no directory contents are retained outside the cache budget. Explicit browsing, refresh and sorting still work. File revision changes and lifecycle invalidation allow a new automatic attempt; an explicit read that fits clears the marker and resumes normal cache use. Failed reads retain their existing retry behavior. CI regressions cover pending-read deduplication, repeated prefetch, explicit access, sorting, cache admission, revision/epoch cleanup and transient failure. Hardware acceptance remains pending; master is unchanged.
+
+## Fifth audit
+
+| ID | Item | Implementation |
+| --- | --- | --- |
+| C01 | Directory retry mistaken for a successful empty snapshot | Implemented |
+
+Directory snapshots remain unresolved through file-list errors, directory errors and retry backoff. Only a successful directory result, including a genuinely empty directory or a cache hit, clears the pending state. General file-list success cannot publish an empty directory snapshot or advance the displayed revision while its directory read is waiting. The existing UI poll retries after the deadline without encoder input; backoff still prevents repeated HTTP requests. Existing paths remain visible on refresh, parent/back navigation is available, and the oversized-root prefetch marker is unchanged. CI regressions exercise the actual UI publication path for a new revision, same-revision folder entry, file-list failure and genuinely empty folders. Hardware acceptance is pending; master is unchanged.

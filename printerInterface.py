@@ -984,7 +984,9 @@ class PrinterData:
         return size
 
     def GetDirectory(self, directory=''):
-        self._directory_loading = False
+        # A snapshot stays unresolved through read failures and retry backoff.
+        # Only a successful directory result (including empty) may clear this.
+        self._directory_loading = True
         self.GetFiles()
         if self.file_error or self._files_loading:
             return ()
@@ -1074,11 +1076,12 @@ class PrinterData:
                 self._directory_loading = False
                 self._directory_cache[key] = entries
                 orders[key] = (preference, paths)
+            self._directory_loading = False
             return orders[key][1] if key in orders else paths
         except ReadPending:
             return ()
         except (MoonrakerError, KeyError, TypeError, ValueError) as error:
-            self._directory_loading = False
+            self._directory_loading = True
             self._directory_retry_at[key] = time.monotonic() + 5
             # Only the newest retry deadlines may survive in the current revision.
             for old in list(self._directory_retry_at)[:-64]:
