@@ -44,12 +44,12 @@ class DashboardAuditFixes(unittest.TestCase):
             v._maintenance_page=page
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertIn(call(1,AXIS_HOMED_COLOR,267,12,270,15),v.lcd.draw_rectangle.call_args_list)
-            self.assertTrue(any(c.args[-2:]==(200,4) for c in v.lcd.show_icon.call_args_list))
+            self.assertIn(call(1,AXIS_HOMED_COLOR,260,12,263,15),v.lcd.draw_rectangle.call_args_list)
+            self.assertTrue(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertFalse(any(c.args[-4:]==(267,12,270,15) for c in v.lcd.draw_rectangle.call_args_list))
-            self.assertFalse(any(c.args[-2:]==(200,4) for c in v.lcd.show_icon.call_args_list))
+            self.assertFalse(any(c.args[-4:]==(260,12,263,15) for c in v.lcd.draw_rectangle.call_args_list))
+            self.assertFalse(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
 
     def test_titles_always_reserve_the_wifi_region(self):
         v=display(snapshot())
@@ -59,6 +59,6 @@ class DashboardAuditFixes(unittest.TestCase):
                 v.lcd.reset_mock()
                 v.Draw_Title(title)
                 args=next(c.args for c in v.lcd.draw_text.call_args_list if c.args[5]==14)
-                self.assertLessEqual(14+len(args[-1])*8,200)
-                if len(title)>23:self.assertTrue(args[-1].endswith('...'))
+                self.assertLessEqual(14+len(args[-1])*8,190)
+                if len(title)>22:self.assertTrue(args[-1].endswith('...'))
                 else:self.assertEqual(args[-1],title)
