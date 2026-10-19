@@ -153,7 +153,7 @@ class AuditRenderingTests(unittest.TestCase):
         rendered = [f[11:-4].strip() for f in frames
                     if int.from_bytes(f[7:9], 'big') in (208,216)
                     and int.from_bytes(f[9:11], 'big') in (102, 155, 208, 261)]
-        self.assertEqual(rendered, [b'-1.50', b'12.30', b'2.500', b'-4.5'])
+        self.assertEqual(rendered, [b'-1.50', b'12.30', b'2.5', b'-4.5'])
         result.select_axis.set(1)
         result.get_encoder_state = lambda: result.ENCODER_DIFF_ENTER
         result.HMI_AxisMove()

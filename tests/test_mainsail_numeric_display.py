@@ -78,12 +78,12 @@ class MainsailNumericDisplayTests(unittest.TestCase):
             self.assertEqual(args[5],216)
             self.assertLessEqual(args[5]+len(args[-1])*8,272)
         v._draw_offset_value(-20*100,90,v.lcd.Color_Bg_Black)
-        self.assertEqual(v.lcd.draw_text.call_args.args[-1],'-20.000')
+        self.assertEqual(v.lcd.draw_text.call_args.args[-1].strip(),'-20')
         self.assertLessEqual(202+len(v.lcd.draw_text.call_args.args[-1])*8,272)
         v._draw_thermal_target(200.8,90,v.lcd.Color_Bg_Black)
         self.assertEqual(v.lcd.draw_text.call_args.args[-1].strip(),'200.8')
         v._draw_axis_value(2,-100.123*v.MINUNITMULT,90,v.lcd.Color_Bg_Black)
-        self.assertEqual(v.lcd.draw_text.call_args.args[-1].strip(),'-100.1')
+        self.assertEqual(v.lcd.draw_text.call_args.args[-1].strip(),'-100.12')
 
     def test_dashboard_applies_xy_precision_and_preserves_narrow_exceptions(self):
         v = display(snapshot())
@@ -93,7 +93,7 @@ class MainsailNumericDisplayTests(unittest.TestCase):
         with patch.object(ui.time,'monotonic',return_value=0):
             v.Draw_Status_Area(False)
         xyz = [c.args for c in v.lcd.draw_signed_scaled_float_text.call_args_list if c.args[5]==448]
-        self.assertEqual([args[3] for args in xyz],[2,2,1])
+        self.assertEqual([args[3] for args in xyz],[2,2])
         for args,right in zip(xyz,(102,200,272)):
             width = (args[2]+1+args[3]+1)*8
             self.assertLessEqual(args[4]+width,right)

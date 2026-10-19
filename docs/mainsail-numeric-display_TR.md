@@ -20,16 +20,18 @@ Referans: Mainsail `dda4f43f2a2e667af9a0050c0db151daad0c8516` kaynak kodu.
 | Alan | Korunan gösterim | Gerekçe |
 |---|---|---|
 | Dashboard nozzle/bed sıcaklık çifti | Tam sayı | 8 px font ile ondalıklı çift 74 px sütunu aşıyor. |
-| Dashboard Z | Bir ondalık | İşaret ve üç tam basamakla üç ondalık sağ sütuna sığmıyor. |
-| Dashboard Z offset | İki ondalık | -20.000, 48 px alanı aşıyor. |
+| Dashboard Z | Dinamik 0–3 ondalık | 48 px alana sığan en yüksek hassasiyet; sondaki sıfırlar kaldırılır. |
+| Dashboard Z offset | Dinamik 0–3 ondalık | Aynı 48 px bütçesi; sığmazsa hassasiyet azaltılır. |
 | Dashboard akış >=100 mm³/s | Tam sayı | 100.3mm3/s, 74 px sütunu aşıyor. |
 | Yoğun mesh ve geniş negatif değerler | Eski yoğunluk bazlı hassasiyet | Nokta etiketleri birbirine taşmamalı; 9+ sütunda eski biçim korunur. |
 | Olağandışı uzun menü/önizleme/süre değerleri | Alan bazlı eski kısa biçim | Yeni basamaklar sığmazsa eski hassasiyete dönülür; menüde o da sığmazsa sınırlandırılmış # kullanılır. |
 
-Örnekler: Move Z -100.123 yerine -100.1; mesh 8 sütunda -0.126 yerine -0.13. Sayısal etiketler için mevcut piksel bütçeleri korunur.
+Örnekler: Move Z -100.123 yerine -100.12; mesh 8 sütunda -0.126 yerine -0.13. Sayısal etiketler için mevcut piksel bütçeleri korunur.
 
 Telemetri toplama sıklığı, tahmin algoritması ve komut adımları değiştirilmez. Maintenance kanıt değerlerinin dört anlamlı basamaklı genel biçimi korunur; bunların tümü için tek bir Mainsail karşılığı yoktur. Aynı zamana ait olmayan ölçümler biçim eşliğiyle eşitlenmez.
 
 ## Doğrulama
 
 CI regresyonları JavaScript çalışma zamanı ile yuvarlama sınırlarını, ham komut değerlerini ve etiketlerin piksel sınırlarını karşılaştırır. Tam test paketi, Maintenance ölçümleri ve tüm dokümantasyon ekran renderları CI içinde çalışır. Fiziksel ekran testi ayrıca gerekir; bu rapor donanım testi yapıldığını iddia etmez.
+
+Z ve Z offset alanları en fazla üç ondalıktan başlayıp metin sığana kadar hassasiyeti azaltır. Ham değer/komut değiştirilmez. Dashboard biçimlendirmesi yalnız ham değer değişince hesaplanır; iki alan için sınırlı önbellek kullanılır. Sabit genişlikte boşluk dolgusu ve mevcut alan temizliği eski rakam kalıntılarını önler. Mesh ve sıcaklık kuralları korunur.

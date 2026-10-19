@@ -4,7 +4,7 @@ from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, IC
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 import display_settings
-from display_numbers import fixed, compact, motion_text, js_round
+from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
 import textwrap
 from software_update import SoftwareUpdate
@@ -1212,15 +1212,13 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _draw_axis_value(self,index,scaled,y,bg):
         value = scaled/self.MINUNITMULT
-        text = fixed(value,3 if index==2 else 2)
+        text = fit_decimal(value,7) if index==2 else fixed(value,2)
         if len(text)>7:
             text = fixed(value,1)
         self._draw_number_cell(text,216,y,7,bg)
 
     def _draw_offset_value(self,scaled,y,bg):
-        text = fixed(scaled/100,3)
-        if len(text)>7:
-            text = fixed(scaled/100,2)
+        text = fit_decimal(scaled/100,7)
         self._draw_number_cell(text,202,y,7,bg)
 
     def lcdExit(self):
@@ -2676,6 +2674,20 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             getattr(self.lcd, method)(*args)
         cache[key] = value
 
+    def _draw_status_decimal(self, value, x, y):
+        # Only the two bounded Z fields use this cache. Formatting runs when
+        # their raw input changes; redraws still use the normal LCD diff cache.
+        cache = getattr(self, '_status_decimal_values', None)
+        if cache is None:
+            cache = self._status_decimal_values = {}
+        key = (x,y)
+        previous = cache.get(key)
+        if previous is None or previous[0] != value:
+            previous = (value,fit_decimal(value,6).rjust(6))
+            cache[key] = previous
+        self._draw_status_field('draw_text',False,True,self.lcd.font8x16,
+            self.lcd.Color_White,0x18C4,x,y,previous[1])
+
     def _sync_fan_animation(self, visible, force=False):
         percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
         interval = max(1, min(255, round(100 / percent))) if visible and percent else 0
@@ -2775,9 +2787,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
         if self.pd.HAS_ZOFFSET_ITEM:
             self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2)
-            self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.font8x16, 0x18C4,
-                2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
+            self._draw_status_decimal(self.pd.BABY_Z_VAR,value3,y2)
 
         positions = self.pd.live_position
         for icon, xpos, value_x, position in (
@@ -2785,10 +2795,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 (self.ICON_MaxSpeedY, x2, value2, positions[1]),
                 (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
             self._draw_status_field('show_icon', self.ICON, icon, xpos, y3)
-            self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.font8x16, 0x18C4,
-                3, 2 if value_x != value3 else 1, value_x, y3,
-                float(fixed(position,2))*100 if value_x != value3 else position*10)
+            if value_x == value3:
+                self._draw_status_decimal(position,value_x,y3)
+            else:
+                self._draw_status_field('draw_signed_scaled_float_text',
+                    self.lcd.font8x16,0x18C4,3,2,value_x,y3,
+                    float(fixed(position,2))*100)
 
     def Draw_Title(self, title):
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)

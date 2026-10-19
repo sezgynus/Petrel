@@ -23,6 +23,19 @@ def fixed(value, digits=0):
         return format(number, '.%df'%digits)
 
 
+def fit_decimal(value, cells, maximum_decimals=3):
+    """Highest fitting precision, without trailing zeros or a negative zero."""
+    for digits in range(maximum_decimals,-1,-1):
+        text = fixed(value,digits)
+        if digits:
+            text = text.rstrip('0').rstrip('.')
+        if text == '-0':
+            text = '0'
+        if len(text)<=cells:
+            return text
+    return '#' * cells
+
+
 def compact(value):
     if not value:
         return '0'
@@ -46,6 +59,9 @@ def setting_text(setting, value):
         text = compact(cut(value,2))
     elif key in ('retract_speed','unretract_speed'):
         text = str(math.trunc(value))
+    elif key == 'z':
+        cells = max(1,(260-18-len(setting.label)*8-8)//8-len(setting.unit))
+        text = fit_decimal(value,cells)
     elif key.startswith('nozzle@') or key == 'bed':
         text = compact(value)
     else:
