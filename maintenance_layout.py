@@ -302,7 +302,7 @@ def draw_maintenance(v,screen):
         v._maintenance_scroll=0
         v._list_render=None
         v.lcd.draw_rectangle(1,BG,0,0,271,359)
-        v._header_clock_drawn=None
+        v._invalidate_header()
         v.Draw_Title(screen.title)
     v._maintenance_drawn_choices=tuple((c.action,c.value) for c in screen.choices)
     if screen.kind=='report':

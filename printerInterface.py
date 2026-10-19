@@ -10,7 +10,7 @@ import time
 import uuid
 from urllib.parse import quote
 from collections.abc import Mapping
-from concurrent.futures import Future
+from concurrent.futures import Future, CancelledError
 from threading import Lock
 from display_numbers import js_round
 from background_reads import ReadWorker, ReadPending
@@ -346,7 +346,7 @@ class PrinterData:
             ssid, rssi = self._read('wifi_status', wifi_info)
         except ReadPending:
             return False
-        except (OSError, ValueError, TypeError, UnicodeError) as error:
+        except (MoonrakerError, CancelledError, OSError, ValueError, TypeError, UnicodeError) as error:
             logging.debug('Wi-Fi status read unavailable: %s', error)
             ssid, rssi = 'Unavailable', None
         self._wifi_status_refresh_at = now + 5.0
@@ -363,21 +363,14 @@ class PrinterData:
         previous = dict(self.system_info)
         current = dict(previous)
         try:
-            def read_info():
-                wireless = wifi_info()
-                try:
-                    return wireless, self.client.get('/machine/update/status'), None
-                except MoonrakerError as error:
-                    return wireless, None, error
             # lifecycle() reads only connection metadata; snapshot() deep-copies
             # all subscribed objects and is unnecessary on every pending poll.
             lifecycle = self.subscription.lifecycle()
             epoch = (lifecycle.get('epoch', 0) if isinstance(lifecycle, Mapping)
                      else self.subscription.snapshot().get('epoch', 0))
-            wireless, response, error = self._read('system_info', read_info, stamp=epoch)
-            current['wifi_ssid'], current['wifi_rssi'] = wireless
-            if error is not None:
-                raise error
+            # Header and Info share one throttled Wi-Fi reader and its cache.
+            response = self._read('system_info',
+                lambda: self.client.get('/machine/update/status'),stamp=epoch)
             versions = response.get('result', {}).get('version_info', {})
             if not isinstance(versions, Mapping):
                 raise ValueError('Invalid update-manager status')
@@ -746,7 +739,7 @@ class PrinterData:
         snapshot = self.subscription.snapshot()
         if (self.connection_error or not self.state.ready or snapshot['state'] != 'ready'
                 or snapshot['epoch'] != self.state.epoch):
-            from concurrent.futures import Future
+            from concurrent.futures import Future, CancelledError
             future = Future()
             future.cleanup_complete = cleanup is not None
             future.set_exception(MoonrakerError('Printer connection is not ready'))

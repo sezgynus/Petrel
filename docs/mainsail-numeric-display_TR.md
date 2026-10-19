@@ -41,3 +41,7 @@ Z ve Z offset alanları en fazla üç ondalıktan başlayıp metin sığana kada
 Tüm sayısal alanların ilk karakteri 20 px ikon kutusunun 4 px sağından başlar (ikon X + 24 px). Başta dolgu boşluğu kullanılmaz; sıcaklık çiftleri tek, boşluksuz metindir. Z/offset boşluk dolgusu yalnız sağa eklenir. Metin küçülürken önceki alan temizlenir; değişmeyen değer yeniden çizilmez. Sütun bütçesini aşan olağandışı değerler komşu ikona taşmak yerine # ile gösterilir. Sayısal hassasiyet ve ham değerler değişmez.
 
 X/Y/Z ikonlarının altında (x = ikon X + 3..16, y = 470..472) bulunan 14×3 piksellik çizgi, mevcut abonelikten gelen Klipper `toolhead.homed_axes` durumunu gösterir: referanslanmışsa turkuaz, referanslanmamışsa amber, veri geçersiz veya bağlantı yoksa gri. Ayrı üç alanlı çizim önbelleği yalnız değişen çizgileri günceller; ek Moonraker isteği, ikon, animasyon ya da dashboard tam çizimi gerekmez.
+
+## Gösterge denetimi düzeltmeleri
+
+Wi-Fi okuma kuyruğu hataları ve iptaller arayüz çevrimini kesmez; sinyal bilinmiyor olur ve beş saniyelik tekrar aralığı korunur. Info aynı Wi-Fi önbelleğini kullanır, ikinci bir iw sorgusu başlatmaz. Maintenance üst şeridi temizlediğinde saat, Wi-Fi ve Klipper önbellekleri birlikte geçersizleştirilir. Başlıklar Wi-Fi bölgesinden önceki 23 karakterlik alana sığdırılır; uzunsa üç noktayla kısaltılır. CI ekranları yalnız bir kez, regresyonlardan sonra üretir; yayımlanmış görsel eşliği testi repodaki görselleri değişmeden denetler.

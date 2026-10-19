@@ -2875,7 +2875,17 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             else:
                 self._draw_dashboard_value(fixed(position,2),xpos,y3)
 
+    def _invalidate_header(self):
+        self._header_clock_drawn = None
+        self._header_wifi_drawn = None
+        self._header_klipper_drawn = None
+
     def Draw_Title(self, title):
+        # Reserve x=200 onward for Wi-Fi, clock and Klipper state, even when
+        # Wi-Fi is temporarily absent. Native font8x16 permits 23 title cells.
+        title = T5UIC1Display._panel_text(str(title))
+        if len(title)>23:
+            title = title[:20]+'...'
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
         self._draw_header_clock()
 
@@ -3330,9 +3340,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     def Clear_Title_Bar(self):
         self._info_render_scroll = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH - 1, 30)
-        self._header_clock_drawn = None
-        self._header_wifi_drawn = None
-        self._header_klipper_drawn = None
+        self._invalidate_header()
         self._draw_header_clock()
 
     def Clear_Menu_Area(self):
