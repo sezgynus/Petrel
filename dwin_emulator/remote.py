@@ -230,7 +230,7 @@ class RemoteDisplayServer:
                 if not isinstance(value, dict) or not (
                     (set(value) == {"kind"} and value.get("kind") in
                         ("press", "hold_start", "hold_end", "hold_cancel"))
-                    or (set(value) == {"kind", "value"
+                    or (set(value) == {"kind", "value"}
                         and value.get("kind") == "rotate"
                         and type(value.get("value")) is int
                         and 0 < abs(value["value"]) <= 6)
