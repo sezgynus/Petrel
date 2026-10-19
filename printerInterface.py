@@ -429,7 +429,8 @@ class PrinterData:
                         pass
                 temperature = None
                 for sensor_mcu, sensor_temperature in temperatures:
-                    if object_name.endswith(sensor_mcu):
+                    mcu_name = object_name if object_name == 'mcu' else object_name.split(' ', 1)[1]
+                    if mcu_name == sensor_mcu:
                         temperature = sensor_temperature
                         break
                 mcus.append({'name': object_name, 'load': load,
