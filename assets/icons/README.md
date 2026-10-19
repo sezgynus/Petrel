@@ -50,4 +50,4 @@ All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: 
 
 Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 156–163 are retired; they are not shipped or referenced by the UI.
 
-Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. They follow the shared Graphite stroke and require the same baseline 4:2:0 JPEG encoding. The reference pack remains 9×32 KiB.
+Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack remains 9×32 KiB.

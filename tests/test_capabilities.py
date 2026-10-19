@@ -74,6 +74,31 @@ def display(data):
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_wifi_dashboard_refresh_reuses_background_read_and_is_throttled(self):
+        data = snapshot()
+        result = printer(data)
+        with patch.object(backend, 'wifi_info', return_value=('Workshop', -64.5)) as read, \
+                patch.object(backend.time, 'monotonic', return_value=100.0):
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_ssid'], 'Workshop')
+            self.assertEqual(result.system_info['wifi_rssi'], -64.5)
+            self.assertFalse(result.refresh_wifi_status())
+            read.assert_called_once()
+        with patch.object(backend, 'wifi_info', return_value=('Workshop', -54.0)) as read, \
+                patch.object(backend.time, 'monotonic', return_value=106.0):
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_rssi'], -54.0)
+            read.assert_called_once()
+
+    def test_wifi_pending_refresh_does_not_mutate_displayed_signal(self):
+        result = printer(snapshot())
+        with patch.object(result, '_read', side_effect=[backend.ReadPending(), ('Workshop', -70)]), \
+                patch.object(backend.time, 'monotonic', return_value=200.0):
+            self.assertFalse(result.refresh_wifi_status())
+            self.assertIsNone(result.system_info['wifi_rssi'])
+            self.assertTrue(result.refresh_wifi_status())
+            self.assertEqual(result.system_info['wifi_rssi'], -70)
+
     def test_effective_limits_and_negative_axis_minimum(self):
         caps = PrinterCapabilities.from_state(PrinterState.from_snapshot(snapshot(probe=True)))
         self.assertEqual(caps.active_hotend.maximum, 305)

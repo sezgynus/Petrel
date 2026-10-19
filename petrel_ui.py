@@ -4,6 +4,7 @@ from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
 import display_settings
 from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
@@ -11,7 +12,7 @@ import textwrap
 from software_update import SoftwareUpdate
 from info_qr import PROJECT_URL, draw_project_qr, extra_info_rows
 from shared_artwork import PICTURE_ID as SHARED_PICTURE_ID
-from system_info import wifi_signal_text
+from system_info import wifi_signal_text, wifi_signal_level
 import time
 import logging
 from concurrent.futures import Future
@@ -2812,15 +2813,35 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
         self._draw_header_clock()
 
+    def _draw_wifi_signal(self):
+        # Native JPEG backgrounds are black; Graphite's enhanced filter makes
+        # those pixels transparent. Clear the old icon only when its band changes.
+        info = self.pd.system_info
+        ssid = info.get('wifi_ssid')
+        level = wifi_signal_level(info.get('wifi_rssi')) if ssid not in (None, 'Unavailable', 'Disconnected') else None
+        icon = {'Poor': ICON_WIFI_POOR, 'Medium': ICON_WIFI_MEDIUM,
+                'Strong': ICON_WIFI_STRONG}.get(level)
+        key = (id(self.lcd), icon)
+        previous = getattr(self, '_header_wifi_drawn', None)
+        if key == previous:
+            return False
+        self._header_wifi_drawn = key
+        if icon is None and previous is None:
+            return False
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 200, 4, 219, 23)
+        if icon is not None:
+            show_theme_icon(self.lcd, self.ICON, icon, 200, 4)
+        return True
+
     def _draw_header_clock(self):
         value = time.strftime('%H:%M', time.localtime())
         key = (id(self.lcd), value)
-        if key == getattr(self, '_header_clock_drawn', None):
-            return False
-        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                           self.lcd.Color_Bg_Blue, 224, 6, value)
-        self._header_clock_drawn = key
-        return True
+        clock_changed = key != getattr(self, '_header_clock_drawn', None)
+        if clock_changed:
+            self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
+                               self.lcd.Color_Bg_Blue, 224, 6, value)
+            self._header_clock_drawn = key
+        return self._draw_wifi_signal() or clock_changed
 
     def Draw_Popup_Bkgd_105(self):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 105, 258, 374)
@@ -3221,6 +3242,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._info_render_scroll = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH - 1, 30)
         self._header_clock_drawn = None
+        self._header_wifi_drawn = None
         self._draw_header_clock()
 
     def Clear_Menu_Area(self):
@@ -3460,6 +3482,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     # --------------------------------------------------------------#
 
     def _each_moment_update_untraced(self):
+        self.pd.refresh_wifi_status()  # Read-worker polling only; never run iw on the UI thread.
         self._poll_case_light_live()
         self._sync_case_light_tracking()
         self._poll_case_light_state()

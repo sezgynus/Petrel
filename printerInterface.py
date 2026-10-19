@@ -265,6 +265,7 @@ class PrinterData:
         }
         self._system_info_refresh_at = 0.0
         self._system_info_refresh_interval = 5.0
+        self._wifi_status_refresh_at = 0.0
         self._preset_refresh_at = 0.0
         self._preset_refresh_interval = 5.0
         self.refresh_mainsail_presets(force=True)
@@ -335,6 +336,23 @@ class PrinterData:
             raise ReadPending()
         self._read_jobs.pop(key)
         return job[1].result()
+
+    def refresh_wifi_status(self):
+        """Keep header RSSI fresh on the existing read worker, without blocking UI."""
+        now = time.monotonic()
+        if now < self._wifi_status_refresh_at:
+            return False
+        try:
+            ssid, rssi = self._read('wifi_status', wifi_info)
+        except ReadPending:
+            return False
+        except (OSError, ValueError, TypeError, UnicodeError) as error:
+            logging.debug('Wi-Fi status read unavailable: %s', error)
+            ssid, rssi = 'Unavailable', None
+        self._wifi_status_refresh_at = now + 5.0
+        previous = (self.system_info.get('wifi_ssid'), self.system_info.get('wifi_rssi'))
+        self.system_info['wifi_ssid'], self.system_info['wifi_rssi'] = ssid, rssi
+        return previous != (ssid, rssi)
 
     def refresh_system_info(self, force=False):
         """Refresh component versions and host IPv4 without mutating printer state."""

@@ -5,6 +5,8 @@ from test_regressions import ui
 from test_mmu_control import mmu_snapshot
 from printer_state import PrinterState
 from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
+from unittest.mock import call
 
 
 class IncrementalDashboardTests(unittest.TestCase):
@@ -116,6 +118,49 @@ class IncrementalDashboardTests(unittest.TestCase):
         self.assertEqual(v.lcd.draw_rectangle.call_args_list[-3:], [
             unittest.mock.call(1, AXIS_UNHOMED_COLOR, x, 470, x + 13, 472)
             for x in (7, 105, 203)])
+
+    @patch.object(ui.time, 'strftime', return_value='12:34')
+    def test_wifi_header_uses_native_transparent_icons_only_when_band_changes(self, clock):
+        v = self.make()
+        v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
+        self.assertTrue(v._draw_header_clock())
+        v.lcd.show_icon.assert_called_once_with(
+            v.ICON, ICON_WIFI_STRONG, 200, 4, background=False, enhanced=True)
+        v.lcd.reset_mock()
+        self.assertFalse(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [])
+        for rssi, expected in ((-65, ICON_WIFI_MEDIUM), (-71, ICON_WIFI_POOR),
+                               (-60, ICON_WIFI_STRONG)):
+            v.pd.system_info['wifi_rssi'] = rssi
+            self.assertTrue(v._draw_header_clock())
+            self.assertEqual(v.lcd.method_calls, [
+                call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23),
+                call.show_icon(v.ICON, expected, 200, 4, background=False, enhanced=True)])
+            v.lcd.reset_mock()
+        v.pd.system_info['wifi_rssi'] = None
+        self.assertTrue(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
+        v.lcd.reset_mock()
+        self.assertFalse(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [])
+
+    @patch.object(ui.time, 'strftime', return_value='12:34')
+    def test_wifi_header_repaints_after_title_clear_and_ignores_ethernet(self, clock):
+        v = self.make()
+        v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-60)
+        v.Clear_Title_Bar()
+        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
+                         (ICON_WIFI_STRONG, 200, 4))
+        v.lcd.reset_mock()
+        v.Clear_Title_Bar()
+        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
+                         (ICON_WIFI_STRONG, 200, 4))
+        v.lcd.reset_mock()
+        v.pd.system_info.update(network='Online', wifi_ssid='Disconnected', wifi_rssi=None)
+        self.assertTrue(v._draw_header_clock())
+        self.assertEqual(v.lcd.method_calls, [
+            call.draw_rectangle(1, v.lcd.Color_Bg_Blue, 200, 4, 219, 23)])
 
     def test_unchanged_mmu_sends_no_drawing(self):
         v = self.make(mmu_snapshot())

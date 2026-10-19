@@ -50,4 +50,4 @@ Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanma
 
 Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
-Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Ortak Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket 9×32 KiB olarak kalır.
+Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket 9×32 KiB olarak kalır.

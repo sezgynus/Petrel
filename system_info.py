@@ -1,6 +1,7 @@
 """Live software-stack and Raspberry Pi network information."""
 import socket
 import struct
+import math
 import os
 import re
 import subprocess
@@ -124,9 +125,14 @@ def wifi_info():
     return 'Disconnected', None
 
 
+def wifi_signal_level(rssi):
+    """Single RSSI policy shared by Info and the native dashboard icons."""
+    if isinstance(rssi, bool) or not isinstance(rssi, (int, float)) or not math.isfinite(rssi):
+        return None
+    return 'Strong' if rssi >= -60 else 'Medium' if rssi >= -70 else 'Poor'
+
+
 def wifi_signal_text(rssi):
     """Compact signal description fitting the Info value column."""
-    if rssi is None:
-        return 'N/A'
-    level = 'Strong' if rssi >= -60 else 'Medium' if rssi >= -70 else 'Poor'
-    return '{:.0f} dBm ({})'.format(rssi, level)
+    level = wifi_signal_level(rssi)
+    return 'N/A' if level is None else '{:.0f} dBm ({})'.format(rssi, level)

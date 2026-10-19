@@ -23,6 +23,8 @@ X/Y/Z simgelerinin altındaki 14×3 piksellik çizgi Klipper referans durumunu b
 
 Fan simgesi panelin kendi animasyonuyla döner; hız fan yüzdesinden hesaplanır ve 10 ms aralıklara yuvarlanır. Aynı interval için yeniden komut gönderilmez; %0’da durur.
 
+Saatin yanındaki küçük Wi-Fi simgesi, Info ekranıyla aynı RSSI eşiklerini kullanır: **güçlü** (≥ −60 dBm, üç etkin yay), **orta** (−70 ile −60 dBm arası, iki yay) veya **zayıf** (−70 dBm altı, tek yay). Wi-Fi bağlantısı yoksa ya da RSSI bilinmiyorsa güç seviyesi simgesi gösterilmez. Ethernet bağlantısı bu göstergeden bağımsızdır. Yerel ikon yalnız seviye değiştiğinde yeniden çizilir.
+
 ![Fan 0, 1, 50 ve 100 yüzde iken panel-native animasyon örneği](assets/framed/fan-animation-demo.gif)
 
 Örnek verilerle gerçek UI emülatörü çıktısıdır.
