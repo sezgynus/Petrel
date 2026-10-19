@@ -79,6 +79,7 @@ class MaintenanceHeaterController:
         self._metrics = ()
         self._component_metrics = ()
         self._refreshing_consent = False
+        self._tracking_generation = 0
 
     @property
     def phase(self):
@@ -170,6 +171,17 @@ class MaintenanceHeaterController:
             raise ValueError('existing_or_unknown_pending_config')
         return evidence, point, c, pid_evidence(config, row.device) if row.feature_id in PID else ()
 
+    def _initial_read(self, generation):
+        if generation != self._tracking_generation or not self.pending:
+            raise ValueError('thermal_preflight_cancelled')
+        subscription = self._printer.subscription
+        tracker = getattr(type(subscription), 'set_thermal_tracking', None)
+        if callable(tracker):
+            subscription.set_thermal_tracking(True).result(timeout=5)
+        if generation != self._tracking_generation or not self.pending:
+            raise ValueError('thermal_preflight_cancelled')
+        return self._read(True)
+
     def start(self, feature_id, device=None, **kwargs):
         if self._closed or self._blocked or self.pending:
             return False, 'thermal_busy_or_locked'
@@ -190,13 +202,19 @@ class MaintenanceHeaterController:
         self._dispatch_rejected = False
         self._deadline = monotonic()+12
         try:
-            self._future = self._worker.submit(lambda: self._read(True), queue_timeout=8)
+            self._tracking_generation += 1
+            generation = self._tracking_generation
+            self._future = self._worker.submit(lambda: self._initial_read(generation), queue_timeout=8)
         except Exception:
             self._phase = None
             return False, 'thermal_worker_rejected'
         return True, 'thermal_preflight_queued'
 
     def _finish(self, status, reason, restored=False, components=()):
+        self._tracking_generation += 1
+        subscription = self._printer.subscription
+        if callable(getattr(type(subscription), 'set_thermal_tracking', None)):
+            subscription.set_thermal_tracking(False)
         c = self._contract
         conditions = (('profile_version', 1),)
         if c is not None:

@@ -64,6 +64,8 @@ class MoonrakerSubscription:
         self._status = {}
         self._objects = []
         self._base_subscription = {}
+        self._thermal_objects = ()
+        self._thermal_generation = 0
         self._case_light_tracking = False
         self._case_light_callback = None
         self._case_light_generation = 0
@@ -135,6 +137,44 @@ class MoonrakerSubscription:
                 result['settings'] = copy.deepcopy(self._settings)
             return result
 
+    def _subscription_objects(self):
+        objects = copy.deepcopy(self._base_subscription)
+        if self._case_light_tracking and 'output_pin case_light' in self._objects:
+            objects['output_pin case_light'] = ['value']
+        for name in self._thermal_objects:
+            objects[name] = ['temperature', 'target', 'power']
+        return objects
+
+    def set_thermal_tracking(self, enabled):
+        """Lease optional heater telemetry only for an explicit thermal check."""
+        with self._lock:
+            self._thermal_generation += 1
+            generation, epoch = self._thermal_generation, self._epoch
+            self._thermal_objects = tuple(name for name, cfg in self._settings.items()
+                if enabled and name in self._objects and name not in self._base_subscription
+                and isinstance(cfg, dict) and 'heater_pin' in cfg)
+            names = self._thermal_objects
+            objects = self._subscription_objects()
+            for name in tuple(self._status):
+                if name.startswith('heater_generic ') and name not in names:
+                    self._status.pop(name, None)
+        future = self.request('printer.objects.subscribe', {'objects': objects})
+        def receive(done):
+            if done.cancelled() or done.exception(): return
+            result = done.result()
+            if not isinstance(result, dict): return
+            status = result.get('status', {})
+            if not isinstance(status, dict): return
+            with self._lock:
+                if generation != self._thermal_generation or epoch != self._epoch: return
+                # Seed only missing objects; never overwrite newer deltas.
+                for name in names:
+                    if name not in self._status and isinstance(status.get(name), dict):
+                        self._status[name] = copy.deepcopy(status[name])
+                        self._revision += 1
+        future.add_done_callback(receive)
+        return future
+
     def set_case_light_tracking(self, enabled, callback=None):
         """Replace the subscription while retaining every baseline printer object."""
         with self._lock:
@@ -142,7 +182,7 @@ class MoonrakerSubscription:
             self._case_light_callback = callback if enabled else None
             self._case_light_generation += 1
             generation, epoch = self._case_light_generation, self._epoch
-            objects = copy.deepcopy(self._base_subscription)
+            objects = self._subscription_objects()
             if enabled and 'output_pin case_light' in self._objects:
                 objects['output_pin case_light'] = ['value']
             if not enabled:
@@ -177,6 +217,8 @@ class MoonrakerSubscription:
 
     def _invalidate(self, error):
         with self._lock:
+            self._thermal_objects = ()
+            self._thermal_generation += 1
             self._state = 'disconnected'
             self._error = error
             self._status = {}
@@ -201,6 +243,9 @@ class MoonrakerSubscription:
             else:
                 for name, fields in status.items():
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
+            for name in tuple(self._status):
+                if name.startswith('heater_generic ') and name not in self._thermal_objects:
+                    self._status.pop(name, None)
             self._eventtime = eventtime
             self._revision += 1
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):
