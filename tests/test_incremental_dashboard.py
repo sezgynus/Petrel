@@ -3,6 +3,8 @@ from unittest.mock import patch
 from test_capabilities import display, snapshot
 from test_regressions import ui
 from test_mmu_control import mmu_snapshot
+from printer_state import PrinterState
+from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
 
 
 class IncrementalDashboardTests(unittest.TestCase):
@@ -52,6 +54,68 @@ class IncrementalDashboardTests(unittest.TestCase):
         self.assertEqual(rect[-3], 380)
         self.assertEqual(rect[-1], 399)
         v.lcd.show_icon.assert_not_called()
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_homing_bars_are_14x3_under_each_axis_and_cached(self, clock):
+        data = snapshot()
+        data['status']['toolhead']['homed_axes'] = 'xz'
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        bars = [call.args for call in v.lcd.draw_rectangle.call_args_list
+                if call.args[-2:] == (118, 472) or
+                   call.args[-2:] == (20, 472) or
+                   call.args[-2:] == (216, 472)]
+        self.assertEqual(bars, [
+            (1, AXIS_HOMED_COLOR, 7, 470, 20, 472),
+            (1, AXIS_UNHOMED_COLOR, 105, 470, 118, 472),
+            (1, AXIS_HOMED_COLOR, 203, 470, 216, 472),
+        ])
+        v.lcd.reset_mock()
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [])
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_homing_change_only_repaints_the_changed_axis(self, clock):
+        data = snapshot()
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        v.lcd.reset_mock()
+        data['status']['toolhead']['homed_axes'] = 'xz'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [
+            unittest.mock.call.draw_rectangle(1, AXIS_UNHOMED_COLOR, 105, 470, 118, 472)])
+        v.lcd.reset_mock()
+        data['status']['toolhead']['homed_axes'] = 'xyz'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [
+            unittest.mock.call.draw_rectangle(1, AXIS_HOMED_COLOR, 105, 470, 118, 472)])
+
+    @patch.object(ui.time, 'monotonic', return_value=4)
+    def test_disconnected_or_missing_homing_evidence_is_grey_not_homed(self, clock):
+        data = snapshot()
+        v = self.make(data)
+        v.Draw_Status_Area(False)
+        v.lcd.reset_mock()
+        data['state'] = 'connecting'
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.draw_rectangle.call_args_list, [
+            unittest.mock.call(1, AXIS_UNKNOWN_COLOR, x, 470, x + 13, 472)
+            for x in (7, 105, 203)])
+        v.lcd.reset_mock()
+        data['state'] = 'ready'
+        data['status']['toolhead'].pop('homed_axes')
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.method_calls, [])
+        data['status']['toolhead']['homed_axes'] = ''
+        v.pd.state = PrinterState.from_snapshot(data)
+        v.Draw_Status_Area(True)
+        self.assertEqual(v.lcd.draw_rectangle.call_args_list[-3:], [
+            unittest.mock.call(1, AXIS_UNHOMED_COLOR, x, 470, x + 13, 472)
+            for x in (7, 105, 203)])
 
     def test_unchanged_mmu_sends_no_drawing(self):
         v = self.make(mmu_snapshot())

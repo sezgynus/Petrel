@@ -19,6 +19,8 @@ Alt durum alanının üç satırı aşağıdadır. Hız/akış alanları iki san
 | 2 | Tabla gerçek/hedef (°C) | Akış çarpanı (%) / hacimsel akış (mm³/s) | Oturum Z offset (mm) |
 | 3 | X (mm) | Y (mm) | Z (mm) |
 
+X/Y/Z simgelerinin altındaki 14×3 piksellik çizgi Klipper referans durumunu belirtir: **turkuaz** referanslanmış, **amber** referanslanmamış, **gri** ise (örneğin bağlantı kesildiğinde) durum bilgisinin alınamadığı anlamına gelir. Her çizgi yalnız ilgili eksenin durumu değiştiğinde güncellenir; konum değerleri ve ikon aralıkları etkilenmez.
+
 Fan simgesi panelin kendi animasyonuyla döner; hız fan yüzdesinden hesaplanır ve 10 ms aralıklara yuvarlanır. Aynı interval için yeniden komut gönderilmez; %0’da durur.
 
 ![Fan 0, 1, 50 ve 100 yüzde iken panel-native animasyon örneği](assets/framed/fan-animation-demo.gif)

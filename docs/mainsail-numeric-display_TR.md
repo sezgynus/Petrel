@@ -39,3 +39,5 @@ Z ve Z offset alanları en fazla üç ondalıktan başlayıp metin sığana kada
 ## Dashboard hizalaması
 
 Tüm sayısal alanların ilk karakteri 20 px ikon kutusunun 4 px sağından başlar (ikon X + 24 px). Başta dolgu boşluğu kullanılmaz; sıcaklık çiftleri tek, boşluksuz metindir. Z/offset boşluk dolgusu yalnız sağa eklenir. Metin küçülürken önceki alan temizlenir; değişmeyen değer yeniden çizilmez. Sütun bütçesini aşan olağandışı değerler komşu ikona taşmak yerine # ile gösterilir. Sayısal hassasiyet ve ham değerler değişmez.
+
+X/Y/Z ikonlarının altında (x = ikon X + 3..16, y = 470..472) bulunan 14×3 piksellik çizgi, mevcut abonelikten gelen Klipper `toolhead.homed_axes` durumunu gösterir: referanslanmışsa turkuaz, referanslanmamışsa amber, veri geçersiz veya bağlantı yoksa gri. Ayrı üç alanlı çizim önbelleği yalnız değişen çizgileri günceller; ek Moonraker isteği, ikon, animasyon ya da dashboard tam çizimi gerekmez.

@@ -1,5 +1,6 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
-from graphite_theme import show_icon as show_theme_icon, draw_scrollbar
+from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
+                            AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR)
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
@@ -2684,6 +2685,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._draw_status_field('draw_text',False,True,self.lcd.font8x16,
             self.lcd.Color_White,0x18C4,x,y,text)
 
+    def _draw_axis_home_indicator(self, icon_x, homed):
+        # 14x3 px, two pixels below the 20x20 XYZ icon; no text/icon overlap.
+        color = (AXIS_HOMED_COLOR if homed is True else
+                 AXIS_UNHOMED_COLOR if homed is False else AXIS_UNKNOWN_COLOR)
+        key = ('axis_home', icon_x + 3, 470)
+        if self._status_render.get(key) == color:
+            return
+        self.lcd.draw_rectangle(1, color, icon_x + 3, 470, icon_x + 16, 472)
+        self._status_render[key] = color
+
     def _draw_status_decimal(self, value, x, y):
         # Only the two bounded Z fields use this cache. Formatting runs when
         # their raw input changes; redraws still use the normal LCD diff cache.
@@ -2780,11 +2791,18 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._draw_status_decimal(self.pd.BABY_Z_VAR,value3,y2)
 
         positions = self.pd.live_position
-        for icon, xpos, value_x, position in (
-                (self.ICON_MaxSpeedX, x1, value1, positions[0]),
-                (self.ICON_MaxSpeedY, x2, value2, positions[1]),
-                (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
+        # Read the already-subscribed authoritative Klipper state, not cached
+        # position flags which may outlive a disconnect or Klipper restart.
+        state = self.pd.state
+        homed_axes = state.status.get('toolhead', {}).get('homed_axes') if state.ready else None
+        if not isinstance(homed_axes, str) or any(axis not in 'xyz' for axis in homed_axes):
+            homed_axes = None
+        for axis, icon, xpos, value_x, position in (
+                ('x', self.ICON_MaxSpeedX, x1, value1, positions[0]),
+                ('y', self.ICON_MaxSpeedY, x2, value2, positions[1]),
+                ('z', self.ICON_MaxSpeedZ, x3, value3, positions[2])):
             self._draw_status_field('show_icon', self.ICON, icon, xpos, y3)
+            self._draw_axis_home_indicator(xpos, None if homed_axes is None else axis in homed_axes)
             if value_x == value3:
                 self._draw_status_decimal(position,value_x,y3)
             else:

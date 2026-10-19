@@ -39,3 +39,5 @@ Z and Z offset fields start at up to three decimals and reduce precision until t
 ## Dashboard alignment
 
 Every numeric field starts 4 px after its 20 px icon tile (icon X + 24 px). There is no leading numeric padding; temperature pairs are single compact strings. Z/offset padding is appended only on the right. Shrinking text clears its previous area; unchanged values do not redraw. Unusual values exceeding the column budget use # markers instead of painting over adjacent icons. Numeric precision and raw values are unchanged.
+
+Below the X/Y/Z icons (x = icon X + 3..16, y = 470..472) a 14×3 px bar reflects the existing subscribed Klipper `toolhead.homed_axes` status: cyan for homed, amber for not homed and muted grey when state is unavailable or invalid. A separate three-entry draw cache updates only changed bars; no additional Moonraker request, icon, animation or full dashboard redraw is needed.
