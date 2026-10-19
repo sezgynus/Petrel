@@ -20,7 +20,7 @@ class CareRefresh(unittest.TestCase):
 
     def test_reentry_refreshes_even_with_unchanged_epoch(self):
         d=self.make()
-        with patch('ui_maintenance.monotonic',return_value=50.):
+        with patch.dict(d._poll_maintenance_ui.__globals__,{'monotonic':lambda:50.}):
             d.Enter_Maintenance_Menu()
         d.pd.maintenance_ui_records.assert_called_once_with('load',policy=None,history=False)
         self.assertTrue(d._maintenance_records_ready)
@@ -30,10 +30,10 @@ class CareRefresh(unittest.TestCase):
         last={'timestamp':1.,'counter':0.,'counter_id':'a'}
         d._maintenance_page='service_task';d._maintenance_context=(p,last,'unknown')
         d._maintenance_records_data=(((p,last,'unknown'),),())
-        with patch('ui_maintenance.monotonic',return_value=99.):
+        with patch.dict(d._poll_maintenance_ui.__globals__,{'monotonic':lambda:99.}):
             d._poll_maintenance_ui()
         d.pd.maintenance_ui_records.assert_not_called()
-        with patch('ui_maintenance.monotonic',return_value=100.):
+        with patch.dict(d._poll_maintenance_ui.__globals__,{'monotonic':lambda:100.}):
             d._poll_maintenance_ui();d._poll_maintenance_ui()
             future=d._maintenance_records_future
             future.set_result((((p,last,'due'),),()))
