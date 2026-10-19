@@ -43,6 +43,8 @@ class MaintenanceDiscoveryManager:
             return self.cache.snapshot
 
     def clear(self):
+        from maintenance_planner import clear_plan_cache
+        clear_plan_cache()
         with self._lock:
             previous = self.cache.snapshot
             self._generation += 1

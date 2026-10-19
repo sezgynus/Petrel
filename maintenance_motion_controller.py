@@ -7,7 +7,7 @@ import uuid
 from maintenance_homing import begin_homing, poll_homing
 from maintenance_catalog import definition_for
 from maintenance_discovery import USER, EXTERNAL, CALIBRATION
-from maintenance_planner import AdapterRegistration, build_plan, visible_plan
+from maintenance_planner import AdapterRegistration, registered_plan
 from maintenance_runtime import read_queue_evidence, live_safety_context
 from maintenance_safety import precheck
 from maintenance_motion import (compile_motion, return_program, verify_motion,
@@ -20,7 +20,7 @@ def motion_adapters():
         definition_for(f).evidence_contract,definition_for(f).safety_profile) for f,m in METHODS.items())
 
 def motion_plan(snapshot):
-    return tuple(r for r in visible_plan(build_plan(snapshot,motion_adapters()))
+    return tuple(r for r in registered_plan(snapshot,motion_adapters())
                  if (r.feature_id=='M03' and r.device is None)
                  or (r.device in ('stepper_x','stepper_y','stepper_z') and r.feature_id!='M03'))
 

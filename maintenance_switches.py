@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from time import monotonic
 from maintenance_catalog import definition_for
 from maintenance_discovery import USER
-from maintenance_planner import AdapterRegistration, build_plan, visible_plan
+from maintenance_planner import AdapterRegistration, registered_plan
 from maintenance_runtime import read_queue_evidence, live_safety_context
 from maintenance_safety import precheck
 
@@ -16,7 +16,7 @@ def switch_adapters():
 
 
 def switch_plan(snapshot):
-    return tuple(r for r in visible_plan(build_plan(snapshot, switch_adapters()))
+    return tuple(r for r in registered_plan(snapshot, switch_adapters())
                  if r.feature_id == 'M01'
                  and r.device in ('stepper_x', 'stepper_y', 'stepper_z'))
 

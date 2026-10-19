@@ -190,7 +190,7 @@ class MaintenanceReadExecutor:
         if (row.feature_id not in (*_ENDPOINTS, *_THERMAL_FIELDS, *MOTION_FIELDS, *FILAMENT_FIELDS, *SYSTEM_FIELDS, *AUXILIARY_FIELDS)
                 or (row.feature_id in _ENDPOINTS and row.device is not None)
                 or (row.feature_id in (*_THERMAL_FIELDS, *MOTION_FIELDS, *FILAMENT_FIELDS, *SYSTEM_FIELDS, *AUXILIARY_FIELDS) and
-                    row not in __import__('maintenance_planner').build_plan(
+                    row not in __import__('maintenance_planner').registered_plan(
                         self._snapshot(), read_only_adapters()))
                 or row.method != INFORMATION or row.category != 'informational'
                 or row.adapter_id != 'maintenance.read.' + row.feature_id):

@@ -5,6 +5,8 @@ registered adapter never bypasses the future Safety Coordinator's live checks.
 No I/O, G-code, background thread, or UI work is performed here.
 """
 from dataclasses import dataclass
+from collections import OrderedDict
+from threading import Lock
 
 from maintenance_catalog import CATALOG, definition_for
 from maintenance_discovery import (
@@ -106,7 +108,7 @@ def _planned_row(snapshot, spec, device, raw_methods, installed):
         snapshot.epoch, snapshot.config_marker, axes)
 
 
-def build_plan(snapshot, adapters=()):
+def build_plan(snapshot, adapters=(), *, registered_only=False):
     """Build immutable per-device and global candidate rows, without I/O.
 
     'runnable' means an adapter has been explicitly registered and the
@@ -123,7 +125,10 @@ def build_plan(snapshot, adapters=()):
         raise ValueError('MaintenanceSnapshot required')
     installed = _registered(adapters)
     planned = []
+    registered = {feature for feature, method in installed}
     for spec in CATALOG:
+        if registered_only and spec.feature_id not in registered:
+            continue
         if spec.methods == NONE:
             continue
         instances = snapshot.instances(spec.feature_id) if spec.scope != 'global' else ()
@@ -145,3 +150,42 @@ def build_plan(snapshot, adapters=()):
 def visible_plan(plan):
     """Small list for a future dynamic menu; hides unavailable adapters."""
     return tuple(row for row in plan if row.visible)
+
+
+_PLAN_LOCK = Lock()
+_PLAN_SNAPSHOT = None
+_PLAN_CACHE = OrderedDict()
+_MAX_PLAN_ROWS = 512
+
+
+def clear_plan_cache():
+    global _PLAN_SNAPSHOT
+    with _PLAN_LOCK:
+        _PLAN_SNAPSHOT = None
+        _PLAN_CACHE.clear()
+
+
+def registered_plan(snapshot, adapters):
+    """Cache only visible immutable rows for one compact discovery snapshot.
+
+    No live status or safety decision is cached. New service evidence, epoch
+    changes and explicit disconnect cleanup invalidate the cache.
+    """
+    global _PLAN_SNAPSHOT
+    registry = tuple(adapters)
+    with _PLAN_LOCK:
+        if snapshot is not _PLAN_SNAPSHOT:
+            _PLAN_CACHE.clear()
+            _PLAN_SNAPSHOT = snapshot
+        if snapshot is None:
+            return ()
+        if registry in _PLAN_CACHE:
+            _PLAN_CACHE.move_to_end(registry)
+            return _PLAN_CACHE[registry]
+        rows = visible_plan(build_plan(snapshot,registry,registered_only=True))
+        if len(rows) <= _MAX_PLAN_ROWS:
+            while _PLAN_CACHE and (len(_PLAN_CACHE)>=16 or
+                    sum(len(value) for value in _PLAN_CACHE.values())+len(rows)>_MAX_PLAN_ROWS):
+                _PLAN_CACHE.popitem(last=False)
+            _PLAN_CACHE[registry] = rows
+        return rows

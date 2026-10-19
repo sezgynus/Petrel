@@ -12,7 +12,7 @@ import math
 
 from maintenance_catalog import definition_for
 from maintenance_discovery import MaintenanceSnapshot, USER
-from maintenance_planner import AdapterRegistration, PlannedTest, build_plan
+from maintenance_planner import AdapterRegistration, PlannedTest, registered_plan
 from maintenance_safety import MaintenanceSafetyCoordinator
 
 
@@ -71,7 +71,7 @@ def guided_plan(snapshot):
     """Return real target rows only; never read hardware or manufacture IDs."""
     if not isinstance(snapshot, MaintenanceSnapshot):
         return ()
-    return tuple(row for row in build_plan(snapshot, guided_adapters())
+    return tuple(row for row in registered_plan(snapshot, guided_adapters())
                  if _trusted_target(row, snapshot))
 
 

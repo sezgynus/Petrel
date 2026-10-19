@@ -16,7 +16,7 @@ from urllib.parse import quote
 from maintenance_catalog import definition_for
 from maintenance_thermal_profiles import profile_for
 from maintenance_discovery import AUTOMATIC, CALIBRATION
-from maintenance_planner import AdapterRegistration, build_plan, visible_plan
+from maintenance_planner import AdapterRegistration, registered_plan
 from maintenance_runtime import read_queue_evidence, live_safety_context
 from maintenance_safety import precheck
 from maintenance_thermal import ACTIVE, PID, ThermalSeries, contract, sample, pid_evidence, heater_name
@@ -32,7 +32,7 @@ def thermal_adapters():
 
 
 def thermal_plan(snapshot):
-    return tuple(r for r in visible_plan(build_plan(snapshot, thermal_adapters()))
+    return tuple(r for r in registered_plan(snapshot, thermal_adapters())
                  if r.device == 'heater_bed' or
                  (isinstance(r.device, str) and r.device.startswith('extruder')
                   and (r.device == 'extruder' or r.device[8:].isdigit())) or
