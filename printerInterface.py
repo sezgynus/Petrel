@@ -917,7 +917,7 @@ class PrinterData:
         self.refresh_file_sort()
         if not self._files_loaded or refresh:
             if time.monotonic() < self._file_retry_at and not refresh:
-                return tuple(item['path'] for item in self.files)
+                return self._files_paths_snapshot
             self._files_loaded = False
             self._files_loading = True
             try:
