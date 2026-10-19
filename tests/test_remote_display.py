@@ -4,7 +4,7 @@ from io import BytesIO
 import json
 import time
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -96,8 +96,57 @@ class RemoteDisplayTests(unittest.TestCase):
             self.assertEqual(response.status, 202)
         self.enqueue.assert_called_with("press", 1)
 
+    def test_remote_hold_uses_server_measured_release_and_no_faked_duration(self):
+        with patch("dwin_emulator.remote.monotonic", return_value=100.0):
+            with self.request("/input", {"kind": "hold_start"}) as response:
+                self.assertEqual(response.status, 202)
+        with patch("dwin_emulator.remote.monotonic", return_value=101.3):
+            with self.request("/input", {"kind": "hold_end"}) as response:
+                self.assertEqual(response.status, 202)
+        self.assertEqual(self.enqueue.call_args_list,
+                         [call("hold_start", 1), call("hold_end", 1300)])
+        with self.assertRaises(HTTPError) as err:
+            self.request("/input", {"kind": "hold_end"})
+        self.assertEqual(err.exception.code, 409)
+
+    def test_remote_hold_short_release_bypasses_rate_limit_and_cancel_is_safe(self):
+        with patch("dwin_emulator.remote.monotonic", return_value=500.0):
+            with self.request("/input", {"kind": "hold_start"}) as response:
+                self.assertEqual(response.status, 202)
+        with patch("dwin_emulator.remote.monotonic", return_value=500.01):
+            with self.request("/input", {"kind": "hold_end"}) as response:
+                self.assertEqual(response.status, 202)
+        self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_end", 10)])
+        with patch("dwin_emulator.remote.monotonic", return_value=500.05):
+            with self.request("/input", {"kind": "hold_start"}) as response:
+                self.assertEqual(response.status, 202)
+            with self.request("/input", {"kind": "hold_cancel"}) as response:
+                self.assertEqual(response.status, 202)
+        self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_cancel", 1)])
+
+    def test_remote_abandoned_hold_is_cancelled_not_powered_off(self):
+        with patch("dwin_emulator.remote.monotonic", return_value=400.0):
+            with self.request("/input", {"kind": "hold_start"}) as response:
+                self.assertEqual(response.status, 202)
+        with patch("dwin_emulator.remote.monotonic", return_value=415.0):
+            with self.request("/input", {"kind": "hold_end"}) as response:
+                self.assertEqual(response.status, 202)
+        self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_cancel", 1)])
+
+    def test_page_uses_real_pointer_and_keyboard_edges_for_enter_hold(self):
+        with self.request("/") as response:
+            page = response.read().decode()
+        for required in ('pointerdown', 'pointerup', 'pointercancel',
+                         'lostpointercapture', 'keydown', 'keyup',
+                         'beginHold()', 'finishHold()', 'finishHold(true)',
+                         'send("hold_start")', '"hold_end"', '"hold_cancel"'):
+            with self.subTest(fragment=required):
+                self.assertIn(required, page)
+
     def test_input_rejects_unknown_actions_unbounded_or_boolean_steps(self):
-        for value in ({"kind": "power_on"}, {"kind": "rotate", "value": 7},
+        for value in ({"kind": "power_on"}, {"kind": "button_release", "value": 1200},
+                      {"kind": "hold_end", "value": 1200}, {"kind": "hold_start", "value": 1},
+                      {"kind": "rotate", "value": 7},
                       {"kind": "rotate", "value": True},
                       {"kind": "press", "value": 1},
                       {"kind": "rotate", "value": 0}):
@@ -240,8 +289,19 @@ class RemoteUIRoutingTests(unittest.TestCase):
                          ("rotate", -1, 12, 9))
         self.assertTrue(display._remote_input("press", 1))
         self.assertEqual(display._loop.post.call_args.args[0].kind, "press")
+        self.assertTrue(display._remote_input("hold_start", 1))
+        self.assertEqual(display._loop.post.call_args.args[0].kind, "remote_button_down")
+        self.assertTrue(display._remote_input("hold_end", 1300))
+        release = display._loop.post.call_args.args[0]
+        self.assertEqual((release.kind, release.value, release.epoch, release.ui_epoch),
+                         ("remote_button_release", 1300, 12, 9))
+        self.assertTrue(display._remote_input("hold_cancel", 1))
+        self.assertEqual(display._loop.post.call_args.args[0].kind, "remote_button_cancel")
+        self.assertFalse(display._remote_input("hold_end", 12000))
+        self.assertFalse(display._remote_input("hold_start", 9000))
         display._uart_online = False
         self.assertFalse(display._remote_input("press", 1))
+        self.assertFalse(display._remote_input("hold_start", 1))
 
 
 if __name__ == "__main__":

@@ -419,6 +419,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _uart_failed(self):
         self._power_hold_started = None
+        self._remote_power_hold_active = False
+        self._remote_power_hold_deadline = None
         if getattr(self, '_boot_active', False):
             self._boot_progress = -1
         if (getattr(self, 'checkkey', None) == self.PowerConfirm
@@ -1280,12 +1282,18 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         return accepted
 
     def _remote_input(self, kind, value):
-        # The HTTP thread may ONLY post ordinary epoch-bound events. No GPIO
-        # simulation, direct UI calls, long-press power, or Moonraker access.
+        # HTTP threads only enqueue epoch-bound events. The UI owner drives
+        # the existing guarded hold/release shortcut, never direct shutdown.
         if kind == 'press' and value == 1:
             return self._enqueue_input('press', 1)
         if kind == 'rotate' and type(value) is int and 0 < abs(value) <= 6:
             return self._enqueue_input('rotate', value, value)
+        if kind == 'hold_start' and value == 1:
+            return self._enqueue_input('remote_button_down', 1)
+        if kind == 'hold_end' and type(value) is int and 0 <= value <= 10000:
+            return self._enqueue_input('remote_button_release', value)
+        if kind == 'hold_cancel' and value == 1:
+            return self._enqueue_input('remote_button_cancel', 1)
         return False
 
     def encoder_has_data(self, value):
@@ -1468,7 +1476,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         snapshot = self._ui_lifecycle()
         if ((snapshot['state'] != 'ready' and getattr(self, 'checkkey', None) != self.MMUMenu) or snapshot['epoch'] != event.epoch
                 or self._closed):
-            if event.kind == 'button_release' and getattr(self, '_power_hold_started', None) is not None:
+            if event.kind in ('button_release', 'remote_button_release', 'remote_button_cancel') and getattr(self, '_power_hold_started', None) is not None:
                 self._clear_power_hold()
                 self.lcd.update()
             return

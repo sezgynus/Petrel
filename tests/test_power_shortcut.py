@@ -61,6 +61,60 @@ class PowerShortcutTests(unittest.TestCase):
     def input(self, v, kind, value):
         v._process_input(InputEvent(kind, value, v.pd.state.epoch, v._uart_epoch))
 
+    def test_remote_long_hold_opens_guarded_confirmation_on_release(self):
+        v = self.view()
+        with patch.object(ui.time, 'monotonic', return_value=10.0):
+            self.assertTrue(v._remote_input('hold_start', 1))
+            self.drain(v)
+        self.assertTrue(v._remote_power_hold_active)
+        with patch.object(ui.time, 'monotonic', return_value=11.2):
+            v._power_hold_tick()
+        with patch.object(ui.time, 'monotonic', return_value=11.3):
+            self.assertTrue(v._remote_input('hold_end', 1300))
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.PowerConfirm)
+        self.assertFalse(v._remote_power_hold_active)
+        v.pd.power_off_if_on.assert_not_called()
+        self.input(v, 'rotate', -1)
+        self.input(v, 'press', 1)
+        v.pd.power_off_if_on.assert_called_once_with()
+
+    def test_remote_short_hold_is_normal_enter_and_cancel_is_not(self):
+        v = self.view()
+        v._dispatch_input = Mock()
+        with patch.object(ui.time, 'monotonic', return_value=10.0):
+            self.assertTrue(v._remote_input('hold_start', 1))
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.1):
+            self.assertTrue(v._remote_input('hold_end', 100))
+            self.drain(v)
+        v._dispatch_input.assert_called_once()
+        v._dispatch_input.reset_mock()
+        with patch.object(ui.time, 'monotonic', return_value=11.0):
+            self.assertTrue(v._remote_input('hold_start', 1))
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=11.7):
+            self.assertTrue(v._remote_input('hold_cancel', 1))
+            self.drain(v)
+        v._dispatch_input.assert_not_called()
+        self.assertEqual(v.checkkey, v.Control)
+
+    def test_remote_timeout_and_late_release_never_open_power_dialog(self):
+        v = self.view()
+        v._dispatch_input = Mock()
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            self.assertTrue(v._remote_input('hold_start', 1))
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=21):
+            self.assertFalse(v._power_hold_tick())
+            self.assertFalse(v._remote_power_hold_active)
+            self.assertIsNone(v._power_hold_started)
+            self.assertTrue(v._remote_input('hold_end', 1300))
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.Control)
+        v._dispatch_input.assert_not_called()
+        v.pd.power_off_if_on.assert_not_called()
+
     def test_hold_capsule_uses_one_managed_icon_with_runtime_text(self):
         v = self.view()
         self.gesture(v, 1.3)

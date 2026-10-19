@@ -44,6 +44,8 @@ class PowerShortcutMixin:
     def _clear_power_hold(self, restore=True):
         visible = getattr(self, '_power_hold_visible', False)
         self._power_hold_started = None
+        self._remote_power_hold_active = False
+        self._remote_power_hold_deadline = None
         self._power_hold_visible = False
         if visible and restore:
             self._power_origin = self.checkkey
@@ -52,6 +54,23 @@ class PowerShortcutMixin:
             self._loop.set_interval(.5)
 
     def _power_button_input(self, event):
+        if event.kind == 'remote_button_down':
+            if getattr(self, '_power_hold_started', None) is not None:
+                return True  # A remote press must never release a physical hold.
+            self._remote_power_hold_active = True
+            self._remote_power_hold_deadline = time.monotonic() + 10.0
+            event = InputEvent('button_down', int(time.monotonic() * 1000),
+                               event.epoch, event.ui_epoch)
+        elif event.kind == 'remote_button_release':
+            if not getattr(self, '_remote_power_hold_active', False):
+                return True  # Late or rejected releases cannot become Enter.
+            event = InputEvent('button_release', event.value,
+                               event.epoch, event.ui_epoch)
+        elif event.kind == 'remote_button_cancel':
+            if getattr(self, '_remote_power_hold_active', False):
+                self._clear_power_hold()
+                self.lcd.update()
+            return True
         if event.kind == 'button_down':
             self._power_hold_started = event.value / 1000
             self._power_hold_epoch = event.epoch
@@ -80,6 +99,12 @@ class PowerShortcutMixin:
     def _power_hold_tick(self):
         started = getattr(self, '_power_hold_started', None)
         if started is None:
+            return False
+        deadline = getattr(self, '_remote_power_hold_deadline', None)
+        if deadline is not None and time.monotonic() >= deadline:
+            # Missing browser release/network loss cancels rather than powers off.
+            self._clear_power_hold()
+            self.lcd.update()
             return False
         if self._ui_lifecycle()['epoch'] != self._power_hold_epoch:
             self._clear_power_hold()
