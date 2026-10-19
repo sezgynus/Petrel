@@ -71,6 +71,15 @@ class ThumbnailCache:
         return bool(self.job or self.upload or any(
             key not in self.entries and key not in self.errors for key in self.priority))
 
+    def has_foreground_work(self, key):
+        """Fast polling only for this preview, including retries that are due."""
+        if key not in self.valid or key in self.entries:
+            return False
+        if key not in self.errors:
+            return True
+        retry = self.retry_at.get(key)
+        return retry is not None and time.monotonic() >= retry
+
     def _hole(self, size):
         address = 0
         for start, length in sorted(self.entries.values()):

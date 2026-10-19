@@ -64,7 +64,9 @@ Donanım kabulü bekleniyor. Önceki listeye ek olarak daha önce açılmamış 
 | --- | --- | --- |
 | A01 | Sonuç geçmişi byte bütçesi | Uygulandı |
 | A02 | Kabul edilmiş yerel yazılarda süre aşımı | Uygulandı |
-| A03 | Durağan preview tick aralığı | Bekliyor |
-| A04 | Hata beklemesinde dosya snapshot’ı | Bekliyor |
+| A03 | Durağan preview tick aralığı | Uygulandı |
+| A04 | Hata beklemesinde dosya snapshot’ı | Uygulandı |
 
 Sonuç geçmişi en fazla 64 girdi ve 64 KiB tutar; en eski girdiler çıkarılırken en yeni sonuç grubu bütün olarak korunur. Tek başına sığmayan grup kayıt hatasıyla reddedilir; önceki dosya korunur. Kabul edilmiş yerel sonuç yazıları mevcut sınırlı worker kuyruğunda kabul süresi aşımı olmadan bekler. Ağ okumaları süre sınırlarını korur, dolu kuyruk reddi açıkça bildirilir ve düzenli kapanış iptal edilen yerel yazıları hâlâ yalnız bir kez tamamlar. Normal UI tick’lerine disk işi taşınmaz ve yazıcı komutu yeniden oynatılmaz. Regresyon kapsamı geniş sonuçları, grup bütünlüğünü, sonraki yazıları, kuyruk yaşlanmasını ve ağ okuması süre aşımının korunmasını içerir. Donanım kabulü bekleniyor.
+
+Dosya preview’ı yalnız foreground görselin yüklenmesi veya aktarılması gerekirken 20 ms aralık kullanır. Tamamlanmış preview, kalıcı görsel yokluğu ve geçici hata tekrarını bekleme durumları 500 ms kullanır; zamanı gelen tekrar foreground yüklemeyi başlatır ve aktif Maintenance nihai aralığı hâlâ en fazla 100 ms tutar. İlgisiz ön yükleme işi durağan preview’ı hızlı tutmaz. Bekleyen baskı başlatma gözleminin mevcut aralığı korunur. Dosya yenileme hata beklemesi, tutulan listeyi taramadan mevcut yollar snapshot’ını döndürür; eski dosyayla baskı başlatmayı engelleyen hata silinmez. CI regresyon kapsamı kısmi SRAM aktarımını, tamamlanınca durağanlaşmayı, negatif cache’i, geçici hatadan tekrarı, Maintenance aralığını ve taranması yasak 5.000 dosyalık hata beklemesini içerir. Donanımda soğuk ve önbellekteki preview’ı, thumbnail olmayan dosyayı, geçici thumbnail indirme hatasını ve başarısız dosya yenilemesinden sonra gezinmeyi kontrol et. Dört madde de uygulandı; donanım kabulü bekleniyor ve master değişmedi.

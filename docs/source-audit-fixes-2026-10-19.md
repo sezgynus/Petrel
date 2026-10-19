@@ -64,7 +64,9 @@ Hardware acceptance remains pending. In addition to the earlier list, check a pr
 | --- | --- | --- |
 | A01 | Result history byte retention | Implemented |
 | A02 | Non-expiring accepted local writes | Implemented |
-| A03 | Idle preview tick cadence | Pending |
-| A04 | File snapshot during retry backoff | Pending |
+| A03 | Idle preview tick cadence | Implemented |
+| A04 | File snapshot during retry backoff | Implemented |
 
 Result history retains at most 64 entries and 64 KiB, evicting oldest entries while keeping the complete newest result group. A group that cannot fit on its own is rejected with a record error; the previous file is preserved. Accepted local result writes use the existing bounded worker queue without an admission expiry. Network reads retain their deadlines, queue-full rejection remains explicit, and orderly shutdown still finalizes cancelled local writes exactly once. No disk work is moved onto normal UI ticks and no printer command is replayed. Regression coverage includes wide results, group preservation, subsequent writes, queue ageing, and unchanged network-read expiry. Hardware acceptance is pending.
+
+File preview uses a 20 ms interval only while its foreground image needs loading or transfer. Completed previews, permanent absence and transient-error retry waits use 500 ms; due retries resume foreground loading, and active Maintenance still caps the final interval at 100 ms. Unrelated preload work does not keep a static preview fast. Pending print-start observation keeps its existing interval. File refresh backoff returns the existing paths snapshot without scanning the retained file list or clearing the error that blocks starting a stale file. CI regression coverage includes partial SRAM upload, idle completion, negative cache, transient retry, Maintenance cadence and a 5,000-file backoff with traversal forbidden. On hardware, check cold and cached previews, a file without a thumbnail, temporary thumbnail download failure, and browsing after a failed file refresh. All four items are implemented; hardware acceptance remains pending and master is unchanged.
