@@ -8,7 +8,9 @@ from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
 import display_settings
 from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
+import math
 import textwrap
+from collections.abc import Mapping
 from software_update import SoftwareUpdate
 from info_qr import PROJECT_URL, draw_project_qr, extra_info_rows
 from shared_artwork import PICTURE_ID as SHARED_PICTURE_ID
@@ -2696,6 +2698,36 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.draw_rectangle(1, color, icon_x + 3, 470, icon_x + 16, 472)
         self._status_render[key] = color
 
+    def _draw_dashboard_indicator(self, key, x, y, width, height, color):
+        # Status-only rectangle: no asset, animation or full-screen invalidation.
+        # Clearing a marker paints the exact previous footprint in dashboard BG.
+        cache_key = ('dashboard_indicator', key)
+        previous = self._status_render.get(cache_key)
+        if previous == color:
+            return
+        self.lcd.draw_rectangle(1, 0x18C4 if color is None else color,
+                                x, y, x + width - 1, y + height - 1)
+        self._status_render[cache_key] = color
+
+    def _draw_heater_indicator(self, key, x, y, heater):
+        cache_key = ('dashboard_indicator', key)
+        previous = self._status_render.get(cache_key)
+        color = AXIS_UNKNOWN_COLOR
+        if isinstance(heater, Mapping):
+            actual, target = heater.get('temperature'), heater.get('target')
+            if (isinstance(actual, (int, float)) and not isinstance(actual, bool)
+                    and isinstance(target, (int, float)) and not isinstance(target, bool)
+                    and math.isfinite(actual) and math.isfinite(target)):
+                if target <= 0:
+                    color = self.lcd.Line_Color  # Heat disabled
+                else:
+                    # 2 C entry / 3 C exit hysteresis suppresses threshold flicker.
+                    ready_band = 3.0 if previous == AXIS_HOMED_COLOR else 2.0
+                    color = (AXIS_HOMED_COLOR if abs(actual - target) <= ready_band
+                             else AXIS_UNHOMED_COLOR)
+        self._draw_dashboard_indicator(key, x + 3, y + 22, 14 if key == 'bed_heat' else 12,
+                                       3, color)
+
     def _draw_status_decimal(self, value, x, y):
         # Only the two bounded Z fields use this cache. Formatting runs when
         # their raw input changes; redraws still use the normal LCD diff cache.
@@ -2750,11 +2782,24 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         # in a wider left column and compact the two telemetry columns.
         x1, x2, x3 = 4, 102, 200
         value1, value2, value3 = 28, 126, 224
+        # Use already subscribed Klipper state; dashboard markers do not poll.
+        state = self.pd.state
+        status = state.status if state.ready else {}
+        hotend_name = getattr(getattr(self.pd.capabilities, 'active_hotend', None),
+                              'name', None)
+        hotend = status.get(hotend_name) if hotend_name else None
+        bed = status.get('heater_bed')
 
         if self.pd.HAS_HOTEND:
             self._draw_status_field('show_icon',self.ICON,self.ICON_HotendTemp,x1,y1)
             temps = self.pd.thermalManager['temp_hotend'][0]
             self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y1)
+            self._draw_heater_indicator('hotend_heat', x1, y1, hotend)
+            can_extrude = hotend.get('can_extrude') if isinstance(hotend, Mapping) else None
+            self._draw_dashboard_indicator(
+                'extrude_ready', x1 + 16, y1 + 22, 4, 3,
+                AXIS_HOMED_COLOR if can_extrude is True else
+                AXIS_UNHOMED_COLOR if can_extrude is False else AXIS_UNKNOWN_COLOR)
 
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
@@ -2765,6 +2810,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         else:
             speed_text = fixed(abs(self.pd.live_velocity))+'mm/s'
         self._draw_dashboard_value(speed_text,x2,y1)
+        self._draw_dashboard_indicator(
+            'speed_override', x2 + 3, y1 + 22, 14, 3,
+            AXIS_UNHOMED_COLOR if state.ready and self.pd.feedrate_percentage != 100
+            else None)
 
         if self.pd.HAS_FAN:
             self._sync_fan_animation(True, force=redraw)
@@ -2775,6 +2824,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._draw_status_field('show_icon',self.ICON,self.ICON_BedTemp,x1,y2)
             temps = self.pd.thermalManager['temp_bed']
             self._draw_dashboard_value('%d/%d'%(temps['celsius'],temps['target']),x1,y2)
+            self._draw_heater_indicator('bed_heat', x1, y2, bed)
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
@@ -2786,16 +2836,27 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             # Three digits plus a decimal and unit exceed this 74 px column.
             flow_text = fixed(value,1 if value<100 else 0)+'mm3/s'
         self._draw_dashboard_value(flow_text,x2,y2)
+        self._draw_dashboard_indicator(
+            'flow_override', x2 + 3, y2 + 22, 14, 3,
+            AXIS_UNHOMED_COLOR if state.ready and self.pd.flow_percentage != 100
+            else None)
 
         if self.pd.HAS_ZOFFSET_ITEM:
             self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2)
             self._draw_status_decimal(self.pd.BABY_Z_VAR,value3,y2)
+            # The active mesh, not the set of saved profiles, controls compensation.
+            mesh = status.get('bed_mesh')
+            matrix = mesh.get('mesh_matrix') if isinstance(mesh, Mapping) else None
+            self._draw_dashboard_indicator(
+                'mesh_active', x3 + 8, y2 + 22, 4, 4,
+                AXIS_HOMED_COLOR if isinstance(matrix, (tuple, list)) and
+                bool(matrix) and isinstance(matrix[0], (tuple, list)) and
+                bool(matrix[0]) else None)
 
         positions = self.pd.live_position
         # Read the already-subscribed authoritative Klipper state, not cached
         # position flags which may outlive a disconnect or Klipper restart.
-        state = self.pd.state
-        homed_axes = state.status.get('toolhead', {}).get('homed_axes') if state.ready else None
+        homed_axes = status.get('toolhead', {}).get('homed_axes')
         if not isinstance(homed_axes, str) or any(axis not in 'xyz' for axis in homed_axes):
             homed_axes = None
         for axis, icon, xpos, value_x, position in (
