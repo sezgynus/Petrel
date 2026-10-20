@@ -34,8 +34,11 @@ class MenuLiveValueTests(unittest.TestCase):
         data['status']['fan']['speed'] = .08
         self.publish(view, data)
         self.assertEqual(view._list_render['values'][view.TEMP_CASE_FAN], 8)
-        view.lcd.draw_integer_text.assert_called_once()
-        self.assertEqual(view.lcd.draw_integer_text.call_args.args[-1], 8)
+        changed = [call.args for call in view.lcd.draw_text.call_args_list
+                   if call.args[5] == 216]
+        self.assertEqual(len(changed), 1)
+        self.assertEqual(changed[0][-1].strip(), '8')
+        self.assertEqual(changed[0][5] + len(changed[0][-1]) * 8, 240)
         view.lcd.move_area.assert_not_called()
         self.assertEqual(view.select_temp.now, view.TEMP_CASE_FAN)
 
@@ -68,9 +71,11 @@ class MenuLiveValueTests(unittest.TestCase):
         view.lcd.reset_mock()
         data['status']['fan']['speed'] = .4
         self.publish(view, data)
-        view.lcd.draw_integer_text.assert_called_once()
-        self.assertEqual(view.lcd.draw_integer_text.call_args.args[8:],
-                         (view.MBASE(view.TEMP_CASE_FAN - 1), 40))
+        changed = [call.args for call in view.lcd.draw_text.call_args_list
+                   if call.args[5] == 216]
+        self.assertEqual(len(changed), 1)
+        self.assertEqual(changed[0][6], view.MBASE(view.TEMP_CASE_FAN - 1))
+        self.assertEqual(changed[0][-1].strip(), '40')
         self.assertEqual(view._list_render['start'], 1)
 
     def test_move_menu_tracks_all_axes_after_subscription_echo(self):

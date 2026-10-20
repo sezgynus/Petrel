@@ -26,18 +26,16 @@ class ThermalEditorRenderingTests(unittest.TestCase):
                 view.Draw_Temperature_Menu()
                 view.lcd.reset_mock()
                 view._open_thermal_editor(key, logical)
-                opened = (view.lcd.draw_integer_text.call_args.args[8] if key=='FAN'
-                          else view.lcd.draw_text.call_args.args[6])
+                opened = view.lcd.draw_text.call_args.args[6]
                 self.assertEqual(opened,view.MBASE(logical-1))
                 for event in (view.ENCODER_DIFF_CW, view.ENCODER_DIFF_CCW,
                               view.ENCODER_DIFF_ENTER):
                     view.get_encoder_state = Mock(return_value=event)
                     view.lcd.reset_mock()
                     getattr(view, handler)()
-                    draws = (view.lcd.draw_integer_text.call_args_list if key=='FAN'
-                             else view.lcd.draw_text.call_args_list)
+                    draws = view.lcd.draw_text.call_args_list
                     if event != view.ENCODER_DIFF_ENTER or key != 'FAN':
-                        self.assertEqual(draws[-1].args[8 if key=='FAN' else 6], view.MBASE(logical - 1))
+                        self.assertEqual(draws[-1].args[6], view.MBASE(logical - 1))
 
     def test_confirm_without_status_echo_repaints_only_edited_row(self):
         view = self.view()
@@ -55,10 +53,12 @@ class ThermalEditorRenderingTests(unittest.TestCase):
         self.assertEqual([call.args[0] for call in view.Draw_Menu_Line.call_args_list],
                          [row])
         view.lcd.move_area.assert_not_called()
-        self.assertEqual(view.lcd.draw_integer_text.call_args.args[4],
-                         view.lcd.Color_White)
-        self.assertEqual(view.lcd.draw_integer_text.call_args.args[5],
-                         view.lcd.Color_Bg_Black)
+        updated = [call.args for call in view.lcd.draw_text.call_args_list
+                   if call.args[5] == 216 and call.args[6] == view.MBASE(row)]
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(updated[0][3], view.lcd.Color_White)
+        self.assertEqual(updated[0][4], view.lcd.Color_Bg_Black)
+        self.assertEqual(updated[0][-1].strip(), str(view.pd.HMI_ValueStruct.Fan_speed))
 
     def test_unchanged_confirm_clears_edit_highlight(self):
         view = self.view()
@@ -69,9 +69,10 @@ class ThermalEditorRenderingTests(unittest.TestCase):
         view.lcd.reset_mock()
         view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
         view.HMI_FanSpeed()
-        view.lcd.draw_integer_text.assert_called_once()
-        self.assertEqual(view.lcd.draw_integer_text.call_args.args[5],
-                         view.lcd.Color_Bg_Black)
+        updated = [call.args for call in view.lcd.draw_text.call_args_list
+                   if call.args[5] == 216 and call.args[6] == view.MBASE(row)]
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(updated[0][4], view.lcd.Color_Bg_Black)
 
     def test_scrolled_fan_edit_then_navigation_matches_clean_render(self):
         from tools.render_docs_screenshots import canvas

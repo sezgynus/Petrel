@@ -44,7 +44,7 @@ class MenuValueAlignmentTests(unittest.TestCase):
         view = self.screen()
         view.Draw_Temperature_Menu()
         text_frames = self.texts(view)
-        for label, expected_x in (('205', 184), ('60', 184), ('128', 216)):
+        for label, expected_x in (('205', 184), ('60', 184), ('50', 216)):
             with self.subTest(label=label):
                 matches = [frame for frame in text_frames
                            if frame[11:-4].strip() == label.encode('ascii')]
@@ -77,6 +77,7 @@ class MenuValueAlignmentTests(unittest.TestCase):
 
     def test_motion_and_all_move_axes_use_shared_value_columns(self):
         view = self.screen()
+        view.checkkey = view.Motion
         view.Draw_Motion_Menu()
         motion = [frame for frame in self.texts(view)
                   if int.from_bytes(frame[7:9], 'big') == 168]
