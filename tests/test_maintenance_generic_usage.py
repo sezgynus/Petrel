@@ -144,6 +144,8 @@ class UsagePlannerAndReports(unittest.TestCase):
         raw['status']['output_pin arbitrary'] = {'value': 0}
         view = display(raw)
         view._maintenance_init()
+        # This test isolates passive service inventory from physical adapters.
+        view._maintenance_options = lambda: ((), ())
         self.assertIn('output_pin arbitrary', view.pd.maintenance_service_devices())
         self.assertIn('sampled_on_s', view.pd.maintenance_service_bases('output_pin arbitrary'))
         view._maintenance_page = 'service_devices'
