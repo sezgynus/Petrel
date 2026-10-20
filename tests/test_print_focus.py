@@ -95,6 +95,54 @@ class PrintFocusTests(unittest.TestCase):
         self.assertNotIn('speed',v._quiet_edits);self.assertIn('speed',v._quiet_blinks)
         v._show_message.assert_not_called()
 
+    def test_failed_pause_resume_shows_moonraker_reason_without_popup(self):
+        for paused, expected in ((False, 'Pause failed'), (True, 'Resume failed')):
+            with self.subTest(paused=paused):
+                v, data = self.view()
+                if paused:
+                    data['status']['print_stats']['state'] = 'paused'
+                    v.pd.update_variable()
+                future = Future()
+                if paused:
+                    v.pd.resume_job = Mock(return_value=future)
+                else:
+                    v.pd.pause_job = Mock(return_value=future)
+                v._show_message = Mock()
+                v.select_print.set(1)
+                v._focus_print_input()
+                self.assertEqual(v._focus_buttons()[1][0], 'Pause' if paused else 'Resume')
+                future.set_exception(RuntimeError('Moonraker HTTP status 400'))
+                v.lcd.reset_mock()
+                v._focus_print_tick()
+                self.assertEqual(v._pause_notice[:2], (expected, 'Moonraker HTTP 400'))
+                self.assertEqual(v.checkkey, v.PrintProcess)
+                self.assertEqual(v._focus_buttons()[1][0], 'Resume' if paused else 'Pause')
+                self.assertIn(expected, [c.args[-1] for c in v.lcd.draw_text.call_args_list])
+                self.assertIn('Moonraker HTTP 400',
+                              [c.args[-1] for c in v.lcd.draw_text.call_args_list])
+                v._show_message.assert_not_called()
+
+    def test_pause_failure_handles_immediate_exception_and_clears_on_retry(self):
+        v, _ = self.view()
+        def reject():
+            raise ValueError('Printer connection is not ready')
+        v._focus_submit('pause', True, reject)
+        self.assertEqual(v._pause_notice[:2],
+                         ('Pause failed', 'Printer connection is not ready'[:29]))
+        v._focus_submit('pause', True, lambda: Future())
+        self.assertIsNone(v._pause_notice)
+
+    def test_pause_notice_expires_without_erasing_other_print_fields(self):
+        v, _ = self.view()
+        with patch('ui_print_focus.time.monotonic', return_value=10.0):
+            v._focus_pause_failure(True, RuntimeError('Moonraker HTTP status 500'))
+        with patch('ui_print_focus.time.monotonic', return_value=15.9):
+            v._focus_tick_quiet()
+        self.assertIsNotNone(v._pause_notice)
+        with patch('ui_print_focus.time.monotonic', return_value=16.0):
+            v._focus_tick_quiet()
+        self.assertIsNone(v._pause_notice)
+
     def test_late_old_failure_does_not_revert_newer_edit(self):
         v,_=self.view();old=Future();new=Future()
         v._focus_submit('speed',120,lambda:old);v._focus_submit('speed',130,lambda:new)

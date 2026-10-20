@@ -190,9 +190,10 @@ class PrintFocusMixin:
         self._focus_field('filament',token,128,232,130,25,draw_filament)
         error = self._focus_error()
         state = error or (m.action if m and m.action.lower() not in ('idle','unknown') else ('Happy Hare ready' if m else 'Single extruder'))
-        state_key = (state, error, self.pd.status)
+        notice = None if error else getattr(self, '_pause_notice', None)
+        state_key = (state, error, self.pd.status, notice[:2] if notice else None)
         if self._focus_render.get('state') != state_key:
-            self._focus_state_panel(state, error)
+            self._focus_state_panel(state, error, notice=notice)
             self._focus_render['state'] = state_key
         start=getattr(self,'_quiet_blinks',{}).get('pause')
         blink=start is not None and int((time.monotonic()-start)/.2)%2==0
@@ -214,8 +215,8 @@ class PrintFocusMixin:
                 self.lcd.show_sram_jpeg(14,90,address,background=False,enhanced=True)
                 self._focus_preview_drawn=(key,address)
 
-    def _focus_state_panel(self, state, error):
-        background = 0x40E5 if error else 0x2967
+    def _focus_state_panel(self, state, error, notice=None):
+        background = 0x40E5 if error or notice else 0x2967
         if self._focus_render.get('state_backing') != background:
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 14, 266, 257, 303)
             show_icon(self.lcd, self.ICON,
@@ -225,11 +226,15 @@ class PrintFocusMixin:
         else:
             # Keep round edges intact. Clear only the two dynamic text lines.
             self.lcd.draw_rectangle(1, background, 22, 270, 253, 300)
-        self._focus_text(('MMU: ' + state)[:28] if error
-                         else self.pd.status.capitalize(), 24, 272,
-                         self.lcd.font6x12, color=0xFBCB if error else 0xFFFF)
-        self._focus_text('Click MMU to read / recover' if error else state[:29],
-                         24, 287, self.lcd.font6x12, color=0xADB5)
+        if notice:
+            self._focus_text(notice[0], 24, 272, self.lcd.font6x12, color=0xFBCB)
+            self._focus_text(notice[1], 24, 287, self.lcd.font6x12, color=0xADB5)
+        else:
+            self._focus_text(('MMU: ' + state)[:28] if error
+                             else self.pd.status.capitalize(), 24, 272,
+                             self.lcd.font6x12, color=0xFBCB if error else 0xFFFF)
+            self._focus_text('Click MMU to read / recover' if error else state[:29],
+                             24, 287, self.lcd.font6x12, color=0xADB5)
 
     def _focus_print_input(self):
         event=self.get_encoder_state()
@@ -260,20 +265,35 @@ class PrintFocusMixin:
                 self._acknowledged_terminal=self._terminal_key();self.Goto_MainMenu()
         self.lcd.update()
 
+    def _focus_pause_failure(self, target, reason):
+        detail = str(reason).replace('\n', ' ').replace('\r', ' ').strip()
+        if detail.startswith('Moonraker HTTP status '):
+            detail = 'Moonraker HTTP ' + detail.rsplit(' ', 1)[-1]
+        self._pause_notice = ('Pause failed' if target else 'Resume failed',
+                              (detail or 'Request rejected')[:29],
+                              time.monotonic() + 6.0)
+
     def _focus_submit(self,key,target,submit):
         if not hasattr(self,'_quiet_edits'): self._quiet_edits={}
         if not hasattr(self,'_quiet_blinks'): self._quiet_blinks={}
+        if key == 'pause':
+            self._pause_notice = None
         actual={s.key:s.value for s in self.pd.print_settings()}
         old=self.pd.printingIsPaused() if key=='pause' else actual.get(key)
         try: future=submit()
-        except Exception:
+        except Exception as error:
             self._quiet_edits.pop(key,None);self._quiet_blinks[key]=time.monotonic()
+            if key == 'pause':
+                self._focus_pause_failure(target, error)
             if hasattr(self,'_loop'):self._loop.set_interval(.1)
             return
         self._quiet_edits[key]={'target':target,'old':old,'future':future,'epoch':self.pd.state.epoch,'accepted':None}
 
     def _focus_tick_quiet(self):
         now=time.monotonic()
+        notice = getattr(self, '_pause_notice', None)
+        if notice and now >= notice[2]:
+            self._pause_notice = None
         pending=getattr(self,'_quiet_edits',{})
         values={s.key:s.value for s in self.pd.print_settings()} if pending else {}
         values['pause']=self.pd.printingIsPaused()
@@ -282,7 +302,10 @@ class PrintFocusMixin:
                 del pending[key];continue
             future=p['future']
             if isinstance(future,Future) and future.done() and (future.cancelled() or future.exception()):
+                error = 'Request cancelled' if future.cancelled() else future.exception()
                 del pending[key];self._quiet_blinks[key]=now
+                if key == 'pause':
+                    self._focus_pause_failure(p['target'], error)
             elif abs(values[key]-p['target'])<.00001:
                 del pending[key]
             elif isinstance(future,Future) and future.done():

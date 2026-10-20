@@ -74,6 +74,21 @@ def display(data):
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_pause_resume_use_empty_json_objects_and_respect_error_policy(self):
+        p = printer(snapshot())
+        p.postREST = Mock(return_value='enqueued')
+        self.assertEqual(p.pause_job(report_error=False), 'enqueued')
+        p.postREST.assert_called_once_with(
+            '/printer/print/pause', json={}, report_error=False)
+        p.postREST.reset_mock()
+        self.assertEqual(p.resume_job(report_error=False), 'enqueued')
+        p.postREST.assert_called_once_with(
+            '/printer/print/resume', json={}, report_error=False)
+        p.postREST.reset_mock()
+        p.pause_job()
+        p.postREST.assert_called_once_with(
+            '/printer/print/pause', json={}, report_error=True)
+
     def test_wifi_dashboard_refresh_reuses_background_read_and_is_throttled(self):
         data = snapshot()
         result = printer(data)

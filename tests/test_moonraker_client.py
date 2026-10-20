@@ -170,7 +170,29 @@ class TransportTests(unittest.TestCase):
         client = self.client(opener)
         future = client.post('/printer/print/resume')
         self.assertEqual(future.result(2), {'result': 'ok'})
-        self.assertEqual(opener.open.call_args.args[0].method, 'POST')
+        request = opener.open.call_args.args[0]
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.get_data(), b'{}')
+
+    def test_parameterless_post_encodes_object_not_json_null(self):
+        opener = Mock()
+        opener.open.return_value = response({'result': 'ok'})
+        client = self.client(opener)
+        for endpoint in ('/printer/print/pause', '/printer/print/resume'):
+            with self.subTest(endpoint=endpoint):
+                self.assertEqual(client.post(endpoint, None).result(2), {'result': 'ok'})
+                request = opener.open.call_args.args[0]
+                self.assertEqual(request.get_data(), b'{}')
+                self.assertEqual(request.get_header('Content-type'), 'application/json')
+        self.assertEqual(opener.open.call_count, 2)
+
+    def test_explicit_post_payload_is_not_rewritten(self):
+        opener = Mock()
+        opener.open.return_value = response({'result': 'ok'})
+        client = self.client(opener)
+        client.post('/printer/gcode/script', {'script': 'PAUSE'}).result(2)
+        self.assertEqual(json.loads(opener.open.call_args.args[0].get_data()),
+                         {'script': 'PAUSE'})
 
     def test_close_is_idempotent_and_rejects_new_commands(self):
         opener = Mock()

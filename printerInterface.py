@@ -1481,13 +1481,16 @@ class PrinterData:
 
         return self.subscription.request('printer.print.cancel', guard=still_same_job)
 
-    def pause_job(self, report_error=True): #fixed
-        return self.postREST('/printer/print/pause', json=None, **({} if report_error else {'report_error': False}))
+    def pause_job(self, report_error=True):
+        # Moonraker expects JSON object arguments, even for an empty POST.
+        return self.postREST('/printer/print/pause', json={},
+                             report_error=report_error)
 
-    def resume_job(self, report_error=True): #fixed
+    def resume_job(self, report_error=True):
         if self.jog_recovery_required:
             raise ValueError('Restore jog state before resuming')
-        return self.postREST('/printer/print/resume', json=None, **({} if report_error else {'report_error': False}))
+        return self.postREST('/printer/print/resume', json={},
+                             report_error=report_error)
 
     def print_settings(self):
         from print_tuning import settings

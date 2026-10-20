@@ -56,7 +56,10 @@ class MoonrakerClient:
             raise ValueError('Endpoint path must start with a single slash')
         if self._stop.is_set():
             raise MoonrakerError('Client is closed')
-        data = None if method == 'GET' else json.dumps(payload).encode('utf-8')
+        # Moonraker's JSON endpoint parser merges objects into request args.
+        # JSON null is not a valid set of arguments for parameterless POSTs.
+        data = None if method == 'GET' else json.dumps(
+            {} if payload is None else payload).encode('utf-8')
         request = Request(self.url + path, data=data, headers=self.headers, method=method)
         try:
             with self._opener.open(
