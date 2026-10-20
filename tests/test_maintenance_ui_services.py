@@ -161,6 +161,24 @@ class MaintenanceServiceUI(unittest.TestCase):
                 d._maintenance_dispatch(Choice('Review','service_review'))
                 self.assertEqual(d._maintenance_context.interval,stored)
 
+    def test_native_filament_length_reminder_displays_metres_and_stores_mm(self):
+        d=self.view()
+        d.pd.maintenance_service_bases=Mock(return_value=(
+            'calendar_s','sampled_print_s','filament_mm','sampled_on_s'))
+        for task,metres in (('nozzle',500),('heating',1000),('filament_feed',1000)):
+            with self.subTest(task=task):
+                d._maintenance_dispatch(Choice('Choose class','service_kind',('extruder',task)))
+                option=next(c for c in d._maintenance_screen().choices
+                            if c.value==('extruder',task,'filament_mm'))
+                self.assertEqual(option.label,'Extruded filament (metres)')
+                d._maintenance_dispatch(option)
+                self.assertIn(str(metres)+' metres extruded',str(d._maintenance_screen()))
+                d._maintenance_dispatch(Choice('Review','service_review'))
+                policy=d._maintenance_context
+                self.assertEqual(policy.basis,'filament_mm')
+                self.assertEqual(policy.interval,metres*1000)
+                self.assertIn(str(metres)+' metres extruded',str(d._maintenance_screen()))
+
     def test_usage_due_survives_render_and_coverage_remains_visible(self):
         d=self.view();d._maintenance_page='service'
         p=ServicePolicy('lubricate','stepper_z','sampled_print_s',100,'user')

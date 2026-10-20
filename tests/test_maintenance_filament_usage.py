@@ -45,5 +45,51 @@ class NativeFilamentHistoryTests(unittest.TestCase):
         self.assertEqual(reminder_default('extruder','filament_feed','filament_mm'),1000)
 
 
+    def test_existing_records_use_native_counter_without_rebasing(self):
+        from maintenance_assessment_store import ServicePolicy
+        from maintenance_ui_records import request
+        from test_maintenance_ui_services import DeferredWorker
+        policy=ServicePolicy('nozzle','extruder','filament_mm',20000,'user')
+        observed={'length':50000.,'id':'a'*32}
+        calls=[]
+        def provider():
+            calls.append(1)
+            return dict(filament_mm={'extruder':observed['length']},
+                        filament_counter_id=observed['id'],
+                        available_metrics=(('extruder','filament_mm'),))
+        with tempfile.TemporaryDirectory() as td,patch(
+                'maintenance_ui_records.Path.home',return_value=Path(td)):
+            worker=DeferredWorker()
+            def run(op):
+                future=request(worker,op,policy=policy if op!='load' else None,
+                               devices=('extruder',),filament_provider=provider)
+                worker.run()
+                return future.result()[0][0]
+            first=run('save_policy')
+            self.assertEqual(first[1]['_sampled_elapsed_s'],0)
+            self.assertEqual(first[2],'unknown')
+            observed['length']=68000
+            current=run('load')
+            self.assertEqual(current[1]['_sampled_elapsed_s'],18000)
+            observed['length']=75000
+            self.assertEqual(run('load')[2],'due')
+            observed['id']='b'*32
+            paused=run('load')
+            self.assertEqual(paused[2],'unknown')
+            self.assertTrue(paused[1]['_tracking_paused'])
+            self.assertEqual(len(calls),4)
+
+    def test_only_single_extruder_receives_printer_wide_filament_basis(self):
+        from test_capabilities import display, snapshot
+        view=display(snapshot())
+        self.assertIn('filament_mm',view.pd.maintenance_service_bases('extruder'))
+        raw=snapshot()
+        raw['objects'].append('extruder1')
+        other=display(raw)
+        self.assertNotIn('filament_mm',other.pd.maintenance_service_bases('extruder'))
+        self.assertNotIn('filament_mm',other.pd.maintenance_service_bases('extruder1'))
+        self.assertNotIn('filament_mm',view.pd.maintenance_service_bases('heater_bed'))
+
+
 if __name__ == '__main__':
     unittest.main()

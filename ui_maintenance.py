@@ -510,7 +510,8 @@ class MaintenanceViewMixin:
             names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
                    'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)',
                    'observed_trigger_count':'Legacy sampled activations',
-                   'trigger_count':'Recorded sensor events'}
+                   'trigger_count':'Recorded sensor events',
+                   'filament_mm':'Extruded filament (metres)'}
             return Screen('Choose reminder basis',task_label(task,device),choices=(back,)+tuple(
                 Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
@@ -518,6 +519,7 @@ class MaintenanceViewMixin:
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else
                 ' metres travelled' if basis=='travel_mm' else
+                ' metres extruded' if basis=='filament_mm' else
                 ' recorded events' if basis in ('observed_trigger_count','trigger_count') else ' sampled hours'),
                 ('Use your maintenance guidance.',),
                 (Choice('Review reminder','service_review'),))
@@ -526,6 +528,7 @@ class MaintenanceViewMixin:
             return Screen('Confirm reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
                  else ('After %d metres travelled' % (policy.interval/1000)) if policy.basis=='travel_mm'
+                 else ('After %d metres extruded' % (policy.interval/1000)) if policy.basis=='filament_mm'
                  else ('After %d recorded events' % policy.interval) if policy.basis in ('observed_trigger_count','trigger_count')
                  else ('After %d sampled hours' % (policy.interval/3600)),
                  'Source: user-defined interval.','No service is marked completed.'),
@@ -542,7 +545,8 @@ class MaintenanceViewMixin:
             date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
             coverage=() if policy.basis=='calendar_s' else (
                 'Counts cover enabled recording.' if policy.basis in ('observed_trigger_count','trigger_count') else
-                'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else 'Sampled time is a lower bound.',
+                'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else
+                'Moonraker history counts print jobs only.' if policy.basis=='filament_mm' else 'Sampled time is a lower bound.',
                 'Below limit does not prove not due.')
             return Screen('Service reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),'Last service: '+date,
@@ -647,7 +651,7 @@ class MaintenanceViewMixin:
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return self._maintenance_open('service_review',ServicePolicy(task,device,basis,
-                amount*(86400 if basis=='calendar_s' else 1000 if basis=='travel_mm' else
+                amount*(86400 if basis=='calendar_s' else 1000 if basis in ('travel_mm','filament_mm') else
                         1 if basis in ('observed_trigger_count','trigger_count') else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
