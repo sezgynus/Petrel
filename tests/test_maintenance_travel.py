@@ -79,8 +79,8 @@ class TravelLedgerTests(unittest.TestCase):
         d._maintenance_dispatch(Choice('Travel','service_basis',('axis_x','lubricate','travel_mm')))
         self.assertIn('metres travelled',str(d._maintenance_screen()))
         d._maintenance_dispatch(Choice('Review','service_review'))
-        self.assertEqual(d._maintenance_context.interval,30000)
-        self.assertIn('30 metres',str(d._maintenance_screen()))
+        self.assertEqual(d._maintenance_context.interval,30000*1000)
+        self.assertIn('30000 metres',str(d._maintenance_screen()))
 
 class ExistingAxisReminderTests(unittest.TestCase):
     def test_existing_axis_entries_offer_travel_without_duplicate_device_rows(self):
@@ -106,7 +106,8 @@ class ExistingAxisReminderTests(unittest.TestCase):
                 view._maintenance_dispatch(Choice('Review','service_review'))
                 self.assertEqual(view._maintenance_context.device,device)
                 self.assertEqual(view._maintenance_context.basis,'travel_mm')
-                self.assertEqual(view._maintenance_context.interval,30000)
+                self.assertEqual(view._maintenance_context.interval,
+                                 (10 if axis=='z' else 30000)*1000)
                 self.assertNotIn('travel_mm',view.pd.maintenance_service_bases('stepper_'+axis+'1'))
                 with patch.dict('os.environ',{'PETREL_AXIS_TRAVEL':'0'}):
                     self.assertNotIn('travel_mm',view.pd.maintenance_service_bases(device))
