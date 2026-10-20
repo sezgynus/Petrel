@@ -138,3 +138,39 @@ class MaintenanceServiceUI(unittest.TestCase):
         self.assertEqual(d._maintenance_page,'details')
         self.assertIn('Historical',str(d._maintenance_screen()))
 
+    def test_recent_history_back_preserves_parent_for_empty_and_saved_records(self):
+        record=dict(feature='H07',device='extruder',status='FAILED_METRIC',timestamp=1,
+                    evidence=[['overshoot_c',7.72]],reason='thermal metric')
+        for records in ((),(record,)):
+            with self.subTest(records=bool(records)):
+                d=self.view();d._maintenance_show('root')
+                d._maintenance_open('diagnostic_groups');d._maintenance_open('history')
+                d._maintenance_selection=1
+                ancestors=list(d._maintenance_history)
+                for attempt in range(2):
+                    future=Future();d.pd.maintenance_ui_records=Mock(return_value=future)
+                    d._maintenance_dispatch(Choice('Recent check history','load_history'))
+                    self.assertEqual(d._maintenance_page,'storage')
+                    future.set_result(((),records));d._poll_maintenance_ui()
+                    self.assertEqual(d._maintenance_page,'history_records')
+                    if records:
+                        d._maintenance_dispatch(d._maintenance_screen().choices[1])
+                        self.assertEqual(d._maintenance_page,'details')
+                        d._maintenance_dispatch(Choice('Back','back'))
+                        self.assertEqual(d._maintenance_page,'history_records')
+                    d._maintenance_dispatch(Choice('Back','back'))
+                    self.assertEqual(d._maintenance_page,'history')
+                    self.assertEqual(d._maintenance_selection,1)
+                    self.assertEqual(d._maintenance_history,ancestors)
+
+    def test_leaving_history_load_before_completion_does_not_redirect_or_pop_parent(self):
+        d=self.view();d._maintenance_show('root')
+        d._maintenance_open('diagnostic_groups');d._maintenance_open('history')
+        ancestors=list(d._maintenance_history)
+        future=Future();d.pd.maintenance_ui_records=Mock(return_value=future)
+        d._maintenance_dispatch(Choice('Recent check history','load_history'))
+        d._maintenance_dispatch(Choice('Back','back'))
+        future.set_result(((),()));d._poll_maintenance_ui()
+        self.assertEqual(d._maintenance_page,'history')
+        self.assertEqual(d._maintenance_history,ancestors)
+

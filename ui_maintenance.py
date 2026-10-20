@@ -815,7 +815,8 @@ class MaintenanceViewMixin:
                 if target!='notice':
                     self._maintenance_context=None
                     if target=='service': self._maintenance_history=[('root',1,None)]
-                    elif self._maintenance_history: self._maintenance_history.pop()
+                    # Storage is replaced in place; its saved parent is still
+                    # the history menu that Back must return to.
                 self._maintenance_show(target)
         if not getattr(self, '_maintenance_advanced_this_tick', False):
             self._advance_maintenance_operations()
