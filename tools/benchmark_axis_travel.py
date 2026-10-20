@@ -57,25 +57,26 @@ def main():
             lib.trapq_free(queue)
         print('Native trapq integration: PASS (partial intervals, acceleration, reverse Y, coordinate reset)')
         print('Fixed native buffer: %d bytes; one extraction/tick, interval %.1fs' % (C.sizeof(buffer),module.INTERVAL))
-        for rate in (20,100,200,2000):
-            queue=lib.trapq_alloc();count=int(rate*.5)
+        window=module.INTERVAL
+        for rate in (20,200,1000,2000):
+            queue=lib.trapq_alloc();count=int(rate*window)
             try:
                 for i in range(count):
                     lib.trapq_append(queue,(i+.01)/rate,0.,1./rate,0.,float(i),0.,0.,1.,0.,0.,10.,10.,100.)
                 collector=module.PetrelAxisTravel(NS(get_printer=lambda:NS(get_reactor=lambda:None,
                     register_event_handler=lambda *a:None)))
-                collector.reactor=NS(NEVER=1e30);collector.mcu=NS(estimated_print_time=lambda t:.5)
+                collector.reactor=NS(NEVER=1e30);collector.mcu=NS(estimated_print_time=lambda t:window)
                 collector.trapq=queue;collector.lib=lib;collector.buffer=buffer;collector.state='tracking'
                 durations=[];payload=0
                 for _ in range(500):
-                    collector.last_time=0.;begin=time.perf_counter_ns();collector._tick(.5)
+                    collector.last_time=0.;begin=time.perf_counter_ns();collector._tick(window)
                     durations.append(time.perf_counter_ns()-begin)
                 # API-like export comparison includes extraction/list/JSON/parse/
                 # integration, not sockets or the actual Klipper bulk API wrapper.
                 bulk=(Pull*(count+1))();api_times=[]
                 for _ in range(100):
                     begin=time.perf_counter_ns()
-                    n=lib.trapq_extract_old(queue,bulk,len(bulk),0.,.5)
+                    n=lib.trapq_extract_old(queue,bulk,len(bulk),0.,window)
                     data=[(m.print_time,m.move_t,m.start_v,m.accel,
                            (m.start_x,m.start_y,m.start_z),(m.x_r,m.y_r,m.z_r)) for m in bulk[:n]]
                     raw=json.dumps(data);decoded=json.loads(raw);value=0.
@@ -85,9 +86,10 @@ def main():
                 print(json.dumps(dict(segments_per_second=rate,
                     extra_median_us=round(statistics.median(durations)/1000,2),
                     extra_max_us=round(max(durations)/1000,2),
+                    extra_estimated_core_percent=round(statistics.median(durations)/1e9/window*100,5),
                     dropped_batches=collector.dropped_batches,
                     api_like_median_us=round(statistics.median(api_times)/1000,2),
-                    api_like_bytes_per_half_second=payload)))
+                    api_like_bytes_per_batch=payload,batch_seconds=window)))
             finally:
                 lib.trapq_free(queue)
         print('Synthetic runner measurements only; physical low-end SBC latency acceptance remains required.')

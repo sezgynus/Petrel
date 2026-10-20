@@ -68,3 +68,22 @@ class AxisExtraTests(unittest.TestCase):
         self.assertEqual(obj.get_status(1)['state'],'unavailable')
         self.assertEqual(obj.get_status(1)['coverage'],'recorded_lower_bound')
         obj.printer.invoke_shutdown.assert_not_called()
+
+    def test_ready_uses_fixed_buffer_and_shutdown_stops_timer(self):
+        m=extra_module();reactor=Mock();reactor.monotonic.return_value=10.
+        printer=Mock();printer.get_reactor.return_value=reactor
+        printer.lookup_object.return_value=NS(estimated_print_time=lambda t:1.,get_trapq=lambda:object())
+        ffi=Mock();m.chelper.get_ffi.return_value=(ffi,Mock())
+        obj=m.PetrelAxisTravel(NS(get_printer=lambda:printer));obj._ready()
+        self.assertEqual(obj.state,'tracking')
+        ffi.new.assert_called_once_with('struct pull_move[128]')
+        self.assertEqual(reactor.register_timer.call_args.args[1],10.1)
+        obj._stop();reactor.update_timer.assert_called_with(obj.timer,reactor.NEVER)
+
+    def test_homing_callback_failure_does_not_escape_into_motion(self):
+        m,obj=self.collector([])
+        obj.mcu=NS(estimated_print_time=Mock(side_effect=RuntimeError('disconnected')))
+        obj.reactor=NS(NEVER=1e30,monotonic=lambda:1.)
+        obj._homing_begin();obj._homing_end()
+        self.assertEqual(obj.state,'unavailable')
+        obj.printer.invoke_shutdown.assert_not_called()

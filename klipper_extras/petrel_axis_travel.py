@@ -9,7 +9,7 @@ import math
 import uuid
 import chelper
 
-INTERVAL = 0.5
+INTERVAL = 0.1
 CAPACITY = 128
 
 
@@ -46,7 +46,13 @@ class PetrelAxisTravel:
     def _homing_end(self, *args):
         self.homing = max(0, self.homing-1)
         if hasattr(self, 'mcu'):
-            self.last_time = self.mcu.estimated_print_time(self.reactor.monotonic())
+            try:
+                self.last_time = self.mcu.estimated_print_time(self.reactor.monotonic())
+            except Exception:
+                self.state = 'unavailable'
+                if hasattr(self,'timer'):
+                    self.reactor.update_timer(self.timer,self.reactor.NEVER)
+                logging.exception('Petrel axis travel paused after homing')
 
     def _ready(self):
         try:
