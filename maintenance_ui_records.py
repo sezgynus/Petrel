@@ -5,7 +5,7 @@ from maintenance_assessment_store import AssessmentStore, ServicePolicy, service
 from maintenance_records import read_json
 from maintenance_usage import metric_counter
 
-TASKS={'inspect_clean':'Inspect and clean','nozzle_inspect':'Inspect nozzle','lubricate':'Lubricate mechanism'}
+from maintenance_care import TASKS
 
 
 def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None):

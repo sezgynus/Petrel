@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import math
 from maintenance_ui_records import TASKS
+from maintenance_care import task_label
 from maintenance_experience import device_name
 
 @dataclass(frozen=True, slots=True)
@@ -53,7 +54,7 @@ def care_items(tasks, devices, now):
             else:
                 state='unknown'
                 status='Tracking paused' if last and last.get('_tracking_paused') else 'Tracking starting'
-        task=TASKS.get(policy.task_id,'Service task')
+        task=task_label(policy.task_id,policy.device)
         name=device_name(policy.device)
         label=(name+' / '+task)
         result.append(CareItem(policy,last,state,label,status,progress,remaining))

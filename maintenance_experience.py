@@ -64,6 +64,8 @@ def device_name(name):
            'axis_x':'X travel','axis_y':'Y travel','axis_z':'Z travel'}
     if name in known:
         return known[name]
+    if name.startswith('endstop '):
+        return device_name(name[8:])+' endstop'
     chip,separator,stepper=name.partition(' ')
     if separator and chip.startswith('tmc') and stepper.startswith('stepper_'):
         return device_name(stepper)+' / '+chip.upper()

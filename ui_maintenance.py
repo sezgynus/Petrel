@@ -10,6 +10,7 @@ from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details, LABELS)
 from graphite_theme import show_icon
 from maintenance_care_view import care_items
+from maintenance_care import tasks as care_tasks, task_label
 from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
 from maintenance_icons import icon_for, feature_icon
@@ -472,13 +473,13 @@ class MaintenanceViewMixin:
             # alias. Keep that alias available when no axis entry was found.
             devices=tuple(d for d in devices if not (d in ('axis_x','axis_y','axis_z')
                           and 'stepper_'+d[-1] in devices))
-            return Screen('Choose device',choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
+            omitted=getattr(self.pd.maintenance.snapshot,'care_omitted',0)
+            return Screen('Choose device',heading=(str(omitted)+' devices beyond capacity') if omitted else '',
+                choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
         if page=='service_kind':
             device=self._maintenance_context
-            tasks=['inspect_clean']
-            if device.startswith('extruder'): tasks.append('nozzle_inspect')
-            if device.startswith(('stepper_','manual_stepper ','axis_')): tasks.append('lubricate')
-            return Screen('Choose service task',choices=(back,)+tuple(Choice(TASKS[k],'service_kind',(device,k)) for k in tasks),kind='list')
+            return Screen('Choose maintenance class',choices=(back,)+tuple(
+                Choice(task_label(k,device),'service_kind',(device,k)) for k in care_tasks(device)),kind='list')
         if page=='service_basis':
             device,task=self._maintenance_context
             provider=getattr(self.pd,'maintenance_service_bases',None)
@@ -486,7 +487,7 @@ class MaintenanceViewMixin:
             if not isinstance(bases,(tuple,list)): bases=('calendar_s',)
             names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
                    'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)'}
-            return Screen('Choose reminder basis',choices=(back,)+tuple(
+            return Screen('Choose reminder basis',task_label(task,device),choices=(back,)+tuple(
                 Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
             device,task,amount=self._maintenance_context[:3]
@@ -499,7 +500,7 @@ class MaintenanceViewMixin:
                 (Choice('Review reminder','service_review'),))
         if page=='service_review':
             policy=self._maintenance_context
-            return Screen('Confirm reminder',TASKS.get(policy.task_id,policy.task_id),
+            return Screen('Confirm reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
                  else ('After %d metres travelled' % (policy.interval/1000)) if policy.basis=='travel_mm'
                  else ('After %d sampled hours' % (policy.interval/3600)),
@@ -518,7 +519,7 @@ class MaintenanceViewMixin:
             coverage=() if policy.basis=='calendar_s' else (
                 'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else 'Sampled time is a lower bound.',
                 'Below limit does not prove not due.')
-            return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
+            return Screen('Service reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),'Last service: '+date,
                  {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':care_items(((policy,last,due),),{policy.device},time())[0].detail}[due],
                  'Follow manufacturer guidance.')+coverage,
@@ -526,7 +527,7 @@ class MaintenanceViewMixin:
                  Choice('Remove reminder','service_remove_confirm',policy)),tone='attention' if due=='due' else 'normal')
         if page=='service_remove_confirm':
             policy=self._maintenance_context
-            return Screen('Remove reminder?',TASKS.get(policy.task_id,policy.task_id),
+            return Screen('Remove reminder?',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),'Removes this reminder only.',
                  'Usage and service history stay.'),
                 (Choice('Keep reminder','back'),Choice('Remove reminder','service_remove',policy)),
@@ -597,7 +598,9 @@ class MaintenanceViewMixin:
             self._maintenance_context=None
             return self._maintenance_show('service')
         if action=='service_add': return self._maintenance_open('service_devices')
-        if action=='service_device': return self._maintenance_open('service_kind',value)
+        if action=='service_device':
+            kinds=care_tasks(value)
+            return self._maintenance_open('service_basis',(value,kinds[0])) if len(kinds)==1 else self._maintenance_open('service_kind',value)
         if action=='service_kind': return self._maintenance_open('service_basis',value)
         if action=='service_basis': return self._maintenance_open('service_interval',(value[0],value[1],30,value[2]))
         if action=='service_review':

@@ -637,6 +637,7 @@ class PrinterData:
         from maintenance_travel import installed, AXES
         return tuple(dict.fromkeys(
             (AXES if installed(self.state) else ())+
+            tuple(getattr(snapshot,'care_devices',()))+
             tuple(d.name for d in getattr(snapshot,'devices',()))+
             tuple(m.device for m in getattr(snapshot,'usage_metrics',()))+
             tuple(r.device for r in rows if r.device is not None)))

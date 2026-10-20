@@ -18,7 +18,8 @@ def device_icon(device):
     if device.startswith('extruder'): return 9
     if device=='heater_bed': return 10
     if device.startswith('heater_'): return 40
-    if device.startswith(('stepper_','manual_stepper ')): return 27
+    if device.startswith(('stepper_','axis_','manual_stepper ')): return 27
+    if device.startswith('endstop '): return 30
     if device.startswith('tmc'): return ICON_MCU
     if device.startswith(('fan','heater_fan ','controller_fan ')): return 48
     if device.startswith(('neopixel ','led ','output_pin ')): return ICON_LIGHT
@@ -59,7 +60,7 @@ def icon_for(choice):
     if action=='service_device': return device_icon(value)
     if action=='service_task':
         policy=value[0]
-        return ICON_SCREW_ADJUST if policy.task_id=='lubricate' else 38 if policy.task_id=='nozzle_inspect' else ICON_MAINTENANCE_CARE
+        return ICON_SCREW_ADJUST if policy.task_id in ('lubricate','mechanical') else 38 if policy.task_id in ('nozzle_inspect','nozzle','filament_feed') else ICON_MAINTENANCE_CARE
     if action in ('history','load_history','history_read'): return 15
     if action=='historical_result': return feature_icon(value.get('feature',''),value.get('device'))
     if action=='load_services': return 43

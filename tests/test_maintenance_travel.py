@@ -99,11 +99,10 @@ class ExistingAxisReminderTests(unittest.TestCase):
                 self.assertEqual(sum(c.value==device for c in choices),1)
                 self.assertFalse(any(c.value=='axis_'+axis for c in choices))
                 view._maintenance_dispatch(next(c for c in choices if c.value==device))
-                view._maintenance_dispatch(next(c for c in view._maintenance_screen().choices
-                                                if c.value==(device,'lubricate')))
+                self.assertEqual(view._maintenance_page,'service_basis')
                 choices=view._maintenance_screen().choices
-                self.assertTrue(any(c.value==(device,'lubricate','travel_mm') for c in choices))
-                view._maintenance_dispatch(next(c for c in choices if c.value==(device,'lubricate','travel_mm')))
+                self.assertTrue(any(c.value==(device,'mechanical','travel_mm') for c in choices))
+                view._maintenance_dispatch(next(c for c in choices if c.value==(device,'mechanical','travel_mm')))
                 view._maintenance_dispatch(Choice('Review','service_review'))
                 self.assertEqual(view._maintenance_context.device,device)
                 self.assertEqual(view._maintenance_context.basis,'travel_mm')
