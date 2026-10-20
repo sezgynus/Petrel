@@ -473,7 +473,7 @@ class MaintenanceViewMixin:
             device=self._maintenance_context
             tasks=['inspect_clean']
             if device.startswith('extruder'): tasks.append('nozzle_inspect')
-            if device.startswith(('stepper_','manual_stepper ')): tasks.append('lubricate')
+            if device.startswith(('stepper_','manual_stepper ','axis_')): tasks.append('lubricate')
             return Screen('Choose service task',choices=(back,)+tuple(Choice(TASKS[k],'service_kind',(device,k)) for k in tasks),kind='list')
         if page=='service_basis':
             device,task=self._maintenance_context
@@ -481,20 +481,23 @@ class MaintenanceViewMixin:
             bases=provider(device) if callable(provider) else ('calendar_s',)
             if not isinstance(bases,(tuple,list)): bases=('calendar_s',)
             names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
-                   'sampled_on_s':'Sampled powered hours'}
+                   'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)'}
             return Screen('Choose reminder basis',choices=(back,)+tuple(
                 Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
-            return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else ' sampled hours'),
+            return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else
+                ' metres travelled' if basis=='travel_mm' else ' sampled hours'),
                 ('Turn to change the interval.','Use your maintenance guidance.',
+                 'Recorded travel is a lower bound.' if basis=='travel_mm' else
                  'Sampled time is a lower bound.' if basis!='calendar_s' else 'This reminder does not measure wear.'),
                 (Choice('Review reminder','service_review'),))
         if page=='service_review':
             policy=self._maintenance_context
             return Screen('Confirm reminder',TASKS.get(policy.task_id,policy.task_id),
                 (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
+                 else ('After %d metres travelled' % (policy.interval/1000)) if policy.basis=='travel_mm'
                  else ('After %d sampled hours' % (policy.interval/3600)),
                  'Source: user-defined interval.','No service is marked completed.'),
                 (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
@@ -502,13 +505,15 @@ class MaintenanceViewMixin:
             policy,last,due=self._maintenance_context
             physical,reads=self._maintenance_options()
             if policy.device not in self._maintenance_devices():
-                return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),
+                return Screen('Service reminder','Tracking paused' if policy.basis=='travel_mm' else 'Device no longer available',
+                    ('Enable axis travel in configure.sh.' if policy.basis=='travel_mm' else 'Refresh the service plan.',),
                     (back,Choice('Remove reminder','service_remove_confirm',policy)))
             due=self._maintenance_policy_due(policy,last,due)
             stamp=last.get('timestamp') if last else None
             date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
             coverage=() if policy.basis=='calendar_s' else (
-                'Sampled time is a lower bound.','Below limit does not prove not due.')
+                'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else 'Sampled time is a lower bound.',
+                'Below limit does not prove not due.')
             return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
                 (device_name(policy.device),'Last service: '+date,
                  {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':care_items(((policy,last,due),),{policy.device},time())[0].detail}[due],
@@ -596,7 +601,7 @@ class MaintenanceViewMixin:
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return self._maintenance_open('service_review',ServicePolicy(task,device,basis,
-                amount*(86400 if basis=='calendar_s' else 3600),'user-defined interval'))
+                amount*(86400 if basis=='calendar_s' else 1000 if basis=='travel_mm' else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
         if action=='service_remove_confirm': return self._maintenance_open('service_remove_confirm',value)

@@ -112,6 +112,8 @@ class MaintenanceBook:
         self.usage_omitted = 0
         self._capacity_rejected = set()
         self._observed = set()
+        from maintenance_travel import TravelLedger
+        self.travel = TravelLedger()
 
     def record(self,result,method,state,plan=None):
         if self._closed:
@@ -196,6 +198,7 @@ class MaintenanceBook:
             return
         self.poll_records()
         now = monotonic() if now is None else now
+        self.travel.note(state)
         active = {}
         key = (state.epoch,id(state.settings))
         if state.ready and key!=self._inventory_key:
@@ -252,6 +255,7 @@ class MaintenanceBook:
             self._flush_locked()
 
     def _flush_locked(self):
+        self.travel.flush()
         with self._lock:
             pending,self._usage = self._usage,{}
         try:
@@ -340,10 +344,16 @@ class MaintenanceBook:
             printing = self._last is not None
         available = tuple((device,'sampled_on_s') for device,status in states if status=='observed')
         if printing: available += ((None,'sampled_print_s'),)
-        return {'counter_id':data.get('counter_id'),
+        result = {'counter_id':data.get('counter_id'),
                 'sampled_on_s':dict(data.get('sampled_on_s',{})),
                 'sampled_print_s':data.get('sampled_print_s'),
                 'available_metrics':available}
+        with self._disk:
+            travel = self.travel.counters()
+        result.update(travel)
+        if travel['travel_available']:
+            result['available_metrics'] += tuple((axis,'travel_mm') for axis in travel['travel_mm'])
+        return result
 
     def read(self,feature):
         if feature=='S11':
@@ -369,6 +379,12 @@ class MaintenanceBook:
                 for name,value in sorted(counts.items()) if number(value) and value>=0)
             fields += tuple((name+'.tracking_state',status) for name,status in states
                             if status!='observed')
+            if hasattr(self,'travel'):
+                with self._disk:
+                    travel = self.travel.counters()
+                fields += tuple((axis+'.travel_mm',round(value,1)) for axis,value in travel['travel_mm'].items())
+                if travel['travel_mm']:
+                    fields += (('travel_tracking','tracking' if travel['travel_available'] else 'paused'),)
             return fields + (('usage_slots_remaining',max(0,MAX_USAGE_COUNTERS-len(counts))),
                              ('usage_tracking_omitted',getattr(self,'usage_omitted',0)))
         if feature=='S20':

@@ -683,6 +683,10 @@ class MoonrakerSubscription:
             from maintenance_usage import usage_metrics
             metrics, _ = usage_metrics(names,settings)
             self._usage_fields = {m.device: m.field for m in metrics}
+            from maintenance_travel import OBJECT
+            if OBJECT in names:
+                self._base_subscription[OBJECT] = ['session_id','x_mm','y_mm','z_mm',
+                                                  'state','dropped_batches','coverage']
             subscription_objects = self._subscription_objects()
             if self._case_light_tracking and 'output_pin case_light' in names:
                 subscription_objects['output_pin case_light'] = ['value']

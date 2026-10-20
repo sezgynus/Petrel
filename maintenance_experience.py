@@ -60,7 +60,8 @@ def device_name(name):
     if name is None:
         return 'Printer'
     known={'extruder':'Hotend','heater_bed':'Heated bed','fan':'Part cooling fan',
-           'stepper_x':'X axis','stepper_y':'Y axis','stepper_z':'Z axis'}
+           'stepper_x':'X axis','stepper_y':'Y axis','stepper_z':'Z axis',
+           'axis_x':'X travel','axis_y':'Y travel','axis_z':'Z travel'}
     if name in known:
         return known[name]
     chip,separator,stepper=name.partition(' ')

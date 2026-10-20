@@ -625,13 +625,18 @@ class PrinterData:
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
+        from maintenance_travel import installed, AXES
+        if device in AXES and installed(self.state):
+            return bases+('travel_mm',)
         snapshot=self.maintenance.snapshot
         return bases+tuple(dict.fromkeys(m.metric_id for m in getattr(snapshot,'usage_metrics',())
                                           if m.device==device))
 
     def maintenance_service_devices(self,rows=()):
         snapshot=self.maintenance.snapshot
+        from maintenance_travel import installed, AXES
         return tuple(dict.fromkeys(
+            (AXES if installed(self.state) else ())+
             tuple(d.name for d in getattr(snapshot,'devices',()))+
             tuple(m.device for m in getattr(snapshot,'usage_metrics',()))+
             tuple(r.device for r in rows if r.device is not None)))

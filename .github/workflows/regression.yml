@@ -38,3 +38,12 @@ jobs:
           git fetch --no-tags --depth=1 origin a1c01ef13249e2b9b703cd3a97f7b27b8d24600c
           git show a1c01ef13249e2b9b703cd3a97f7b27b8d24600c:maintenance_records.py > "$RUNNER_TEMP/petrel-usage-baseline.py"
           python tools/benchmark_maintenance_usage.py --baseline-file "$RUNNER_TEMP/petrel-usage-baseline.py"
+      - name: Fetch pinned Klipper source for native travel verification
+        uses: actions/checkout@v4
+        with:
+          repository: Klipper3d/klipper
+          ref: c63b29510b1f9ff0a8d10ee55b29cb843fdba4e0
+          path: .ci-klipper-travel
+          persist-credentials: false
+      - name: Verify native trapq travel and report synthetic cost
+        run: python tools/benchmark_axis_travel.py --klipper-source .ci-klipper-travel

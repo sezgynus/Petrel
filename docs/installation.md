@@ -45,6 +45,9 @@ Press Enter to accept a prompt's default, or enter your own value:
 | Encoder button | `20` |
 | Moonraker power device | `Printer` |
 | Power-on hold | `2000` ms (2 seconds) |
+| Axis travel counters | `1` enabled; enter `0` to decline |
+| Klipper repository (when enabled) | `~/klipper` |
+| Main Klipper config (when enabled) | `~/printer_data/config/printer.cfg` |
 
 Installation prepares `~/petrel-env`, installs dependencies and enables `Petrel.service`. It keeps settings in `~/.config/Petrel/Petrel.env`, adds a `Petrel.conf` include beside `moonraker.conf` and registers the service for Moonraker updates. Existing settings are preserved when installation is repeated.
 
@@ -53,6 +56,16 @@ For a nonstandard Moonraker configuration location:
 ```bash
 MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ```
+
+## Optional axis travel counters
+
+The existing `configure.sh` offers **Enable axis travel counters? (1=yes, 0=no)**. First configuration defaults to **1**; Enter accepts installation, `0` declines it. Later runs preserve your saved choice. Existing installations are not silently modified on update: run `./configure.sh` to select this feature.
+
+Enabling creates `klippy/extras/petrel_axis_travel.py` as a symlink to the extra in the Petrel repository, creates `petrel-axis-travel.cfg` beside your main Klipper config, and inserts a marked include block at the beginning of that main config. It does not change tracked Klipper source or `.gitignore`: only that exact symlink path is added to the repository-local Git exclude file. Existing user exclusions are retained. Foreign conflicting files are not overwritten. **Each `configure.sh` prompt above is editable:** URL selects the Moonraker instance, UART selects the LCD port, GPIO entries select encoder wiring, power device selects the relay, hold time controls power-on, and the last three entries control this optional integration and its paths.
+
+**Restart Klipper while idle after enabling or disabling**, then restart Petrel to refresh discovery. The configurator never restarts Klipper automatically. Petrel offers X/Y/Z travel devices and **Recorded travel (metres)** reminders only when the extra is actually loaded. See [usage tracking](maintenance-usage.md) for measurement limits and resource bounds.
+
+Run `./configure.sh` again and choose **0** to disable. This removes only Petrel's managed config fragment/include, symlink and its own added Git exclusion. Counters and maintenance history remain; saved distance reminders pause. Apply the same idle Klipper restart. The extra follows Petrel updates through the symlink; running Klipper loads the updated module on its next restart. A Klipper reinstall/hard recovery may remove the link: rerun `configure.sh` to repair it.
 
 ## LCD resources and first start
 
@@ -89,6 +102,9 @@ For settings not prompted by the configurator, edit the external environment fil
 | `PETREL_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |
 | `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled |
+| `PETREL_AXIS_TRAVEL` | Optional extra installation preference / `1` on first configuration; change using `configure.sh`, not by editing this key alone |
+| `PETREL_KLIPPER_DIR` | Klipper repository containing `klippy/extras` / `~/klipper` |
+| `PETREL_PRINTER_CONFIG` | Main config to receive the managed include / `~/printer_data/config/printer.cfg` |
 
 Restart after editing: `sudo systemctl restart Petrel.service`. Keep private keys and machine settings outside tracked repository files. See the [emulator guide](ui-emulator.md) for screenshot-specific options.
 

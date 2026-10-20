@@ -141,7 +141,20 @@ def diagnostic_lines(feature,key,value):
         try: title=definition_for(feature_id).title
         except ValueError: return None
         return ('Recent check '+str(int(key[-1])+1)+': '+title+' / '+outcome_text(None if status=='None' else status),)
+    if feature=='S13':
+        if key in ('x_mm','y_mm','z_mm') and number(value) and value>=0:
+            return (key[0].upper()+' travel this session: '+formatted(value/1000,'m'),)
+        if key=='coverage' and value=='recorded_lower_bound_this_session':
+            return ('Recorded session lower bound; homing and probing excluded.',)
+        if key=='dropped_batches' and number(value):
+            return ('Excluded intervals/moves: '+str(int(value)),)
+        if key=='tracking_state' and value in ('starting','tracking','paused','unavailable'):
+            return ('Axis tracking: '+value,)
     if feature=='S12':
+        if key.endswith('.travel_mm') and number(value) and value>=0:
+            return (name(key[:-10])+' travel: '+formatted(value/1000,'m'),)
+        if key=='travel_tracking' and value in ('tracking','paused'):
+            return ('Axis travel: '+value+'; recorded lower bound.',)
         if key=='usage_slots_remaining' and number(value):
             return ('Counter slots free: '+str(int(value)),)
         if key=='usage_tracking_omitted' and number(value):

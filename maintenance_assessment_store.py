@@ -35,7 +35,7 @@ def service_due(policy, *, now, last_at=None, current=None, previous=None,
         return 'unknown'
     if current-previous >= policy.interval:
         return 'due'
-    return 'unknown' if policy.basis in ('sampled_on_s','sampled_print_s') else 'not_due'
+    return 'unknown' if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm') else 'not_due'
 
 def encode(evidence):
     return asdict(evidence)

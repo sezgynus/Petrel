@@ -20,7 +20,7 @@ def care_items(tasks, devices, now):
     from maintenance_assessment_store import service_due, numeric
     result=[]
     for policy,last,cached in tasks[:64]:
-        if policy.device not in devices:
+        if policy.device not in devices and policy.basis!='travel_mm':
             continue
         state=cached
         progress=remaining=None
@@ -44,6 +44,8 @@ def care_items(tasks, devices, now):
                 def hours(value):
                     return ('%.1f'%value).rstrip('0').rstrip('.')
                 status=('Service due' if state=='due' else
+                        (hours(elapsed/1000.)+'/'+hours(policy.interval/1000.)+'m recorded')
+                        if policy.basis=='travel_mm' else
                         hours(elapsed/3600.)+'/'+hours(policy.interval/3600.)+'h recorded')
             elif state=='due':
                 progress=1.
