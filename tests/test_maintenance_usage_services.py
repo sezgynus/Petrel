@@ -52,4 +52,6 @@ class UsageServiceTests(unittest.TestCase):
             f=request(worker,'save_policy',policy=hours,devices=('fan',),usage_provider=lambda:{
                 'counter_id':'ledger','sampled_on_s':{'fan':1000}})
             worker.run();task=f.result()[0][0]
-            self.assertIsNone(task[1]);self.assertEqual(task[2],'unknown')
+            self.assertNotIn('timestamp',task[1])
+            self.assertEqual(task[1]['_sampled_elapsed_s'],0)
+            self.assertEqual(task[2],'unknown')

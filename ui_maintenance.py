@@ -425,7 +425,8 @@ class MaintenanceViewMixin:
 
     def _maintenance_policy_due(self,policy,last,cached):
         from maintenance_assessment_store import service_due
-        return (service_due(policy,now=time(),last_at=last.get('timestamp') if last else None)
+        return (service_due(policy,now=time(),
+                last_at=last.get('timestamp',last.get('_tracking_started_at')) if last else None)
                 if policy.basis=='calendar_s' else cached)
 
     def _maintenance_service_due_count(self):

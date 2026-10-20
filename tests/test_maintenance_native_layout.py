@@ -31,6 +31,14 @@ class CarePresentation(unittest.TestCase):
             self.assertIsNone(item.progress)
             self.assertIsNone(item.remaining)
 
+    def test_recorded_fraction_is_visible_without_claiming_remaining_life(self):
+        p=self.policy(basis='sampled_on_s',interval=20*3600)
+        item=care_items(((p,{'_sampled_elapsed_s':8*3600},'unknown'),),{'fan'},100)[0]
+        self.assertAlmostEqual(item.progress,.4)
+        self.assertEqual(item.detail,'8/20h recorded')
+        self.assertIsNone(item.remaining)
+        self.assertEqual(item.state,'unknown')
+
     def test_removed_device_does_not_appear(self):
         self.assertEqual(care_items(((self.policy(),None,'due'),),{'other'},100),())
 

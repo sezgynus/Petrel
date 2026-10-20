@@ -136,7 +136,11 @@ def _home(v,screen):
         if i<len(items):
             item=items[i]
             _text(v,('care_name',i),item.label,24,y,24,True)
-            _text(v,('care_status',i),'Not started' if item.detail=='No service date' else 'Unknown' if item.detail=='Coverage unknown' else item.detail,174,y,13,True,WARNING if item.state=='due' else MUTED)
+            brief=(item.detail.split(' ',1)[0]
+                   if item.policy.basis!='calendar_s' and item.progress is not None
+                   and item.state!='due' else item.detail)
+            _text(v,('care_status',i),brief,174,y,13,True,
+                  WARNING if item.state=='due' else MUTED)
             _bar(v,('home',i),item,24,y+17,232)
         else:
             _text(v,('care_name',i),'Select to set up' if i==0 else '',24,y,38,True,MUTED)

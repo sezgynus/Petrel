@@ -30,6 +30,19 @@ class AssessmentStoreTest(unittest.TestCase):
             s.complete_service(p,timestamp=1,confirmed=True,counter=10,counter_id='epoch-a')
             self.assertEqual(s.load()['services'][0]['counter_id'],'epoch-a')
 
+    def test_tracking_anchor_is_distinct_from_service_history_and_persists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store=AssessmentStore(Path(tmp)/'assessment.json')
+            policy=ServicePolicy('clean','fan','sampled_on_s',100,'user')
+            start=store.begin_tracking(policy,timestamp=20,counter=50,counter_id='ledger')
+            self.assertEqual(start['counter'],50)
+            self.assertEqual(store.begin_tracking(policy,timestamp=80,counter=90,counter_id='ledger'),start)
+            self.assertEqual(AssessmentStore(store.path).tracking_start(policy),start)
+            self.assertEqual(store.load()['services'],[])
+            store.complete_service(policy,timestamp=90,confirmed=True,counter=100,counter_id='ledger')
+            self.assertEqual(store.latest_service('clean','fan','sampled_on_s')['counter'],100)
+            self.assertEqual(store.tracking_start(policy),start)
+
     def test_partial_counter_never_proves_not_due(self):
         p = ServicePolicy('clean','fan','sampled_on_s',100,'user')
         kw = dict(now=200,current=60,previous=0,continuity=True,

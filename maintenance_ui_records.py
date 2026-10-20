@@ -35,13 +35,36 @@ def request(worker,operation,*,policy=None,devices=(),history=False,usage_provid
         tasks=[]
         for item in policies:
             if item.device not in devices: continue
-            last=store.latest_service(item.task_id,item.device,item.basis)
+            completed=store.latest_service(item.task_id,item.device,item.basis)
             value,identity=counter(item)
-            due=service_due(item,now=time(),last_at=last.get('timestamp') if last else None,
-                current=value,previous=last.get('counter') if last else None,
-                continuity=identity is not None,counter_id=identity,
-                previous_counter_id=last.get('counter_id') if last else None)
-            tasks.append((item,last,due))
+            tracking=store.tracking_start(item)
+            if completed is None and tracking is None and (
+                    item.basis=='calendar_s' or value is not None):
+                # Migrated legacy policies start at their first verified read.
+                # Past untracked use must not be attributed to the new cycle.
+                tracking=store.begin_tracking(item,timestamp=time(),
+                    counter=value,counter_id=identity)
+            reference=completed if completed is not None else tracking
+            last=dict(completed) if completed is not None else {}
+            if tracking is not None and completed is None:
+                last['_tracking_started_at']=tracking.get('started_at')
+            if item.basis=='calendar_s':
+                stamp=(completed.get('timestamp') if completed is not None else
+                       tracking.get('started_at') if tracking is not None else None)
+                due=service_due(item,now=time(),last_at=stamp)
+            else:
+                previous=reference.get('counter') if reference else None
+                previous_id=reference.get('counter_id') if reference else None
+                due=service_due(item,now=time(),current=value,previous=previous,
+                    continuity=identity is not None,counter_id=identity,
+                    previous_counter_id=previous_id)
+                if (value is not None and previous is not None and
+                        identity is not None and identity==previous_id and
+                        value>=previous):
+                    last['_sampled_elapsed_s']=value-previous
+                else:
+                    last['_tracking_paused']=True
+            tasks.append((item,last or None,due))
         records=()
         if history:
             data=read_json('maintenance-history.json',{'version':1,'records':[]})

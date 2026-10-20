@@ -102,6 +102,42 @@ class AssessmentStore:
         data['services'] = (data['services']+[record])[-128:]
         self._save(data)
 
+    def tracking_start(self,policy):
+        """Get a tracking anchor without claiming a service was completed."""
+        items=self.load().get('tracking',[])
+        if type(items) is not list or len(items)>64:
+            raise ValueError('invalid_service_tracking')
+        return next((dict(row) for row in reversed(items)
+                     if type(row) is dict and (row.get('task'),row.get('device'),row.get('basis'))
+                     ==(policy.task_id,policy.device,policy.basis)),None)
+
+    def begin_tracking(self,policy,*,timestamp,counter=None,counter_id=None):
+        """Persist first observable use; never create a service-completion record."""
+        if not isinstance(policy,ServicePolicy) or not numeric(timestamp):
+            raise ValueError('invalid_tracking_start')
+        if policy.basis!='calendar_s' and (
+                not numeric(counter) or not _text(counter_id)):
+            raise ValueError('tracking_counter_unavailable')
+        data=self.load()
+        items=data.get('tracking',[])
+        if type(items) is not list or len(items)>64:
+            raise ValueError('invalid_service_tracking')
+        prior=next((dict(row) for row in reversed(items)
+                    if type(row) is dict and
+                    (row.get('task'),row.get('device'),row.get('basis'))
+                    ==(policy.task_id,policy.device,policy.basis)),None)
+        if prior is not None:
+            return prior
+        items=[row for row in items if not (type(row) is dict and
+            (row.get('task'),row.get('device'))==(policy.task_id,policy.device))]
+        if len(items)>=64:
+            raise ValueError('tracking_capacity')
+        record=dict(task=policy.task_id,device=policy.device,basis=policy.basis,
+                    started_at=timestamp,counter=counter,counter_id=counter_id)
+        data['tracking']=items+[record]
+        self._save(data)
+        return record
+
     def set_service_policy(self,policy):
         if not isinstance(policy,ServicePolicy):
             raise ValueError('invalid_service_policy')
