@@ -22,11 +22,13 @@ class UsageContracts(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             snap.usage_metrics[0].field = 'other'
 
-    def test_unsupported_objects_and_config_only_pins_do_not_create_metrics(self):
+    def test_sensor_contracts_are_distinct_from_unsupported_on_time_sources(self):
         state = NS(ready=True, epoch=1, objects=('servo a', 'stepper_x',
             'gcode_button a', 'filament_switch_sensor a', 'temperature_sensor a'),
             settings={'output_pin absent': {'pin': 'PA1'}}, status={})
-        self.assertEqual(discover(state).usage_metrics, ())
+        metrics = discover(state).usage_metrics
+        self.assertEqual({m.device for m in metrics}, {'gcode_button a', 'filament_switch_sensor a'})
+        self.assertTrue(all(m.metric_id == 'observed_trigger_count' and m.unit == 'count' for m in metrics))
         state.ready = False
         self.assertEqual(discover(state).usage_metrics, ())
 

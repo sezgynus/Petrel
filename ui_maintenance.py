@@ -486,15 +486,18 @@ class MaintenanceViewMixin:
             bases=provider(device) if callable(provider) else ('calendar_s',)
             if not isinstance(bases,(tuple,list)): bases=('calendar_s',)
             names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
-                   'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)'}
+                   'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)',
+                   'observed_trigger_count':'Observed sensor activations'}
             return Screen('Choose reminder basis',task_label(task,device),choices=(back,)+tuple(
                 Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else
-                ' metres travelled' if basis=='travel_mm' else ' sampled hours'),
+                ' metres travelled' if basis=='travel_mm' else
+                ' observed activations' if basis=='observed_trigger_count' else ' sampled hours'),
                 ('Turn to change the interval.','Use your maintenance guidance.',
+                 'Observed counts are lower bounds.' if basis=='observed_trigger_count' else
                  'Recorded travel is a lower bound.' if basis=='travel_mm' else
                  'Sampled time is a lower bound.' if basis!='calendar_s' else 'This reminder does not measure wear.'),
                 (Choice('Review reminder','service_review'),))
@@ -503,6 +506,7 @@ class MaintenanceViewMixin:
             return Screen('Confirm reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
                  else ('After %d metres travelled' % (policy.interval/1000)) if policy.basis=='travel_mm'
+                 else ('After %d observed activations' % policy.interval) if policy.basis=='observed_trigger_count'
                  else ('After %d sampled hours' % (policy.interval/3600)),
                  'Source: user-defined interval.','No service is marked completed.'),
                 (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
@@ -517,6 +521,7 @@ class MaintenanceViewMixin:
             stamp=last.get('timestamp') if last else None
             date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
             coverage=() if policy.basis=='calendar_s' else (
+                'Observed counts are lower bounds.' if policy.basis=='observed_trigger_count' else
                 'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else 'Sampled time is a lower bound.',
                 'Below limit does not prove not due.')
             return Screen('Service reminder',task_label(policy.task_id,policy.device),
@@ -608,7 +613,8 @@ class MaintenanceViewMixin:
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return self._maintenance_open('service_review',ServicePolicy(task,device,basis,
-                amount*(86400 if basis=='calendar_s' else 1000 if basis=='travel_mm' else 3600),'user-defined interval'))
+                amount*(86400 if basis=='calendar_s' else 1000 if basis=='travel_mm' else
+                        1 if basis=='observed_trigger_count' else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
         if action=='service_remove_confirm': return self._maintenance_open('service_remove_confirm',value)

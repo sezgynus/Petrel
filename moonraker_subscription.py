@@ -682,7 +682,7 @@ class MoonrakerSubscription:
                                                if name == 'configfile' else None) for name in available}
             from maintenance_usage import usage_metrics
             metrics, _ = usage_metrics(names,settings)
-            self._usage_fields = {m.device: m.field for m in metrics}
+            self._usage_fields = {getattr(m, 'source', m.device): m.field for m in metrics}
             from maintenance_travel import OBJECT
             if OBJECT in names:
                 self._base_subscription[OBJECT] = ['session_id','x_mm','y_mm','z_mm',

@@ -114,6 +114,8 @@ class MaintenanceBook:
         self._observed = set()
         from maintenance_travel import TravelLedger
         self.travel = TravelLedger()
+        from maintenance_sensor_usage import SensorUsage
+        self.sensors = SensorUsage()
 
     def record(self,result,method,state,plan=None):
         if self._closed:
@@ -212,8 +214,11 @@ class MaintenanceBook:
             self._capacity_rejected.clear()
             self._inventory_key = key
             self._last = None
+        self.sensors.note(state, self._metrics, now)
         if state.ready:
             for metric in self._metrics:
+                if metric.metric_id != 'sampled_on_s':
+                    continue
                 value = metric.active(state.status)
                 if value is not None:
                     active[metric.device] = value
@@ -256,6 +261,7 @@ class MaintenanceBook:
 
     def _flush_locked(self):
         self.travel.flush()
+        self.sensors.counters()
         with self._lock:
             pending,self._usage = self._usage,{}
         try:
@@ -332,7 +338,7 @@ class MaintenanceBook:
             return tuple((m.device, 'capacity' if m.device in self._capacity_rejected else
                           'observed' if m.device in active else
                           'paused' if m.device in self._observed else 'starting')
-                         for m in self._metrics)
+                         for m in self._metrics if m.metric_id == 'sampled_on_s')
 
     def service_counters(self):
         """Worker-only durable lower bounds, with a persisted ledger identity."""
@@ -351,6 +357,11 @@ class MaintenanceBook:
         with self._disk:
             travel = self.travel.counters()
         result.update(travel)
+        with self._disk:
+            sensors = self.sensors.counters()
+        result.update(sensors)
+        result['available_metrics'] += tuple((d, 'observed_trigger_count')
+                                            for d in sensors['sensor_available'])
         if travel['travel_available']:
             result['available_metrics'] += tuple((axis,'travel_mm') for axis in travel['travel_mm'])
         return result
@@ -385,6 +396,14 @@ class MaintenanceBook:
                 fields += tuple((axis+'.travel_mm',round(value,1)) for axis,value in travel['travel_mm'].items())
                 if travel['travel_mm']:
                     fields += (('travel_tracking','tracking' if travel['travel_available'] else 'paused'),)
+            if hasattr(self, 'sensors'):
+                with self._disk:
+                    sensors = self.sensors.counters()
+                fields += (('sensor_coverage', 'observed_transitions_lower_bound'),)
+                fields += tuple((d+'.observed_trigger_count', n)
+                    for d, n in sorted(sensors['observed_trigger_count'].items()))
+                fields += tuple((d+'.sensor_tracking', status)
+                    for d, status in self.sensors.tracking() if status != 'observed')
             return fields + (('usage_slots_remaining',max(0,MAX_USAGE_COUNTERS-len(counts))),
                              ('usage_tracking_omitted',getattr(self,'usage_omitted',0)))
         if feature=='S20':
@@ -403,9 +422,14 @@ class MaintenanceBook:
                     record['evidence'] = [(k,safe_scalar(v)) for k,v in item.get('evidence',[])[:16]
                         if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k) and safe_scalar(v) is not None]
                     records.append(record)
+            with self._disk:
+                sensors = self.sensors.counters()
             write_json('maintenance-report.json',{'version':1,'generated_at':time(),'records':records,
                 'sampled_print_s':safe_scalar(usage.get('sampled_print_s')),
                 'usage_counter_id':safe_scalar(usage.get('counter_id')),
+                'sensor_counter_id':sensors['sensor_counter_id'],
+                'observed_trigger_count':sensors['observed_trigger_count'],
+                'sensor_coverage':'observed_transitions_lower_bound',
                 'usage':{k:v for k,v in usage.get('sampled_on_s',{}).items()
                          if safe_scalar(k) and number(v) and v>=0},
                 'coverage':'sampled_lower_bound_not_lifetime'})

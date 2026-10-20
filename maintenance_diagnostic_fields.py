@@ -151,6 +151,13 @@ def diagnostic_lines(feature,key,value):
         if key=='tracking_state' and value in ('starting','tracking','paused','unavailable'):
             return ('Axis tracking: '+value,)
     if feature=='S12':
+        if key=='sensor_coverage' and value=='observed_transitions_lower_bound':
+            return ('Sensor counts: observed activations only; missed transitions are not reconstructed.',
+                    'Endstop/probe values are last-query results, not continuous live readings.')
+        if key.endswith('.observed_trigger_count') and type(value) is int and value>=0:
+            return (name(key[:-len('.observed_trigger_count')])+': '+str(value)+' activations recorded',)
+        if key.endswith('.sensor_tracking') and value in ('paused','capacity'):
+            return (name(key[:-len('.sensor_tracking')])+': '+('Tracking paused' if value=='paused' else 'Counter capacity reached'),)
         if key.endswith('.travel_mm') and number(value) and value>=0:
             return (name(key[:-10])+' travel: '+formatted(value/1000,'m'),)
         if key=='travel_tracking' and value in ('tracking','paused'):

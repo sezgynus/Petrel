@@ -69,6 +69,7 @@ def usage_metrics(objects,settings=None):
     Standard legacy counters take priority, then exact Klipper object names.
     Called only during READY inventory/bootstrap, never in a sampling loop.
     """
+    objects = tuple(objects)
     names = sorted({name for name in objects if usage_field(name)},
                    key=lambda n: (n not in ('fan', 'extruder', 'heater_bed'), n))
     metrics=[]
@@ -86,7 +87,11 @@ def usage_metrics(objects,settings=None):
                 continue
             pixels+=count
         metrics.append(UsageMetric(name,field,elements=count))
-    return tuple(metrics), len(names)-len(metrics)
+    from maintenance_sensor_usage import sensor_metrics
+    sensors = sensor_metrics(objects, settings)
+    selected = tuple(m for m in sensors if len(m.device.encode('utf-8')) <= MAX_DEVICE_NAME)
+    selected = selected[:max(0, MAX_TRACKED_METRICS-len(metrics))]
+    return tuple(metrics)+selected, len(names)-len(metrics)+len(sensors)-len(selected)
 
 
 def metric_counter(usage, device, metric_id):
