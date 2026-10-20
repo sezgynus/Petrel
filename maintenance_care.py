@@ -85,3 +85,69 @@ def inventory(objects,settings,existing=()):
                 names.add('endstop '+name)
     valid=sorted(n for n in names if isinstance(n,str) and len(n.encode('utf-8'))<=96)
     return tuple(valid[:MAX_CARE_DEVICES]),len(names)-min(len(valid),MAX_CARE_DEVICES)
+
+
+# Suggested starting intervals for new reminders, expressed in the units the
+# encoder editor displays: days, hours, metres, or recorded events. These are
+# editable inspection prompts, not rated component lifetimes. They must never
+# overwrite an existing service policy or its counter baseline.
+REMINDER_DEFAULTS = {
+    'xy_axis': (90, 200, None, 30000, None),
+    'z_axis': (180, 500, None, 10, None),
+    'mechanical': (180, 300, None, None, None),
+    'endstop': (180, 500, None, None, 500),
+    'probe': (90, 200, None, None, 2000),
+    'filament_switch': (90, 300, None, None, 2000),
+    # Encoder edge counts cannot be equated to a filament distance without
+    # calibration; this is only an editable observation prompt.
+    'filament_motion': (90, 300, None, None, 50000),
+    'gcode_button': (180, 500, None, None, 1000),
+    'filament_feed': (90, 200, None, None, None),
+    'nozzle': (30, 100, 100, None, None),
+    'heating': (180, 500, 300, None, None),
+    'fan': (90, 200, 200, None, None),
+    'lighting': (365, 500, 1000, None, None),
+    # Output pins and other connected outputs have unknown attached hardware.
+    'connected_device': (180, 500, 500, None, None),
+    'actuator': (180, 500, None, None, None),
+    'sensor': (365, 700, None, None, None),
+    'electronics': (365, 700, None, None, None),
+    'general': (180, 500, 500, None, None),
+}
+REMINDER_BASIS_INDEX = {
+    'calendar_s': 0, 'sampled_print_s': 1, 'sampled_on_s': 2,
+    'travel_mm': 3, 'trigger_count': 4, 'observed_trigger_count': 4,
+}
+# Conservative fallback only for an actually offered metric not in a profile.
+REMINDER_BASIS_FALLBACK = (180, 500, 500, 1000, 1000)
+
+
+def reminder_default(device, task, basis):
+    """Return an integer in editor units, using only Klipper object classes.
+
+    No user-configured names, pin labels, assumed switch lifetimes or hidden
+    hardware identity are used. The caller still controls which bases exist.
+    """
+    if not isinstance(device, str) or basis not in REMINDER_BASIS_INDEX:
+        raise ValueError('invalid_reminder_default')
+    if device in ('stepper_x', 'stepper_y', 'axis_x', 'axis_y'):
+        profile = 'xy_axis'
+    elif device in ('stepper_z', 'axis_z'):
+        profile = 'z_axis'
+    elif device.startswith('endstop '):
+        profile = 'endstop'
+    elif device in PROBES or device.startswith('probe_'):
+        profile = 'probe'
+    elif device.startswith('filament_switch_sensor '):
+        profile = 'filament_switch'
+    elif device.startswith('filament_motion_sensor '):
+        profile = 'filament_motion'
+    elif device.startswith('gcode_button '):
+        profile = 'gcode_button'
+    elif family(device) == 'extruder':
+        profile = task if task in ('filament_feed', 'nozzle', 'heating') else 'filament_feed'
+    else:
+        profile = family(device)
+    index = REMINDER_BASIS_INDEX[basis]
+    value = REMINDER_DEFAULTS[profile][index]
+    return value if value is not None else REMINDER_BASIS_FALLBACK[index]
