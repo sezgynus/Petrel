@@ -5,6 +5,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import patch
 from PIL import ImageChops
 from test_capabilities import display,snapshot
+from test_regressions import ui
 from test_t5uic1_driver import driver
 from dwin_emulator.assets import PanelAssets
 from dwin_emulator.framebuffer import Framebuffer
@@ -44,7 +45,7 @@ class MaintenancePixelUpdates(unittest.TestCase):
                 NS(feature_id='F02',device='fan'+str(i)),str(i)+' percent') for i in range(count)),kind=kind)
 
     @patch('t5uic1_driver.time.sleep')
-    @patch('petrel_ui.time.strftime', return_value='12:34')
+    @patch.object(ui.time, 'strftime', return_value='12:34')
     def test_header_pixels_match_standard_title_rendering(self,clock,_):
         screen=self.menu(3)
         d=self.view(screen)
