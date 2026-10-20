@@ -2,6 +2,14 @@ name: Petrel Documentation Render
 
 on:
   workflow_dispatch:
+  # Explicit commit marker, never an ordinary code push. Generate and publish
+  # new screenshots only when the author requests a documentation refresh.
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/documentation-render.yml'
+      - 'tools/maintenance_doc_scenes.py'
 
 permissions:
   contents: read
@@ -12,7 +20,7 @@ concurrency:
 
 jobs:
   render:
-    if: github.ref_type == 'branch'
+    if: github.ref_type == 'branch' && (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[render-docs]'))
     runs-on: ubuntu-latest
     env:
       GPIOZERO_PIN_FACTORY: mock
