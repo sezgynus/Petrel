@@ -286,7 +286,6 @@ def _report(v,screen):
                 _text(v,(token,cell.column,cell.role,line),value,x,top+line*12,cells,cell.small,ink)
         if row.choice:
             _cursor(v,token,y,height,v._maintenance_selection==row.choice)
-    _text(v,'report_hint','Turn to scroll; press to select' if len(rows)>visible else '',20,344,38,True,MUTED)
     _scroll(v,start,len(rows),visible,REPORT_TOP,visible*height)
 
 

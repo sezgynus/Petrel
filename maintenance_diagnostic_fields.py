@@ -151,11 +151,10 @@ def diagnostic_lines(feature,key,value):
         if key=='tracking_state' and value in ('starting','tracking','paused','unavailable'):
             return ('Axis tracking: '+value,)
     if feature=='S12':
-        if key=='sensor_coverage' and value=='legacy_sampled_history_paused':
-            return ('Legacy sampled sensor counts are retained; their tracking is paused.',)
-        if key=='sensor_event_coverage' and value=='klipper_callback_totals':
-            return ('Sensor events are counted in Klipper; reading intervals do not lose captured events.',
-                    'Counts cover enabled recording, not total hardware lifetime.',)
+        if key in ('coverage','sensor_coverage','sensor_event_coverage'):
+            return ()
+        if key.endswith(('.observed_trigger_count','.sensor_tracking')):
+            return ()
         if key.endswith('.event_kind') and value in ('switch_activation','encoder_rising_edge','homing_contact'):
             return (name(key[:-len('.event_kind')])+': '+{'switch_activation':'switch activations',
                     'encoder_rising_edge':'encoder rising edges','homing_contact':'homing/probing contacts'}[value],)
@@ -163,17 +162,10 @@ def diagnostic_lines(feature,key,value):
             return (name(key[:-len('.trigger_count')])+': '+str(value)+' events recorded',)
         if key.endswith('.event_tracking') and value in ('paused','capacity'):
             return (name(key[:-len('.event_tracking')])+': '+('Event tracking paused' if value=='paused' else 'Counter capacity reached'),)
-        if key=='sensor_coverage' and value=='observed_transitions_lower_bound':
-            return ('Sensor counts: observed activations only; missed transitions are not reconstructed.',
-                    'Endstop/probe values are last-query results, not continuous live readings.')
-        if key.endswith('.observed_trigger_count') and type(value) is int and value>=0:
-            return (name(key[:-len('.observed_trigger_count')])+': '+str(value)+' legacy sampled activations',)
-        if key.endswith('.sensor_tracking') and value in ('paused','capacity'):
-            return (name(key[:-len('.sensor_tracking')])+': '+('Tracking paused' if value=='paused' else 'Counter capacity reached'),)
         if key.endswith('.travel_mm') and number(value) and value>=0:
-            return (name(key[:-10])+' travel: '+formatted(value/1000,'m'),)
+            return (name(key[:-10])+': '+formatted(value/1000,'m'),)
         if key=='travel_tracking' and value in ('tracking','paused'):
-            return ('Axis travel: '+value+'; recorded lower bound.',)
+            return ('Axis travel: '+{'tracking':'Tracking','paused':'Paused'}[value],)
         if key=='usage_slots_remaining' and number(value):
             return ('Counter slots free: '+str(int(value)),)
         if key=='usage_tracking_omitted' and number(value):
@@ -181,8 +173,6 @@ def diagnostic_lines(feature,key,value):
         if key.endswith('.tracking_state') and value in ('starting','paused','capacity'):
             return (name(key[:-15])+': '+{'starting':'Tracking starting','paused':'Tracking paused',
                                         'capacity':'Counter capacity reached'}[value],)
-        if key=='coverage' and value=='sampled_lower_bound_not_lifetime':
-            return ('Sampled times are recorded lower bounds, not lifetime totals.',)
         if key=='sampled_print_s' and number(value) and value>=0:
             return ('Sampled print time: '+duration(value),)
         if key.endswith('.sampled_on_s') and number(value) and value>=0:

@@ -135,7 +135,8 @@ class DiagnosticContractCoverage(unittest.TestCase):
             usage=records.MaintenanceBook.read(book,'S12')
         shown=self.readable('S12',usage)
         self.assertIn('2h 3m 4s',shown);self.assertIn('1h 1m 12s',shown)
-        self.assertIn('lower bounds',shown);self.assertNotIn('sampled_on_s',shown)
+        self.assertNotIn('lower bounds',shown);self.assertNotIn('sampled_on_s',shown)
+        self.assertIn('ON time',shown)
         with patch.object(records,'read_json',return_value={'records':[{'feature':'H01','status':'PASSED_USER'}]}):
             history=records.MaintenanceBook.read(book,'S11')
         shown=self.readable('S11',history)

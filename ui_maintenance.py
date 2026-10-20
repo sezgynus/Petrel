@@ -295,8 +295,7 @@ class MaintenanceViewMixin:
         if page=='reference_limit':
             outcome,percent=context
             return Screen('Choose your review limit',str(percent)+'% change',
-                ('Turn to change the review limit.','This is your chosen threshold,',
-                 'not a manufacturer wear limit.'),
+                (),
                 (Choice('Review comparison','reference_confirm',('compare',outcome,percent/100)),))
         if page=='reference_confirm':
             operation,outcome,limit=context
@@ -416,7 +415,7 @@ class MaintenanceViewMixin:
         if phase=='measurement_edit':
             value=getattr(owner,'measurement_value',0.)
             unit=getattr(owner,'measurement_unit','mm')
-            return Screen('Measured value','%.2f %s' % (value,unit),('Turn to adjust actual value.','Press to accept measurement.','Do not enter a guessed value.'),
+            return Screen('Measured value','%.2f %s' % (value,unit),(),
                           (Choice('Accept measured value','record'),))
         if phase=='f12_await_stop':
             return Screen('Fan startup','Has the fan fully stopped?',('Wait for a physical full stop.','A zero command is not proof.'),
@@ -520,10 +519,7 @@ class MaintenanceViewMixin:
             return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else
                 ' metres travelled' if basis=='travel_mm' else
                 ' recorded events' if basis in ('observed_trigger_count','trigger_count') else ' sampled hours'),
-                ('Turn to change the interval.','Use your maintenance guidance.',
-                 'Counts cover enabled recording.' if basis in ('observed_trigger_count','trigger_count') else
-                 'Recorded travel is a lower bound.' if basis=='travel_mm' else
-                 'Sampled time is a lower bound.' if basis!='calendar_s' else 'This reminder does not measure wear.'),
+                ('Use your maintenance guidance.',),
                 (Choice('Review reminder','service_review'),))
         if page=='service_review':
             policy=self._maintenance_context

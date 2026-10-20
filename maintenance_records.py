@@ -402,13 +402,6 @@ class MaintenanceBook:
                 fields += tuple((axis+'.travel_mm',round(value,1)) for axis,value in travel['travel_mm'].items())
                 if travel['travel_mm']:
                     fields += (('travel_tracking','tracking' if travel['travel_available'] else 'paused'),)
-            if hasattr(self, 'sensors'):
-                with self._disk:
-                    sensors = self.sensors.counters()
-                fields += (('sensor_coverage', 'legacy_sampled_history_paused'),) if sensors['observed_trigger_count'] else ()
-                fields += tuple((d+'.observed_trigger_count', n)
-                    for d, n in sorted(sensors['observed_trigger_count'].items()))
-                fields += tuple((d+'.sensor_tracking', 'paused') for d in sensors['observed_trigger_count'])
             if hasattr(self, 'sensor_events'):
                 with self._disk:
                     events = self.sensor_events.counters()
