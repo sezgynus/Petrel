@@ -151,29 +151,19 @@ def diagnostic_lines(feature,key,value):
         if key=='tracking_state' and value in ('starting','tracking','paused','unavailable'):
             return ('Axis tracking: '+value,)
     if feature=='S12':
-        if key in ('coverage','sensor_coverage','sensor_event_coverage'):
+        # Usage History is quantities only. Event kinds, live tracking state
+        # and capacity are preserved in the raw evidence but not drawn.
+        if key in ('coverage','sensor_coverage','sensor_event_coverage',
+                   'travel_tracking','usage_slots_remaining','usage_tracking_omitted'):
             return ()
-        if key.endswith(('.observed_trigger_count','.sensor_tracking')):
+        if key.endswith(('.observed_trigger_count','.sensor_tracking',
+                         '.event_kind','.event_tracking','.tracking_state')):
             return ()
-        if key.endswith('.event_kind') and value in ('switch_activation','encoder_rising_edge','homing_contact'):
-            return (name(key[:-len('.event_kind')])+': '+{'switch_activation':'switch activations',
-                    'encoder_rising_edge':'encoder rising edges','homing_contact':'homing/probing contacts'}[value],)
         if key.endswith('.trigger_count') and type(value) is int and value>=0:
             return (name(key[:-len('.trigger_count')])+': '+str(value)+' events recorded',)
-        if key.endswith('.event_tracking') and value in ('paused','capacity'):
-            return (name(key[:-len('.event_tracking')])+': '+('Event tracking paused' if value=='paused' else 'Counter capacity reached'),)
         if key.endswith('.travel_mm') and number(value) and value>=0:
             return (name(key[:-10])+': '+formatted(value/1000,'m'),)
-        if key=='travel_tracking' and value in ('tracking','paused'):
-            return ('Axis travel: '+{'tracking':'Tracking','paused':'Paused'}[value],)
-        if key=='usage_slots_remaining' and number(value):
-            return ('Counter slots free: '+str(int(value)),)
-        if key=='usage_tracking_omitted' and number(value):
-            return ('Tracking capacity excluded: '+str(int(value)),) if value else ()
-        if key.endswith('.tracking_state') and value in ('starting','paused','capacity'):
-            return (name(key[:-15])+': '+{'starting':'Tracking starting','paused':'Tracking paused',
-                                        'capacity':'Counter capacity reached'}[value],)
-        if key=='sampled_print_s' and number(value) and value>=0:
+        if key=='sampled_print_s' and number(value):
             return ('Sampled print time: '+duration(value),)
         if key.endswith('.sampled_on_s') and number(value) and value>=0:
             return (name(key[:-13])+' ON time: '+duration(value),)

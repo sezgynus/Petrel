@@ -197,7 +197,9 @@ class UsagePlannerAndReports(unittest.TestCase):
         for i in range(128):
             self.assertIn('component_%03d'%i, str(rows))
         self.assertGreater(len(rows),128)
-        self.assertIn('Counter slots free: 0', lines)
+        # Capacity metadata remains in raw evidence but not in the usage view.
+        self.assertIn(('usage_slots_remaining', 0), fields)
+        self.assertNotIn('Counter slots free: 0', lines)
 
     def test_supported_and_observed_are_distinct_and_disconnect_pauses(self):
         from maintenance_records import MaintenanceBook

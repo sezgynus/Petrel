@@ -32,6 +32,8 @@ class CurrentUsagePresentationTests(unittest.TestCase):
             self.assertFalse(any(k.endswith(('.observed_trigger_count', '.sensor_tracking')) for k, _ in fields))
             shown = str(evidence_lines('S12', fields))
             self.assertIn('4 events recorded', shown)
+            self.assertIn((device+'.event_kind', 'switch_activation'), fields)
+            self.assertNotIn('switch activations', shown)
             self.assertNotIn('legacy', shown.lower())
             self.assertNotIn('lower bound', shown.lower())
             self.assertNotIn('intervals', shown.lower())
@@ -50,14 +52,36 @@ class CurrentUsagePresentationTests(unittest.TestCase):
                   ('axis_z.travel_mm', 2347.), ('travel_tracking', 'tracking'))
         shown = evidence_lines('S12', fields)
         self.assertIn('Z travel: 2.347 m', shown)
-        self.assertIn('Axis travel: Tracking', shown)
-        self.assertEqual(len(shown), 2)
+        self.assertNotIn('Axis travel: Tracking', shown)
+        self.assertEqual(len(shown), 1)
 
-    def test_real_paused_and_capacity_states_remain_visible(self):
-        shown = evidence_lines('S12', (('probe.event_tracking', 'paused'),
-                                      ('fan.tracking_state', 'capacity')))
-        self.assertIn('Event tracking paused', str(shown))
-        self.assertIn('Counter capacity reached', str(shown))
+    def test_usage_history_only_displays_amounts_not_event_kinds_or_recorder_states(self):
+        raw = (
+            ('endstop stepper_x.trigger_count', 4),
+            ('endstop stepper_y.trigger_count', 4),
+            ('filament_switch_sensor mmu_gate_sensor.trigger_count', 0),
+            ('probe.trigger_count', 4),
+            ('endstop stepper_x.event_kind', 'homing_contact'),
+            ('endstop stepper_y.event_kind', 'homing_contact'),
+            ('filament_switch_sensor mmu_gate_sensor.event_kind', 'switch_activation'),
+            ('probe.event_kind', 'homing_contact'),
+            ('probe.event_tracking', 'paused'),
+            ('fan.tracking_state', 'capacity'),
+            ('axis_z.travel_mm', 2347.),
+            ('travel_tracking', 'tracking'),
+            ('usage_slots_remaining', 115),
+            ('usage_tracking_omitted', 2))
+        shown = evidence_lines('S12', raw)
+        merged = ' '.join(shown)
+        self.assertEqual(len(shown), 5)
+        self.assertEqual(merged.count('X axis endstop'), 1)
+        self.assertIn('4 events recorded', merged)
+        self.assertIn('Z travel: 2.347 m', merged)
+        for metadata in ('homing/probing contacts', 'switch activations',
+                         'Event tracking paused', 'Counter capacity reached',
+                         'Counter slots free', 'Tracking capacity excluded',
+                         'Axis travel: Tracking'):
+            self.assertNotIn(metadata, merged)
 
     def test_scrollable_report_never_draws_encoder_navigation_footer(self):
         view = service_fixture.MaintenanceServiceUI().view()
