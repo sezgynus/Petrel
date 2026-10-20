@@ -222,11 +222,25 @@ Görseller güncel arayüzü örnek controller kayıtları ve ölçümlerle gös
 Çubuk, belirlediğiniz aralıkta geçen süreyi gösterir; parça aşınmasını veya kalan ömrü ölçmez. **Due**, bu aralığın dolduğunu belirtir. Kayıtlı başlangıçtan beri örneklenen kullanım çubuğu doldurur; eksik/sıfırlanmış okumada ilerleme uydurulmadan takip duraklatılır. Tüm planlara enkoderi çevirerek ulaşabilirsiniz; **Back** üstte kalır.
 
 1. **Care schedule → Add reminder** açın. Desteklenen cihazı, bakım işini ve sunulan hatırlatma esasını seçin.
-2. Üreticinin bakım rehberine göre aralığı belirleyin, inceleyin ve açıkça kaydedin. Editörün ilk değeri kurulmuş bir varsayılan değildir.
+2. Üreticinin bakım rehberine göre aralığı belirleyin, inceleyin ve açıkça kaydedin. Editörün başlangıç değeri değiştirilebilir kontrol önerisidir; kurulmuş bir bakım planı veya üreticinin onaylı parça ömrü değildir.
 3. Bakımı gerçekten yaptıktan sonra planı açıp **I completed this service → Yes, record completion** seçin. Bu işlem bakım tarihini kaydeder; donanım testine başarılı sonucu vermez.
 4. Kayıtlı planları yeniden yüklemek için **Refresh records** kullanın. Yükleme/kayıt hatası başarı gibi gösterilmez.
 
 Örneklenmiş baskı/açık kalma saatleri yalnız kaydedilen dönemi kapsar ve alt sınırdır. Değerin aralığın altında olması bakımın henüz gerekmediğini kanıtlamaz.
+
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-care-device.png" width="176" alt="Bakım cihazı seçimi">
+  <img src="assets/screens/framed/maintenance-care-class.png" width="176" alt="Hotend bakım sınıfları">
+  <img src="assets/screens/framed/maintenance-care-basis.png" width="176" alt="Takvim, saat ve filament uzunluğu ölçütleri">
+  <img src="assets/screens/framed/maintenance-care-interval.png" width="176" alt="Filament uzunluğu bakım aralığı düzenleme">
+</p>
+<p align="center">
+  <img src="assets/screens/framed/maintenance-care-review.png" width="176" alt="Hatırlatıcı gözden geçirme">
+  <img src="assets/screens/framed/maintenance-care-detail.png" width="176" alt="Kayıtlı bakım hatırlatıcısı">
+  <img src="assets/screens/framed/maintenance-care-complete.png" width="176" alt="Tamamlanan gerçek bakımı onaylama">
+  <img src="assets/screens/framed/maintenance-care-remove.png" width="176" alt="Hatırlatıcı kaldırmayı onaylama">
+</p>
 
 ### Kontrol çalıştırma ve sonucunu okuma
 
@@ -258,9 +272,17 @@ Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol fa
 
 Tüm Maintenance raporlarında enkoderi çevirerek dikey kaydırın; Next/Previous düğmesi gerekmez. Son konumdan başa, baştan ters yönde çevirince sona dönülür. **Back** ve rapor başlığı sabit kalır. Bilgiyi okurken basmak Back üzerinden döner; gerçek rapor işlemleri içerikten sonra odak alır ve basılarak çalışır. Sağdaki çubuk konumu gösterir; ortak dashboard korunur.
 
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-usage-menu.png" width="176" alt="Kullanım ve geçmiş menüsü">
+  <img src="assets/screens/framed/maintenance-usage-component.png" width="176" alt="Kayıtlı komponent kullanım miktarları">
+  <img src="assets/screens/framed/maintenance-sensor-list.png" width="176" alt="Sensör diagnostik listesi">
+  <img src="assets/screens/framed/maintenance-sensor-report.png" width="176" alt="Filament sensörü diagnostik ayrıntısı">
+</p>
+
 Kayıtlı hatırlatıcıyı silmek için **Care schedule** içinde açıp **Remove reminder** seçin ve ayrı ekranda onaylayın. Varsayılan seçim **Keep reminder** olur. Kullanım sayaçları ve tamamlanan bakım geçmişi korunur.
 
-Desteklenen fan, ısıtıcı, çıkış ve LED nesneleri kendi kullanımlarına göre **Sampled powered hours** seçeneğini otomatik sunar. Örnekleme menünün açık olmasına bağlı değildir. S12 sayfaları tüm saklanan sayaçları, takip/kapasite durumlarını içerir; bkz. [Komponent kullanım takibi](maintenance-usage_TR.md).
+Desteklenen fan, ısıtıcı, çıkış ve LED nesneleri kendi kullanımlarına göre **Sampled powered hours** seçeneğini otomatik sunar. Örnekleme menünün açık olmasına bağlı değildir. S12 ekranında saklanan kullanım miktarları görünür; takip/kapasite verileri ek satır olarak gösterilmez; bkz. [Komponent kullanım takibi](maintenance-usage_TR.md).
 
 **Diagnostics → Usage and history** altında kayıtlı baskı kullanımı, örneklenmiş bileşen kullanımı ve son kontrol geçmişi bulunur. Geçmiş kanıtlar **HISTORY** olarak işaretlenir; güncel donanım sağlığını anlatmaz. **Support tools** isteğe bağlı kayıt ve diagnostik rapor aktarımını içerir; kaydı açmak kontrol başlatmaz.
 

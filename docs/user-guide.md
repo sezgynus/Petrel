@@ -222,11 +222,24 @@ These screenshots show the current UI with example controller records and measur
 The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Recorded sampled use since the saved anchor fills the bar; missing/reset readings pause tracking without inventing progress. Rotate to reach every plan; **Back** stays at the top.
 
 1. Open **Care schedule → Add reminder**. Select a supported device, service task and available reminder basis.
-2. Set your interval using the manufacturer's maintenance guidance, review it and explicitly save. The editor's initial value is not an installed default.
+2. Set your interval using the manufacturer's maintenance guidance, review it and explicitly save. The starting value is an editable inspection suggestion, not an installed service policy or a manufacturer-certified lifetime.
 3. After actually performing maintenance, open its plan and select **I completed this service → Yes, record completion**. This records the service date; it does not award a passed hardware test.
 4. Use **Refresh records** to reload saved plans. A load/save error is shown rather than claiming success.
 
 Sampled printing/powered hours cover only the recorded period and are lower bounds. A value below the interval does not prove service is not due.
+
+<p align="center">
+  <img src="assets/screens/framed/maintenance-care-device.png" width="176" alt="Choose device for a new reminder">
+  <img src="assets/screens/framed/maintenance-care-class.png" width="176" alt="Hotend maintenance classes">
+  <img src="assets/screens/framed/maintenance-care-basis.png" width="176" alt="Calendar, hours and extruded filament reminder bases">
+  <img src="assets/screens/framed/maintenance-care-interval.png" width="176" alt="Edit extruded filament interval">
+</p>
+<p align="center">
+  <img src="assets/screens/framed/maintenance-care-review.png" width="176" alt="Review reminder">
+  <img src="assets/screens/framed/maintenance-care-detail.png" width="176" alt="Saved reminder detail">
+  <img src="assets/screens/framed/maintenance-care-complete.png" width="176" alt="Confirm actual completed service">
+  <img src="assets/screens/framed/maintenance-care-remove.png" width="176" alt="Confirm reminder removal">
+</p>
 
 ### Run a check and read its result
 
@@ -258,9 +271,16 @@ Open **Diagnostics**, choose a group and select a reading. Information is collec
 
 Rotate the encoder to scroll every Maintenance report vertically; no Next/Previous buttons are needed. The last position wraps to the top, and reverse rotation from the top returns to the end. **Back** and the report heading stay fixed. Pressing while reading returns through Back; real report actions receive focus after the content and require a press. The right scrollbar shows position, and the shared dashboard remains untouched.
 
+<p align="center">
+  <img src="assets/screens/framed/maintenance-usage-menu.png" width="176" alt="Usage and history menu">
+  <img src="assets/screens/framed/maintenance-usage-component.png" width="176" alt="Recorded component usage">
+  <img src="assets/screens/framed/maintenance-sensor-list.png" width="176" alt="Sensor diagnostics list">
+  <img src="assets/screens/framed/maintenance-sensor-report.png" width="176" alt="Filament sensor diagnostic detail">
+</p>
+
 To delete a saved reminder, open it in **Care schedule → Remove reminder**, then confirm separately. **Keep reminder** is the default selection. Usage counters and completed-service history are preserved.
 
-Supported fan, heater, output and LED objects automatically offer **Sampled powered hours** based on their own usage. Menu visibility does not control sampling. S12 pages include all retained counters and tracking/capacity states; see [Component usage tracking](maintenance-usage.md).
+Supported fan, heater, output and LED objects automatically offer **Sampled powered hours** based on their own usage. Menu visibility does not control sampling. S12 pages show retained usage quantities without exposing internal tracking/capacity evidence as extra rows; see [Component usage tracking](maintenance-usage.md).
 
 **Diagnostics → Usage and history** contains recorded print usage, sampled component usage and recent check history. Historical evidence is labeled **HISTORY** and does not describe current hardware health. **Support tools** contains optional recording and diagnostic-report export; recording does not start a check.
 

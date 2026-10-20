@@ -8,6 +8,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock,patch
 from maintenance_assessment_store import ServicePolicy
 from maintenance_assessment_model import Finding
+from maintenance_sensor_diagnostics import SensorReading
 
 NOW=1780000000
 
@@ -77,3 +78,77 @@ def register(scene,canvas,finish):
         lambda v:setattr(v,'_maintenance_context',thermal))
     add('maintenance-recommendation','Recommendation explanation and available follow-up','Önerinin açıklaması ve kullanılabilir sonraki işlemler','finding',0,
         lambda v:setattr(v,'_maintenance_context',v.pd.maintenance_assessment_details().findings))
+
+
+    # Every example below renders the production Maintenance screen model.
+    # Hardware values are documented fixtures, never physical measurements.
+    def care_device(v):
+        v.pd.maintenance_service_devices=Mock(return_value=(
+            'stepper_x','stepper_y','stepper_z','extruder','heater_bed',
+            'fan','endstop stepper_x','filament_switch_sensor gate'))
+    add('maintenance-care-device','Choose a discovered component for a new reminder',
+        'Yeni hatırlatıcı için keşfedilen donanımı seçme','service_devices',1,care_device)
+
+    add('maintenance-care-class','Choose a hotend maintenance task',
+        'Hotend bakım görevini seçme','service_kind',1,
+        lambda v:setattr(v,'_maintenance_context','extruder'))
+
+    def filament_basis(v):
+        v._maintenance_context=('extruder','nozzle')
+        v.pd.maintenance_service_bases=Mock(return_value=(
+            'calendar_s','sampled_print_s','filament_mm','sampled_on_s'))
+    add('maintenance-care-basis','Select calendar, print, ON or extruded filament usage',
+        'Takvim, baskı, ON veya filament uzunluğu sayacı seçimi',
+        'service_basis',3,filament_basis)
+
+    def interval(v):
+        v._maintenance_context=('extruder','nozzle',500,'filament_mm')
+    add('maintenance-care-interval','Edit the nozzle inspection interval in metres',
+        'Nozzle kontrol aralığını metre olarak düzenleme','service_interval',1,interval)
+
+    nozzle=ServicePolicy('nozzle','extruder','filament_mm',500000,'user')
+    def review(v):
+        v._maintenance_context=nozzle
+    add('maintenance-care-review','Review a filament-based reminder before saving',
+        'Filament bazlı hatırlatıcıyı kaydetmeden önce gözden geçirme',
+        'service_review',1,review)
+
+    def detail(v):
+        v._maintenance_context=(nozzle,{'_sampled_elapsed_s':120000},'unknown')
+    add('maintenance-care-detail','View recorded progress for a nozzle reminder',
+        'Nozzle hatırlatıcısının kayıtlı ilerleme ayrıntısı',
+        'service_task',1,detail)
+
+    add('maintenance-care-complete','Confirm a completed physical maintenance task',
+        'Gerçekten yapılan bakımın kaydını onaylama','service_confirm',1,review)
+    add('maintenance-care-remove','Confirm reminder removal while preserving history',
+        'Geçmişi koruyarak hatırlatıcı silmeyi onaylama',
+        'service_remove_confirm',0,review)
+
+    add('maintenance-usage-menu','Usage and history entry points',
+        'Kullanım ve geçmiş menüsü','history',1)
+    component_usage=NS(feature_id='S12',device=None,status=None,reason='observed_information',
+        evidence=(('sampled_print_s',68400),
+                  ('stepper_x.travel_mm',32480),('stepper_y.travel_mm',28750),
+                  ('stepper_z.travel_mm',430),
+                  ('fan.sampled_on_s',14020),('extruder.sampled_on_s',19980),
+                  ('endstop stepper_x.trigger_count',105),
+                  ('filament_switch_sensor gate.trigger_count',57)))
+    add('maintenance-usage-component','Recorded axis travel, powered hours and sensor events',
+        'Kayıtlı eksen mesafesi, açık kalma süresi ve sensör olayları',
+        'result',0,lambda v:setattr(v,'_maintenance_result',component_usage))
+
+    def sensor_list(v):
+        v.pd.maintenance_sensor_devices=Mock(return_value=(
+            'endstop stepper_x','endstop stepper_y','probe',
+            'filament_switch_sensor gate'))
+    add('maintenance-sensor-list','Discovered sensor diagnostics list',
+        'Keşfedilen sensörlerin diagnostik listesi','sensor_devices',1,sensor_list)
+
+    sensor=SensorReading('filament_switch_sensor gate',
+        'filament_switch_sensor gate',True,True,
+        (('Sensor enabled','Yes'),('Filament detected','Yes')),
+        ('Snapshot at read time; use Refresh for another reading.',))
+    add('maintenance-sensor-report','On-demand filament sensor status report',
+        'İstek üzerine filament sensörü durum raporu',
+        'sensor_report',0,lambda v:setattr(v,'_maintenance_context',sensor))
