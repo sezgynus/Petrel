@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import math
 from maintenance_ui_records import TASKS
+from maintenance_care import task_label
 from maintenance_experience import device_name
 
 @dataclass(frozen=True, slots=True)
@@ -20,7 +21,7 @@ def care_items(tasks, devices, now):
     from maintenance_assessment_store import service_due, numeric
     result=[]
     for policy,last,cached in tasks[:64]:
-        if policy.device not in devices:
+        if policy.device not in devices and policy.basis!='travel_mm':
             continue
         state=cached
         progress=remaining=None
@@ -44,6 +45,10 @@ def care_items(tasks, devices, now):
                 def hours(value):
                     return ('%.1f'%value).rstrip('0').rstrip('.')
                 status=('Service due' if state=='due' else
+                        (hours(elapsed/1000.)+'/'+hours(policy.interval/1000.)+'m recorded')
+                        if policy.basis in ('travel_mm','filament_mm') else
+                        (str(int(elapsed))+'/'+str(int(policy.interval))+' events recorded')
+                        if policy.basis in ('observed_trigger_count','trigger_count') else
                         hours(elapsed/3600.)+'/'+hours(policy.interval/3600.)+'h recorded')
             elif state=='due':
                 progress=1.
@@ -51,7 +56,7 @@ def care_items(tasks, devices, now):
             else:
                 state='unknown'
                 status='Tracking paused' if last and last.get('_tracking_paused') else 'Tracking starting'
-        task=TASKS.get(policy.task_id,'Service task')
+        task=task_label(policy.task_id,policy.device)
         name=device_name(policy.device)
         label=(name+' / '+task)
         result.append(CareItem(policy,last,state,label,status,progress,remaining))

@@ -11,10 +11,10 @@ from time import monotonic, time
 from maintenance_motion import number
 
 
-MAX_USAGE_COUNTERS = 32
-# Older writers could add one batch beyond 32. Keep those values/ledger IDs;
-# do not silently drop service baselines. No new names grow a full ledger.
-MAX_LEGACY_USAGE_COUNTERS = 64
+# At most 64 live descriptors; reserve another inventory for retired devices.
+# Preserve every legacy counter and identity within the existing 64 KiB file.
+MAX_USAGE_COUNTERS = 128
+MAX_LEGACY_USAGE_COUNTERS = MAX_USAGE_COUNTERS
 MAX_RECORD_BYTES = 65536
 
 
@@ -108,8 +108,16 @@ class MaintenanceBook:
         self._record_jobs = {}
         self._closed = False
         self._inventory_key = None
-        self._names = ()
+        self._metrics = ()
+        self.usage_omitted = 0
+        self._capacity_rejected = set()
         self._observed = set()
+        from maintenance_travel import TravelLedger
+        self.travel = TravelLedger()
+        from maintenance_sensor_usage import SensorUsage
+        self.sensors = SensorUsage()
+        from maintenance_sensor_usage import SensorEventLedger
+        self.sensor_events = SensorEventLedger()
 
     def record(self,result,method,state,plan=None):
         if self._closed:
@@ -188,37 +196,46 @@ class MaintenanceBook:
         self._record_futures = pending
         return self.errors != before
 
-    def note(self,state,now=None):
+    def note(self,state,now=None,*,snapshot=None):
         """No I/O; bounded lower-bound sampled ON time, never exact lifetime."""
         if self._closed:
             return
         self.poll_records()
         now = monotonic() if now is None else now
+        self.travel.note(state)
         active = {}
         key = (state.epoch,id(state.settings))
         if state.ready and key!=self._inventory_key:
+            from maintenance_usage import usage_metrics
+            if (snapshot is not None and snapshot.epoch==state.epoch
+                    and snapshot.config_marker==id(state.settings)):
+                self._metrics, self.usage_omitted = snapshot.usage_metrics, snapshot.usage_omitted
+            else:
+                self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()),state.settings)
             self._observed.clear()
-            self._names = tuple(name for name,cfg in state.settings.items()
-                if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan '))
-                or isinstance(cfg,Mapping) and 'heater_pin' in cfg)[:16]
+            self._capacity_rejected.clear()
             self._inventory_key = key
+            self._last = None
+        self.sensor_events.note(state)
         if state.ready:
-            for name in self._names:
-                values = state.status.get(name)
-                if not isinstance(values,Mapping):
+            for metric in self._metrics:
+                if metric.metric_id != 'sampled_on_s':
                     continue
-                cfg = state.settings.get(name,{})
-                key = 'power' if isinstance(cfg,Mapping) and 'heater_pin' in cfg else (
-                      'speed' if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan ')) else None)
-                if key and number(values.get(key)):
-                    active[name] = values[key]>0
-                    self._observed.add(name)
+                value = metric.active(state.status)
+                if value is not None:
+                    active[metric.device] = value
+                    self._observed.add(metric.device)
             active['@printing'] = (state.status.get('print_stats',{}).get('state')=='printing'
                 and state.status.get('virtual_sdcard',{}).get('is_active') is True
                 and state.status.get('pause_resume',{}).get('is_paused') is False)
         with self._lock:
-            for name in active:
-                if name != '@printing': self._usage.setdefault(name, 0.)
+            for name in tuple(active):
+                if name in self._capacity_rejected or (name not in self._usage
+                        and name != '@printing' and len(self._usage) >= MAX_USAGE_COUNTERS):
+                    active.pop(name)
+                    self._capacity_rejected.add(name)
+                elif name != '@printing':
+                    self._usage.setdefault(name, 0.)
             previous = self._last
             if previous is not None and state.epoch==previous[0]:
                 dt = now-previous[1]
@@ -245,6 +262,8 @@ class MaintenanceBook:
             self._flush_locked()
 
     def _flush_locked(self):
+        self.travel.flush()
+        self.sensor_events.counters()
         with self._lock:
             pending,self._usage = self._usage,{}
         try:
@@ -252,11 +271,11 @@ class MaintenanceBook:
             counters = data.get('sampled_on_s',{})
             if not isinstance(counters,dict) or len(counters)>MAX_LEGACY_USAGE_COUNTERS:
                 raise ValueError('maintenance_usage_invalid')
-            rejected = 0
-            for name,value in pending.items():
+            rejected = set()
+            for name,value in sorted(pending.items()):
                 if name=='@printing': continue
                 if name not in counters and len(counters) >= MAX_USAGE_COUNTERS:
-                    rejected += 1
+                    rejected.add(name)
                     continue
                 old = counters.get(name,0.)
                 if not number(old) or old<0:
@@ -269,11 +288,18 @@ class MaintenanceBook:
             if identity is None: identity=uuid.uuid4().hex
             if not isinstance(identity,str) or not re.fullmatch(r'[a-f0-9]{32}',identity):
                 raise ValueError('maintenance_usage_identity_invalid')
-            write_json('maintenance-usage.json',{'version':1,'sampled_on_s':counters,
-                'sampled_print_s':printing+pending.get('@printing',0.),'counter_id':identity,
-                'coverage':'sampled_lower_bound_not_lifetime','saved_at':time()})
+            # No periodic rewrite for an unchanged valid ledger. The first
+            # read still creates the durable identity required by service anchors.
+            changed = bool(pending) or data.get('counter_id') is None
+            if changed:
+                data.update(version=1, sampled_on_s=counters,
+                    sampled_print_s=printing+pending.get('@printing',0.), counter_id=identity,
+                    coverage='sampled_lower_bound_not_lifetime', saved_at=time())
+                write_json('maintenance-usage.json',data)
             if rejected:
-                self.errors += rejected
+                with self._lock:
+                    self._capacity_rejected.update(rejected)
+                self.errors += len(rejected)
                 logging.warning('Maintenance usage capacity reached; new device counters not recorded')
         except Exception:
             with self._lock:
@@ -307,13 +333,44 @@ class MaintenanceBook:
             self.errors += 1
             logging.warning('Maintenance usage tail unconfirmed during shutdown')
 
+    def usage_status(self):
+        """Small immutable view; no disk or network access on the UI owner."""
+        with self._lock:
+            active = self._last[2] if self._last is not None else {}
+            return tuple((m.device, 'capacity' if m.device in self._capacity_rejected else
+                          'observed' if m.device in active else
+                          'paused' if m.device in self._observed else 'starting')
+                         for m in self._metrics if m.metric_id == 'sampled_on_s')
+
     def service_counters(self):
         """Worker-only durable lower bounds, with a persisted ledger identity."""
-        self.flush()
-        data=read_json('maintenance-usage.json',{})
-        counters=dict(data.get('sampled_on_s',{}))
-        return {'counter_id':data.get('counter_id'),'sampled_on_s':counters,
-                'sampled_print_s':data.get('sampled_print_s')}
+        with self._disk:
+            self._flush_locked()
+            data=read_json('maintenance-usage.json',{})
+        states = self.usage_status()
+        with self._lock:
+            printing = self._last is not None
+        available = tuple((device,'sampled_on_s') for device,status in states if status=='observed')
+        if printing: available += ((None,'sampled_print_s'),)
+        result = {'counter_id':data.get('counter_id'),
+                'sampled_on_s':dict(data.get('sampled_on_s',{})),
+                'sampled_print_s':data.get('sampled_print_s'),
+                'available_metrics':available}
+        with self._disk:
+            travel = self.travel.counters()
+        result.update(travel)
+        with self._disk:
+            sensors = self.sensors.counters()
+        result.update(sensors)
+        result['available_metrics'] += tuple((d, 'observed_trigger_count')
+                                            for d in sensors['sensor_available'])
+        with self._disk:
+            events = self.sensor_events.counters()
+        result.update(events)
+        result['available_metrics'] += tuple((d, 'trigger_count') for d in events['event_available'])
+        if travel['travel_available']:
+            result['available_metrics'] += tuple((axis,'travel_mm') for axis in travel['travel_mm'])
+        return result
 
     def read(self,feature):
         if feature=='S11':
@@ -329,10 +386,34 @@ class MaintenanceBook:
         if feature=='S12':
             self.flush()
             data = read_json('maintenance-usage.json',{'version':1,'sampled_on_s':{}})
-            return (('coverage','sampled_lower_bound_not_lifetime'),
-                    ('sampled_print_s',data.get('sampled_print_s',0.)),)+tuple(
-                (name[:40]+'.sampled_on_s',round(value,1))
-                for name,value in data.get('sampled_on_s',{}).items() if number(value) and value>=0)[:16]
+            states = self.usage_status() if callable(getattr(self,'usage_status',None)) else ()
+            counts = data.get('sampled_on_s',{})
+            if not isinstance(counts,dict) or len(counts)>MAX_USAGE_COUNTERS:
+                raise ValueError('maintenance_usage_invalid')
+            fields = (('coverage','sampled_lower_bound_not_lifetime'),
+                      ('sampled_print_s',data.get('sampled_print_s',0.)))
+            fields += tuple((name+'.sampled_on_s',round(value,1))
+                for name,value in sorted(counts.items()) if number(value) and value>=0)
+            fields += tuple((name+'.tracking_state',status) for name,status in states
+                            if status!='observed')
+            if hasattr(self,'travel'):
+                with self._disk:
+                    travel = self.travel.counters()
+                fields += tuple((axis+'.travel_mm',round(value,1)) for axis,value in travel['travel_mm'].items())
+                if travel['travel_mm']:
+                    fields += (('travel_tracking','tracking' if travel['travel_available'] else 'paused'),)
+            if hasattr(self, 'sensor_events'):
+                with self._disk:
+                    events = self.sensor_events.counters()
+                fields += (('sensor_event_coverage', 'klipper_callback_totals'),)
+                fields += tuple((d+'.trigger_count', n) for d, n in sorted(events['trigger_count'].items()))
+                fields += tuple((d+'.event_kind', kind) for d, kind in sorted(self.sensor_events.kinds.items()))
+                fields += tuple((d+'.event_tracking', 'capacity' if d in self.sensor_events.rejected else 'paused')
+                    for d in events['trigger_count'] if d not in events['event_available'])
+                fields += tuple((d+'.event_tracking', 'capacity')
+                    for d in self.sensor_events.rejected if d not in events['trigger_count'])
+            return fields + (('usage_slots_remaining',max(0,MAX_USAGE_COUNTERS-len(counts))),
+                             ('usage_tracking_omitted',getattr(self,'usage_omitted',0)))
         if feature=='S20':
             self.flush()
             history = read_json('maintenance-history.json',{'version':1,'records':[]})
@@ -349,9 +430,18 @@ class MaintenanceBook:
                     record['evidence'] = [(k,safe_scalar(v)) for k,v in item.get('evidence',[])[:16]
                         if isinstance(k,str) and re.fullmatch(r'[A-Za-z0-9_.]{1,48}',k) and safe_scalar(v) is not None]
                     records.append(record)
+            with self._disk:
+                sensors = self.sensors.counters()
+                events = self.sensor_events.counters()
             write_json('maintenance-report.json',{'version':1,'generated_at':time(),'records':records,
                 'sampled_print_s':safe_scalar(usage.get('sampled_print_s')),
                 'usage_counter_id':safe_scalar(usage.get('counter_id')),
+                'sensor_counter_id':sensors['sensor_counter_id'],
+                'observed_trigger_count':sensors['observed_trigger_count'],
+                'sensor_coverage':'legacy_sampled_history_paused',
+                'event_counter_id':events['event_counter_id'],
+                'trigger_count':events['trigger_count'],
+                'sensor_event_coverage':'klipper_callback_totals',
                 'usage':{k:v for k,v in usage.get('sampled_on_s',{}).items()
                          if safe_scalar(k) and number(v) and v>=0},
                 'coverage':'sampled_lower_bound_not_lifetime'})

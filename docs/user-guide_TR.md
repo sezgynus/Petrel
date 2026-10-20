@@ -219,7 +219,7 @@ Görseller güncel arayüzü örnek controller kayıtları ve ölçümlerle gös
   <img src="assets/screens/framed/maintenance-care-scrolled.png" width="360" alt="Kaydırılabilir alandaki diğer bakım planları">
 </p>
 
-Çubuk, belirlediğiniz aralıkta geçen süreyi gösterir; parça aşınmasını veya kalan ömrü ölçmez. **Due**, bu aralığın dolduğunu belirtir. Bakım tarihi veya örneklenmiş kullanım kapsamı bilinmiyorsa yüzde uydurulmaz. Tüm planlara enkoderi çevirerek ulaşabilirsiniz; **Back** üstte kalır.
+Çubuk, belirlediğiniz aralıkta geçen süreyi gösterir; parça aşınmasını veya kalan ömrü ölçmez. **Due**, bu aralığın dolduğunu belirtir. Kayıtlı başlangıçtan beri örneklenen kullanım çubuğu doldurur; eksik/sıfırlanmış okumada ilerleme uydurulmadan takip duraklatılır. Tüm planlara enkoderi çevirerek ulaşabilirsiniz; **Back** üstte kalır.
 
 1. **Care schedule → Add reminder** açın. Desteklenen cihazı, bakım işini ve sunulan hatırlatma esasını seçin.
 2. Üreticinin bakım rehberine göre aralığı belirleyin, inceleyin ve açıkça kaydedin. Editörün ilk değeri kurulmuş bir varsayılan değildir.
@@ -251,12 +251,16 @@ Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol fa
 <p align="center">
   <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Sistem okumaları, kullanım/geçmiş ve destek araçları">
   <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Etiket ve değer gruplarıyla host ölçümleri">
-  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Diagnostik raporunun ikinci sayfası">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Enkoderle kaydırılmış diagnostik rapor">
 </p>
 
 **Diagnostics** açın; bir grup ve okumayı seçin. Bilgi arka planda alınır ve doğrudan rapor olarak açılır. Başlık okumayı tanımlar; ölçümler etiket, değer ve birimi birlikte gösterir. Bilgi alanları seçilebilir menü öğesi değildir.
 
-Uzun raporlarda raporun sağ üstünde sayfa sayısı görünür. Enkoderle **Next page** veya **Previous page** seçip basın. **Back** önceki ekrana döner. Ortak dashboard raporun altında kalır; seçim çizgisi yalnız gerçek işlemlerde görünür.
+Tüm Maintenance raporlarında enkoderi çevirerek dikey kaydırın; Next/Previous düğmesi gerekmez. Son konumdan başa, baştan ters yönde çevirince sona dönülür. **Back** ve rapor başlığı sabit kalır. Bilgiyi okurken basmak Back üzerinden döner; gerçek rapor işlemleri içerikten sonra odak alır ve basılarak çalışır. Sağdaki çubuk konumu gösterir; ortak dashboard korunur.
+
+Kayıtlı hatırlatıcıyı silmek için **Care schedule** içinde açıp **Remove reminder** seçin ve ayrı ekranda onaylayın. Varsayılan seçim **Keep reminder** olur. Kullanım sayaçları ve tamamlanan bakım geçmişi korunur.
+
+Desteklenen fan, ısıtıcı, çıkış ve LED nesneleri kendi kullanımlarına göre **Sampled powered hours** seçeneğini otomatik sunar. Örnekleme menünün açık olmasına bağlı değildir. S12 sayfaları tüm saklanan sayaçları, takip/kapasite durumlarını içerir; bkz. [Komponent kullanım takibi](maintenance-usage_TR.md).
 
 **Diagnostics → Usage and history** altında kayıtlı baskı kullanımı, örneklenmiş bileşen kullanımı ve son kontrol geçmişi bulunur. Geçmiş kanıtlar **HISTORY** olarak işaretlenir; güncel donanım sağlığını anlatmaz. **Support tools** isteğe bağlı kayıt ve diagnostik rapor aktarımını içerir; kaydı açmak kontrol başlatmaz.
 

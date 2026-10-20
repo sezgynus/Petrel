@@ -141,10 +141,29 @@ def diagnostic_lines(feature,key,value):
         try: title=definition_for(feature_id).title
         except ValueError: return None
         return ('Recent check '+str(int(key[-1])+1)+': '+title+' / '+outcome_text(None if status=='None' else status),)
+    if feature=='S13':
+        if key in ('x_mm','y_mm','z_mm') and number(value) and value>=0:
+            return (key[0].upper()+' travel this session: '+formatted(value/1000,'m'),)
+        if key=='coverage' and value=='recorded_lower_bound_this_session':
+            return ('Recorded session lower bound; homing and probing excluded.',)
+        if key=='dropped_batches' and number(value):
+            return ('Excluded intervals/moves: '+str(int(value)),)
+        if key=='tracking_state' and value in ('starting','tracking','paused','unavailable'):
+            return ('Axis tracking: '+value,)
     if feature=='S12':
-        if key=='coverage' and value=='sampled_lower_bound_not_lifetime':
-            return ('Sampled times are recorded lower bounds, not lifetime totals.',)
-        if key=='sampled_print_s' and number(value) and value>=0:
+        # Usage History is quantities only. Event kinds, live tracking state
+        # and capacity are preserved in the raw evidence but not drawn.
+        if key in ('coverage','sensor_coverage','sensor_event_coverage',
+                   'travel_tracking','usage_slots_remaining','usage_tracking_omitted'):
+            return ()
+        if key.endswith(('.observed_trigger_count','.sensor_tracking',
+                         '.event_kind','.event_tracking','.tracking_state')):
+            return ()
+        if key.endswith('.trigger_count') and type(value) is int and value>=0:
+            return (name(key[:-len('.trigger_count')])+': '+str(value)+' events recorded',)
+        if key.endswith('.travel_mm') and number(value) and value>=0:
+            return (name(key[:-10])+': '+formatted(value/1000,'m'),)
+        if key=='sampled_print_s' and number(value):
             return ('Sampled print time: '+duration(value),)
         if key.endswith('.sampled_on_s') and number(value) and value>=0:
             return (name(key[:-13])+' ON time: '+duration(value),)

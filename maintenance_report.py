@@ -32,43 +32,80 @@ def section_from_lines(title, lines):
 def _wrap(value,width):
     return tuple(textwrap.wrap(str(value),width,replace_whitespace=True) or ('',))
 
-def report_pages(sections):
-    """Pack text and two-column facts into 132px without dropping any text."""
-    blocks=[]
+REPORT_TOP = 148
+REPORT_ROW_HEIGHT = 24
+REPORT_VISIBLE_ROWS = 8
+
+
+@dataclass(frozen=True, slots=True)
+class ReportCell:
+    lines: tuple
+    column: int = 0
+    small: bool = True
+    role: str = 'text'
+
+
+@dataclass(frozen=True, slots=True)
+class ReportRow:
+    cells: tuple
+    choice: int = 0
+
+
+def report_rows(sections, choices=()):
+    """Uniform pixel-scroll rows; facts are never selectable menu entries.
+
+    Two small lines or one large value fit exactly in a 24-pixel band.
+    Actions follow the complete report; Back stays outside the viewport.
+    No content-dependent work is repeated on encoder ticks by the view cache.
+    """
+    rows=[]
     for section in sections:
         if section.title:
-            blocks.extend(('section',(line,),16) for line in _wrap(section.title,38))
+            rows.extend(ReportRow((ReportCell((line,),role='section'),))
+                        for line in _wrap(section.title,38))
         for paragraph in section.text:
-            blocks.extend(('text',(line,),15) for line in _wrap(paragraph,38))
+            rows.extend(ReportRow((ReportCell((line,)),)) for line in _wrap(paragraph,38))
         for offset in range(0,len(section.facts),2):
-            cells=[]
-            for name,value in section.facts[offset:offset+2]:
-                labels=_wrap(name,18)
-                small=len(str(value))>13
-                values=_wrap(value,18 if small else 13)
-                cells.append((labels,values,small))
-            height=max(len(c[0])*12+4+len(c[1])*(12 if c[2] else 16)+6 for c in cells)
-            # Bound unusually long friendly values by splitting into continued cells.
-            while height>132:
-                chunks=[]
-                remaining=[]
-                for labels,values,small in cells:
-                    count=max(1,(122-min(len(labels),3)*12)//(12 if small else 16))
-                    chunks.append((labels[:3],values[:count],small))
-                    remaining.append((('Continued',),values[count:],small))
-                h=max(len(c[0])*12+4+len(c[1])*(12 if c[2] else 16)+6 for c in chunks)
-                blocks.append(('facts',tuple(chunks),h))
-                cells=[c for c in remaining if c[1]]
-                if not cells: break
-                height=max(len(c[0])*12+4+len(c[1])*(12 if c[2] else 16)+6 for c in cells)
-            if cells:
-                blocks.append(('facts',tuple(cells),height))
-    if not blocks:
-        blocks=[('text',('No displayable measurement.',),15)]
-    pages=[];page=[];used=0
-    for block in blocks:
-        if page and used+block[2]>132:
-            pages.append(tuple(page));page=[];used=0
-        page.append(block);used+=block[2]
-    if page: pages.append(tuple(page))
-    return tuple(pages)
+            pair=section.facts[offset:offset+2]
+            labels=[_wrap(name,18) for name,value in pair]
+            for at in range(0,max(map(len,labels)),2):
+                rows.append(ReportRow(tuple(ReportCell(lines[at:at+2],col,role='label')
+                    for col,lines in enumerate(labels) if lines[at:at+2])))
+            values=[(_wrap(value,18 if len(str(value))>13 else 13),len(str(value))>13)
+                    for name,value in pair]
+            groups=[tuple(lines[i:i+(2 if small else 1)]
+                          for i in range(0,len(lines),2 if small else 1))
+                    for lines,small in values]
+            for at in range(max(map(len,groups))):
+                rows.append(ReportRow(tuple(ReportCell(parts[at],col,values[col][1],'value')
+                    for col,parts in enumerate(groups) if at<len(parts))))
+    if not rows:
+        rows.append(ReportRow((ReportCell(('No displayable measurement.',)),)))
+    for index,choice in enumerate(choices[1:],1):
+        small=len(choice.label)>28
+        lines=_wrap(choice.label,38 if small else 28)
+        for at in range(0,len(lines),2 if small else 1):
+            rows.append(ReportRow((ReportCell(lines[at:at+(2 if small else 1)],small=small,role='action'),),index))
+    return tuple(rows)
+
+
+def report_navigation(rows, choices, position):
+    """Scroll immediately, then focus real actions; wrap in both directions."""
+    maximum=max(0,len(rows)-REPORT_VISIBLE_ROWS)
+    actions=max(0,len(choices)-1)
+    count=maximum+1+actions
+    position=position%count
+    selected=max(0,position-maximum)
+    offset=min(position,maximum)
+    if selected:
+        first=next((i for i,row in enumerate(rows) if row.choice==selected),maximum)
+        offset=min(first,maximum)
+    return position,offset,selected,count
+
+
+def cached_report_rows(view,screen):
+    source=(screen.sections,tuple(c.label for c in screen.choices))
+    if getattr(view,'_maintenance_report_source',None)!=source:
+        view._maintenance_report_source=source
+        view._maintenance_report_rows=report_rows(screen.sections,screen.choices)
+    return view._maintenance_report_rows

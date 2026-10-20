@@ -242,8 +242,9 @@ def _detail(v,screen):
 
 
 def _report(v,screen):
-    """Read-only report canvas; cursor navigation belongs only to actions."""
-    from maintenance_report import report_pages
+    """Info-style area scroll: fixed header, bounded rows, exposed-band drawing."""
+    from maintenance_report import (cached_report_rows,REPORT_TOP,REPORT_ROW_HEIGHT,
+                                    REPORT_VISIBLE_ROWS)
     choices=screen.choices
     if choices:
         _row(v,'back',choices[0],0,31,52,13)
@@ -255,45 +256,37 @@ def _report(v,screen):
     _text(v,'report_badge',screen.badge,50,92,26,True,color)
     for i,line in enumerate((textwrap.wrap(screen.heading,25)+['',''])[:2]):
         _text(v,('report_heading',i),line,50,109+i*17,25)
-    pages=report_pages(screen.sections)
-    page=min(screen.report_page,len(pages)-1)
-    _text(v,'report_page','%d/%d'%(page+1,len(pages)) if len(pages)>1 else '',222,92,6,True,MUTED)
-    blocks=pages[page]
-    structure=(page,tuple((kind,height,tuple((len(c[0]),len(c[1]),c[2]) for c in content) if kind=='facts' else ())
-                          for kind,content,height in blocks))
-    if _cached(v,'report_structure',structure):
-        _forget(v,'report_body')
-        v.lcd.draw_rectangle(1,BG,16,146,259,279)
-    y=148
-    for index,(kind,content,height) in enumerate(blocks):
-        token=('report_body',index)
-        if kind in ('section','text'):
-            _text(v,token,content[0],20,y,38,True,ACCENT if kind=='section' else MUTED)
-        else:
-            for column,(labels,values,small) in enumerate(content):
-                x=20+column*122
-                for i,line in enumerate(labels):
-                    _text(v,(token,column,'label',i),line,x,y+i*12,18,True,MUTED)
-                value_y=y+len(labels)*12+4
-                for i,line in enumerate(values):
-                    _text(v,(token,column,'value',i),line,x,value_y+i*(12 if small else 16),18 if small else 13,small)
-        y+=height
-    if _cached(v,'report_divider',True):
-        v.lcd.draw_line(LINE,16,282,256,282)
-    total=max(0,len(choices)-1)
-    selected=max(0,v._maintenance_selection-1)
-    old_start=getattr(v,'_maintenance_scroll',0)
-    start=min(max(0,min(old_start,selected),selected-1),max(0,total-2))
-    _move_viewport(v,'action',old_start,start,2,36,286)
-    v._maintenance_scroll=start
-    for slot in range(2):
-        index=1+start+slot
-        if index<len(choices):
-            _row(v,('action',index),choices[index],index,286+slot*36,34,None)
-        elif _cached(v,('empty',slot),(index,total)):
-            v.lcd.draw_rectangle(1,BG,0,286+slot*36,259,321+slot*36)
-            _forget(v,('action',index))
-    _scroll(v,start,total,2,286,70)
+    rows=cached_report_rows(v,screen)
+    visible,height=REPORT_VISIBLE_ROWS,REPORT_ROW_HEIGHT
+    start=max(0,min(screen.report_offset,max(0,len(rows)-visible)))
+    previous=getattr(v,'_maintenance_report_render_offset',0)
+    if previous is not None:
+        _move_viewport(v,'report',previous,start,visible,height,REPORT_TOP,first=0)
+    v._maintenance_report_render_offset=start
+    for slot in range(visible):
+        index=start+slot
+        y=REPORT_TOP+slot*height
+        token=('report',index)
+        if index>=len(rows):
+            if _cached(v,('empty',('report',slot)),(index,len(rows))):
+                v.lcd.draw_rectangle(1,BG,0,y,259,y+height-1)
+                _forget(v,token)
+            continue
+        row=rows[index]
+        shape=(y,height,row.choice,tuple((cell.column,len(cell.lines),cell.small,cell.role) for cell in row.cells))
+        if _cached(v,('row',token),shape):
+            _forget(v,token,keep=('row',))
+            v.lcd.draw_rectangle(1,BG,0,y,259,y+height-1)
+        for cell in row.cells:
+            x=(24 if row.choice else 20)+cell.column*122
+            cells=38 if cell.role in ('text','section') or row.choice and cell.small else (28 if row.choice else 18 if cell.small else 13)
+            ink=ACCENT if cell.role=='section' else INK if cell.role in ('value','action') else MUTED
+            top=y+(0 if len(cell.lines)>1 else 6 if cell.small else 4)
+            for line,value in enumerate(cell.lines):
+                _text(v,(token,cell.column,cell.role,line),value,x,top+line*12,cells,cell.small,ink)
+        if row.choice:
+            _cursor(v,token,y,height,v._maintenance_selection==row.choice)
+    _scroll(v,start,len(rows),visible,REPORT_TOP,visible*height)
 
 
 def draw_maintenance(v,screen):
@@ -304,6 +297,7 @@ def draw_maintenance(v,screen):
         v._maintenance_frame=frame
         v._maintenance_regions={}
         v._maintenance_scroll=0
+        v._maintenance_report_render_offset=None
         v._list_render=None
         # Match the standard menu header exactly. The title bar has its own
         # background and cached Wi-Fi/clock/Klipper status indicators.

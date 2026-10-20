@@ -26,7 +26,13 @@ class MaintenanceUIFlows(unittest.TestCase):
         d.Draw_Maintenance_Menu()
         screen=d._maintenance_screen()
         index=next(i for i,c in enumerate(screen.choices) if c.action==action and (value is None or c.value==value))
-        d._maintenance_selection=index
+        if screen.kind=='report':
+            from maintenance_report import report_rows,REPORT_VISIBLE_ROWS
+            maximum=max(0,len(report_rows(screen.sections,screen.choices))-REPORT_VISIBLE_ROWS)
+            d._maintenance_report_position=maximum+index if index else 0
+            d.Draw_Maintenance_Menu()
+        else:
+            d._maintenance_selection=index
         d.HMI_Maintenance_Menu()
 
     def test_root_has_stable_destinations_and_no_io(self):

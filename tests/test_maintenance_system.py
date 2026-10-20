@@ -69,7 +69,7 @@ class RecordTests(unittest.TestCase):
         self.worker = fixture.Worker()
         self.book = MaintenanceBook(self.worker)
         self.state = SimpleNamespace(ready=True,epoch=1,software_version='v1',
-            settings={'fan':{}},status={'fan':{'speed':1.}})
+            objects=('fan',),settings={'fan':{}},status={'fan':{'speed':1.}})
 
     def test_usage_excludes_unobserved_long_intervals(self):
         for stamp in (0.,1.,10.):

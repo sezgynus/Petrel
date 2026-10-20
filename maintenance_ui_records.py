@@ -3,38 +3,55 @@ from pathlib import Path
 from time import time
 from maintenance_assessment_store import AssessmentStore, ServicePolicy, service_due
 from maintenance_records import read_json
+from maintenance_usage import metric_counter
 
-TASKS={'inspect_clean':'Inspect and clean','nozzle_inspect':'Inspect nozzle','lubricate':'Lubricate mechanism'}
+from maintenance_care import TASKS
 
 
-def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None):
+def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None,
+            filament_provider=None):
     """Return a Future. Calling this function never performs synchronous disk I/O."""
-    if operation not in ('load','save_policy','complete'):
+    if operation not in ('load','save_policy','complete','remove_policy'):
         raise ValueError('unknown_maintenance_record_operation')
     if operation!='load' and not isinstance(policy,ServicePolicy):
         raise ValueError('service_policy_required')
-    if operation!='load' and policy.device not in devices:
+    if operation not in ('load','remove_policy') and policy.device not in devices:
         raise ValueError('service_device_no_longer_available')
     def work():
         store=AssessmentStore(Path.home()/'.config'/'Petrel'/'maintenance-assessment.json')
         if operation=='save_policy': store.set_service_policy(policy)
+        if operation=='remove_policy': store.remove_service_policy(policy)
         policies=store.service_policies()
+        all_policies=policies+((policy,) if policy and operation!='remove_policy' else ())
         usage=usage_provider() if callable(usage_provider) and any(
-            p.basis in ('sampled_on_s','sampled_print_s') for p in policies+((policy,) if policy else ())) else {}
+            p.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm')
+            for p in all_policies) else {}
+        if callable(filament_provider) and any(p.basis=='filament_mm' for p in all_policies):
+            try:
+                native=filament_provider()
+            except (OSError, ValueError, RuntimeError):
+                native={}
+            if native:
+                usage=dict(usage)
+                prior=tuple(usage.get('available_metrics', ()))
+                usage.update(native)
+                usage['available_metrics']=prior+tuple(native.get('available_metrics', ()))
         def counter(item):
-            value=(usage.get('sampled_print_s') if item.basis=='sampled_print_s' else
-                   usage.get('sampled_on_s',{}).get(item.device))
-            identity=usage.get('counter_id')
+            value=metric_counter(usage,item.device,item.basis)
+            identity=usage.get('travel_counter_id' if item.basis=='travel_mm' else
+                               'sensor_counter_id' if item.basis=='observed_trigger_count' else
+                               'event_counter_id' if item.basis=='trigger_count' else
+                               'filament_counter_id' if item.basis=='filament_mm' else 'counter_id')
             from maintenance_assessment_store import numeric
             return (value,identity) if numeric(value) and isinstance(identity,str) and identity else (None,None)
         if operation=='complete':
-            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s') else (None,None)
+            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm') else (None,None)
             if policy.basis!='calendar_s' and value is None:
                 raise ValueError('service_counter_unknown')
             store.complete_service(policy,timestamp=time(),confirmed=True,counter=value,counter_id=identity)
         tasks=[]
         for item in policies:
-            if item.device not in devices: continue
+            if item.device not in devices and item.basis!='travel_mm': continue
             completed=store.latest_service(item.task_id,item.device,item.basis)
             value,identity=counter(item)
             tracking=store.tracking_start(item)

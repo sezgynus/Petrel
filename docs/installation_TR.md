@@ -45,6 +45,11 @@ Varsayılanı kabul etmek için Enter'a basın veya kendi değerinizi girin:
 | Encoder düğmesi | `20` |
 | Moonraker güç aygıtı | `Printer` |
 | Güç açma basılı tutma süresi | `2000` ms (2 saniye) |
+| Eksen mesafesi sayaçları | `1` açık; istemiyorsanız `0` girin |
+| Klipper deposu (açıksa) | `~/klipper` |
+| Ana Klipper config dosyası (açıksa) | `~/printer_data/config/printer.cfg` |
+| Emülatör / ekran görüntüsü yakalama | `0` kapalı |
+| Remote display | `0` kapalı |
 
 Kurulum `~/petrel-env` ortamını hazırlar, bağımlılıkları yükler ve `Petrel.service` servisini etkinleştirir. Ayarlar `~/.config/Petrel/Petrel.env` içinde tutulur; `moonraker.conf` yanına `Petrel.conf` include dosyası eklenir ve servis Moonraker güncellemelerine kaydedilir. Kurulum tekrarlandığında mevcut ayarlar korunur.
 
@@ -53,6 +58,16 @@ Moonraker yapılandırmanız farklı konumdaysa:
 ```bash
 MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ```
+
+## İsteğe bağlı eksen mesafesi sayaçları
+
+Mevcut `configure.sh`, **Enable axis travel counters? (1=yes, 0=no)** sorusunu sunar. İlk yapılandırmada varsayılan **1**; Enter kurulumu kabul eder, `0` reddeder. Sonraki çalıştırmalarda kaydedilmiş tercih korunur. Mevcut kurulumlar güncellemede sessizce değiştirilmez: bu özelliği seçmek için `./configure.sh` çalıştırın.
+
+Açıldığında `klippy/extras/petrel_axis_travel.py`, Petrel deposundaki extra'ya symlink olarak bağlanır. Ana Klipper config dosyasının yanına `petrel-axis-travel.cfg` oluşturulur ve ana config dosyasının başına işaretli include bloğu eklenir; mevcut wildcard include parçayı zaten kapsıyorsa ikinci include eklenmez. Klipper'ın takip edilen kaynakları veya `.gitignore` değiştirilmez; yalnız ilgili symlink'in tam yolu deponun yerel Git exclude dosyasına eklenir. Kullanıcının mevcut istisnaları korunur; çakışan yabancı dosyanın üzerine yazılmaz. **Yukarıdaki `configure.sh` sorularının her biri değiştirilebilir:** URL Moonraker örneğini, UART LCD portunu, GPIO girdileri enkoder bağlantısını, güç aygıtı röleyi, basılı tutma süresi güç açmayı, son üç seçenek ise bu isteğe bağlı entegrasyonu ve yollarını belirler.
+
+**Açtıktan veya kapattıktan sonra yazıcı boştayken Klipper'ı yeniden başlatın**, ardından keşfi yenilemek için Petrel'i yeniden başlatın. Yapılandırıcı Klipper'ı otomatik yeniden başlatmaz. X/Y/Z mesafe cihazları ve **Recorded travel (metres)** hatırlatıcıları yalnız extra gerçekten yüklüyse sunulur. Ölçüm sınırları ve kaynak bütçesi için [kullanım takibine](maintenance-usage_TR.md) bakın.
+
+Kapatmak için tekrar `./configure.sh` çalıştırıp **0** seçin. Yalnız Petrel'in yönettiği config parçası/include, symlink ve kendisinin eklediği Git istisnası kaldırılır. Sayaçlar ve bakım geçmişi korunur; kayıtlı mesafe hatırlatıcıları duraklar. Aynı şekilde boşta Klipper restart uygulayın. Symlink sayesinde extra Petrel ile güncellenir; çalışan Klipper yeni kodu sonraki restart sırasında yükler. Klipper yeniden kurulumu/sert kurtarma bağlantıyı silebilir: onarmak için `configure.sh` tekrar çalıştırılır.
 
 ## LCD kaynakları ve ilk açılış
 
@@ -73,7 +88,7 @@ cd ~/Petrel
 ./configure.sh
 ```
 
-Mevcut değerler soruların varsayılanı olur. Özel `PETREL_SETTINGS_FILE` yolu ve yapılandırıcının sormadığı font/socket/görüntü klasörü dahil diğer ortam ayarları korunur; aynı anahtar tekrar eklenmez. Dosya özel izinlerle atomik olarak yenilenir. Kaydettikten sonra değişiklikleri uygulamak için sunulan servis yeniden başlatmasını kabul edin. Ekran parlaklığı/kısma ayarları burada değil, LCD'de **Home → Display** altında yapılır.
+Mevcut değerler soruların varsayılanı olur. Emülatör ve remote display soruları yeni yapılandırmada **0 (kapalı)** gelir; sonraki çalıştırmalarda kaydedilmiş değer korunur. Emülatör ekran yakalamayı, remote display tarayıcıdan görüntülemeyi ve enkoder kontrolünü açar. Remote display, ayrı yakalama tercihi kapalı olsa bile emülatörü de başlatır. Mevcut remote host/port ayarları korunur; varsayılan dinleme adresi `0.0.0.0:8088` olur. Özel `PETREL_SETTINGS_FILE` yolu ve yapılandırıcının sormadığı font/socket/görüntü klasörü dahil diğer ortam ayarları korunur; aynı anahtar tekrar eklenmez. Dosya özel izinlerle atomik olarak yenilenir. Kaydettikten sonra değişiklikleri uygulamak için sunulan servis yeniden başlatmasını kabul edin. Ekran parlaklığı/kısma ayarları burada değil, LCD'de **Home → Display** altında yapılır.
 
 Yapılandırıcının sormadığı ayarlar için harici ortam dosyasını düzenleyin. `export` kullanmadan düz `KEY=value` satırları yazın:
 
@@ -88,7 +103,13 @@ Yapılandırıcının sormadığı ayarlar için harici ortam dosyasını düzen
 | `PETREL_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Moonraker güç aygıtınızın adı / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Milisaniye cinsinden güç açma süresi / `2000`; `0` anında açar |
-| `PETREL_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık |
+| `PETREL_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık; `configure.sh` içinde sorulur |
+| `PETREL_REMOTE` | Tarayıcı görüntüsü ve enkoder kontrolü / `0` kapalı, `1` açık; emülatörü de başlatır |
+| `PETREL_REMOTE_HOST` | Remote dinleme adresi / `0.0.0.0`; yapılandırıcı korur |
+| `PETREL_REMOTE_PORT` | Remote portu / `8088`; yapılandırıcı korur |
+| `PETREL_AXIS_TRAVEL` | İsteğe bağlı extra kurulum tercihi / ilk yapılandırmada `1`; yalnız bu anahtarı düzenlemek yerine `configure.sh` kullanın |
+| `PETREL_KLIPPER_DIR` | `klippy/extras` içeren Klipper deposu / `~/klipper` |
+| `PETREL_PRINTER_CONFIG` | Yönetilen include eklenecek ana config / `~/printer_data/config/printer.cfg` |
 
 Düzenleme sonrası `sudo systemctl restart Petrel.service` ile yeniden başlatın. Özel anahtarları ve makine ayarlarını takip edilen repo dosyalarının dışında tutun. Görüntü almaya özel seçenekler için [emülatör rehberine](ui-emulator_TR.md) bakın.
 
@@ -122,3 +143,7 @@ sudo systemctl restart Petrel.service
 | İşlem başarısız veya zaman aşımına uğradı | Tekrarlamadan önce Mainsail'den gerçek yazıcı durumunu kontrol edin |
 
 Hata bildirimine yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
+
+### Extra güncellemesinde sensör olay sayaçları
+
+Mevcut isteğe bağlı axis-travel extra’sı artık olay tabanlı sensör sayaçlarını da sunar. `configure.sh` içindeki ortak seçeneğin mevcut `PETREL_AXIS_TRAVEL` anahtarı korunur. Yeni eklenti dosyası/include eklemek gerekmez. Kurulu symlink güncel dosyayı izler; yüklemek için yazıcı boşta iken Klipper’ı yeniden başlatın, ardından Petrel’i yeniden başlatın. Otomatik Klipper restart yapılmaz. Extra eski/kapalı/eksikse sensör olay reminder’ları duraklar, geçmişler silinmez. Kaynaklar ve sayım kapsamı için [kullanım sayaçları rehberine](maintenance-usage_TR.md#olay-tabanlı-sensör-sayaçları) bakın.

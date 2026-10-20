@@ -2681,16 +2681,24 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         if method == 'draw_text' and previous is not None:
             x, y = args[-3:-1]
-            # Erase a shrinking string, leaving adjacent icons untouched.
-            right = min(271,
-                        x + max(len(previous[-1]), len(args[-1])) * (T5UIC1Display.FONT_SIZES[args[2]][0] if isinstance(args[2], int) else self.STAT_CHR_W) - 1)
-            self.lcd.draw_rectangle(1, args[4],
-                                    x, y, right, y + (T5UIC1Display.FONT_SIZES[args[2]][1] if isinstance(args[2], int) else 20) - 1)
-            # Long telemetry text can reach the next column. Restore only
-            # the fields touched by the erasure when they are drawn below.
+            # Opaque 0x11 text already paints each cell's background. Clearing
+            # old glyphs with a separate 0x05 packet races the physical panel:
+            # a later text packet can arrive without the preceding clear.
+            # Include trailing blank cells in this same opaque text command.
+            width = (T5UIC1Display.FONT_SIZES[args[2]][0]
+                     if isinstance(args[2], int) else self.STAT_CHR_W)
+            occupied = max(len(previous[-1]), len(args[-1]))
+            right = min(271, x + occupied * width - 1)
+            if args[1]:
+                args[-1] = args[-1].ljust(occupied)
+            else:
+                # Transparent text still needs an explicit background erase.
+                height = (T5UIC1Display.FONT_SIZES[args[2]][1]
+                          if isinstance(args[2], int) else 20)
+                self.lcd.draw_rectangle(1, args[4], x, y, right, y + height - 1)
+            # Invalidate any overlapping text/icon field, but never the
+            # separately cached status markers below the glyph baseline.
             for other in list(cache):
-                # Status markers have their own cache signatures and never
-                # overlap a numeric text glyph; only invalidate draw fields.
                 if (other[0] not in ('axis_home', 'dashboard_indicator')
                         and other != key and x < other[1] <= right
                         and y - 1 <= other[2] <= y + 19):

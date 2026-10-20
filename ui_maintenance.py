@@ -10,10 +10,11 @@ from maintenance_experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details, LABELS)
 from graphite_theme import show_icon
 from maintenance_care_view import care_items
+from maintenance_care import tasks as care_tasks, task_label
 from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
 from maintenance_icons import icon_for, feature_icon
-from maintenance_report import ReportSection, section_from_lines, report_pages
+from maintenance_report import ReportSection, section_from_lines, cached_report_rows, report_navigation
 from lcd_resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIONS, ICON_MAINTENANCE_DIAGNOSTICS
 
 
@@ -28,7 +29,7 @@ class MaintenanceViewMixin:
             self._maintenance_history=[]
             self._maintenance_page='root'
             self._maintenance_selection=0
-            self._maintenance_report_page=0
+            self._maintenance_report_position=0
             self._maintenance_context=None
             self._maintenance_frame=None
             self._maintenance_regions={}
@@ -45,6 +46,8 @@ class MaintenanceViewMixin:
             self._maintenance_records_background=False
             self._maintenance_records_failed=False
             self._maintenance_records_refresh_at=0.
+            self._maintenance_sensor_future=None
+            self._maintenance_sensor_identity=None
 
     def Enter_Maintenance_Menu(self):
         self._maintenance_init()
@@ -79,10 +82,13 @@ class MaintenanceViewMixin:
             return ()
         if not self._maintenance_records_data[0]: return ()
         physical,reads=self._maintenance_options()
-        devices={r.device for r in physical+reads}
+        devices=set(self._maintenance_devices())
         return care_items(self._maintenance_records_data[0],devices,time())
 
     def _maintenance_back_home(self):
+        self._maintenance_report_source=None
+        self._maintenance_report_rows=()
+        self._maintenance_report_position=0
         self._maintenance_history=[]
         self._maintenance_frame=None
         self._maintenance_page='root'
@@ -94,7 +100,9 @@ class MaintenanceViewMixin:
     def _maintenance_show(self,page,selection=0):
         self._maintenance_init()
         if page!=self._maintenance_page:
-            self._maintenance_report_page=0
+            self._maintenance_report_position=0
+            self._maintenance_report_source=None
+            self._maintenance_report_rows=()
         self._maintenance_page=page
         self._maintenance_selection=selection
         self.Draw_Maintenance_Menu()
@@ -104,7 +112,7 @@ class MaintenanceViewMixin:
         self._maintenance_init()
         self._maintenance_history.append((self._maintenance_page,self._maintenance_selection,self._maintenance_context))
         self._maintenance_context=context
-        self._maintenance_report_page=0
+        self._maintenance_report_position=0
         self._maintenance_notice=''
         self._maintenance_show(page)
 
@@ -122,6 +130,13 @@ class MaintenanceViewMixin:
         reads=tuple(self.pd.maintenance_read_plan())
         return physical,reads
 
+    def _maintenance_devices(self):
+        physical,reads=self._maintenance_options()
+        devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
+        provider=getattr(self.pd,'maintenance_service_devices',None)
+        extra=provider() if callable(provider) else ()
+        return tuple(dict.fromkeys(devices+tuple(extra)))
+
     def _maintenance_screen(self):
         screen=self._maintenance_screen_model()
         if screen.kind=='detail' and screen.lines:
@@ -134,14 +149,11 @@ class MaintenanceViewMixin:
                     (screen.heading,)+screen.lines),))
         if screen.kind=='report':
             from dataclasses import replace
-            pages=report_pages(screen.sections)
-            page=max(0,min(getattr(self,'_maintenance_report_page',0),len(pages)-1))
-            self._maintenance_report_page=page
-            navigation=()
-            if page>0: navigation+=(Choice('Previous page','report_page',page-1),)
-            if page+1<len(pages): navigation+=(Choice('Next page','report_page',page+1),)
-            screen=replace(screen,report_page=page,
-                choices=screen.choices[:1]+navigation+screen.choices[1:])
+            rows=cached_report_rows(self,screen)
+            position,offset,selected,_=report_navigation(rows,screen.choices,self._maintenance_report_position)
+            self._maintenance_report_position=position
+            self._maintenance_selection=selected
+            screen=replace(screen,report_offset=offset)
         return screen
 
     def _maintenance_screen_model(self):
@@ -166,7 +178,28 @@ class MaintenanceViewMixin:
             groups=grouped(reads)
             return Screen('Diagnostics',choices=(back,)+tuple(
                 Choice(title,'diagnostic_topic',key) for key,title,rows in groups)+(
+                Choice('Sensors','open','sensor_devices'),
                 Choice('Usage and history','history'),Choice('Support tools','open','support')),kind='list')
+        if page=='sensor_devices':
+            provider=getattr(self.pd,'maintenance_sensor_devices',None)
+            names=provider() if callable(provider) else ()
+            return Screen('Sensor diagnostics',choices=(back,)+tuple(
+                Choice(device_name(d),'sensor_read',d,d) for d in names),kind='list',
+                heading='' if names else 'No configured sensors')
+        if page=='sensor_wait':
+            return Screen('Sensor diagnostics','Reading status',
+                ('This read does not move the printer.',),(back,))
+        if page=='sensor_report':
+            reading=context
+            return Screen('Sensor diagnostics',device_name(reading.device),
+                choices=(back,Choice('Refresh reading','sensor_refresh',reading.device)),
+                kind='report',badge='STATUS SNAPSHOT',report_icon=ICON_MAINTENANCE_DIAGNOSTICS,
+                sections=(ReportSection('Source',facts=(
+                    ('Configured','Yes' if reading.configured else 'No'),
+                    ('Status object','Present' if reading.listed else 'Not exposed'),
+                    ('Source',reading.source))),
+                    ReportSection('Readings',facts=reading.facts),
+                    ReportSection('Reading meaning',text=reading.notes)))
         if page=='diagnostic_topic':
             _,reads=self._maintenance_options()
             groups=grouped(reads)
@@ -262,8 +295,7 @@ class MaintenanceViewMixin:
         if page=='reference_limit':
             outcome,percent=context
             return Screen('Choose your review limit',str(percent)+'% change',
-                ('Turn to change the review limit.','This is your chosen threshold,',
-                 'not a manufacturer wear limit.'),
+                (),
                 (Choice('Review comparison','reference_confirm',('compare',outcome,percent/100)),))
         if page=='reference_confirm':
             operation,outcome,limit=context
@@ -383,7 +415,7 @@ class MaintenanceViewMixin:
         if phase=='measurement_edit':
             value=getattr(owner,'measurement_value',0.)
             unit=getattr(owner,'measurement_unit','mm')
-            return Screen('Measured value','%.2f %s' % (value,unit),('Turn to adjust actual value.','Press to accept measurement.','Do not enter a guessed value.'),
+            return Screen('Measured value','%.2f %s' % (value,unit),(),
                           (Choice('Accept measured value','record'),))
         if phase=='f12_await_stop':
             return Screen('Fan startup','Has the fan fully stopped?',('Wait for a physical full stop.','A zero command is not proof.'),
@@ -433,7 +465,7 @@ class MaintenanceViewMixin:
         if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():
             return 0
         snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
-        devices={d.name for d in getattr(snapshot,'devices',())}
+        devices=set(self._maintenance_devices())
         return sum(1 for policy,last,cached in self._maintenance_records_data[0]
                    if policy.device in devices and self._maintenance_policy_due(policy,last,cached)=='due')
 
@@ -453,57 +485,82 @@ class MaintenanceViewMixin:
                     (back,) if loading else (back,Choice('Load care plans','load_services')))
             items=self._maintenance_care()
             choices=(back,)+tuple(Choice(item.label,'service_task',(item.policy,item.last,item.state),
-                {'due':'Service is due','not_due':'Within your interval','unknown':'Service date or coverage unknown'}[item.state]) for item in items)+(
+                {'due':'Service is due','not_due':'Within your interval','unknown':item.detail}[item.state]) for item in items)+(
                 Choice('Add reminder','service_add'),Choice('Refresh records','load_services'))
             return Screen('Care schedule',choices=choices,kind='care',care=items)
         if page=='service_devices':
             physical,reads=self._maintenance_options()
-            devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
-            return Screen('Choose device',choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
+            devices=self._maintenance_devices()
+            # Prefer the existing axis entry over an additional travel-only
+            # alias. Keep that alias available when no axis entry was found.
+            devices=tuple(d for d in devices if not (d in ('axis_x','axis_y','axis_z')
+                          and 'stepper_'+d[-1] in devices))
+            omitted=getattr(self.pd.maintenance.snapshot,'care_omitted',0)
+            return Screen('Choose device',heading=(str(omitted)+' devices beyond capacity') if omitted else '',
+                choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
         if page=='service_kind':
             device=self._maintenance_context
-            tasks=['inspect_clean']
-            if device.startswith('extruder'): tasks.append('nozzle_inspect')
-            if device.startswith(('stepper_','manual_stepper ')): tasks.append('lubricate')
-            return Screen('Choose service task',choices=(back,)+tuple(Choice(TASKS[k],'service_kind',(device,k)) for k in tasks),kind='list')
+            return Screen('Choose maintenance class',choices=(back,)+tuple(
+                Choice(task_label(k,device),'service_kind',(device,k)) for k in care_tasks(device)),kind='list')
         if page=='service_basis':
             device,task=self._maintenance_context
             provider=getattr(self.pd,'maintenance_service_bases',None)
             bases=provider(device) if callable(provider) else ('calendar_s',)
             if not isinstance(bases,(tuple,list)): bases=('calendar_s',)
             names={'calendar_s':'Calendar days','sampled_print_s':'Sampled printing hours',
-                   'sampled_on_s':'Sampled powered hours'}
-            return Screen('Choose reminder basis',choices=(back,)+tuple(
+                   'sampled_on_s':'Sampled powered hours','travel_mm':'Recorded travel (metres)',
+                   'observed_trigger_count':'Legacy sampled activations',
+                   'trigger_count':'Recorded sensor events',
+                   'filament_mm':'Extruded filament (metres)'}
+            return Screen('Choose reminder basis',task_label(task,device),choices=(back,)+tuple(
                 Choice(names[b],'service_basis',(device,task,b)) for b in bases if b in names),kind='list')
         if page=='service_interval':
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
-            return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else ' sampled hours'),
-                ('Turn to change the interval.','Use your maintenance guidance.',
-                 'Sampled time is a lower bound.' if basis!='calendar_s' else 'This reminder does not measure wear.'),
+            return Screen('Choose your interval',str(amount)+(' calendar days' if basis=='calendar_s' else
+                ' metres travelled' if basis=='travel_mm' else
+                ' metres extruded' if basis=='filament_mm' else
+                ' recorded events' if basis in ('observed_trigger_count','trigger_count') else ' sampled hours'),
+                ('Use your maintenance guidance.',),
                 (Choice('Review reminder','service_review'),))
         if page=='service_review':
             policy=self._maintenance_context
-            return Screen('Confirm reminder',TASKS.get(policy.task_id,policy.task_id),
+            return Screen('Confirm reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),('Every %d calendar days' % (policy.interval/86400)) if policy.basis=='calendar_s'
+                 else ('After %d metres travelled' % (policy.interval/1000)) if policy.basis=='travel_mm'
+                 else ('After %d metres extruded' % (policy.interval/1000)) if policy.basis=='filament_mm'
+                 else ('After %d recorded events' % policy.interval) if policy.basis in ('observed_trigger_count','trigger_count')
                  else ('After %d sampled hours' % (policy.interval/3600)),
                  'Source: user-defined interval.','No service is marked completed.'),
                 (back,Choice('Save reminder','service_save',policy),Choice('Discard reminder','service_discard')))
         if page=='service_task':
             policy,last,due=self._maintenance_context
             physical,reads=self._maintenance_options()
-            if policy.device not in {r.device for r in physical+reads}:
-                return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),(back,))
+            if policy.device not in self._maintenance_devices():
+                return Screen('Service reminder','Tracking paused' if policy.basis=='travel_mm' else 'Device no longer available',
+                    ('Enable axis travel in configure.sh.' if policy.basis=='travel_mm' else 'Refresh the service plan.',),
+                    (back,Choice('Remove reminder','service_remove_confirm',policy)))
             due=self._maintenance_policy_due(policy,last,due)
             stamp=last.get('timestamp') if last else None
             date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
             coverage=() if policy.basis=='calendar_s' else (
-                'Sampled time is a lower bound.','Below limit does not prove not due.')
-            return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
+                'Counts cover enabled recording.' if policy.basis in ('observed_trigger_count','trigger_count') else
+                'Recorded travel is a lower bound.' if policy.basis=='travel_mm' else
+                'Moonraker history counts print jobs only.' if policy.basis=='filament_mm' else 'Sampled time is a lower bound.',
+                'Below limit does not prove not due.')
+            return Screen('Service reminder',task_label(policy.task_id,policy.device),
                 (device_name(policy.device),'Last service: '+date,
-                 {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':'Due date cannot be determined.'}[due],
+                 {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':care_items(((policy,last,due),),{policy.device},time())[0].detail}[due],
                  'Follow manufacturer guidance.')+coverage,
-                (back,Choice('I completed this service','service_confirm',policy)),tone='attention' if due=='due' else 'normal')
+                (back,Choice('I completed this service','service_confirm',policy),
+                 Choice('Remove reminder','service_remove_confirm',policy)),tone='attention' if due=='due' else 'normal')
+        if page=='service_remove_confirm':
+            policy=self._maintenance_context
+            return Screen('Remove reminder?',task_label(policy.task_id,policy.device),
+                (device_name(policy.device),'Removes this reminder only.',
+                 'Usage and service history stay.'),
+                (Choice('Keep reminder','back'),Choice('Remove reminder','service_remove',policy)),
+                tone='attention')
         if page=='service_confirm':
             return Screen('Confirm completed service','Did you finish the work?',('Only confirm actual maintenance.','This writes a service date,','not a hardware test result.'),
                 (back,Choice('Yes, record completion','service_complete',self._maintenance_context)))
@@ -546,10 +603,16 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
-        if action=='report_page':
-            self._maintenance_report_page=value
-            self._maintenance_selection=0
-            self.Draw_Maintenance_Menu();self.lcd.update();return
+        if action in ('sensor_read','sensor_refresh'):
+            if self._maintenance_sensor_future is not None: return
+            try:
+                self._maintenance_sensor_future=self.pd.maintenance_sensor_diagnostic(value)
+                self._maintenance_sensor_identity=self._maintenance_identity()
+            except Exception:
+                return self._maintenance_open('notice',('Sensor unavailable',
+                    ('The configuration or connection changed.','Return to the sensor list and retry.')))
+            if action=='sensor_read': return self._maintenance_open('sensor_wait')
+            return self._maintenance_show('sensor_wait')
         if action=='reference': return self._maintenance_open('reference',value)
         if action=='reference_limit': return self._maintenance_open('reference_limit',(value,20))
         if action=='reference_confirm': return self._maintenance_open('reference_confirm',value)
@@ -574,17 +637,26 @@ class MaintenanceViewMixin:
             self._maintenance_context=None
             return self._maintenance_show('service')
         if action=='service_add': return self._maintenance_open('service_devices')
-        if action=='service_device': return self._maintenance_open('service_kind',value)
+        if action=='service_device':
+            kinds=care_tasks(value)
+            return self._maintenance_open('service_basis',(value,kinds[0])) if len(kinds)==1 else self._maintenance_open('service_kind',value)
         if action=='service_kind': return self._maintenance_open('service_basis',value)
-        if action=='service_basis': return self._maintenance_open('service_interval',(value[0],value[1],30,value[2]))
+        if action=='service_basis':
+            from maintenance_care import reminder_default
+            device,task,basis=value
+            return self._maintenance_open('service_interval',
+                (device,task,reminder_default(device,task,basis),basis))
         if action=='service_review':
             from maintenance_assessment_store import ServicePolicy
             device,task,amount=self._maintenance_context[:3]
             basis=self._maintenance_context[3] if len(self._maintenance_context)>3 else 'calendar_s'
             return self._maintenance_open('service_review',ServicePolicy(task,device,basis,
-                amount*(86400 if basis=='calendar_s' else 3600),'user-defined interval'))
+                amount*(86400 if basis=='calendar_s' else 1000 if basis in ('travel_mm','filament_mm') else
+                        1 if basis in ('observed_trigger_count','trigger_count') else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
+        if action=='service_remove_confirm': return self._maintenance_open('service_remove_confirm',value)
+        if action=='service_remove': return self._maintenance_load_records('remove_policy',value)
         if action in ('service_save','service_complete'):
             return self._maintenance_load_records('save_policy' if action=='service_save' else 'complete',value)
         if action=='load_history': return self._maintenance_load_records(history=True)
@@ -701,6 +773,11 @@ class MaintenanceViewMixin:
             device,task,days=self._maintenance_context[:3]
             tail=self._maintenance_context[3:]
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
+            # Slow turning keeps single-unit precision. Accelerated encoder
+            # batches skip proportionally through thousands of metres/events.
+            if steps>1:
+                steps *= (1000 if days>=10000 else 100 if days>=1000 else
+                          10 if days>=100 else 1)
             maximum=87600 if tail and tail[0]!='calendar_s' else 3650
             days=max(1,min(maximum,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
             self._maintenance_context=(device,task,days)+tail
@@ -719,7 +796,15 @@ class MaintenanceViewMixin:
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
             delta=steps if event==self.ENCODER_DIFF_CW else -steps
-            self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
+            if screen.kind=='report':
+                from dataclasses import replace
+                rows=cached_report_rows(self,screen)
+                position,offset,selected,_=report_navigation(rows,choices,self._maintenance_report_position+delta)
+                self._maintenance_report_position=position
+                self._maintenance_selection=selected
+                screen=replace(screen,report_offset=offset)
+            else:
+                self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
             self.Draw_Maintenance_Menu(screen);self.lcd.update()
         elif event==self.ENCODER_DIFF_ENTER and choices:
             drawn=getattr(self,'_maintenance_drawn_choices',None)
@@ -741,6 +826,21 @@ class MaintenanceViewMixin:
                 and not getattr(owner,'pending',False) and not getattr(reader,'pending',False)
                 and monotonic()>=self._maintenance_records_refresh_at):
             self._maintenance_prefetch_records()
+        sensor_future=self._maintenance_sensor_future
+        if sensor_future is not None and sensor_future.done():
+            self._maintenance_sensor_future=None
+            try:
+                reading=sensor_future.result()
+                if self._maintenance_sensor_identity!=self._maintenance_identity():
+                    raise ValueError('sensor_read_stale')
+                if visible and active_page=='sensor_wait':
+                    self._maintenance_context=reading
+                    self._maintenance_show('sensor_report')
+            except Exception:
+                if visible and active_page=='sensor_wait':
+                    self._maintenance_context=('Sensor read unavailable',
+                        ('Connection, configuration or status changed.','Return to the sensor list and retry.'))
+                    self._maintenance_show('notice')
         reference=self._maintenance_reference_future
         if reference is not None and reference.done():
             self._maintenance_reference_future=None
@@ -791,7 +891,8 @@ class MaintenanceViewMixin:
                 if target!='notice':
                     self._maintenance_context=None
                     if target=='service': self._maintenance_history=[('root',1,None)]
-                    elif self._maintenance_history: self._maintenance_history.pop()
+                    # Storage is replaced in place; its saved parent is still
+                    # the history menu that Back must return to.
                 self._maintenance_show(target)
         if not getattr(self, '_maintenance_advanced_this_tick', False):
             self._advance_maintenance_operations()

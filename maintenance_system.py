@@ -11,6 +11,9 @@ LOCAL = frozenset(('S11','S12','S14','S15','S16','S20'))
 
 
 def travel_profile(state):
+    from maintenance_travel import installed, OBJECT
+    if installed(state):
+        return OBJECT
     try:
         path = Path.home()/'.config'/'Petrel'/'maintenance-travel-counter.json'
         if path.stat().st_size>2048:
@@ -45,7 +48,8 @@ def path_for(feature,device,state):
         name = travel_profile(state)
         if not name:
             raise ValueError('authoritative_travel_counter_missing')
-        return '/printer/objects/query?'+quote(name,safe='')+'=x_mm,y_mm,z_mm'
+        return '/printer/objects/query?'+quote(name,safe='')+'=x_mm,y_mm,z_mm'+(
+            ',coverage,dropped_batches,state' if name=='petrel_axis_travel' else '')
     raise ValueError('system_information_unsupported')
 
 
@@ -115,5 +119,9 @@ def read_fields(feature,reply,device=None):
         source = next(iter(values.values()))
         if not isinstance(source,Mapping) or any(not number(source.get(k)) or source[k]<0 for k in ('x_mm','y_mm','z_mm')):
             return ()
+        if source.get('coverage')=='recorded_lower_bound':
+            return tuple((k,source[k]) for k in ('x_mm','y_mm','z_mm'))+(
+                ('coverage','recorded_lower_bound_this_session'),
+                ('dropped_batches',source.get('dropped_batches')),('tracking_state',source.get('state')))
         return tuple((k,source[k]) for k in ('x_mm','y_mm','z_mm'))+(('authoritative_source',True),)
     return ()

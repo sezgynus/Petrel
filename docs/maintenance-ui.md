@@ -44,7 +44,7 @@ Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recomm
 
 ## Read-only reports
 
-Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions separate information from actions. Reports use a status heading, muted explanation, two-column labeled measurements and explicit Previous/Next page actions. Numeric facts never become selectable rows. All text remains reachable through bounded pages above the shared dashboard. Focus redraws only action cursor strips; a changed measurement repaints only its value field. CI compares incremental report pixels with clean frames and renders current Maintenance documentation scenes through the production UI. Example screenshots are not physical test evidence.
+Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions use one continuous encoder-scroll report. Back/status/heading stay fixed; two-column facts and prose move in 24-pixel bands inside the eight-row viewport. Small scrolls copy retained pixels with the same DWIN area-move operation used by Info and draw only exposed/changed cells. Large jumps and wrap redraw only the viewport, never the title or dashboard. Scrolling wraps in both directions; real actions follow the information and remain visible when focused. Facts are not selectable actions. Row wrapping is cached until report content changes and released when leaving. CI compares forward/reverse/wrap, action focus, value updates and report shrinkage against clean framebuffers. Example screenshots are not physical test evidence.
 
 ## Diagnostic field coverage
 
@@ -53,3 +53,7 @@ Every registered information reader now has a named LCD report and explicit fiel
 MCU average/variation values are converted from seconds to microseconds; configured driver currents are amperes. Klipper BME environmental pressure is hPa and gas resistance is ohms. Recorded usage durations are readable time spans, and sampled coverage is explicitly a lower bound. Missing or invalid readings are not replaced by fabricated values. Internal event timestamps and unknown backend bookkeeping do not become measurements. CI covers every registered reader, the actual TMC/MCU/motion parsers and local panel/usage/history output contracts.
 
 Care records refresh asynchronously on every Maintenance entry and at most once per minute while the care view is idle and visible. The existing schedule remains visible during refresh; sampled-hour due states and an open reminder update from the completed worker result.
+
+Component-specific reminder options, supported telemetry and capacity states are documented in [Component usage tracking](maintenance-usage.md).
+
+To remove a saved reminder, open it in **Care schedule**, choose **Remove reminder**, then confirm on the separate **Remove reminder?** screen. **Keep reminder** is selected first. Removal runs on the existing worker and returns to the refreshed schedule. It removes that saved policy and its active tracking anchor, freeing both slots; usage counters and completed-service history are retained. A reminder edited after the confirmation opened cannot be deleted by that stale confirmation.

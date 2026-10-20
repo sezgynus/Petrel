@@ -576,7 +576,7 @@ class PrinterData:
     def _note_maintenance_state(self,state):
         book = getattr(self,'maintenance_book',None)
         if book is not None:
-            book.note(state)
+            book.note(state,snapshot=getattr(getattr(self,'maintenance',None),'snapshot',None))
         # TEMPORARY MAINTENANCE TEST TRACE
         trace = getattr(self,'maintenance_test_trace',None)
         if trace is not None:
@@ -619,13 +619,54 @@ class PrinterData:
     def maintenance_ui_records(self, operation, policy=None, history=False):
         from maintenance_ui_records import request
         rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
-        devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
+        devices=self.maintenance_service_devices(rows)
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
-            usage_provider=self.maintenance_book.service_counters)
+            usage_provider=self.maintenance_book.service_counters,
+            filament_provider=self.maintenance_filament_usage)
+
+    def maintenance_filament_usage(self):
+        from maintenance_filament_usage import recorded_filament
+        return recorded_filament(self.client)
+
+    def maintenance_sensor_devices(self):
+        from maintenance_sensor_diagnostics import devices
+        return devices(self.maintenance.snapshot)
+
+    def maintenance_sensor_diagnostic(self,device):
+        from maintenance_sensor_diagnostics import read
+        if device not in self.maintenance_sensor_devices():
+            raise ValueError('sensor_device_no_longer_available')
+        state = self.state
+        return self._maintenance_worker.submit(
+            lambda: read(self.client, state, device), queue_timeout=8)
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
-        return bases+(('sampled_on_s',) if device in self.maintenance_book._observed else ())
+        # History totals are printer-wide, not individual nozzle usage.
+        extruders=tuple(x for x in self.state.objects if x=='extruder' or
+                        x.startswith('extruder') and x[8:].isdigit())
+        if device=='extruder' and extruders==('extruder',):
+            bases += ('filament_mm',)
+        from maintenance_travel import installed, AXES, travel_device
+        if travel_device(device) in AXES and installed(self.state):
+            return bases+('travel_mm',)
+        from maintenance_sensor_usage import event_sample
+        sample=event_sample(self.state)
+        if sample is not None and device in sample[1] and device not in sample[3]:
+            bases += ('trigger_count',)
+        snapshot=self.maintenance.snapshot
+        return bases+tuple(dict.fromkeys(m.metric_id for m in getattr(snapshot,'usage_metrics',())
+                                          if m.device==device))
+
+    def maintenance_service_devices(self,rows=()):
+        snapshot=self.maintenance.snapshot
+        from maintenance_travel import installed, AXES
+        return tuple(dict.fromkeys(
+            (AXES if installed(self.state) else ())+
+            tuple(getattr(snapshot,'care_devices',()))+
+            tuple(d.name for d in getattr(snapshot,'devices',()))+
+            tuple(m.device for m in getattr(snapshot,'usage_metrics',()))+
+            tuple(r.device for r in rows if r.device is not None)))
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
         from maintenance_reference import request
@@ -1331,7 +1372,6 @@ class PrinterData:
         self.connection_error = None
         changed = state != self.state or spoolman_changed or presets_changed or sort_changed
         self.state = state
-        self._note_maintenance_state(state)
         self.capabilities = caps
         self._caps_cache_key = caps_key
         self._apply_capabilities(caps)
@@ -1345,6 +1385,7 @@ class PrinterData:
                                    lambda: self.state, integrations=self.maintenance_integrations(state))
             self._invalidate_files()
             self._file_epoch = state.epoch
+        self._note_maintenance_state(state)
         if state.file_revision != self._file_revision:
             self._files_loaded = False
             self._file_revision = state.file_revision

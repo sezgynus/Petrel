@@ -18,7 +18,7 @@ class ServicePolicy:
 
     def __post_init__(self):
         if (not all(_text(x) for x in (self.task_id,self.device,self.source))
-                or self.basis not in ('calendar_s','print_s','sampled_on_s','sampled_print_s','travel_mm')
+                or self.basis not in ('calendar_s','print_s','sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm')
                 or not numeric(self.interval) or self.interval <= 0):
             raise ValueError('invalid_service_policy')
 
@@ -35,7 +35,7 @@ def service_due(policy, *, now, last_at=None, current=None, previous=None,
         return 'unknown'
     if current-previous >= policy.interval:
         return 'due'
-    return 'unknown' if policy.basis in ('sampled_on_s','sampled_print_s') else 'not_due'
+    return 'unknown' if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm') else 'not_due'
 
 def encode(evidence):
     return asdict(evidence)
@@ -151,6 +151,34 @@ class AssessmentStore:
             raise ValueError('service_policy_capacity')
         data['policies'] = policies+[asdict(policy)]
         self._save(data)
+
+    def remove_service_policy(self,policy):
+        """Remove an exact reminder and its active anchor; retain service history.
+
+        An old confirmation must never delete a newly edited replacement.
+        Repeating a successful removal is a harmless no-op.
+        """
+        if not isinstance(policy,ServicePolicy):
+            raise ValueError('invalid_service_policy')
+        data=self.load()
+        items=data.get('policies',[])
+        if type(items) is not list or len(items)>64:
+            raise ValueError('invalid_service_policies')
+        same=[item for item in items if (item.get('task_id'),item.get('device'))
+              ==(policy.task_id,policy.device)]
+        if not same:
+            return False
+        if len(same)!=1 or ServicePolicy(**same[0])!=policy:
+            raise ValueError('service_policy_changed')
+        tracking=data.get('tracking',[])
+        if type(tracking) is not list or len(tracking)>64:
+            raise ValueError('invalid_service_tracking')
+        data['policies']=[item for item in items if item is not same[0]]
+        data['tracking']=[row for row in tracking if not (type(row) is dict and
+            (row.get('task'),row.get('device'),row.get('basis'))
+            ==(policy.task_id,policy.device,policy.basis))]
+        self._save(data)
+        return True
 
     def service_policies(self):
         items = self.load().get('policies',[])

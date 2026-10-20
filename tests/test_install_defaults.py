@@ -37,16 +37,24 @@ class InstallerDefaultsTests(unittest.TestCase):
                 command = bin_dir / name; command.write_text(content); command.chmod(0o755)
             env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp, USER='user', SUDO_USER='user')
             path = home / '.config/Petrel/Petrel.env'
-            def configure():
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 20,
+            def configure(answers=None):
+                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input=answers or '\n' * 7 + '0\n' + '\n' * 10,
                                text=True, env=env, capture_output=True)
                 if result.returncode:
                     self.fail(result.stdout + result.stderr)
             configure()
             self.assertIn('PETREL_EMULATOR=0\n', path.read_text())
-            path.write_text(path.read_text().replace('PETREL_EMULATOR=0', 'PETREL_EMULATOR=1'))
+            self.assertIn('PETREL_REMOTE=0\n', path.read_text())
+            configure('\n' * 7 + '0\n1\n1\n')
+            self.assertIn('PETREL_EMULATOR=1\n', path.read_text())
+            self.assertIn('PETREL_REMOTE=1\n', path.read_text())
             configure()
             self.assertIn('PETREL_EMULATOR=1\n', path.read_text())
+            self.assertIn('PETREL_REMOTE=1\n', path.read_text())
+            configure('\n' * 7 + '0\n0\n0\n')
+            for key in ('PETREL_EMULATOR','PETREL_REMOTE'):
+                self.assertIn(key+'=0\n',path.read_text())
+                self.assertEqual(path.read_text().count(key+'='),1)
 
     @unittest.skipUnless(os.name == 'posix', 'Configurator integration needs POSIX shell paths')
     def test_configurator_preserves_custom_settings_and_literal_values(self):
@@ -68,16 +76,19 @@ class InstallerDefaultsTests(unittest.TestCase):
                 'PETREL_EMULATOR_FONT="/tmp/custom font.HZK"',
                 'PETREL_EMULATOR_SOCKET=/tmp/custom-capture.sock',
                 'PETREL_SCREENSHOT_DIRECTORY=/tmp/custom-shots',
+                'PETREL_REMOTE_HOST=127.0.0.1',
+                'PETREL_REMOTE_PORT=8099',
                 'FUTURE_OPTION=' + literal,
             ]
-            path.write_text('PETREL_EMULATOR=1\n' + '\n'.join(custom) + '\n')
+            path.write_text('PETREL_EMULATOR=1\nPETREL_REMOTE=true\n' + '\n'.join(custom) + '\n')
             for _ in range(2):
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 20,
+                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 7 + '0\n' + '\n' * 10,
                                         text=True, env=env, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 lines = path.read_text().splitlines()
                 for line in custom:
                     self.assertEqual(lines.count(line), 1)
                 self.assertEqual(lines.count('PETREL_EMULATOR=1'), 1)
+                self.assertEqual(lines.count('PETREL_REMOTE=true'), 1)
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
                 self.assertFalse((home / 'unexpected-evaluation').exists())

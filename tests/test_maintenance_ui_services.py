@@ -65,6 +65,37 @@ class MaintenanceServiceUI(unittest.TestCase):
         d.pd.maintenance_ui_records.assert_not_called()
         self.assertEqual(d._maintenance_context.interval,31*86400)
 
+    def test_interval_editor_accelerates_large_values_without_losing_precision(self):
+        d=self.view()
+        examples=(
+            ('calendar_s', 180, 4, 220),
+            ('travel_mm', 30000, 3, 33000),
+            ('travel_mm', 1000, 3, 1300),
+            ('trigger_count', 500, 4, 540),
+            ('trigger_count', 50, 4, 54),
+        )
+        for basis,start,batch,expected in examples:
+            with self.subTest(basis=basis,start=start):
+                d._maintenance_page='service_interval'
+                d._maintenance_context=('stepper_x','mechanical',start,basis)
+                d._menu_batch_steps=batch
+                d.get_encoder_state.return_value=d.ENCODER_DIFF_CW
+                d.HMI_Maintenance_Menu()
+                self.assertEqual(d._maintenance_context[2],expected)
+                d._menu_batch_steps=1
+                d.get_encoder_state.return_value=d.ENCODER_DIFF_CCW
+                d.HMI_Maintenance_Menu()
+                self.assertEqual(d._maintenance_context[2],expected-1)
+        d._maintenance_context=('stepper_x','mechanical',87600,'travel_mm')
+        d._menu_batch_steps=8
+        d.get_encoder_state.return_value=d.ENCODER_DIFF_CW
+        d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_context[2],87600)
+        d._maintenance_context=('stepper_x','mechanical',1,'calendar_s')
+        d.get_encoder_state.return_value=d.ENCODER_DIFF_CCW
+        d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_context[2],1)
+
     def test_calendar_due_is_recomputed_in_the_same_living_ui(self):
         d=self.view();d._maintenance_page='service'
         p=ServicePolicy('inspect_clean','fan','calendar_s',100,'user')
@@ -104,10 +135,49 @@ class MaintenanceServiceUI(unittest.TestCase):
         d._maintenance_dispatch(d._maintenance_screen().choices[0])
         policy=d._maintenance_context
         self.assertEqual(policy.basis,'sampled_print_s')
-        self.assertEqual(policy.interval,30*3600)
+        self.assertEqual(policy.interval,500*3600)
         d.pd.maintenance_ui_records.assert_not_called()
         d._maintenance_dispatch(next(c for c in d._maintenance_screen().choices if c.action=='service_save'))
         d.pd.maintenance_ui_records.assert_called_once_with('save_policy',policy=policy,history=False)
+
+    def test_new_reminder_defaults_depend_on_device_task_and_metric(self):
+        d=self.view()
+        cases=(
+            ('stepper_x','mechanical','travel_mm',30000,30000*1000),
+            ('stepper_z','mechanical','travel_mm',10,10*1000),
+            ('endstop stepper_x','sensor','trigger_count',500,500),
+            ('probe','sensor','trigger_count',2000,2000),
+            ('extruder','nozzle','calendar_s',30,30*86400),
+            ('extruder','heating','sampled_on_s',300,300*3600),
+            ('output_pin any','connected_device','calendar_s',180,180*86400),
+            ('output_pin any','connected_device','sampled_print_s',500,500*3600),
+            ('output_pin any','connected_device','sampled_on_s',500,500*3600),
+        )
+        for device,task,basis,amount,stored in cases:
+            with self.subTest(device=device,task=task,basis=basis):
+                d._maintenance_dispatch(Choice('Select','service_basis',(device,task,basis)))
+                self.assertEqual(d._maintenance_page,'service_interval')
+                self.assertEqual(d._maintenance_context,(device,task,amount,basis))
+                d._maintenance_dispatch(Choice('Review','service_review'))
+                self.assertEqual(d._maintenance_context.interval,stored)
+
+    def test_native_filament_length_reminder_displays_metres_and_stores_mm(self):
+        d=self.view()
+        d.pd.maintenance_service_bases=Mock(return_value=(
+            'calendar_s','sampled_print_s','filament_mm','sampled_on_s'))
+        for task,metres in (('nozzle',500),('heating',1000),('filament_feed',1000)):
+            with self.subTest(task=task):
+                d._maintenance_dispatch(Choice('Choose class','service_kind',('extruder',task)))
+                option=next(c for c in d._maintenance_screen().choices
+                            if c.value==('extruder',task,'filament_mm'))
+                self.assertEqual(option.label,'Extruded filament (metres)')
+                d._maintenance_dispatch(option)
+                self.assertIn(str(metres)+' metres extruded',str(d._maintenance_screen()))
+                d._maintenance_dispatch(Choice('Review','service_review'))
+                policy=d._maintenance_context
+                self.assertEqual(policy.basis,'filament_mm')
+                self.assertEqual(policy.interval,metres*1000)
+                self.assertIn(str(metres)+' metres extruded',str(d._maintenance_screen()))
 
     def test_usage_due_survives_render_and_coverage_remains_visible(self):
         d=self.view();d._maintenance_page='service'
@@ -137,4 +207,40 @@ class MaintenanceServiceUI(unittest.TestCase):
         d._maintenance_dispatch(Choice('Record','historical_result',r))
         self.assertEqual(d._maintenance_page,'details')
         self.assertIn('Historical',str(d._maintenance_screen()))
+
+    def test_recent_history_back_preserves_parent_for_empty_and_saved_records(self):
+        record=dict(feature='H07',device='extruder',status='FAILED_METRIC',timestamp=1,
+                    evidence=[['overshoot_c',7.72]],reason='thermal metric')
+        for records in ((),(record,)):
+            with self.subTest(records=bool(records)):
+                d=self.view();d._maintenance_show('root')
+                d._maintenance_open('diagnostic_groups');d._maintenance_open('history')
+                d._maintenance_selection=1
+                ancestors=list(d._maintenance_history)
+                for attempt in range(2):
+                    future=Future();d.pd.maintenance_ui_records=Mock(return_value=future)
+                    d._maintenance_dispatch(Choice('Recent check history','load_history'))
+                    self.assertEqual(d._maintenance_page,'storage')
+                    future.set_result(((),records));d._poll_maintenance_ui()
+                    self.assertEqual(d._maintenance_page,'history_records')
+                    if records:
+                        d._maintenance_dispatch(d._maintenance_screen().choices[1])
+                        self.assertEqual(d._maintenance_page,'details')
+                        d._maintenance_dispatch(Choice('Back','back'))
+                        self.assertEqual(d._maintenance_page,'history_records')
+                    d._maintenance_dispatch(Choice('Back','back'))
+                    self.assertEqual(d._maintenance_page,'history')
+                    self.assertEqual(d._maintenance_selection,1)
+                    self.assertEqual(d._maintenance_history,ancestors)
+
+    def test_leaving_history_load_before_completion_does_not_redirect_or_pop_parent(self):
+        d=self.view();d._maintenance_show('root')
+        d._maintenance_open('diagnostic_groups');d._maintenance_open('history')
+        ancestors=list(d._maintenance_history)
+        future=Future();d.pd.maintenance_ui_records=Mock(return_value=future)
+        d._maintenance_dispatch(Choice('Recent check history','load_history'))
+        d._maintenance_dispatch(Choice('Back','back'))
+        future.set_result(((),()));d._poll_maintenance_ui()
+        self.assertEqual(d._maintenance_page,'history')
+        self.assertEqual(d._maintenance_history,ancestors)
 

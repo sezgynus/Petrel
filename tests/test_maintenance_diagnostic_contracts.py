@@ -6,7 +6,7 @@ from test_capabilities import display,snapshot
 from maintenance_evidence_view import evidence_lines
 from maintenance_executor import _read_fields,read_only_adapters
 from maintenance_tmc_direct import register_evidence
-from maintenance_report import report_pages,section_from_lines
+from maintenance_report import report_rows,section_from_lines
 from maintenance_experience import LABELS
 
 CASES={
@@ -71,12 +71,16 @@ class DiagnosticContractCoverage(unittest.TestCase):
                 self.assertNotEqual(screen.heading,'Recorded information')
                 self.assertTrue(screen.sections)
                 self.assertTrue(all(c.action!='none' for c in screen.choices))
-                self.assertTrue(all(sum(b[2] for b in page)<=132 for page in report_pages(screen.sections)))
+                self.assertTrue(report_rows(screen.sections))
 
     def test_each_actual_diagnostic_field_is_presented_including_zero_and_false(self):
         for feature,evidence in CASES.items():
             for key,value in evidence:
                 if key=='register': continue  # Its matching hex field carries the value.
+                if feature=='S12' and key=='coverage':
+                    from maintenance_diagnostic_fields import diagnostic_lines
+                    self.assertEqual(diagnostic_lines(feature,key,value), ())
+                    continue  # Scope metadata belongs in documentation, not a reading row.
                 with self.subTest(feature=feature,key=key):
                     self.readable(feature,((key,value),))
 
@@ -135,7 +139,8 @@ class DiagnosticContractCoverage(unittest.TestCase):
             usage=records.MaintenanceBook.read(book,'S12')
         shown=self.readable('S12',usage)
         self.assertIn('2h 3m 4s',shown);self.assertIn('1h 1m 12s',shown)
-        self.assertIn('lower bounds',shown);self.assertNotIn('sampled_on_s',shown)
+        self.assertNotIn('lower bounds',shown);self.assertNotIn('sampled_on_s',shown)
+        self.assertIn('ON time',shown)
         with patch.object(records,'read_json',return_value={'records':[{'feature':'H01','status':'PASSED_USER'}]}):
             history=records.MaintenanceBook.read(book,'S11')
         shown=self.readable('S11',history)
@@ -147,14 +152,13 @@ class DiagnosticContractCoverage(unittest.TestCase):
         self.assertIn('klipper update: Available',shown)
         self.assertIn('moonraker update: Not pending',shown)
 
-    def test_usage_report_pages_keep_the_last_of_sixteen_devices(self):
+    def test_usage_report_rows_keep_the_last_of_sixteen_devices(self):
         evidence=(('coverage','sampled_lower_bound_not_lifetime'),('sampled_print_s',1234))+tuple(
             ('heater_generic device%d.sampled_on_s'%i,i*1234) for i in range(16))
         sections=section_from_lines('',evidence_lines('S12',evidence))
-        pages=report_pages(sections)
-        self.assertGreater(len(pages),1)
-        self.assertIn('device15',str(pages[-1]))
-        self.assertTrue(all(sum(b[2] for b in page)<=132 for page in pages))
+        rows=report_rows(sections)
+        self.assertGreater(len(rows),8)
+        self.assertIn('device15',str(rows))
 
     def test_internal_unknown_and_invalid_values_are_not_labeled_as_measurements(self):
         shown=evidence_lines('S01',(('backend_flag',True),('unknown_distance',123),('cpu.cpu',36.5),(None,7)))

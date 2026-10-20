@@ -44,7 +44,7 @@ Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recomme
 
 ## Salt okunur raporlar
 
-Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler bilgiyi işlemlerden ayırır. Raporlar durum başlığı, sakin açıklama, iki sütunda etiketli ölçümler ve açık Previous/Next page işlemleri kullanır. Sayısal veriler seçilebilir satır olmaz. Tüm metin ortak dashboard üzerindeki sınırlı sayfalardan erişilebilir kalır. Odak yalnız işlem seçim çizgilerini; değişen ölçüm yalnız kendi değer alanını yeniden çizer. CI artımlı rapor piksellerini temiz çizimle karşılaştırır ve güncel Maintenance dokümantasyon görsellerini üretim arayüzünden oluşturur. Örnek ekran görüntüleri fiziksel test kanıtı değildir.
+Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler ortak, sürekli enkoder kaydırmalı raporu kullanır. Back/durum/başlık sabittir; iki sütunlu ölçümler ve açıklamalar sekiz satırlık pencerede 24 piksellik bantlarla kayar. Küçük kaydırmada Info ile aynı DWIN alan taşıma komutu korunacak pikselleri kopyalar; yalnız açılan/değişen hücreler çizilir. Büyük atlama ve başa dönüş yalnız içerik penceresini yeniler; başlık/dashboard çizilmez. İki yönde döngüsel kaydırılır; gerçek işlemler bilgiden sonra gelir ve odaklandığında görünür kalır. Ölçümler seçilebilir işlem değildir. Satır sarımı içerik değişene kadar önbelleklidir; çıkarken bırakılır. CI ileri/geri/başa dönüşü, işlem odağını, değer güncellemesini ve rapor kısalmasını temiz framebuffer ile karşılaştırır. Örnek görseller fiziksel test kanıtı değildir.
 
 ## Diagnostik alan kapsamı
 
@@ -53,3 +53,7 @@ Kayıtlı her bilgi okuyucusunun artık adlandırılmış LCD raporu ve açık a
 MCU ortalama/değişkenlik değerleri saniyeden mikrosaniyeye çevrilir; yapılandırılmış sürücü akımları amperdir. Klipper BME çevresel basıncı hPa, gaz direnci ohm birimindedir. Kayıtlı kullanım süreleri okunabilir zaman aralıklarıdır; örneklenmiş kapsam açıkça alt sınır olarak belirtilir. Eksik veya geçersiz okuma yerine değer uydurulmaz. İç olay zamanları ve bilinmeyen backend kayıt alanları ölçüm olarak sunulmaz. CI her kayıtlı okuyucuyu, gerçek TMC/MCU/hareket ayrıştırıcılarını ve yerel panel/kullanım/geçmiş çıktı sözleşmelerini kapsar.
 
 Bakım kayıtları Maintenance menüsüne her girişte ve bakım görünümü boşta ve görünürken en fazla dakikada bir asenkron yenilenir. Yenileme sırasında mevcut plan görünür kalır; örneklenmiş saatlere bağlı vade durumu ve açık hatırlatıcı, tamamlanan worker sonucuyla güncellenir.
+
+Komponente özgü hatırlatıcı seçenekleri, desteklenen telemetri ve kapasite durumları [Komponent kullanım takibi](maintenance-usage_TR.md) belgesindedir.
+
+Kayıtlı hatırlatıcıyı kaldırmak için **Care schedule** içinde açın, **Remove reminder** seçin ve ayrı **Remove reminder?** ekranında onaylayın. İlk seçili eylem **Keep reminder** olur. Silme mevcut worker üzerinde çalışır ve yenilenmiş takvime döner. Kayıtlı politika ve ona ait aktif takip başlangıcı kaldırılarak iki kayıt alanı da serbest bırakılır; kullanım sayaçları ve tamamlanan bakım geçmişi korunur. Onay ekranı açıldıktan sonra düzenlenen hatırlatıcı eski onayla silinemez.

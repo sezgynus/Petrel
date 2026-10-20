@@ -57,11 +57,12 @@ def register(scene,canvas,finish):
 
     host=NS(feature_id='S01',device=None,status=None,reason='observed_information',
         evidence=(('cpu.cpu',36.5),('cpu.cpu0',42.1),('cpu.cpu1',30.9),('cpu.cpu2',35.2),
-                  ('cpu.cpu3',37.8),('memory.total',949000),('memory.available',193992),('memory.used',755008)))
-    def host_page(v,page=0):
-        v._maintenance_result=host;v._maintenance_report_page=page
-    add('maintenance-host','Host readings as labeled measurements','Etiketli ölçümler olarak host verileri','result',0,host_page)
-    add('maintenance-host-page-2','Next page of the host information report','Host bilgi raporunun sonraki sayfası','result',0,lambda v:host_page(v,1))
+                  ('cpu.cpu3',37.8),('cpu.cpu4',30.),('cpu.cpu5',40.),
+                  ('cpu.cpu6',35.),('cpu.cpu7',41.),('memory.total',949000),('memory.available',193992),('memory.used',755008)))
+    def host_scroll(v,offset=0):
+        v._maintenance_result=host;v._maintenance_report_position=offset
+    add('maintenance-host','Host readings as labeled measurements','Etiketli ölçümler olarak host verileri','result',0,host_scroll)
+    add('maintenance-host-page-2','Host information after scrolling','Kaydırma sonrası host bilgileri','result',0,lambda v:host_scroll(v,3))
 
     fan=NS(feature_id='F02',device='fan',status='PASSED_USER',reason='',evidence=(),restore_verified=True)
     add('maintenance-result','Recorded fan observation with separate actions','Ayrı işlem alanıyla kaydedilen fan gözlemi','result',1,

@@ -108,6 +108,10 @@ class MaintenanceSnapshot:
     global_modes: int = 0
     config_marker: int = 0
     service_key: tuple = ()
+    usage_metrics: tuple = ()
+    usage_omitted: int = 0
+    care_devices: tuple = ()
+    care_omitted: int = 0
 
     def method(self, feature, device=None):
         if device is None:
@@ -511,6 +515,10 @@ def discover(state, services=()):
     if 'maintenance.guided_service' in services:
         global_bits = _add(global_bits, 'O06', USER)
     # Features without positive evidence and ALWAYS_HIDDEN IDs remain NONE.
+    from maintenance_usage import usage_metrics
+    metrics, omitted = usage_metrics(objects,settings)
+    from maintenance_care import inventory
+    care, care_omitted = inventory(objects,settings,(d.name for d in results))
     return MaintenanceSnapshot(state.epoch, tuple(results), global_bits,
-                               id(settings), tuple(sorted(services)))
+                               id(settings), tuple(sorted(services)), metrics, omitted,care,care_omitted)
 

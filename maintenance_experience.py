@@ -53,16 +53,19 @@ class Screen:
     sections: tuple = ()
     badge: str = ''
     report_icon: object = None
-    report_page: int = 0
+    report_offset: int = 0
 
 
 def device_name(name):
     if name is None:
         return 'Printer'
     known={'extruder':'Hotend','heater_bed':'Heated bed','fan':'Part cooling fan',
-           'stepper_x':'X axis','stepper_y':'Y axis','stepper_z':'Z axis'}
+           'stepper_x':'X axis','stepper_y':'Y axis','stepper_z':'Z axis',
+           'axis_x':'X travel','axis_y':'Y travel','axis_z':'Z travel'}
     if name in known:
         return known[name]
+    if name.startswith('endstop '):
+        return device_name(name[8:])+' endstop'
     chip,separator,stepper=name.partition(' ')
     if separator and chip.startswith('tmc') and stepper.startswith('stepper_'):
         return device_name(stepper)+' / '+chip.upper()

@@ -17,7 +17,7 @@ class AuditResourceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch('maintenance_records.Path.home',return_value=Path(tmp)):
             book = MaintenanceBook(DeferredWorker())
             cfg = {'fan_generic optional': {}, 'fan': {}}
-            state = NS(ready=True,epoch=1,settings=cfg,status={'fan':{'speed':0}})
+            state = NS(ready=True,epoch=1,objects=tuple(cfg),settings=cfg,status={'fan':{'speed':0}})
             book.note(state,now=0)
             counters = book.service_counters()['sampled_on_s']
             self.assertNotIn('fan_generic optional', counters)
@@ -29,7 +29,7 @@ class AuditResourceTests(unittest.TestCase):
     def test_orderly_close_preserves_tail_without_periodic_deadline(self):
         with tempfile.TemporaryDirectory() as tmp, patch('maintenance_records.Path.home',return_value=Path(tmp)):
             book=MaintenanceBook(DeferredWorker())
-            state=NS(ready=True,epoch=1,settings={'fan':{}},status={'fan':{'speed':1}})
+            state=NS(ready=True,epoch=1,objects=('fan',),settings={'fan':{}},status={'fan':{'speed':1}})
             book.note(state,now=0);book.note(state,now=1)
             book.close()
             self.assertEqual(read_json('maintenance-usage.json',{})['sampled_on_s']['fan'],1)

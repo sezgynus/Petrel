@@ -219,7 +219,7 @@ These screenshots show the current UI with example controller records and measur
   <img src="assets/screens/framed/maintenance-care-scrolled.png" width="360" alt="Remaining plans and the scrolling care viewport">
 </p>
 
-The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Missing service dates or unknown sampled coverage do not get a fabricated percentage. Rotate to reach every plan; **Back** stays at the top.
+The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Recorded sampled use since the saved anchor fills the bar; missing/reset readings pause tracking without inventing progress. Rotate to reach every plan; **Back** stays at the top.
 
 1. Open **Care schedule → Add reminder**. Select a supported device, service task and available reminder basis.
 2. Set your interval using the manufacturer's maintenance guidance, review it and explicitly save. The editor's initial value is not an installed default.
@@ -251,12 +251,16 @@ A recorded user observation, a measured criterion and an unfinished check have d
 <p align="center">
   <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Diagnostics with system readings, usage/history and support tools">
   <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Host measurements shown as label and value groups">
-  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Second page of a diagnostic report">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Diagnostic report after encoder scrolling">
 </p>
 
 Open **Diagnostics**, choose a group and select a reading. Information is collected in the background and opens directly as a report. The heading identifies the reading; measurements show their label, value and unit together. Information fields are not selectable menu items.
 
-Long reports show a page count in the top-right of the report. Rotate to **Next page** or **Previous page**, then press. **Back** returns to the prior screen. The shared dashboard remains below the report; only actual actions receive a selection cursor.
+Rotate the encoder to scroll every Maintenance report vertically; no Next/Previous buttons are needed. The last position wraps to the top, and reverse rotation from the top returns to the end. **Back** and the report heading stay fixed. Pressing while reading returns through Back; real report actions receive focus after the content and require a press. The right scrollbar shows position, and the shared dashboard remains untouched.
+
+To delete a saved reminder, open it in **Care schedule → Remove reminder**, then confirm separately. **Keep reminder** is the default selection. Usage counters and completed-service history are preserved.
+
+Supported fan, heater, output and LED objects automatically offer **Sampled powered hours** based on their own usage. Menu visibility does not control sampling. S12 pages include all retained counters and tracking/capacity states; see [Component usage tracking](maintenance-usage.md).
 
 **Diagnostics → Usage and history** contains recorded print usage, sampled component usage and recent check history. Historical evidence is labeled **HISTORY** and does not describe current hardware health. **Support tools** contains optional recording and diagnostic-report export; recording does not start a check.
 
