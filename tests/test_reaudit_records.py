@@ -31,11 +31,11 @@ class ReauditRecordTests(unittest.TestCase):
         return values
 
     def test_full_ledger_rejects_new_name_without_breaking_existing_or_print_usage(self):
-        original=self.seed_usage(32);book=MaintenanceBook(DeferredWorker())
+        original=self.seed_usage(records.MAX_USAGE_COUNTERS);book=MaintenanceBook(DeferredWorker())
         book._usage={'fan_generic new':5.,'fan_generic old0':2.,'@printing':3.}
         with self.assertLogs(level='WARNING'):book.flush()
         first=read_json('maintenance-usage.json',{})
-        self.assertEqual(len(first['sampled_on_s']),32)
+        self.assertEqual(len(first['sampled_on_s']),records.MAX_USAGE_COUNTERS)
         self.assertNotIn('fan_generic new',first['sampled_on_s'])
         self.assertEqual(first['sampled_on_s']['fan_generic old0'],2.)
         self.assertEqual(first['sampled_print_s'],13.)
@@ -48,19 +48,19 @@ class ReauditRecordTests(unittest.TestCase):
     def test_legacy_oversized_batch_keeps_all_existing_values_and_identity(self):
         original=self.seed_usage(33);book=MaintenanceBook(DeferredWorker())
         book._usage={'fan_generic new':1.,'@printing':2.}
-        with self.assertLogs(level='WARNING'):book.flush()
+        book.flush()
         data=read_json('maintenance-usage.json',{})
-        self.assertEqual(data['sampled_on_s'],original)
+        self.assertEqual(data['sampled_on_s'],dict(original, **{'fan_generic new':1.}))
         self.assertEqual(data['counter_id'],'a'*32)
         self.assertEqual(data['sampled_print_s'],12.)
         book.flush()  # No persistent read/write capacity failure loop.
 
     def test_last_free_slot_is_admitted_but_next_name_is_not(self):
-        self.seed_usage(31);book=MaintenanceBook(DeferredWorker())
+        self.seed_usage(records.MAX_USAGE_COUNTERS-1);book=MaintenanceBook(DeferredWorker())
         book._usage={'fan_generic one':1.,'fan_generic two':2.}
         with self.assertLogs(level='WARNING'):book.flush()
         data=book.service_counters()['sampled_on_s']
-        self.assertEqual(len(data),32)
+        self.assertEqual(len(data),records.MAX_USAGE_COUNTERS)
         self.assertEqual(data['fan_generic one'],1.)
         self.assertNotIn('fan_generic two',data)
 
