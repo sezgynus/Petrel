@@ -8,7 +8,8 @@ from maintenance_usage import metric_counter
 from maintenance_care import TASKS
 
 
-def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None):
+def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None,
+            filament_provider=None):
     """Return a Future. Calling this function never performs synchronous disk I/O."""
     if operation not in ('load','save_policy','complete','remove_policy'):
         raise ValueError('unknown_maintenance_record_operation')
@@ -21,17 +22,30 @@ def request(worker,operation,*,policy=None,devices=(),history=False,usage_provid
         if operation=='save_policy': store.set_service_policy(policy)
         if operation=='remove_policy': store.remove_service_policy(policy)
         policies=store.service_policies()
+        all_policies=policies+((policy,) if policy and operation!='remove_policy' else ())
         usage=usage_provider() if callable(usage_provider) and any(
-            p.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count') for p in policies+((policy,) if policy and operation!='remove_policy' else ())) else {}
+            p.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm')
+            for p in all_policies) else {}
+        if callable(filament_provider) and any(p.basis=='filament_mm' for p in all_policies):
+            try:
+                native=filament_provider()
+            except (OSError, ValueError, RuntimeError):
+                native={}
+            if native:
+                usage=dict(usage)
+                prior=tuple(usage.get('available_metrics', ()))
+                usage.update(native)
+                usage['available_metrics']=prior+tuple(native.get('available_metrics', ()))
         def counter(item):
             value=metric_counter(usage,item.device,item.basis)
             identity=usage.get('travel_counter_id' if item.basis=='travel_mm' else
                                'sensor_counter_id' if item.basis=='observed_trigger_count' else
-                               'event_counter_id' if item.basis=='trigger_count' else 'counter_id')
+                               'event_counter_id' if item.basis=='trigger_count' else
+                               'filament_counter_id' if item.basis=='filament_mm' else 'counter_id')
             from maintenance_assessment_store import numeric
             return (value,identity) if numeric(value) and isinstance(identity,str) and identity else (None,None)
         if operation=='complete':
-            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count') else (None,None)
+            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count','filament_mm') else (None,None)
             if policy.basis!='calendar_s' and value is None:
                 raise ValueError('service_counter_unknown')
             store.complete_service(policy,timestamp=time(),confirmed=True,counter=value,counter_id=identity)

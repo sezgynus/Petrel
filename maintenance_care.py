@@ -102,9 +102,9 @@ REMINDER_DEFAULTS = {
     # calibration; this is only an editable observation prompt.
     'filament_motion': (90, 300, None, None, 50000),
     'gcode_button': (180, 500, None, None, 1000),
-    'filament_feed': (90, 200, None, None, None),
-    'nozzle': (30, 100, 100, None, None),
-    'heating': (180, 500, 300, None, None),
+    'filament_feed': (90, 200, None, None, None, 1000),
+    'nozzle': (30, 100, 100, None, None, 500),
+    'heating': (180, 500, 300, None, None, 1000),
     'fan': (90, 200, 200, None, None),
     'lighting': (365, 500, 1000, None, None),
     # Output pins and other connected outputs have unknown attached hardware.
@@ -117,9 +117,10 @@ REMINDER_DEFAULTS = {
 REMINDER_BASIS_INDEX = {
     'calendar_s': 0, 'sampled_print_s': 1, 'sampled_on_s': 2,
     'travel_mm': 3, 'trigger_count': 4, 'observed_trigger_count': 4,
+    'filament_mm': 5,
 }
 # Conservative fallback only for an actually offered metric not in a profile.
-REMINDER_BASIS_FALLBACK = (180, 500, 500, 1000, 1000)
+REMINDER_BASIS_FALLBACK = (180, 500, 500, 1000, 1000, 1000)
 
 
 def reminder_default(device, task, basis):
@@ -149,5 +150,6 @@ def reminder_default(device, task, basis):
     else:
         profile = family(device)
     index = REMINDER_BASIS_INDEX[basis]
-    value = REMINDER_DEFAULTS[profile][index]
+    values = REMINDER_DEFAULTS[profile]
+    value = values[index] if index < len(values) else None
     return value if value is not None else REMINDER_BASIS_FALLBACK[index]

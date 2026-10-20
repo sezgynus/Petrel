@@ -621,7 +621,12 @@ class PrinterData:
         rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
         devices=self.maintenance_service_devices(rows)
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
-            usage_provider=self.maintenance_book.service_counters)
+            usage_provider=self.maintenance_book.service_counters,
+            filament_provider=self.maintenance_filament_usage)
+
+    def maintenance_filament_usage(self):
+        from maintenance_filament import recorded_filament
+        return recorded_filament(self.client)
 
     def maintenance_sensor_devices(self):
         from maintenance_sensor_diagnostics import devices
@@ -637,6 +642,11 @@ class PrinterData:
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
+        # History totals are printer-wide, not individual nozzle usage.
+        extruders=tuple(x for x in self.state.objects if x=='extruder' or
+                        x.startswith('extruder') and x[8:].isdigit())
+        if device=='extruder' and extruders==('extruder',):
+            bases += ('filament_mm',)
         from maintenance_travel import installed, AXES, travel_device
         if travel_device(device) in AXES and installed(self.state):
             return bases+('travel_mm',)
