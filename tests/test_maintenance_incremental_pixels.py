@@ -44,6 +44,27 @@ class MaintenancePixelUpdates(unittest.TestCase):
                 NS(feature_id='F02',device='fan'+str(i)),str(i)+' percent') for i in range(count)),kind=kind)
 
     @patch('t5uic1_driver.time.sleep')
+    @patch('petrel_ui.time.strftime', return_value='12:34')
+    def test_header_pixels_match_standard_title_rendering(self,clock,_):
+        screen=self.menu(3)
+        d=self.view(screen)
+        ref=display(snapshot())
+        ref.lcd=driver()
+        ref.fb=Framebuffer(self.assets)
+        ref.lcd._packet_observer=ref.fb
+        ref.lcd.clear(0x2125)
+        ref.Clear_Title_Bar()
+        ref.Draw_Title(screen.title)
+        ref.lcd.update()
+        d.lcd.update()
+        self.assertIsNone(ImageChops.difference(
+            d.fb.snapshot()[0].crop((0,0,272,31)),
+            ref.fb.snapshot()[0].crop((0,0,272,31))).getbbox())
+        # The Maintenance body still starts below the title band.
+        self.assertEqual(d.fb.snapshot()[0].getpixel((0,31)),
+                         ref.fb.snapshot()[0].getpixel((0,31)))
+
+    @patch('t5uic1_driver.time.sleep')
     def test_list_scroll_forward_back_and_focus_match_fresh(self,_):
         screen=self.menu();d=self.view(screen)
         for selected in (1,5,6,7,8,7,3,1,0):

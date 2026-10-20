@@ -74,6 +74,27 @@ class NativeMaintenanceLayout(unittest.TestCase):
         self.assertEqual(len(screen.care),2)
         self.assertIn('5 plans',screen.heading)
 
+    def test_title_bar_uses_standard_header_and_preserves_body_boundary(self):
+        d=self.view()
+        d.Draw_Maintenance_Menu()
+        rectangles=[call.args for call in d.lcd.draw_rectangle.call_args_list]
+        self.assertEqual(rectangles[0],
+                         (1,d.lcd.Color_Bg_Blue,0,0,271,30))
+        self.assertIn((1,0x2125,0,31,271,359),rectangles)
+        self.assertNotIn((1,0x2125,0,0,271,359),rectangles)
+        d.lcd.draw_text.assert_any_call(
+            False,False,d.lcd.font8x16,d.lcd.Color_White,
+            d.lcd.Color_Bg_Blue,14,6,'Maintenance')
+        d.lcd.reset_mock()
+        d._maintenance_selection=2
+        d.Draw_Maintenance_Menu()
+        self.assertFalse(any(
+            call.args[2:]==(0,0,271,30)
+            for call in d.lcd.draw_rectangle.call_args_list))
+        self.assertFalse(any(
+            call.args[5:7]==(14,6)
+            for call in d.lcd.draw_text.call_args_list))
+
     def test_focus_changes_only_cursor_strips_and_preserves_dashboard(self):
         d=self.view();d.Draw_Maintenance_Menu();d.lcd.reset_mock()
         d._maintenance_selection=3;d.Draw_Maintenance_Menu()

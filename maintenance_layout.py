@@ -301,8 +301,11 @@ def draw_maintenance(v,screen):
         v._maintenance_regions={}
         v._maintenance_scroll=0
         v._list_render=None
-        v.lcd.draw_rectangle(1,BG,0,0,271,359)
-        v._invalidate_header()
+        # Match the standard menu header exactly. The title bar has its own
+        # background and cached Wi-Fi/clock/Klipper status indicators.
+        v.Clear_Title_Bar()
+        # Maintenance owns only the body; never cover the title color band.
+        v.lcd.draw_rectangle(1,BG,0,31,271,359)
         v.Draw_Title(screen.title)
     v._maintenance_drawn_choices=tuple((c.action,c.value) for c in screen.choices)
     if screen.kind=='report':
