@@ -23,7 +23,7 @@ Yalnız iki uçta da geçerli ON örneği bulunan, sıfırdan büyük ve en fazl
 
 Yeni hatırlatıcı ilk geçerli sayaç okumasında kalıcı başlangıç alır. Kaydetmek bakım yapılmış sayılmaz. **I completed this service**, toplam sayacı sıfırlamadan yeni bakım dönemi başlatır. Güncel okuma kaybolursa ilerleme duraklar; mevcut başlangıç değiştirilemez veya uydurma sıfır üretilemez. Care schedule ve hatırlatıcı ayrıntısı tutarlı biçimde kayıtlı ilerleme / Tracking starting / Tracking paused kullanır.
 
-**Diagnostics → Usage and history → Sampled component usage**, eski ilk-16 sınırından sonraki sayaçlar dahil bütün saklanan komponent sayaçlarını mevcut rapor sayfalamasıyla gösterir. Nesne anahtarları depolama ve kanıtta ayrı kalır; yalnız sunumda anlaşılır ad kullanılır. Takip durumu ve boş sayaç yuvaları kapasite sorunlarını gösterir. S10 Moonraker kayıtlı baskı geçmişi ile S12 Petrel örneklenmiş kullanım ayrı kalır.
+**Diagnostics → Usage and history → Sampled component usage**, eski ilk-16 sınırından sonraki sayaçlar dahil bütün saklanan komponent sayaçlarını sürekli enkoder kaydırmasıyla gösterir. Nesne anahtarları depolama ve kanıtta ayrı kalır; yalnız sunumda anlaşılır ad kullanılır. Takip durumu ve boş sayaç yuvaları kapasite sorunlarını gösterir. S10 Moonraker kayıtlı baskı geçmişi ile S12 Petrel örneklenmiş kullanım ayrı kalır.
 
 ## Kaynak ve kalıcılık sınırları
 
@@ -38,7 +38,7 @@ Yeni hatırlatıcı ilk geçerli sayaç okumasında kalıcı başlangıç alır.
 
 ## CI doğrulaması ve maliyet raporu
 
-Her imzalı branch HEAD'inde tam regresyon çalışır. Rastgele çıkış adları, geçersiz örnekler, boşluk/epoch, ortak abonelikler, eski kimlik/yazma kurtarma, bakım başlangıcı, 128 sayaç sayfalaması, LED yük sınırları ve kapasite bildirimi kapsanır. Mevcut kısmi çizim/framebuffer regresyonları aktiftir; ekran yerleşimi ve ikon kaynakları değişmemiştir. Fiziksel kabul ayrıdır.
+Her imzalı branch HEAD'inde tam regresyon çalışır. Rastgele çıkış adları, geçersiz örnekler, boşluk/epoch, ortak abonelikler, eski kimlik/yazma kurtarma, bakım başlangıcı, 128 sayaç kaydırması, LED yük sınırları ve kapasite bildirimi kapsanır. Mevcut kısmi çizim/framebuffer regresyonları aktiftir; ekran yerleşimi ve ikon kaynakları değişmemiştir. Fiziksel kabul ayrıdır.
 
 `tools/benchmark_maintenance_usage.py`, yeni toplayıcıyı imzalı `a1c01ef13249e2b9b703cd3a97f7b27b8d24600c` tabanının `maintenance_records.py` dosyasıyla karşılaştırır. Workflow tam olarak bu kaynağı alır. Tipik kurulum, 64 fan ve 256 LED bütçesi senaryolarında izleme yükü eklenmemiş tick süreleri; ayrı tracing geçişlerinde tutulan/tepe Python bellek miktarı raporlanır. Tam kaynak durum JSON'u ve uzun adlarla dolu sayaç dosyası da boyutlandırılır. Mevcut keşif RSS/PSS/USS raporu metrik tanımı depolamasını içerir.
 

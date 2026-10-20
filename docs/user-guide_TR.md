@@ -256,7 +256,7 @@ Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol fa
 
 **Diagnostics** açın; bir grup ve okumayı seçin. Bilgi arka planda alınır ve doğrudan rapor olarak açılır. Başlık okumayı tanımlar; ölçümler etiket, değer ve birimi birlikte gösterir. Bilgi alanları seçilebilir menü öğesi değildir.
 
-Uzun raporlarda raporun sağ üstünde sayfa sayısı görünür. Enkoderle **Next page** veya **Previous page** seçip basın. **Back** önceki ekrana döner. Ortak dashboard raporun altında kalır; seçim çizgisi yalnız gerçek işlemlerde görünür.
+Tüm Maintenance raporlarında enkoderi çevirerek dikey kaydırın; Next/Previous düğmesi gerekmez. Son konumdan başa, baştan ters yönde çevirince sona dönülür. **Back** ve rapor başlığı sabit kalır. Bilgiyi okurken basmak Back üzerinden döner; gerçek rapor işlemleri içerikten sonra odak alır ve basılarak çalışır. Sağdaki çubuk konumu gösterir; ortak dashboard korunur.
 
 Kayıtlı hatırlatıcıyı silmek için **Care schedule** içinde açıp **Remove reminder** seçin ve ayrı ekranda onaylayın. Varsayılan seçim **Keep reminder** olur. Kullanım sayaçları ve tamamlanan bakım geçmişi korunur.
 

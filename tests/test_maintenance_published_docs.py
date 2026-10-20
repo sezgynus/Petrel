@@ -26,7 +26,7 @@ class PublishedMaintenanceGuide(unittest.TestCase):
                 self.assertIn('assets/screens/framed/'+name+'.png',guide)
                 self.assertIn('assets/screens/framed/'+name+'.png',gallery)
                 self.assertIn('assets/screens/'+name+'.png',gallery)
-            for label in ('Care schedule','Check printer','Diagnostics','Recommendations','Next page','Previous page'):
+            for label in ('Care schedule','Check printer','Diagnostics','Recommendations','Back'):
                 self.assertIn(label,guide)
 
     # Published pixels are intentionally refreshed by manual Documentation Render,

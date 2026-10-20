@@ -256,7 +256,7 @@ A recorded user observation, a measured criterion and an unfinished check have d
 
 Open **Diagnostics**, choose a group and select a reading. Information is collected in the background and opens directly as a report. The heading identifies the reading; measurements show their label, value and unit together. Information fields are not selectable menu items.
 
-Long reports show a page count in the top-right of the report. Rotate to **Next page** or **Previous page**, then press. **Back** returns to the prior screen. The shared dashboard remains below the report; only actual actions receive a selection cursor.
+Rotate the encoder to scroll every Maintenance report vertically; no Next/Previous buttons are needed. The last position wraps to the top, and reverse rotation from the top returns to the end. **Back** and the report heading stay fixed. Pressing while reading returns through Back; real report actions receive focus after the content and require a press. The right scrollbar shows position, and the shared dashboard remains untouched.
 
 To delete a saved reminder, open it in **Care schedule → Remove reminder**, then confirm separately. **Keep reminder** is the default selection. Usage counters and completed-service history are preserved.
 

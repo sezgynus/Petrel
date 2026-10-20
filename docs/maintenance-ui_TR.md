@@ -44,7 +44,7 @@ Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recomme
 
 ## Salt okunur raporlar
 
-Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler bilgiyi işlemlerden ayırır. Raporlar durum başlığı, sakin açıklama, iki sütunda etiketli ölçümler ve açık Previous/Next page işlemleri kullanır. Sayısal veriler seçilebilir satır olmaz. Tüm metin ortak dashboard üzerindeki sınırlı sayfalardan erişilebilir kalır. Odak yalnız işlem seçim çizgilerini; değişen ölçüm yalnız kendi değer alanını yeniden çizer. CI artımlı rapor piksellerini temiz çizimle karşılaştırır ve güncel Maintenance dokümantasyon görsellerini üretim arayüzünden oluşturur. Örnek ekran görüntüleri fiziksel test kanıtı değildir.
+Diagnostik okumaları, sonuçlar, kanıt ayrıntıları, geçmiş kanıtlar, öneriler ve tam yönergeler ortak, sürekli enkoder kaydırmalı raporu kullanır. Back/durum/başlık sabittir; iki sütunlu ölçümler ve açıklamalar sekiz satırlık pencerede 24 piksellik bantlarla kayar. Küçük kaydırmada Info ile aynı DWIN alan taşıma komutu korunacak pikselleri kopyalar; yalnız açılan/değişen hücreler çizilir. Büyük atlama ve başa dönüş yalnız içerik penceresini yeniler; başlık/dashboard çizilmez. İki yönde döngüsel kaydırılır; gerçek işlemler bilgiden sonra gelir ve odaklandığında görünür kalır. Ölçümler seçilebilir işlem değildir. Satır sarımı içerik değişene kadar önbelleklidir; çıkarken bırakılır. CI ileri/geri/başa dönüşü, işlem odağını, değer güncellemesini ve rapor kısalmasını temiz framebuffer ile karşılaştırır. Örnek görseller fiziksel test kanıtı değildir.
 
 ## Diagnostik alan kapsamı
 

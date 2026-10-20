@@ -13,7 +13,7 @@ from maintenance_care_view import care_items
 from maintenance_evidence_view import outcome_text
 from maintenance_layout import draw_maintenance
 from maintenance_icons import icon_for, feature_icon
-from maintenance_report import ReportSection, section_from_lines, report_pages
+from maintenance_report import ReportSection, section_from_lines, cached_report_rows, report_navigation
 from lcd_resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIONS, ICON_MAINTENANCE_DIAGNOSTICS
 
 
@@ -28,7 +28,7 @@ class MaintenanceViewMixin:
             self._maintenance_history=[]
             self._maintenance_page='root'
             self._maintenance_selection=0
-            self._maintenance_report_page=0
+            self._maintenance_report_position=0
             self._maintenance_context=None
             self._maintenance_frame=None
             self._maintenance_regions={}
@@ -83,6 +83,9 @@ class MaintenanceViewMixin:
         return care_items(self._maintenance_records_data[0],devices,time())
 
     def _maintenance_back_home(self):
+        self._maintenance_report_source=None
+        self._maintenance_report_rows=()
+        self._maintenance_report_position=0
         self._maintenance_history=[]
         self._maintenance_frame=None
         self._maintenance_page='root'
@@ -94,7 +97,9 @@ class MaintenanceViewMixin:
     def _maintenance_show(self,page,selection=0):
         self._maintenance_init()
         if page!=self._maintenance_page:
-            self._maintenance_report_page=0
+            self._maintenance_report_position=0
+            self._maintenance_report_source=None
+            self._maintenance_report_rows=()
         self._maintenance_page=page
         self._maintenance_selection=selection
         self.Draw_Maintenance_Menu()
@@ -104,7 +109,7 @@ class MaintenanceViewMixin:
         self._maintenance_init()
         self._maintenance_history.append((self._maintenance_page,self._maintenance_selection,self._maintenance_context))
         self._maintenance_context=context
-        self._maintenance_report_page=0
+        self._maintenance_report_position=0
         self._maintenance_notice=''
         self._maintenance_show(page)
 
@@ -141,14 +146,11 @@ class MaintenanceViewMixin:
                     (screen.heading,)+screen.lines),))
         if screen.kind=='report':
             from dataclasses import replace
-            pages=report_pages(screen.sections)
-            page=max(0,min(getattr(self,'_maintenance_report_page',0),len(pages)-1))
-            self._maintenance_report_page=page
-            navigation=()
-            if page>0: navigation+=(Choice('Previous page','report_page',page-1),)
-            if page+1<len(pages): navigation+=(Choice('Next page','report_page',page+1),)
-            screen=replace(screen,report_page=page,
-                choices=screen.choices[:1]+navigation+screen.choices[1:])
+            rows=cached_report_rows(self,screen)
+            position,offset,selected,_=report_navigation(rows,screen.choices,self._maintenance_report_position)
+            self._maintenance_report_position=position
+            self._maintenance_selection=selected
+            screen=replace(screen,report_offset=offset)
         return screen
 
     def _maintenance_screen_model(self):
@@ -562,10 +564,6 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
-        if action=='report_page':
-            self._maintenance_report_page=value
-            self._maintenance_selection=0
-            self.Draw_Maintenance_Menu();self.lcd.update();return
         if action=='reference': return self._maintenance_open('reference',value)
         if action=='reference_limit': return self._maintenance_open('reference_limit',(value,20))
         if action=='reference_confirm': return self._maintenance_open('reference_confirm',value)
@@ -737,7 +735,15 @@ class MaintenanceViewMixin:
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
             delta=steps if event==self.ENCODER_DIFF_CW else -steps
-            self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
+            if screen.kind=='report':
+                from dataclasses import replace
+                rows=cached_report_rows(self,screen)
+                position,offset,selected,_=report_navigation(rows,choices,self._maintenance_report_position+delta)
+                self._maintenance_report_position=position
+                self._maintenance_selection=selected
+                screen=replace(screen,report_offset=offset)
+            else:
+                self._maintenance_selection=max(0,min(max(0,len(choices)-1),self._maintenance_selection+delta))
             self.Draw_Maintenance_Menu(screen);self.lcd.update()
         elif event==self.ENCODER_DIFF_ENTER and choices:
             drawn=getattr(self,'_maintenance_drawn_choices',None)

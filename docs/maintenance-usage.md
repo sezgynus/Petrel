@@ -23,7 +23,7 @@ Use **Maintenance → Care schedule → Add reminder**, choose a device/task, th
 
 A new reminder obtains its durable anchor at the first valid counter read. Saving it does not record maintenance. **I completed this service** starts a new service cycle without resetting the total counter. Missing live readings pause progress and cannot replace an existing anchor or become a fabricated zero. Care schedule and reminder detail use recorded progress / Tracking starting / Tracking paused consistently.
 
-**Diagnostics → Usage and history → Sampled component usage** shows all retained component counters through the existing report pagination, including counters after the former first-16 limit. Exact object keys remain distinct in storage and evidence; only presentation supplies friendly names. Tracking states and remaining counter slots expose capacity problems. S10 Moonraker recorded print history remains separate from S12 Petrel sampled usage.
+**Diagnostics → Usage and history → Sampled component usage** shows all retained component counters through continuous encoder scrolling, including counters after the former first-16 limit. Exact object keys remain distinct in storage and evidence; only presentation supplies friendly names. Tracking states and remaining counter slots expose capacity problems. S10 Moonraker recorded print history remains separate from S12 Petrel sampled usage.
 
 ## Resource and persistence bounds
 
@@ -38,7 +38,7 @@ Returning to a pre-feature writer is not a reverse migration: older writers have
 
 ## CI validation and cost reporting
 
-Every signed branch HEAD runs the complete regression suite. Coverage includes arbitrary output names, invalid samples, gaps/epochs, shared subscriptions, legacy identity and write recovery, service anchors, 128-counter pagination, LED payload bounds and capacity reporting. Existing partial-render/framebuffer regressions remain active; the layout and icon assets are unchanged. Hardware acceptance is still separate.
+Every signed branch HEAD runs the complete regression suite. Coverage includes arbitrary output names, invalid samples, gaps/epochs, shared subscriptions, legacy identity and write recovery, service anchors, 128-counter scrolling, LED payload bounds and capacity reporting. Existing partial-render/framebuffer regressions remain active; the layout and icon assets are unchanged. Hardware acceptance is still separate.
 
 `tools/benchmark_maintenance_usage.py` compares the new collector with `maintenance_records.py` from signed base `a1c01ef13249e2b9b703cd3a97f7b27b8d24600c`. The workflow fetches that exact source. Typical, 64-fan and 256-LED-budget fixtures report uninstrumented tick times; separate tracing reports retained/peak Python allocations. The full source-status JSON and a full long-name ledger are also sized. Existing discovery RSS/PSS/USS reports include descriptor storage.
 

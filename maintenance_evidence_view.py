@@ -40,7 +40,7 @@ def _format(value,unit=''):
 def evidence_lines(feature,evidence):
     """Bounded whitelist: no raw flag/status/reason names in the user interface."""
     lines=[]
-    # S12 has a bounded ledger plus live tracking states; report_pages handles
+    # S12 has a bounded ledger plus live tracking states; the scroll viewport handles
     # display pagination without discarding the 65th or later device.
     limit=264 if feature=='S12' else 64
     for pair in tuple(evidence)[:limit]:

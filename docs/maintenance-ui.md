@@ -44,7 +44,7 @@ Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recomm
 
 ## Read-only reports
 
-Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions separate information from actions. Reports use a status heading, muted explanation, two-column labeled measurements and explicit Previous/Next page actions. Numeric facts never become selectable rows. All text remains reachable through bounded pages above the shared dashboard. Focus redraws only action cursor strips; a changed measurement repaints only its value field. CI compares incremental report pixels with clean frames and renders current Maintenance documentation scenes through the production UI. Example screenshots are not physical test evidence.
+Diagnostic reads, results, evidence, historical evidence, recommendations and full instructions use one continuous encoder-scroll report. Back/status/heading stay fixed; two-column facts and prose move in 24-pixel bands inside the eight-row viewport. Small scrolls copy retained pixels with the same DWIN area-move operation used by Info and draw only exposed/changed cells. Large jumps and wrap redraw only the viewport, never the title or dashboard. Scrolling wraps in both directions; real actions follow the information and remain visible when focused. Facts are not selectable actions. Row wrapping is cached until report content changes and released when leaving. CI compares forward/reverse/wrap, action focus, value updates and report shrinkage against clean framebuffers. Example screenshots are not physical test evidence.
 
 ## Diagnostic field coverage
 

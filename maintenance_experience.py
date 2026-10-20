@@ -53,7 +53,7 @@ class Screen:
     sections: tuple = ()
     badge: str = ''
     report_icon: object = None
-    report_page: int = 0
+    report_offset: int = 0
 
 
 def device_name(name):

@@ -184,19 +184,19 @@ class UsagePlannerAndReports(unittest.TestCase):
             self.assertEqual(call('complete')[1]['counter'], 150)
             self.assertEqual(usage['sampled_on_s'][device], 150)
 
-    def test_all_128_counters_reach_report_pages_without_name_truncation(self):
+    def test_all_128_counters_reach_report_rows_without_name_truncation(self):
         from unittest.mock import Mock, patch
         from maintenance_records import MaintenanceBook
         from maintenance_evidence_view import evidence_lines
-        from maintenance_report import report_pages, section_from_lines
+        from maintenance_report import report_rows, section_from_lines
         counters = {'output_pin component_%03d'%i: float(i) for i in range(128)}
         with patch('maintenance_records.read_json', return_value={'sampled_on_s': counters}):
             fields = MaintenanceBook.read(NS(flush=Mock()), 'S12')
         lines = evidence_lines('S12', fields)
-        pages = report_pages(section_from_lines('', lines))
+        rows = report_rows(section_from_lines('', lines))
         for i in range(128):
-            self.assertIn('component_%03d'%i, str(pages))
-        self.assertTrue(all(sum(b[2] for b in p) <= 132 for p in pages))
+            self.assertIn('component_%03d'%i, str(rows))
+        self.assertGreater(len(rows),128)
         self.assertIn('Counter slots free: 0', lines)
 
     def test_supported_and_observed_are_distinct_and_disconnect_pauses(self):
