@@ -625,7 +625,7 @@ class PrinterData:
             filament_provider=self.maintenance_filament_usage)
 
     def maintenance_filament_usage(self):
-        from maintenance_filament import recorded_filament
+        from maintenance_filament_usage import recorded_filament
         return recorded_filament(self.client)
 
     def maintenance_sensor_devices(self):
