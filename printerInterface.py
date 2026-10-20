@@ -623,6 +623,18 @@ class PrinterData:
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
             usage_provider=self.maintenance_book.service_counters)
 
+    def maintenance_sensor_devices(self):
+        from maintenance_sensor_diagnostics import devices
+        return devices(self.maintenance.snapshot)
+
+    def maintenance_sensor_diagnostic(self,device):
+        from maintenance_sensor_diagnostics import read
+        if device not in self.maintenance_sensor_devices():
+            raise ValueError('sensor_device_no_longer_available')
+        state = self.state
+        return self._maintenance_worker.submit(
+            lambda: read(self.client, state, device), queue_timeout=8)
+
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
         from maintenance_travel import installed, AXES, travel_device

@@ -46,6 +46,8 @@ class MaintenanceViewMixin:
             self._maintenance_records_background=False
             self._maintenance_records_failed=False
             self._maintenance_records_refresh_at=0.
+            self._maintenance_sensor_future=None
+            self._maintenance_sensor_identity=None
 
     def Enter_Maintenance_Menu(self):
         self._maintenance_init()
@@ -176,7 +178,28 @@ class MaintenanceViewMixin:
             groups=grouped(reads)
             return Screen('Diagnostics',choices=(back,)+tuple(
                 Choice(title,'diagnostic_topic',key) for key,title,rows in groups)+(
+                Choice('Sensors','open','sensor_devices'),
                 Choice('Usage and history','history'),Choice('Support tools','open','support')),kind='list')
+        if page=='sensor_devices':
+            provider=getattr(self.pd,'maintenance_sensor_devices',None)
+            names=provider() if callable(provider) else ()
+            return Screen('Sensor diagnostics',choices=(back,)+tuple(
+                Choice(device_name(d),'sensor_read',d,d) for d in names),kind='list',
+                heading='' if names else 'No configured sensors')
+        if page=='sensor_wait':
+            return Screen('Sensor diagnostics','Reading status',
+                ('This read does not move the printer.',),(back,))
+        if page=='sensor_report':
+            reading=context
+            return Screen('Sensor diagnostics',device_name(reading.device),
+                choices=(back,Choice('Refresh reading','sensor_refresh',reading.device)),
+                kind='report',badge='STATUS SNAPSHOT',report_icon=ICON_MAINTENANCE_DIAGNOSTICS,
+                sections=(ReportSection('Source',facts=(
+                    ('Configured','Yes' if reading.configured else 'No'),
+                    ('Status object','Present' if reading.listed else 'Not exposed'),
+                    ('Source',reading.source))),
+                    ReportSection('Readings',facts=reading.facts),
+                    ReportSection('Reading meaning',text=reading.notes)))
         if page=='diagnostic_topic':
             _,reads=self._maintenance_options()
             groups=grouped(reads)
@@ -579,6 +602,16 @@ class MaintenanceViewMixin:
     def _maintenance_dispatch(self,choice):
         action,value=choice.action,choice.value
         if action=='none': return
+        if action in ('sensor_read','sensor_refresh'):
+            if self._maintenance_sensor_future is not None: return
+            try:
+                self._maintenance_sensor_future=self.pd.maintenance_sensor_diagnostic(value)
+                self._maintenance_sensor_identity=self._maintenance_identity()
+            except Exception:
+                return self._maintenance_open('notice',('Sensor unavailable',
+                    ('The configuration or connection changed.','Return to the sensor list and retry.')))
+            if action=='sensor_read': return self._maintenance_open('sensor_wait')
+            return self._maintenance_show('sensor_wait')
         if action=='reference': return self._maintenance_open('reference',value)
         if action=='reference_limit': return self._maintenance_open('reference_limit',(value,20))
         if action=='reference_confirm': return self._maintenance_open('reference_confirm',value)
@@ -783,6 +816,21 @@ class MaintenanceViewMixin:
                 and not getattr(owner,'pending',False) and not getattr(reader,'pending',False)
                 and monotonic()>=self._maintenance_records_refresh_at):
             self._maintenance_prefetch_records()
+        sensor_future=self._maintenance_sensor_future
+        if sensor_future is not None and sensor_future.done():
+            self._maintenance_sensor_future=None
+            try:
+                reading=sensor_future.result()
+                if self._maintenance_sensor_identity!=self._maintenance_identity():
+                    raise ValueError('sensor_read_stale')
+                if visible and active_page=='sensor_wait':
+                    self._maintenance_context=reading
+                    self._maintenance_show('sensor_report')
+            except Exception:
+                if visible and active_page=='sensor_wait':
+                    self._maintenance_context=('Sensor read unavailable',
+                        ('Connection, configuration or status changed.','Return to the sensor list and retry.'))
+                    self._maintenance_show('notice')
         reference=self._maintenance_reference_future
         if reference is not None and reference.done():
             self._maintenance_reference_future=None
