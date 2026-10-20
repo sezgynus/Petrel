@@ -66,7 +66,7 @@ class RegressionContracts(unittest.TestCase):
         printer._jog_lock = Lock()
         printer._jog_restore = None
         printer.resume_job()
-        printer.postREST.assert_called_once_with('/printer/print/resume', json=None)
+        printer.postREST.assert_called_once_with('/printer/print/resume', json={}, report_error=True)
 
     def test_home_returns_command_future(self):
         printer = self.printer()

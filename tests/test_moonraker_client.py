@@ -172,7 +172,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(future.result(2), {'result': 'ok'})
         request = opener.open.call_args.args[0]
         self.assertEqual(request.method, 'POST')
-        self.assertEqual(request.get_data(), b'{}')
+        self.assertEqual(request.data, b'{}')
 
     def test_parameterless_post_encodes_object_not_json_null(self):
         opener = Mock()
@@ -182,7 +182,7 @@ class TransportTests(unittest.TestCase):
             with self.subTest(endpoint=endpoint):
                 self.assertEqual(client.post(endpoint, None).result(2), {'result': 'ok'})
                 request = opener.open.call_args.args[0]
-                self.assertEqual(request.get_data(), b'{}')
+                self.assertEqual(request.data, b'{}')
                 self.assertEqual(request.get_header('Content-type'), 'application/json')
         self.assertEqual(opener.open.call_count, 2)
 
@@ -191,7 +191,7 @@ class TransportTests(unittest.TestCase):
         opener.open.return_value = response({'result': 'ok'})
         client = self.client(opener)
         client.post('/printer/gcode/script', {'script': 'PAUSE'}).result(2)
-        self.assertEqual(json.loads(opener.open.call_args.args[0].get_data()),
+        self.assertEqual(json.loads(opener.open.call_args.args[0].data),
                          {'script': 'PAUSE'})
 
     def test_close_is_idempotent_and_rejects_new_commands(self):
