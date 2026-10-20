@@ -85,6 +85,9 @@ def main():
                + sys.getsizeof(snapshot.global_modes) + sys.getsizeof(snapshot.service_key)
                + sum(sys.getsizeof(item) + sys.getsizeof(item.modes)
                      + sys.getsizeof(item.name) for item in snapshot.devices))
+    compact += (sys.getsizeof(snapshot.usage_metrics) +
+                sum(sys.getsizeof(metric) for metric in snapshot.usage_metrics))
+    print('Usage descriptors / excluded:', len(snapshot.usage_metrics), snapshot.usage_omitted)
     print('Snapshot Python size estimate: %.2f KiB' % (compact / 1024))
 
     if tracer is not None:

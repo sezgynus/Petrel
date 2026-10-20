@@ -53,3 +53,5 @@ Every registered information reader now has a named LCD report and explicit fiel
 MCU average/variation values are converted from seconds to microseconds; configured driver currents are amperes. Klipper BME environmental pressure is hPa and gas resistance is ohms. Recorded usage durations are readable time spans, and sampled coverage is explicitly a lower bound. Missing or invalid readings are not replaced by fabricated values. Internal event timestamps and unknown backend bookkeeping do not become measurements. CI covers every registered reader, the actual TMC/MCU/motion parsers and local panel/usage/history output contracts.
 
 Care records refresh asynchronously on every Maintenance entry and at most once per minute while the care view is idle and visible. The existing schedule remains visible during refresh; sampled-hour due states and an open reminder update from the completed worker result.
+
+Component-specific reminder options, supported telemetry and capacity states are documented in [Component usage tracking](maintenance-usage.md).

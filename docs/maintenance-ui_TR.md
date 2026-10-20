@@ -53,3 +53,5 @@ Kayıtlı her bilgi okuyucusunun artık adlandırılmış LCD raporu ve açık a
 MCU ortalama/değişkenlik değerleri saniyeden mikrosaniyeye çevrilir; yapılandırılmış sürücü akımları amperdir. Klipper BME çevresel basıncı hPa, gaz direnci ohm birimindedir. Kayıtlı kullanım süreleri okunabilir zaman aralıklarıdır; örneklenmiş kapsam açıkça alt sınır olarak belirtilir. Eksik veya geçersiz okuma yerine değer uydurulmaz. İç olay zamanları ve bilinmeyen backend kayıt alanları ölçüm olarak sunulmaz. CI her kayıtlı okuyucuyu, gerçek TMC/MCU/hareket ayrıştırıcılarını ve yerel panel/kullanım/geçmiş çıktı sözleşmelerini kapsar.
 
 Bakım kayıtları Maintenance menüsüne her girişte ve bakım görünümü boşta ve görünürken en fazla dakikada bir asenkron yenilenir. Yenileme sırasında mevcut plan görünür kalır; örneklenmiş saatlere bağlı vade durumu ve açık hatırlatıcı, tamamlanan worker sonucuyla güncellenir.
+
+Komponente özgü hatırlatıcı seçenekleri, desteklenen telemetri ve kapasite durumları [Komponent kullanım takibi](maintenance-usage_TR.md) belgesindedir.

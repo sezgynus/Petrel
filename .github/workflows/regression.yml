@@ -32,3 +32,9 @@ jobs:
         run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20
       - name: Report traced Maintenance allocations
         run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20 --trace
+      - name: Compare generic usage collector with signed baseline
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin a1c01ef13249e2b9b703cd3a97f7b27b8d24600c
+          git show a1c01ef13249e2b9b703cd3a97f7b27b8d24600c:maintenance_records.py > "$RUNNER_TEMP/petrel-usage-baseline.py"
+          python tools/benchmark_maintenance_usage.py --baseline-file "$RUNNER_TEMP/petrel-usage-baseline.py"

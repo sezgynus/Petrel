@@ -263,3 +263,41 @@ class UsageLEDContracts(unittest.TestCase):
         snap = discover(state)
         self.assertEqual(sub._usage_fields, {m.device:m.field for m in snap.usage_metrics})
         self.assertIs(snap.usage_metrics[0].active(state.status), True)
+
+
+class UsageResourceBounds(unittest.TestCase):
+    def test_full_durable_ledger_reports_rejected_live_metric_without_zero(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from maintenance_records import MaintenanceBook, write_json, MAX_USAGE_COUNTERS
+        from test_maintenance_ui_services import DeferredWorker
+        from maintenance_evidence_view import evidence_lines
+        with tempfile.TemporaryDirectory() as folder, patch('maintenance_records.root', return_value=Path(folder)):
+            values = {'fan_generic retired%03d'%i: float(i) for i in range(MAX_USAGE_COUNTERS)}
+            write_json('maintenance-usage.json', {'version':1, 'sampled_on_s':values, 'counter_id':'a'*32})
+            book = MaintenanceBook(DeferredWorker())
+            state = NS(ready=True,epoch=1,objects=('output_pin new',),settings={},
+                       status={'output_pin new':{'value':1.}})
+            book.note(state,0)
+            with self.assertLogs(level='WARNING'): book.flush()
+            self.assertEqual(book.usage_status(), (('output_pin new','capacity'),))
+            counters = book.service_counters()
+            self.assertEqual(counters['sampled_on_s'], values)
+            self.assertNotIn(('output_pin new','sampled_on_s'), counters['available_metrics'])
+            self.assertIn('new: Counter capacity reached', evidence_lines('S12',book.read('S12')))
+
+    def test_inventory_is_reused_and_sampling_never_touches_disk(self):
+        from unittest.mock import patch
+        from maintenance_records import MaintenanceBook
+        from test_maintenance_ui_services import DeferredWorker
+        state = NS(ready=True,epoch=1,objects=('output_pin any',),settings={},status={
+            'output_pin any':{'value':1.}})
+        book = MaintenanceBook(DeferredWorker())
+        snap = discover(state)
+        with patch('maintenance_records.read_json',side_effect=AssertionError('sampling I/O')):
+            book.note(state,0,snapshot=snap)
+            self.assertIs(book._metrics,snap.usage_metrics)
+            with patch('maintenance_usage.usage_metrics',side_effect=AssertionError('rediscovery')):
+                for now in (1.,2.,3.): book.note(state,now,snapshot=snap)
+        self.assertEqual(book._usage['output_pin any'],3.)

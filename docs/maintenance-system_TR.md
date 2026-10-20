@@ -4,7 +4,7 @@
 
 S01–S10 gerçek host, disk, MCU, CAN, sınıflandırılmış yakın olaylar ve kaydedilmiş baskı geçmişini okur. MCU adları ayrı kalır; null CAN alanı arıza sayılmaz. S04 yalnız açık istekte tek dizin listeler; dosya adlarını değil disk toplamlarını tutar. S09 ham konsol satırı veya token yerine olay/hata sayıları ve bilinen hata kategorilerini tutar. S19 yenileme veya kurulum yapmadan güncelleme durumunu okur; normal güncelleme kontrolleri Info'da kalır.
 
-S11 gerçek yöntem, zaman, cihaz, planlanan epoch/config işareti, firmware/config kimliği ve izinli kanıtla en fazla 64 sonuç saklar. CI fiziksel kabul değildir. S12 sınırlı örneklenmiş alt-sınır ısıtıcı/fan ON süresi kaydeder: yalnız iki uçta da ON olan <=2 sn aralıklar sayılır. Eksik örnekler, kesinti ve çökme kayıpları ömür boyu saat gibi uydurulmaz. Envanter epoch bazında önbelleklidir; normal tick I/O yapmaz. Yazma mevcut worker'ı kullanır.
+S11 gerçek yöntem, zaman, cihaz, planlanan epoch/config işareti, firmware/config kimliği ve izinli kanıtla en fazla 64 sonuç saklar. CI fiziksel kabul değildir. S12 sınırlı örneklenmiş alt-sınır fan/ısıtıcı/çıkış/LED ON süresi kaydeder ([kullanım sözleşmeleri ve kapasite](maintenance-usage_TR.md)): yalnız iki uçta da ON olan <=2 sn aralıklar sayılır. Eksik örnekler, kesinti ve çökme kayıpları ömür boyu saat gibi uydurulmaz. Envanter epoch bazında önbelleklidir; normal tick I/O yapmaz. Yazma mevcut worker'ı kullanır.
 
 S13 konum farkı toplamı yerine yetkili bir eklenti sayacı ister. ~/.config/Petrel altında maintenance-travel-counter.json içine {"version":1,"object":"your_registered_object","authoritative":true} beyan edilir; kayıtlı nesne mm cinsinden negatif olmayan x_mm/y_mm/z_mm sayaçlarını döndürmelidir. Bu kaynak yoksa özellik gizli kalır.
 

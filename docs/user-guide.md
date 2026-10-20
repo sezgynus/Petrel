@@ -219,7 +219,7 @@ These screenshots show the current UI with example controller records and measur
   <img src="assets/screens/framed/maintenance-care-scrolled.png" width="360" alt="Remaining plans and the scrolling care viewport">
 </p>
 
-The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Missing service dates or unknown sampled coverage do not get a fabricated percentage. Rotate to reach every plan; **Back** stays at the top.
+The bar shows elapsed time within your configured interval, not component wear or remaining life. **Due** means that interval has elapsed. Recorded sampled use since the saved anchor fills the bar; missing/reset readings pause tracking without inventing progress. Rotate to reach every plan; **Back** stays at the top.
 
 1. Open **Care schedule → Add reminder**. Select a supported device, service task and available reminder basis.
 2. Set your interval using the manufacturer's maintenance guidance, review it and explicitly save. The editor's initial value is not an installed default.
@@ -257,6 +257,8 @@ A recorded user observation, a measured criterion and an unfinished check have d
 Open **Diagnostics**, choose a group and select a reading. Information is collected in the background and opens directly as a report. The heading identifies the reading; measurements show their label, value and unit together. Information fields are not selectable menu items.
 
 Long reports show a page count in the top-right of the report. Rotate to **Next page** or **Previous page**, then press. **Back** returns to the prior screen. The shared dashboard remains below the report; only actual actions receive a selection cursor.
+
+Supported fan, heater, output and LED objects automatically offer **Sampled powered hours** based on their own usage. Menu visibility does not control sampling. S12 pages include all retained counters and tracking/capacity states; see [Component usage tracking](maintenance-usage.md).
 
 **Diagnostics → Usage and history** contains recorded print usage, sampled component usage and recent check history. Historical evidence is labeled **HISTORY** and does not describe current hardware health. **Support tools** contains optional recording and diagnostic-report export; recording does not start a check.
 
