@@ -153,6 +153,20 @@ class MoonrakerSubscription:
                                                   ['temperature', 'target', 'power']))
         return objects
 
+    def _prune_thermal_status(self):
+        """Lock held: optional thermal fields must not outlive their lease."""
+        for name in tuple(self._status):
+            if not name.startswith('heater_generic ') or name in self._thermal_objects:
+                continue
+            field = self._usage_fields.get(name)
+            if field is None:
+                self._status.pop(name, None)
+            else:
+                values = self._status[name]
+                for key in tuple(values):
+                    if key != field:
+                        values.pop(key, None)
+
     def set_thermal_tracking(self, enabled):
         """Lease optional heater telemetry only for an explicit thermal check."""
         with self._lock:
@@ -163,9 +177,7 @@ class MoonrakerSubscription:
                 and isinstance(cfg, dict) and 'heater_pin' in cfg)
             names = self._thermal_objects
             objects = self._subscription_objects()
-            for name in tuple(self._status):
-                if name.startswith('heater_generic ') and name not in names and name not in self._usage_fields:
-                    self._status.pop(name, None)
+            self._prune_thermal_status()
         future = self.request('printer.objects.subscribe', {'objects': objects})
         def receive(done):
             if done.cancelled() or done.exception(): return
@@ -175,11 +187,16 @@ class MoonrakerSubscription:
             if not isinstance(status, dict): return
             with self._lock:
                 if generation != self._thermal_generation or epoch != self._epoch: return
-                # Seed only missing objects; never overwrite newer deltas.
+                # A usage subscription may already supply power. Seed missing
+                # thermal FIELDS without overwriting newer per-field deltas.
                 for name in names:
-                    if name not in self._status and isinstance(status.get(name), dict):
-                        self._status[name] = copy.deepcopy(status[name])
-                        self._revision += 1
+                    if not isinstance(status.get(name), dict):
+                        continue
+                    values = self._status.setdefault(name, {})
+                    for field in ('temperature', 'target', 'power'):
+                        if field not in values and field in status[name]:
+                            values[field] = copy.deepcopy(status[name][field])
+                            self._revision += 1
         future.add_done_callback(receive)
         return future
 
@@ -252,10 +269,7 @@ class MoonrakerSubscription:
             else:
                 for name, fields in status.items():
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
-            for name in tuple(self._status):
-                if (name.startswith('heater_generic ') and name not in self._thermal_objects
-                        and name not in self._usage_fields):
-                    self._status.pop(name, None)
+            self._prune_thermal_status()
             self._eventtime = eventtime
             self._revision += 1
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):

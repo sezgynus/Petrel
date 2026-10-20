@@ -301,3 +301,33 @@ class UsageResourceBounds(unittest.TestCase):
             with patch('maintenance_usage.usage_metrics',side_effect=AssertionError('rediscovery')):
                 for now in (1.,2.,3.): book.note(state,now,snapshot=snap)
         self.assertEqual(book._usage['output_pin any'],3.)
+
+
+class UsageThermalLease(unittest.TestCase):
+    def test_power_subscription_seeds_missing_thermal_fields_without_overwriting_deltas(self):
+        from concurrent.futures import Future
+        from unittest.mock import Mock
+        from moonraker_subscription import MoonrakerSubscription
+        sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
+        self.addCleanup(sub.close)
+        name = 'heater_generic chamber'
+        sub._state = 'ready'
+        sub._objects = [name]
+        sub._settings = {name: {'heater_pin':'PA1'}}
+        sub._usage_fields = {name:'power'}
+        sub._status = {name:{'power':.7}}
+        sub._eventtime = 12
+        sub.request = Mock(side_effect=lambda *a, **k: Future())
+        first = sub.set_thermal_tracking(True)
+        sub._merge({name:{'temperature':31.}}, 13)
+        first.set_result({'status':{name:{'temperature':20.,'target':45.,'power':.1}},'eventtime':11})
+        self.assertEqual(sub._status[name], {'power':.7,'temperature':31.,'target':45.})
+        sub.set_thermal_tracking(False)
+        self.assertEqual(sub._status[name], {'power':.7})
+        # A late subscription reply cannot revive thermal fields after exit.
+        sub._merge({name:{'power':.6,'temperature':99.,'target':100.}}, 14)
+        self.assertEqual(sub._status[name], {'power':.6})
+        second = sub.set_thermal_tracking(True)
+        sub.set_thermal_tracking(False)
+        second.set_result({'status':{name:{'temperature':80.,'target':90.}},'eventtime':15})
+        self.assertEqual(sub._status[name], {'power':.6})
