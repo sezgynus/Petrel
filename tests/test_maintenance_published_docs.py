@@ -29,6 +29,16 @@ class PublishedMaintenanceGuide(unittest.TestCase):
             for label in ('Care schedule','Check printer','Diagnostics','Recommendations','Back'):
                 self.assertIn(label,guide)
 
+    @patch('t5uic1_driver.time.sleep')
+    def test_scrolled_host_scene_moves_only_report_content(self,_):
+        with patch.object(time,'strftime',return_value='12:34'):
+            scenes={scene[0]:scene[-1] for scene in self.scenes()}
+            top=scenes['maintenance-host']()
+            scrolled=scenes['maintenance-host-page-2']()
+        self.assertIsNone(ImageChops.difference(top.crop((0,0,272,148)),scrolled.crop((0,0,272,148))).getbbox())
+        self.assertIsNone(ImageChops.difference(top.crop((0,360,272,480)),scrolled.crop((0,360,272,480))).getbbox())
+        self.assertIsNotNone(ImageChops.difference(top.crop((0,148,260,340)),scrolled.crop((0,148,260,340))).getbbox())
+
     # Published pixels are intentionally refreshed by manual Documentation Render,
     # not by every source push. Verify only after that workflow regenerates them.
     @unittest.skipUnless(os.environ.get('PETREL_VERIFY_PUBLISHED_SCREENS') == '1',

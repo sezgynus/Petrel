@@ -12,9 +12,14 @@ class DocumentationRenderWorkflowTests(unittest.TestCase):
         cls.render = (WORKFLOWS / "documentation-render.yml").read_text(encoding="utf-8")
         cls.regression = (WORKFLOWS / "regression.yml").read_text(encoding="utf-8")
 
-    def test_manual_only_and_branch_guarded(self):
+    def test_manual_and_one_branch_refresh_are_guarded(self):
         self.assertIn("  workflow_dispatch:", self.render)
-        self.assertNotIn("  push:", self.render)
+        self.assertIn("  push:", self.render)
+        self.assertIn("      - feature/generic-component-usage", self.render)
+        self.assertIn("      - .github/workflows/documentation-render.yml", self.render)
+        self.assertIn("github.actor != 'sezgynus'", self.render)
+        self.assertLess(self.render.index("Run regression suite before rendering"),
+                        self.render.index("Render documentation screenshots"))
         self.assertNotIn("  pull_request:", self.render)
         self.assertIn("if: github.ref_type == 'branch'", self.render)
         self.assertIn("documentation-render-${{ github.ref }}", self.render)

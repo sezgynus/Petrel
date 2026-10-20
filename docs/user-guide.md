@@ -251,7 +251,7 @@ A recorded user observation, a measured criterion and an unfinished check have d
 <p align="center">
   <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Diagnostics with system readings, usage/history and support tools">
   <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Host measurements shown as label and value groups">
-  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Second page of a diagnostic report">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Diagnostic report after encoder scrolling">
 </p>
 
 Open **Diagnostics**, choose a group and select a reading. Information is collected in the background and opens directly as a report. The heading identifies the reading; measurements show their label, value and unit together. Information fields are not selectable menu items.
