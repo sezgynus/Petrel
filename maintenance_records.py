@@ -11,10 +11,10 @@ from time import monotonic, time
 from maintenance_motion import number
 
 
-MAX_USAGE_COUNTERS = 32
-# Older writers could add one batch beyond 32. Keep those values/ledger IDs;
-# do not silently drop service baselines. No new names grow a full ledger.
-MAX_LEGACY_USAGE_COUNTERS = 64
+# At most 64 live descriptors; reserve another inventory for retired devices.
+# Preserve every legacy counter and identity within the existing 64 KiB file.
+MAX_USAGE_COUNTERS = 128
+MAX_LEGACY_USAGE_COUNTERS = MAX_USAGE_COUNTERS
 MAX_RECORD_BYTES = 65536
 
 
@@ -108,7 +108,9 @@ class MaintenanceBook:
         self._record_jobs = {}
         self._closed = False
         self._inventory_key = None
-        self._names = ()
+        self._metrics = ()
+        self.usage_omitted = 0
+        self._capacity_rejected = set()
         self._observed = set()
 
     def record(self,result,method,state,plan=None):
@@ -197,28 +199,29 @@ class MaintenanceBook:
         active = {}
         key = (state.epoch,id(state.settings))
         if state.ready and key!=self._inventory_key:
+            from maintenance_usage import usage_metrics
+            self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()))
             self._observed.clear()
-            self._names = tuple(name for name,cfg in state.settings.items()
-                if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan '))
-                or isinstance(cfg,Mapping) and 'heater_pin' in cfg)[:16]
+            self._capacity_rejected.clear()
             self._inventory_key = key
+            self._last = None
         if state.ready:
-            for name in self._names:
-                values = state.status.get(name)
-                if not isinstance(values,Mapping):
-                    continue
-                cfg = state.settings.get(name,{})
-                key = 'power' if isinstance(cfg,Mapping) and 'heater_pin' in cfg else (
-                      'speed' if name=='fan' or name.startswith(('fan_generic ','heater_fan ','controller_fan ','temperature_fan ')) else None)
-                if key and number(values.get(key)):
-                    active[name] = values[key]>0
-                    self._observed.add(name)
+            for metric in self._metrics:
+                value = metric.active(state.status)
+                if value is not None:
+                    active[metric.device] = value
+                    self._observed.add(metric.device)
             active['@printing'] = (state.status.get('print_stats',{}).get('state')=='printing'
                 and state.status.get('virtual_sdcard',{}).get('is_active') is True
                 and state.status.get('pause_resume',{}).get('is_paused') is False)
         with self._lock:
-            for name in active:
-                if name != '@printing': self._usage.setdefault(name, 0.)
+            for name in tuple(active):
+                if name in self._capacity_rejected or (name not in self._usage
+                        and name != '@printing' and len(self._usage) >= MAX_USAGE_COUNTERS):
+                    active.pop(name)
+                    self._capacity_rejected.add(name)
+                elif name != '@printing':
+                    self._usage.setdefault(name, 0.)
             previous = self._last
             if previous is not None and state.epoch==previous[0]:
                 dt = now-previous[1]
@@ -252,11 +255,11 @@ class MaintenanceBook:
             counters = data.get('sampled_on_s',{})
             if not isinstance(counters,dict) or len(counters)>MAX_LEGACY_USAGE_COUNTERS:
                 raise ValueError('maintenance_usage_invalid')
-            rejected = 0
-            for name,value in pending.items():
+            rejected = set()
+            for name,value in sorted(pending.items()):
                 if name=='@printing': continue
                 if name not in counters and len(counters) >= MAX_USAGE_COUNTERS:
-                    rejected += 1
+                    rejected.add(name)
                     continue
                 old = counters.get(name,0.)
                 if not number(old) or old<0:
@@ -269,11 +272,18 @@ class MaintenanceBook:
             if identity is None: identity=uuid.uuid4().hex
             if not isinstance(identity,str) or not re.fullmatch(r'[a-f0-9]{32}',identity):
                 raise ValueError('maintenance_usage_identity_invalid')
-            write_json('maintenance-usage.json',{'version':1,'sampled_on_s':counters,
-                'sampled_print_s':printing+pending.get('@printing',0.),'counter_id':identity,
-                'coverage':'sampled_lower_bound_not_lifetime','saved_at':time()})
+            # No periodic rewrite for an unchanged valid ledger. The first
+            # read still creates the durable identity required by service anchors.
+            changed = bool(pending) or data.get('counter_id') is None
+            if changed:
+                data.update(version=1, sampled_on_s=counters,
+                    sampled_print_s=printing+pending.get('@printing',0.), counter_id=identity,
+                    coverage='sampled_lower_bound_not_lifetime', saved_at=time())
+                write_json('maintenance-usage.json',data)
             if rejected:
-                self.errors += rejected
+                with self._lock:
+                    self._capacity_rejected.update(rejected)
+                self.errors += len(rejected)
                 logging.warning('Maintenance usage capacity reached; new device counters not recorded')
         except Exception:
             with self._lock:
