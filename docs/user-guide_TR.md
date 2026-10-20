@@ -251,7 +251,7 @@ Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol fa
 <p align="center">
   <img src="assets/screens/framed/maintenance-diagnostics.png" width="360" alt="Sistem okumaları, kullanım/geçmiş ve destek araçları">
   <img src="assets/screens/framed/maintenance-host.png" width="360" alt="Etiket ve değer gruplarıyla host ölçümleri">
-  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Diagnostik raporunun ikinci sayfası">
+  <img src="assets/screens/framed/maintenance-host-page-2.png" width="360" alt="Enkoderle kaydırılmış diagnostik rapor">
 </p>
 
 **Diagnostics** açın; bir grup ve okumayı seçin. Bilgi arka planda alınır ve doğrudan rapor olarak açılır. Başlık okumayı tanımlar; ölçümler etiket, değer ve birimi birlikte gösterir. Bilgi alanları seçilebilir menü öğesi değildir.
