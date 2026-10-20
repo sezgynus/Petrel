@@ -96,6 +96,18 @@ class MaintenanceReports(unittest.TestCase):
             self.assertEqual(d._maintenance_report_position,count-1)
         d.pd.observe_maintenance_physical.assert_not_called();d.pd.start_maintenance_physical.assert_not_called()
 
+    def test_rotating_to_report_action_then_pressing_dispatches_that_action(self):
+        d=self.view();d._maintenance_page='result'
+        d._maintenance_result=NS(feature_id='F02',status='PASSED_USER',reason='',evidence=())
+        d.Draw_Maintenance_Menu();screen=d._maintenance_last_screen
+        index=next(i for i,c in enumerate(screen.choices) if c.action=='details')
+        maximum=max(0,len(report_rows(screen.sections,screen.choices))-REPORT_VISIBLE_ROWS)
+        d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_CW)
+        d._menu_batch_steps=maximum+index;d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_selection,index)
+        d.get_encoder_state.return_value=d.ENCODER_DIFF_ENTER;d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_page,'details')
+
     def test_each_action_is_visible_when_focused_even_with_long_action_list(self):
         choices=(Choice('Back','back'),)+tuple(Choice('Action '+str(i),'details') for i in range(14))
         rows=report_rows((ReportSection(text=('Explanation. '*50,)),),choices)
