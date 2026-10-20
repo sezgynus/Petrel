@@ -159,7 +159,7 @@ class AuditRenderingTests(unittest.TestCase):
         result.Draw_Move_Menu()
         frames = [f for f in result.lcd.MYSERIAL1.frames if f[1] == 0x11]
         rendered = [f[11:-4].strip() for f in frames
-                    if int.from_bytes(f[7:9], 'big') in (208,216)
+                    if int.from_bytes(f[7:9], 'big') == 184
                     and int.from_bytes(f[9:11], 'big') in (102, 155, 208, 261)]
         self.assertEqual(rendered, [b'-1.50', b'12.30', b'2.5', b'-4.5'])
         result.select_axis.set(1)
@@ -173,7 +173,7 @@ class AuditRenderingTests(unittest.TestCase):
     def test_move_menu_without_hotend_draws_only_xyz(self):
         result = display(snapshot(hotend=False))
         result.Draw_Move_Menu()
-        self.assertEqual(len([c for c in result.lcd.draw_text.call_args_list if c.args[5]==216]),3)
+        self.assertEqual(len([c for c in result.lcd.draw_text.call_args_list if c.args[5]==184]),3)
         result.lcd.draw_signed_scaled_float_text.assert_not_called()
 
 

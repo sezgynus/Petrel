@@ -89,6 +89,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     MLINE = 53         # Menu line height
     LBLX = 60          # Menu item label X
     MENU_CHR_W = 8
+    # Shared right edge for menu values (exclusive). Different numeric field
+    # widths keep their own left edge without changing this alignment.
+    MENU_VALUE_RIGHT = 240
+    MENU_NARROW_CELLS = 3
+    MENU_WIDE_CELLS = 7
+    MENU_MOTION_CELLS = 9
     STAT_CHR_W = 10
 
 
@@ -1166,9 +1172,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 if key in ('TEMP','BED') and value is not None:
                     painter = lambda row, v=value: self._draw_thermal_target(v,self.MBASE(row),self.lcd.Color_Bg_Black)
                 if value is not None and painter is None:
-                    painter = lambda row, v=value: self.lcd.draw_integer_text(
-                        True, True, 0, self.lcd.font8x16, self.lcd.Color_White,
-                        self.lcd.Color_Bg_Black, 3, 216, self.MBASE(row), v)
+                    painter = lambda row, v=value: self._draw_menu_value(
+                        str(v), self.MBASE(row), self.lcd.Color_Bg_Black,
+                        self.MENU_NARROW_CELLS)
             entries.append((label, icon, value, painter))
         self._draw_list_menu(title, entries, selection.now, max(0, (bottom or self.MROWS) - self.MROWS))
 
@@ -1201,32 +1207,40 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if key in ('TEMP','BED'):
             self._draw_thermal_target(value,self.MBASE(self._thermal_edit_row),self.lcd.Select_Color)
         else:
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
-                                   self.lcd.Color_White, self.lcd.Select_Color,
-                                   3, 216, self.MBASE(self._thermal_edit_row), value)
+            self._draw_menu_value(str(value), self.MBASE(self._thermal_edit_row),
+                                  self.lcd.Select_Color, self.MENU_NARROW_CELLS)
 
-    def _draw_number_cell(self,text,x,y,cells,bg):
-        if len(text)>cells:
+    def _draw_menu_value(self, text, y, bg, cells=7):
+        """Draw exactly one background-filled menu field at the shared right edge.
+
+        A fixed-length opaque 0x11 text packet overwrites old digits when
+        numbers shrink; rendering does not depend on the previous value or
+        on the installed font artwork (both variants use 8x16 cells).
+        """
+        text = str(text)
+        if len(text) > cells:
             text = '#' * cells
-        self.lcd.draw_text(False,True,self.lcd.font8x16,self.lcd.Color_White,bg,
-                           x,y,text.rjust(cells))
+        x = self.MENU_VALUE_RIGHT - cells * self.MENU_CHR_W
+        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
+                           bg, x, y, text.rjust(cells))
 
-    def _draw_thermal_target(self,value,y,bg):
+    def _draw_thermal_target(self, value, y, bg):
         text = compact(value)
-        if len(text)>7:
+        if len(text) > self.MENU_WIDE_CELLS:
             text = str(int(value))
-        self._draw_number_cell(text,216,y,7,bg)
+        self._draw_menu_value(text, y, bg, self.MENU_WIDE_CELLS)
 
-    def _draw_axis_value(self,index,scaled,y,bg):
-        value = scaled/self.MINUNITMULT
-        text = fit_decimal(value,7) if index==2 else fixed(value,2)
-        if len(text)>7:
-            text = fixed(value,1)
-        self._draw_number_cell(text,216,y,7,bg)
+    def _draw_axis_value(self, index, scaled, y, bg):
+        value = scaled / self.MINUNITMULT
+        text = (fit_decimal(value, self.MENU_WIDE_CELLS) if index == 2
+                else fixed(value, 1 if index == 3 else 2))
+        if len(text) > self.MENU_WIDE_CELLS:
+            text = fixed(value, 1)
+        self._draw_menu_value(text, y, bg, self.MENU_WIDE_CELLS)
 
-    def _draw_offset_value(self,scaled,y,bg):
-        text = fit_decimal(scaled/100,7)
-        self._draw_number_cell(text,202,y,7,bg)
+    def _draw_offset_value(self, scaled, y, bg):
+        text = fit_decimal(scaled / 100, self.MENU_WIDE_CELLS)
+        self._draw_menu_value(text, y, bg, self.MENU_WIDE_CELLS)
 
     def lcdExit(self):
         self._loop.close()
@@ -1945,10 +1959,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 (2, 'Idle dim', ICON_IDLE_DIM, str(values[1]) + ' min' if values[1] else 'Off'),
                 (3, 'Dim brightness', ICON_DIM_BRIGHTNESS, str(values[2]) + '%')):
             editing = getattr(self, '_display_edit', False) and selection == row
-            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
-                True, False, self.lcd.font8x16, self.lcd.Color_White,
+            painter = lambda row, text=text, editing=editing: self._draw_menu_value(
+                text, self.MBASE(row) - 1,
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
-                196, self.MBASE(row) - 1, text)
+                self.MENU_WIDE_CELLS)
             entries.append((label, icon, (text, editing), painter))
         for row, (label, text, editable) in enumerate(self._buzzer_rows(), 4):
             text = text[:11]
@@ -2079,11 +2093,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._action("Print speed", lambda: self.pd.set_feedrate(self.pd.HMI_ValueStruct.print_speed), silent=True)
 
         self._invalidate_list_row(self.select_tune.now + self.MROWS - self.index_tune)
-        self.lcd.draw_integer_text(
-            True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
-            3, 216, self.MBASE(self.select_tune.now + self.MROWS - self.index_tune),
-            self.pd.HMI_ValueStruct.print_speed
-        )
+        self._draw_menu_value(
+            str(self.pd.HMI_ValueStruct.print_speed),
+            self.MBASE(self.select_tune.now + self.MROWS - self.index_tune),
+            self.lcd.Color_Bg_Black, self.MENU_NARROW_CELLS)
 
     def HMI_AxisMove(self):
         encoder_diffState = self.get_encoder_state()
@@ -2140,10 +2153,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self._invalidate_list_row(4)
                 self.pd.last_E_scale = self.pd.state.status['gcode_move']['position'][3] * self.MINUNITMULT
                 self.pd.HMI_ValueStruct.Move_E_scale = self.pd.state.status['gcode_move']['position'][3] * self.MINUNITMULT
-                self.lcd.draw_signed_scaled_float_text(
-                    self.lcd.font8x16, self.lcd.Select_Color, 3, 1, 216, self.MBASE(4),
-                    self.pd.HMI_ValueStruct.Move_E_scale
-                )
+                self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
+                                      self.MBASE(4), self.lcd.Select_Color)
             elif self.select_axis.now == live_index:
                 self._live_jog = not getattr(self, '_live_jog', False)
                 self.Draw_Move_Menu()
@@ -2248,10 +2259,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self.lcd.draw_signed_scaled_float_text(
-                self.lcd.font8x16, self.lcd.Color_Bg_Black, 3, 1, 216,
-                self.MBASE(4), self.pd.HMI_ValueStruct.Move_E_scale
-            )
+            self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
+                                  self.MBASE(4), self.lcd.Color_Bg_Black)
             if not self._live_jog:
                 self._action("Jog E", lambda: self.pd.moveAbsolute('E', self.pd.HMI_ValueStruct.Move_E_scale / self.MINUNITMULT, 300), silent=True)
             self.lcd.update()
@@ -2269,7 +2278,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             applied = (self.pd.HMI_ValueStruct.Move_E_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('E', applied, self._live_jog_speed('E'))
-        self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16, self.lcd.Select_Color, 3, 1, 216, self.MBASE(4), self.pd.HMI_ValueStruct.Move_E_scale)
+        self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
+                              self.MBASE(4), self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Temperature(self):
@@ -2354,9 +2364,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         elif event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             value = self.pd.HMI_ValueStruct.Fan_speed + (self._encoder_move_value if event == self.ENCODER_DIFF_CW else -self._encoder_move_value)
             self.pd.HMI_ValueStruct.Fan_speed = max(0, min(100, value))
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
-                                   self.lcd.Color_White, self.lcd.Select_Color,
-                                   3, 216, self.MBASE(row), self.pd.HMI_ValueStruct.Fan_speed)
+            self._draw_menu_value(str(self.pd.HMI_ValueStruct.Fan_speed),
+                                  self.MBASE(row), self.lcd.Select_Color,
+                                  self.MENU_NARROW_CELLS)
         self.lcd.update()
 
     def HMI_ETemp(self):
@@ -3303,10 +3313,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 text = '{:.3g}'.format(value)
             if len(text) > 9:
                 text = '#' * 9
-            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
-                False, True, self.lcd.font8x16, self.lcd.Color_White,
+            painter = lambda row, text=text, editing=editing: self._draw_menu_value(
+                text, self.MBASE(row),
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
-                168, self.MBASE(row), text.rjust(9))
+                self.MENU_MOTION_CELLS)
             entries.append((label, {'max_velocity': ICON_VELOCITY,'max_accel': ICON_ACCELERATION,'square_corner_velocity': ICON_CORNER_SPEED,'minimum_cruise_ratio': ICON_CRUISE_RATIO}[field], (text, editing), painter))
         self._draw_list_menu('Motion (runtime)', entries, self.select_motion.now)
 
@@ -3316,11 +3326,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         for index, label in enumerate(('Move X', 'Move Y', 'Move Z', 'Extruder')[:3 + int(self.pd.HAS_HOTEND)]):
             value = position[index] * self.MINUNITMULT
             def painter(row, v=value, index=index):
-                if index == 3:
-                    self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16,
-                        self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
-                else:
-                    self._draw_axis_value(index,v,self.MBASE(row),self.lcd.Color_Bg_Black)
+                self._draw_axis_value(index, v, self.MBASE(row),
+                                      self.lcd.Color_Bg_Black)
             entries.append((label, self.ICON_MoveX + index, value, painter))
         live = bool(getattr(self, '_live_jog', False))
         entries.append(('Live jog', ICON_LIVE_JOG, live,
@@ -3683,12 +3690,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                     setattr(self.pd.HMI_ValueStruct, attr, scale)
                     if attr == 'Move_E_scale':
                         self.pd.last_E_scale = scale
-                    if signed:
-                        self.lcd.draw_signed_scaled_float_text(
-                            self.lcd.font8x16, self.lcd.Select_Color,
-                            3, 1, 216, row, scale)
-                    else:
-                        self._draw_axis_value(index,scale,row,self.lcd.Select_Color)
+                    self._draw_axis_value(index, scale, row, self.lcd.Select_Color)
         if self.last_status != self.pd.status:
             self._present_print_state()
         if getattr(self, '_print_error_visible', False):
