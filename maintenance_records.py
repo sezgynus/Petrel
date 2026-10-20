@@ -204,7 +204,7 @@ class MaintenanceBook:
                     and snapshot.config_marker==id(state.settings)):
                 self._metrics, self.usage_omitted = snapshot.usage_metrics, snapshot.usage_omitted
             else:
-                self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()))
+                self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()),state.settings)
             self._observed.clear()
             self._capacity_rejected.clear()
             self._inventory_key = key

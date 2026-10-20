@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from math import isfinite
 
 MAX_TRACKED_METRICS = 64
-MAX_DEVICE_NAME = 96
+MAX_DEVICE_NAME = 96  # UTF-8 bytes, also bounds JSON escape expansion.
+MAX_LED_CHAIN = 64
+MAX_TRACKED_LEDS = 256
+LED_PREFIXES = ('led ', 'neopixel ', 'dotstar ', 'pca9533 ', 'pca9632 ')
 FAN_PREFIXES = ('fan_generic ', 'heater_fan ', 'controller_fan ', 'temperature_fan ')
 OUTPUT_PREFIXES = ('output_pin ', 'pwm_cycle_time ', 'pwm_tool ')
 
@@ -20,19 +23,32 @@ class UsageMetric:
     field: str
     metric_id: str = 'sampled_on_s'
     unit: str = 's'
+    elements: int = 0
 
     def active(self, status):
         """None means unreadable, not OFF; booleans/NaN/negative fail closed."""
         values = status.get(self.device)
         value = values.get(self.field) if isinstance(values, Mapping) else None
-        if type(value) not in (int, float) or not isfinite(value) or value < 0:
+        if self.field=='color_data':
+            if not isinstance(value,(tuple,list)) or len(value)!=self.elements:
+                return None
+            active=False
+            for color in value:
+                if not isinstance(color,(tuple,list)) or len(color)!=4:
+                    return None
+                for channel in color:
+                    if not numeric(channel) or channel>1:
+                        return None
+                    active = active or channel>0
+            return active
+        if not numeric(value) or (self.field in ('speed','power') and value>1):
             return None
         return value > 0
 
 
 def usage_field(name):
     """Only documented object classes; never infer a source from a pin key."""
-    if not isinstance(name, str) or not 0 < len(name) <= MAX_DEVICE_NAME:
+    if not isinstance(name, str) or not name:
         return None
     if name == 'fan' or name.startswith(FAN_PREFIXES):
         return 'speed'
@@ -42,10 +58,12 @@ def usage_field(name):
         return 'power'
     if name.startswith(OUTPUT_PREFIXES):
         return 'value'
+    if name.startswith(LED_PREFIXES):
+        return 'color_data'
     return None
 
 
-def usage_metrics(objects):
+def usage_metrics(objects,settings=None):
     """Stable bounded selection; excess supported objects are reported explicitly.
 
     Standard legacy counters take priority, then exact Klipper object names.
@@ -53,9 +71,22 @@ def usage_metrics(objects):
     """
     names = sorted({name for name in objects if usage_field(name)},
                    key=lambda n: (n not in ('fan', 'extruder', 'heater_bed'), n))
-    metrics = tuple(UsageMetric(name, usage_field(name))
-                    for name in names[:MAX_TRACKED_METRICS])
-    return metrics, max(0, len(names) - len(metrics))
+    metrics=[]
+    pixels=0
+    for name in names:
+        if len(metrics)>=MAX_TRACKED_METRICS or len(name.encode('utf-8'))>MAX_DEVICE_NAME:
+            continue
+        field=usage_field(name)
+        count=0
+        if field=='color_data':
+            cfg=settings.get(name,{}) if isinstance(settings,Mapping) else {}
+            count=cfg.get('chain_count',1) if isinstance(cfg,Mapping) else 1
+            if (type(count) is not int or not 1<=count<=MAX_LED_CHAIN
+                    or pixels+count>MAX_TRACKED_LEDS):
+                continue
+            pixels+=count
+        metrics.append(UsageMetric(name,field,elements=count))
+    return tuple(metrics), len(names)-len(metrics)
 
 
 def metric_counter(usage, device, metric_id):
@@ -70,4 +101,13 @@ def metric_counter(usage, device, metric_id):
             return None
     bucket = usage.get(metric_id)
     value = bucket.get(device) if isinstance(bucket, Mapping) else bucket
-    return value if type(value) in (int, float) and isfinite(value) and value >= 0 else None
+    return value if numeric(value) else None
+
+
+def numeric(value):
+    if type(value) not in (int,float) or value<0:
+        return False
+    try:
+        return isfinite(value)
+    except OverflowError:
+        return False

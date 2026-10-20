@@ -514,7 +514,7 @@ def discover(state, services=()):
         global_bits = _add(global_bits, 'O06', USER)
     # Features without positive evidence and ALWAYS_HIDDEN IDs remain NONE.
     from maintenance_usage import usage_metrics
-    metrics, omitted = usage_metrics(objects)
+    metrics, omitted = usage_metrics(objects,settings)
     return MaintenanceSnapshot(state.epoch, tuple(results), global_bits,
                                id(settings), tuple(sorted(services)), metrics, omitted)
 

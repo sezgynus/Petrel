@@ -667,7 +667,7 @@ class MoonrakerSubscription:
             self._base_subscription = {name: (['save_config_pending', 'save_config_pending_items']
                                                if name == 'configfile' else None) for name in available}
             from maintenance_usage import usage_metrics
-            metrics, _ = usage_metrics(names)
+            metrics, _ = usage_metrics(names,settings)
             self._usage_fields = {m.device: m.field for m in metrics}
             subscription_objects = self._subscription_objects()
             if self._case_light_tracking and 'output_pin case_light' in names:

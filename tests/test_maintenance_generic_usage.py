@@ -212,3 +212,54 @@ class UsagePlannerAndReports(unittest.TestCase):
         state.ready = False
         book.note(state, 2)
         self.assertEqual(book.usage_status(), (('output_pin any', 'paused'),))
+
+
+class UsageLEDContracts(unittest.TestCase):
+    def test_led_families_use_reported_rgbw_not_effect_or_enable_flags(self):
+        names = ('led lamp', 'neopixel arbitrary', 'dotstar strip', 'pca9533 panel', 'pca9632 panel')
+        metrics, omitted = usage_metrics(names, {'neopixel arbitrary': {'chain_count': 4}})
+        self.assertEqual(omitted, 0)
+        self.assertEqual(len(metrics), len(names))
+        for m in metrics:
+            colors = [[0.,0.,0.,0.] for _ in range(m.elements)]
+            self.assertIs(m.active({m.device: {'color_data': colors, 'enabled': True}}), False)
+            colors[-1][2] = .5
+            self.assertIs(m.active({m.device: {'color_data': colors}}), True)
+            colors[-1][3] = float('nan')
+            self.assertIsNone(m.active({m.device: {'color_data': colors}}))
+            self.assertIsNone(m.active({m.device: {'enabled': True}}))
+
+    def test_led_payload_budget_is_shared_and_exclusions_are_visible(self):
+        from maintenance_usage import MAX_LED_CHAIN, MAX_TRACKED_LEDS
+        names = tuple('neopixel chain%d'%i for i in range(6))
+        settings = {name: {'chain_count': MAX_LED_CHAIN} for name in names}
+        metrics, omitted = usage_metrics(names, settings)
+        self.assertEqual(sum(m.elements for m in metrics), MAX_TRACKED_LEDS)
+        self.assertEqual(omitted, 2)
+        settings[names[0]]['chain_count'] = MAX_LED_CHAIN + 1
+        metrics, omitted = usage_metrics(names, settings)
+        self.assertNotIn(names[0], {m.device for m in metrics})
+        self.assertEqual(omitted, 2)
+        self.assertEqual(usage_metrics(('output_pin '+'a'*100,))[1], 1)
+
+    def test_numeric_and_led_values_reject_out_of_contract_samples(self):
+        fan = usage_metrics(('fan',))[0][0]
+        for value in (10**1000, 1.01, -1, float('inf'), True):
+            self.assertIsNone(fan.active({'fan': {'speed': value}}))
+        led = usage_metrics(('neopixel any',))[0][0]
+        for value in ([], [[1,0,0]], [[1,0,0,True]], [[1,0,0,2]], [[1,0,0,0]]*2):
+            self.assertIsNone(led.active({led.device: {'color_data': value}}))
+
+    def test_led_subscription_and_discovery_use_identical_bounded_profiles(self):
+        from moonraker_subscription import MoonrakerSubscription
+        from test_subscription import FakeSocket
+        sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
+        self.addCleanup(sub.close)
+        sock = FakeSocket()
+        sock.snapshot['neopixel any'] = {'color_data': [[0.,0.,1.,0.]]}
+        sub._socket = sock
+        sub._bootstrap()
+        state = NS(ready=True, epoch=1, objects=sub._objects, settings=sub._settings, status=sub._status)
+        snap = discover(state)
+        self.assertEqual(sub._usage_fields, {m.device:m.field for m in snap.usage_metrics})
+        self.assertIs(snap.usage_metrics[0].active(state.status), True)
