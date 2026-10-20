@@ -13,7 +13,7 @@ from maintenance_experience import Choice
 
 
 class ReminderRemovalStore(unittest.TestCase):
-    def test_remove_preserves_other_policies_tracking_history_and_baselines(self):
+    def test_remove_frees_own_anchor_and_preserves_other_policies_history_and_baselines(self):
         with tempfile.TemporaryDirectory() as folder:
             store=AssessmentStore(Path(folder)/'assessment.json')
             policy=ServicePolicy('inspect_clean','fan','sampled_on_s',100,'user')
@@ -26,10 +26,27 @@ class ReminderRemovalStore(unittest.TestCase):
             self.assertTrue(store.remove_service_policy(policy))
             after=store.load()
             self.assertEqual(store.service_policies(),(other,))
-            for key in ('baselines','tracking','services'):
+            self.assertIsNone(store.tracking_start(policy))
+            self.assertEqual(store.tracking_start(other),before['tracking'][1])
+            for key in ('baselines','services'):
                 self.assertEqual(after[key],before[key])
             self.assertFalse(store.remove_service_policy(policy))
             self.assertEqual(store.load(),after)
+
+    def test_removing_and_readding_does_not_exhaust_tracking_capacity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store=AssessmentStore(Path(folder)/'assessment.json')
+            for i in range(65):
+                policy=ServicePolicy('inspect_clean','output_pin p%d'%i,'sampled_on_s',100,'user')
+                store.set_service_policy(policy)
+                store.begin_tracking(policy,timestamp=10,counter=20,counter_id='ledger')
+                self.assertTrue(store.remove_service_policy(policy))
+            self.assertEqual(store.service_policies(),())
+            self.assertEqual(store.load()['tracking'],[])
+            store.set_service_policy(policy)
+            start=store.begin_tracking(policy,timestamp=50,counter=80,counter_id='ledger')
+            self.assertEqual(start['counter'],80)
+            self.assertEqual(store.load()['services'],[])
 
     def test_stale_confirmation_does_not_remove_replacement(self):
         with tempfile.TemporaryDirectory() as folder:

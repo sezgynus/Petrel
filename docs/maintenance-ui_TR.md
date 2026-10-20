@@ -56,4 +56,4 @@ Bakım kayıtları Maintenance menüsüne her girişte ve bakım görünümü bo
 
 Komponente özgü hatırlatıcı seçenekleri, desteklenen telemetri ve kapasite durumları [Komponent kullanım takibi](maintenance-usage_TR.md) belgesindedir.
 
-Kayıtlı hatırlatıcıyı kaldırmak için **Care schedule** içinde açın, **Remove reminder** seçin ve ayrı **Remove reminder?** ekranında onaylayın. İlk seçili eylem **Keep reminder** olur. Silme mevcut worker üzerinde çalışır ve yenilenmiş takvime döner. Yalnız kayıtlı politika kaldırılır; kullanım sayaçları, takip referansları ve tamamlanan bakım geçmişi korunur. Onay ekranı açıldıktan sonra düzenlenen hatırlatıcı eski onayla silinemez.
+Kayıtlı hatırlatıcıyı kaldırmak için **Care schedule** içinde açın, **Remove reminder** seçin ve ayrı **Remove reminder?** ekranında onaylayın. İlk seçili eylem **Keep reminder** olur. Silme mevcut worker üzerinde çalışır ve yenilenmiş takvime döner. Kayıtlı politika ve ona ait aktif takip başlangıcı kaldırılarak iki kayıt alanı da serbest bırakılır; kullanım sayaçları ve tamamlanan bakım geçmişi korunur. Onay ekranı açıldıktan sonra düzenlenen hatırlatıcı eski onayla silinemez.

@@ -153,7 +153,7 @@ class AssessmentStore:
         self._save(data)
 
     def remove_service_policy(self,policy):
-        """Remove only an exact saved reminder; retain anchors and service history.
+        """Remove an exact reminder and its active anchor; retain service history.
 
         An old confirmation must never delete a newly edited replacement.
         Repeating a successful removal is a harmless no-op.
@@ -170,7 +170,13 @@ class AssessmentStore:
             return False
         if len(same)!=1 or ServicePolicy(**same[0])!=policy:
             raise ValueError('service_policy_changed')
+        tracking=data.get('tracking',[])
+        if type(tracking) is not list or len(tracking)>64:
+            raise ValueError('invalid_service_tracking')
         data['policies']=[item for item in items if item is not same[0]]
+        data['tracking']=[row for row in tracking if not (type(row) is dict and
+            (row.get('task'),row.get('device'),row.get('basis'))
+            ==(policy.task_id,policy.device,policy.basis))]
         self._save(data)
         return True
 
