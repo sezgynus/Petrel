@@ -10,7 +10,7 @@ TOPICS={'thermal':40,'motion':ICON_MOTION,'geometry':ICON_PROBE_CALIBRATION,
 FAMILIES=dict(F='cooling',H='thermal',M='motion',P='geometry',R='vibration',E='filament',S='system',O='auxiliary')
 PAGES={'groups':ICON_MAINTENANCE_CHECK,'diagnostic_groups':ICON_MAINTENANCE_DIAGNOSTICS,
        'diagnostics':ICON_MAINTENANCE_DIAGNOSTICS,'service':ICON_MAINTENANCE_CARE,
-       'calibrations':58,'support':14,'more':26}
+       'calibrations':58,'support':14,'more':26,'sensor_devices':30}
 
 
 def device_icon(device):

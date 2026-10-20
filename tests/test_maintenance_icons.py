@@ -13,6 +13,15 @@ class MaintenanceSemanticIcons(unittest.TestCase):
             Choice('Advice','findings'),Choice('Care','service'))
         self.assertEqual(tuple(map(icon_for,choices)),(164,165,166,167))
 
+    def test_sensor_diagnostics_row_has_existing_sensor_icon(self):
+        # The generic Sensors destination uses the library's endstop/switch icon.
+        # Verify the real menu contract, not a label-based fallback.
+        d=display(snapshot());d._maintenance_init();d._maintenance_page='diagnostic_groups'
+        sensors=next(c for c in d._maintenance_screen().choices
+                     if c.action=='open' and c.value=='sensor_devices')
+        self.assertEqual(icon_for(sensors),30)
+        self.assertEqual(icon_for(Choice('Sensors','open','sensor_devices')),30)
+
     def test_each_capability_family_uses_its_own_symbol(self):
         self.assertEqual(feature_icon('H01','heater_bed'),10)
         self.assertEqual(feature_icon('H01','extruder'),9)
