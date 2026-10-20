@@ -3,6 +3,7 @@ from pathlib import Path
 from time import time
 from maintenance_assessment_store import AssessmentStore, ServicePolicy, service_due
 from maintenance_records import read_json
+from maintenance_usage import metric_counter
 
 TASKS={'inspect_clean':'Inspect and clean','nozzle_inspect':'Inspect nozzle','lubricate':'Lubricate mechanism'}
 
@@ -22,8 +23,7 @@ def request(worker,operation,*,policy=None,devices=(),history=False,usage_provid
         usage=usage_provider() if callable(usage_provider) and any(
             p.basis in ('sampled_on_s','sampled_print_s') for p in policies+((policy,) if policy else ())) else {}
         def counter(item):
-            value=(usage.get('sampled_print_s') if item.basis=='sampled_print_s' else
-                   usage.get('sampled_on_s',{}).get(item.device))
+            value=metric_counter(usage,item.device,item.basis)
             identity=usage.get('counter_id')
             from maintenance_assessment_store import numeric
             return (value,identity) if numeric(value) and isinstance(identity,str) and identity else (None,None)

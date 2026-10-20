@@ -133,3 +133,80 @@ class UsageSubscriptions(unittest.TestCase):
         self.assertEqual(sub.snapshot()['status']['heater_generic chamber']['power'], .8)
         sub._invalidate('offline')
         self.assertEqual(sub._usage_fields, {})
+
+
+class UsagePlannerAndReports(unittest.TestCase):
+    def test_readable_output_offers_reminder_without_a_safe_physical_test(self):
+        from test_capabilities import display, snapshot
+        raw = snapshot()
+        raw['objects'] += ['output_pin arbitrary']
+        raw['settings']['output_pin arbitrary'] = {'pin': 'PA1'}
+        raw['status']['output_pin arbitrary'] = {'value': 0}
+        view = display(raw)
+        view._maintenance_init()
+        self.assertIn('output_pin arbitrary', view.pd.maintenance_service_devices())
+        self.assertIn('sampled_on_s', view.pd.maintenance_service_bases('output_pin arbitrary'))
+        view._maintenance_page = 'service_devices'
+        self.assertTrue(any(c.value == 'output_pin arbitrary' for c in view._maintenance_screen().choices))
+        self.assertNotIn('sampled_on_s', view.pd.maintenance_service_bases('stepper_x'))
+
+    def test_missing_live_reading_pauses_without_resetting_saved_anchor(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from maintenance_assessment_store import AssessmentStore, ServicePolicy
+        from maintenance_ui_records import request
+        from test_maintenance_ui_services import DeferredWorker
+        device = 'output_pin arbitrary'
+        policy = ServicePolicy('inspect_clean', device, 'sampled_on_s', 100, 'user')
+        usage = {'counter_id': 'a'*32, 'sampled_on_s': {device: 100}, 'available_metrics': ()}
+        with tempfile.TemporaryDirectory() as folder, patch('maintenance_ui_records.Path.home', return_value=Path(folder)):
+            worker = DeferredWorker()
+            def call(op):
+                future = request(worker, op, policy=policy if op != 'load' else None,
+                    devices=(device,), usage_provider=lambda: usage)
+                worker.run()
+                return future.result()[0][0]
+            first = call('save_policy')
+            store = AssessmentStore(Path(folder)/'.config/Petrel/maintenance-assessment.json')
+            self.assertIsNone(store.tracking_start(policy))
+            self.assertTrue(first[1]['_tracking_paused'])
+            usage['available_metrics'] = ((device, 'sampled_on_s'),)
+            self.assertEqual(call('load')[1]['_sampled_elapsed_s'], 0)
+            usage['sampled_on_s'][device] = 150
+            self.assertEqual(call('load')[1]['_sampled_elapsed_s'], 50)
+            usage['available_metrics'] = ()
+            self.assertTrue(call('load')[1]['_tracking_paused'])
+            self.assertEqual(store.tracking_start(policy)['counter'], 100)
+            usage['available_metrics'] = ((device, 'sampled_on_s'),)
+            self.assertEqual(call('complete')[1]['counter'], 150)
+            self.assertEqual(usage['sampled_on_s'][device], 150)
+
+    def test_all_128_counters_reach_report_pages_without_name_truncation(self):
+        from unittest.mock import Mock, patch
+        from maintenance_records import MaintenanceBook
+        from maintenance_evidence_view import evidence_lines
+        from maintenance_report import report_pages, section_from_lines
+        counters = {'output_pin component_%03d'%i: float(i) for i in range(128)}
+        with patch('maintenance_records.read_json', return_value={'sampled_on_s': counters}):
+            fields = MaintenanceBook.read(NS(flush=Mock()), 'S12')
+        lines = evidence_lines('S12', fields)
+        pages = report_pages(section_from_lines('', lines))
+        for i in range(128):
+            self.assertIn('component_%03d'%i, str(pages))
+        self.assertTrue(all(sum(b[2] for b in p) <= 132 for p in pages))
+        self.assertIn('Counter slots free: 0', lines)
+
+    def test_supported_and_observed_are_distinct_and_disconnect_pauses(self):
+        from maintenance_records import MaintenanceBook
+        from test_maintenance_ui_services import DeferredWorker
+        book = MaintenanceBook(DeferredWorker())
+        state = NS(ready=True, epoch=1, objects=('output_pin any',), settings={}, status={})
+        book.note(state, 0)
+        self.assertEqual(book.usage_status(), (('output_pin any', 'starting'),))
+        state.status['output_pin any'] = {'value': 0}
+        book.note(state, 1)
+        self.assertEqual(book.usage_status(), (('output_pin any', 'observed'),))
+        state.ready = False
+        book.note(state, 2)
+        self.assertEqual(book.usage_status(), (('output_pin any', 'paused'),))

@@ -79,7 +79,7 @@ class MaintenanceViewMixin:
             return ()
         if not self._maintenance_records_data[0]: return ()
         physical,reads=self._maintenance_options()
-        devices={r.device for r in physical+reads}
+        devices=set(self._maintenance_devices())
         return care_items(self._maintenance_records_data[0],devices,time())
 
     def _maintenance_back_home(self):
@@ -121,6 +121,13 @@ class MaintenanceViewMixin:
         physical=tuple(self.pd.maintenance_guided_plan())
         reads=tuple(self.pd.maintenance_read_plan())
         return physical,reads
+
+    def _maintenance_devices(self):
+        physical,reads=self._maintenance_options()
+        devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
+        provider=getattr(self.pd,'maintenance_service_devices',None)
+        extra=provider() if callable(provider) else ()
+        return tuple(dict.fromkeys(devices+tuple(extra)))
 
     def _maintenance_screen(self):
         screen=self._maintenance_screen_model()
@@ -433,7 +440,7 @@ class MaintenanceViewMixin:
         if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():
             return 0
         snapshot=getattr(getattr(self.pd,'maintenance',None),'snapshot',None)
-        devices={d.name for d in getattr(snapshot,'devices',())}
+        devices=set(self._maintenance_devices())
         return sum(1 for policy,last,cached in self._maintenance_records_data[0]
                    if policy.device in devices and self._maintenance_policy_due(policy,last,cached)=='due')
 
@@ -453,12 +460,12 @@ class MaintenanceViewMixin:
                     (back,) if loading else (back,Choice('Load care plans','load_services')))
             items=self._maintenance_care()
             choices=(back,)+tuple(Choice(item.label,'service_task',(item.policy,item.last,item.state),
-                {'due':'Service is due','not_due':'Within your interval','unknown':'Service date or coverage unknown'}[item.state]) for item in items)+(
+                {'due':'Service is due','not_due':'Within your interval','unknown':item.detail}[item.state]) for item in items)+(
                 Choice('Add reminder','service_add'),Choice('Refresh records','load_services'))
             return Screen('Care schedule',choices=choices,kind='care',care=items)
         if page=='service_devices':
             physical,reads=self._maintenance_options()
-            devices=tuple(dict.fromkeys(r.device for r in physical+reads if getattr(r,'device',None)))
+            devices=self._maintenance_devices()
             return Screen('Choose device',choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
         if page=='service_kind':
             device=self._maintenance_context
@@ -492,7 +499,7 @@ class MaintenanceViewMixin:
         if page=='service_task':
             policy,last,due=self._maintenance_context
             physical,reads=self._maintenance_options()
-            if policy.device not in {r.device for r in physical+reads}:
+            if policy.device not in self._maintenance_devices():
                 return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),(back,))
             due=self._maintenance_policy_due(policy,last,due)
             stamp=last.get('timestamp') if last else None
@@ -501,7 +508,7 @@ class MaintenanceViewMixin:
                 'Sampled time is a lower bound.','Below limit does not prove not due.')
             return Screen('Service reminder',TASKS.get(policy.task_id,policy.task_id),
                 (device_name(policy.device),'Last service: '+date,
-                 {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':'Due date cannot be determined.'}[due],
+                 {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':care_items(((policy,last,due),),{policy.device},time())[0].detail}[due],
                  'Follow manufacturer guidance.')+coverage,
                 (back,Choice('I completed this service','service_confirm',policy)),tone='attention' if due=='due' else 'normal')
         if page=='service_confirm':

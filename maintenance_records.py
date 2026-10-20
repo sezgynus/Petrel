@@ -190,7 +190,7 @@ class MaintenanceBook:
         self._record_futures = pending
         return self.errors != before
 
-    def note(self,state,now=None):
+    def note(self,state,now=None,*,snapshot=None):
         """No I/O; bounded lower-bound sampled ON time, never exact lifetime."""
         if self._closed:
             return
@@ -200,7 +200,11 @@ class MaintenanceBook:
         key = (state.epoch,id(state.settings))
         if state.ready and key!=self._inventory_key:
             from maintenance_usage import usage_metrics
-            self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()))
+            if (snapshot is not None and snapshot.epoch==state.epoch
+                    and snapshot.config_marker==id(state.settings)):
+                self._metrics, self.usage_omitted = snapshot.usage_metrics, snapshot.usage_omitted
+            else:
+                self._metrics, self.usage_omitted = usage_metrics(getattr(state, 'objects', ()))
             self._observed.clear()
             self._capacity_rejected.clear()
             self._inventory_key = key
@@ -317,13 +321,29 @@ class MaintenanceBook:
             self.errors += 1
             logging.warning('Maintenance usage tail unconfirmed during shutdown')
 
+    def usage_status(self):
+        """Small immutable view; no disk or network access on the UI owner."""
+        with self._lock:
+            active = self._last[2] if self._last is not None else {}
+            return tuple((m.device, 'capacity' if m.device in self._capacity_rejected else
+                          'observed' if m.device in active else
+                          'paused' if m.device in self._observed else 'starting')
+                         for m in self._metrics)
+
     def service_counters(self):
         """Worker-only durable lower bounds, with a persisted ledger identity."""
-        self.flush()
-        data=read_json('maintenance-usage.json',{})
-        counters=dict(data.get('sampled_on_s',{}))
-        return {'counter_id':data.get('counter_id'),'sampled_on_s':counters,
-                'sampled_print_s':data.get('sampled_print_s')}
+        with self._disk:
+            self._flush_locked()
+            data=read_json('maintenance-usage.json',{})
+        states = self.usage_status()
+        with self._lock:
+            printing = self._last is not None
+        available = tuple((device,'sampled_on_s') for device,status in states if status=='observed')
+        if printing: available += ((None,'sampled_print_s'),)
+        return {'counter_id':data.get('counter_id'),
+                'sampled_on_s':dict(data.get('sampled_on_s',{})),
+                'sampled_print_s':data.get('sampled_print_s'),
+                'available_metrics':available}
 
     def read(self,feature):
         if feature=='S11':
@@ -339,10 +359,18 @@ class MaintenanceBook:
         if feature=='S12':
             self.flush()
             data = read_json('maintenance-usage.json',{'version':1,'sampled_on_s':{}})
-            return (('coverage','sampled_lower_bound_not_lifetime'),
-                    ('sampled_print_s',data.get('sampled_print_s',0.)),)+tuple(
-                (name[:40]+'.sampled_on_s',round(value,1))
-                for name,value in data.get('sampled_on_s',{}).items() if number(value) and value>=0)[:16]
+            states = self.usage_status() if callable(getattr(self,'usage_status',None)) else ()
+            counts = data.get('sampled_on_s',{})
+            if not isinstance(counts,dict) or len(counts)>MAX_USAGE_COUNTERS:
+                raise ValueError('maintenance_usage_invalid')
+            fields = (('coverage','sampled_lower_bound_not_lifetime'),
+                      ('sampled_print_s',data.get('sampled_print_s',0.)))
+            fields += tuple((name+'.sampled_on_s',round(value,1))
+                for name,value in sorted(counts.items()) if number(value) and value>=0)
+            fields += tuple((name+'.tracking_state',status) for name,status in states
+                            if status!='observed')
+            return fields + (('usage_slots_remaining',max(0,MAX_USAGE_COUNTERS-len(counts))),
+                             ('usage_tracking_omitted',getattr(self,'usage_omitted',0)))
         if feature=='S20':
             self.flush()
             history = read_json('maintenance-history.json',{'version':1,'records':[]})

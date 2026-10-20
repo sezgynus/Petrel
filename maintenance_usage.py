@@ -4,6 +4,7 @@ Sources: Klipper Status Reference (fan, heater, output_pin, pwm_cycle_time).
 An object-list entry establishes the documented field contract; each runtime
 sample must still validate the value. No source state/configuration is retained.
 """
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
 
@@ -22,7 +23,6 @@ class UsageMetric:
 
     def active(self, status):
         """None means unreadable, not OFF; booleans/NaN/negative fail closed."""
-        from collections.abc import Mapping
         values = status.get(self.device)
         value = values.get(self.field) if isinstance(values, Mapping) else None
         if type(value) not in (int, float) or not isfinite(value) or value < 0:
@@ -56,3 +56,18 @@ def usage_metrics(objects):
     metrics = tuple(UsageMetric(name, usage_field(name))
                     for name in names[:MAX_TRACKED_METRICS])
     return metrics, max(0, len(names) - len(metrics))
+
+
+def metric_counter(usage, device, metric_id):
+    """Resolve global/device metrics without exposing recorder implementation.
+
+    Older providers omit availability; new providers distinguish missing live
+    samples from the durable (still valid) accumulated lower bound.
+    """
+    available = usage.get('available_metrics')
+    if available is not None and (device, metric_id) not in available:
+        if metric_id != 'sampled_print_s' or (None, metric_id) not in available:
+            return None
+    bucket = usage.get(metric_id)
+    value = bucket.get(device) if isinstance(bucket, Mapping) else bucket
+    return value if type(value) in (int, float) and isfinite(value) and value >= 0 else None

@@ -576,7 +576,7 @@ class PrinterData:
     def _note_maintenance_state(self,state):
         book = getattr(self,'maintenance_book',None)
         if book is not None:
-            book.note(state)
+            book.note(state,snapshot=getattr(getattr(self,'maintenance',None),'snapshot',None))
         # TEMPORARY MAINTENANCE TEST TRACE
         trace = getattr(self,'maintenance_test_trace',None)
         if trace is not None:
@@ -619,13 +619,22 @@ class PrinterData:
     def maintenance_ui_records(self, operation, policy=None, history=False):
         from maintenance_ui_records import request
         rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
-        devices=tuple(dict.fromkeys(row.device for row in rows if row.device is not None))
+        devices=self.maintenance_service_devices(rows)
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
             usage_provider=self.maintenance_book.service_counters)
 
     def maintenance_service_bases(self,device):
         bases=('calendar_s','sampled_print_s')
-        return bases+(('sampled_on_s',) if device in self.maintenance_book._observed else ())
+        snapshot=self.maintenance.snapshot
+        return bases+tuple(dict.fromkeys(m.metric_id for m in getattr(snapshot,'usage_metrics',())
+                                          if m.device==device))
+
+    def maintenance_service_devices(self,rows=()):
+        snapshot=self.maintenance.snapshot
+        return tuple(dict.fromkeys(
+            tuple(d.name for d in getattr(snapshot,'devices',()))+
+            tuple(m.device for m in getattr(snapshot,'usage_metrics',()))+
+            tuple(r.device for r in rows if r.device is not None)))
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
         from maintenance_reference import request
@@ -1331,7 +1340,6 @@ class PrinterData:
         self.connection_error = None
         changed = state != self.state or spoolman_changed or presets_changed or sort_changed
         self.state = state
-        self._note_maintenance_state(state)
         self.capabilities = caps
         self._caps_cache_key = caps_key
         self._apply_capabilities(caps)
@@ -1345,6 +1353,7 @@ class PrinterData:
                                    lambda: self.state, integrations=self.maintenance_integrations(state))
             self._invalidate_files()
             self._file_epoch = state.epoch
+        self._note_maintenance_state(state)
         if state.file_revision != self._file_revision:
             self._files_loaded = False
             self._file_revision = state.file_revision

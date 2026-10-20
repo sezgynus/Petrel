@@ -142,6 +142,13 @@ def diagnostic_lines(feature,key,value):
         except ValueError: return None
         return ('Recent check '+str(int(key[-1])+1)+': '+title+' / '+outcome_text(None if status=='None' else status),)
     if feature=='S12':
+        if key=='usage_slots_remaining' and number(value):
+            return ('Counter slots free: '+str(int(value)),)
+        if key=='usage_tracking_omitted' and number(value):
+            return ('Tracking capacity excluded: '+str(int(value)),) if value else ()
+        if key.endswith('.tracking_state') and value in ('starting','paused','capacity'):
+            return (name(key[:-15])+': '+{'starting':'Tracking starting','paused':'Tracking paused',
+                                        'capacity':'Counter capacity reached'}[value],)
         if key=='coverage' and value=='sampled_lower_bound_not_lifetime':
             return ('Sampled times are recorded lower bounds, not lifetime totals.',)
         if key=='sampled_print_s' and number(value) and value>=0:
