@@ -20,10 +20,14 @@ def read_totals(body):
     if not isinstance(totals, dict):
         raise ValueError('filament_history_unavailable')
     used, jobs = totals.get('total_filament_used'), totals.get('total_jobs')
+    # Moonraker may serialize job totals as 893.0 rather than 893.
+    # Accept finite integral floats while rejecting fractional counts, bools,
+    # text and values outside the bounded, lossless integer range.
     if (not numeric(used) or used > MAX_TOTAL
-            or type(jobs) is not int or not 0 <= jobs <= MAX_TOTAL):
+            or not numeric(jobs) or jobs > MAX_TOTAL
+            or int(jobs) != jobs):
         raise ValueError('filament_history_invalid')
-    return float(used), jobs
+    return float(used), int(jobs)
 
 
 def recorded_filament(client):

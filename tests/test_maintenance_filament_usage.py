@@ -12,6 +12,16 @@ class NativeFilamentHistoryTests(unittest.TestCase):
     def test_validated_native_mm_and_jobs(self):
         body={'result':{'job_totals':{'total_jobs':3,'total_filament_used':23550}}}
         self.assertEqual(read_totals(body),(23550.0,3))
+        # Actual Moonraker serialization: job count is an integer-valued float.
+        body['result']['job_totals'] = {
+            'total_jobs':893.0, 'total_filament_used':3045818.8404368404}
+        self.assertEqual(read_totals(body),(3045818.8404368404,893))
+        for jobs in (-1,-1.0,True,'893',893.5,float('nan'),float('inf'),float('-inf'),
+                     2**53):
+            with self.subTest(jobs=jobs):
+                body['result']['job_totals']['total_jobs']=jobs
+                with self.assertRaises(ValueError): read_totals(body)
+        body['result']['job_totals']['total_jobs']=893.0
         for value in (-1,True,'22',float('nan'),float('inf')):
             body['result']['job_totals']['total_filament_used']=value
             with self.assertRaises(ValueError): read_totals(body)
@@ -32,6 +42,23 @@ class NativeFilamentHistoryTests(unittest.TestCase):
             reset=recorded_filament(client)
             self.assertNotEqual(reset['filament_counter_id'],first['filament_counter_id'])
             client.request.assert_called_with('GET','/server/history/totals',request_timeout=2.0)
+
+    def test_real_moonraker_float_job_total_creates_durable_filament_identity(self):
+        with tempfile.TemporaryDirectory() as td,patch(
+                'maintenance_records.root',return_value=Path(td)):
+            client=NS(request=Mock(return_value={'result':{'job_totals':{
+                'total_jobs':893.0,'total_filament_used':3045818.8404368404}}}))
+            usage=recorded_filament(client)
+            record=Path(td)/'maintenance-filament-history.json'
+            self.assertTrue(record.exists())
+            import json
+            stored=json.loads(record.read_text())
+            self.assertEqual(stored['last_jobs'],893)
+            self.assertEqual(stored['last_mm'],3045818.8404368404)
+            self.assertEqual(usage['filament_mm']['extruder'],3045818.8404368404)
+            self.assertEqual(usage['filament_counter_id'],stored['counter_id'])
+            self.assertEqual(recorded_filament(client)['filament_counter_id'],
+                             stored['counter_id'])
 
     def test_incomplete_response_never_writes_a_zero(self):
         with tempfile.TemporaryDirectory() as td,patch('maintenance_records.root',return_value=Path(td)):
