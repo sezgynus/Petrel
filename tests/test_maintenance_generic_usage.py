@@ -287,7 +287,9 @@ class UsageResourceBounds(unittest.TestCase):
             counters = book.service_counters()
             self.assertEqual(counters['sampled_on_s'], values)
             self.assertNotIn(('output_pin new','sampled_on_s'), counters['available_metrics'])
-            self.assertIn('new: Counter capacity reached', evidence_lines('S12',book.read('S12')))
+            fields = book.read('S12')
+            self.assertIn(('output_pin new.tracking_state', 'capacity'), fields)
+            self.assertNotIn('new: Counter capacity reached', evidence_lines('S12', fields))
 
     def test_inventory_is_reused_and_sampling_never_touches_disk(self):
         from unittest.mock import patch
