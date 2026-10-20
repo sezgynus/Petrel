@@ -48,6 +48,8 @@ Press Enter to accept a prompt's default, or enter your own value:
 | Axis travel counters | `1` enabled; enter `0` to decline |
 | Klipper repository (when enabled) | `~/klipper` |
 | Main Klipper config (when enabled) | `~/printer_data/config/printer.cfg` |
+| Emulator / screenshot capture | `0` disabled |
+| Remote display | `0` disabled |
 
 Installation prepares `~/petrel-env`, installs dependencies and enables `Petrel.service`. It keeps settings in `~/.config/Petrel/Petrel.env`, adds a `Petrel.conf` include beside `moonraker.conf` and registers the service for Moonraker updates. Existing settings are preserved when installation is repeated.
 
@@ -86,7 +88,7 @@ cd ~/Petrel
 ./configure.sh
 ```
 
-Current values become the prompt defaults. Your custom `PETREL_SETTINGS_FILE` path and other environment settings, including unprompted font/socket/screenshot-directory options, are preserved without duplicating keys. The file is replaced atomically with private permissions. After saving, accept the offered service restart to apply them. Display brightness/dimming are adjusted on the LCD under **Home → Display**, rather than here.
+Current values become the prompt defaults. The emulator and remote-display prompts default to **0 (off)** on new configurations; saved values are preserved on subsequent runs. Emulator enables screen capture; remote display enables browser viewing and encoder control and also starts the emulator, even if the separate capture preference is off. Existing remote host/port settings are preserved; the default listener is `0.0.0.0:8088`. Your custom `PETREL_SETTINGS_FILE` path and other environment settings, including unprompted font/socket/screenshot-directory options, are preserved without duplicating keys. The file is replaced atomically with private permissions. After saving, accept the offered service restart to apply them. Display brightness/dimming are adjusted on the LCD under **Home → Display**, rather than here.
 
 For settings not prompted by the configurator, edit the external environment file. Use plain `KEY=value` lines, without `export`:
 
@@ -101,7 +103,10 @@ For settings not prompted by the configurator, edit the external environment fil
 | `PETREL_SETTINGS_FILE` | Local preset fallback / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |
-| `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled |
+| `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled; prompted by `configure.sh` |
+| `PETREL_REMOTE` | Browser display and encoder control / `0` disabled, `1` enabled; also starts emulator |
+| `PETREL_REMOTE_HOST` | Remote listener / `0.0.0.0`; preserved by configurator |
+| `PETREL_REMOTE_PORT` | Remote port / `8088`; preserved by configurator |
 | `PETREL_AXIS_TRAVEL` | Optional extra installation preference / `1` on first configuration; change using `configure.sh`, not by editing this key alone |
 | `PETREL_KLIPPER_DIR` | Klipper repository containing `klippy/extras` / `~/klipper` |
 | `PETREL_PRINTER_CONFIG` | Main config to receive the managed include / `~/printer_data/config/printer.cfg` |

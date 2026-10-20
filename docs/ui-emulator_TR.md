@@ -8,6 +8,8 @@
 
 ## Açma veya kapatma
 
+`./configure.sh` çalıştırıp **Enable emulator / screenshot capture?** ve **Enable remote display?** sorularını kullanın. İkisi de yeni yapılandırmada kapalı gelir; mevcut kayıtlı değerler varsayılan olur. Değişiklikleri uygulamak için Petrel restart teklifini kabul edin. Remote display emülatörü de başlatır. Özel host/port, font ve socket ayarları korunur.
+
 Bağımlılıklar normal kurulum ve Moonraker güncellemelerine dahildir. `~/.config/Petrel/Petrel.env` içinde varsayılanı değiştirin:
 
 ```ini

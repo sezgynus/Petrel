@@ -48,6 +48,8 @@ Varsayılanı kabul etmek için Enter'a basın veya kendi değerinizi girin:
 | Eksen mesafesi sayaçları | `1` açık; istemiyorsanız `0` girin |
 | Klipper deposu (açıksa) | `~/klipper` |
 | Ana Klipper config dosyası (açıksa) | `~/printer_data/config/printer.cfg` |
+| Emülatör / ekran görüntüsü yakalama | `0` kapalı |
+| Remote display | `0` kapalı |
 
 Kurulum `~/petrel-env` ortamını hazırlar, bağımlılıkları yükler ve `Petrel.service` servisini etkinleştirir. Ayarlar `~/.config/Petrel/Petrel.env` içinde tutulur; `moonraker.conf` yanına `Petrel.conf` include dosyası eklenir ve servis Moonraker güncellemelerine kaydedilir. Kurulum tekrarlandığında mevcut ayarlar korunur.
 
@@ -86,7 +88,7 @@ cd ~/Petrel
 ./configure.sh
 ```
 
-Mevcut değerler soruların varsayılanı olur. Özel `PETREL_SETTINGS_FILE` yolu ve yapılandırıcının sormadığı font/socket/görüntü klasörü dahil diğer ortam ayarları korunur; aynı anahtar tekrar eklenmez. Dosya özel izinlerle atomik olarak yenilenir. Kaydettikten sonra değişiklikleri uygulamak için sunulan servis yeniden başlatmasını kabul edin. Ekran parlaklığı/kısma ayarları burada değil, LCD'de **Home → Display** altında yapılır.
+Mevcut değerler soruların varsayılanı olur. Emülatör ve remote display soruları yeni yapılandırmada **0 (kapalı)** gelir; sonraki çalıştırmalarda kaydedilmiş değer korunur. Emülatör ekran yakalamayı, remote display tarayıcıdan görüntülemeyi ve enkoder kontrolünü açar. Remote display, ayrı yakalama tercihi kapalı olsa bile emülatörü de başlatır. Mevcut remote host/port ayarları korunur; varsayılan dinleme adresi `0.0.0.0:8088` olur. Özel `PETREL_SETTINGS_FILE` yolu ve yapılandırıcının sormadığı font/socket/görüntü klasörü dahil diğer ortam ayarları korunur; aynı anahtar tekrar eklenmez. Dosya özel izinlerle atomik olarak yenilenir. Kaydettikten sonra değişiklikleri uygulamak için sunulan servis yeniden başlatmasını kabul edin. Ekran parlaklığı/kısma ayarları burada değil, LCD'de **Home → Display** altında yapılır.
 
 Yapılandırıcının sormadığı ayarlar için harici ortam dosyasını düzenleyin. `export` kullanmadan düz `KEY=value` satırları yazın:
 
@@ -101,7 +103,10 @@ Yapılandırıcının sormadığı ayarlar için harici ortam dosyasını düzen
 | `PETREL_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Moonraker güç aygıtınızın adı / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Milisaniye cinsinden güç açma süresi / `2000`; `0` anında açar |
-| `PETREL_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık |
+| `PETREL_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık; `configure.sh` içinde sorulur |
+| `PETREL_REMOTE` | Tarayıcı görüntüsü ve enkoder kontrolü / `0` kapalı, `1` açık; emülatörü de başlatır |
+| `PETREL_REMOTE_HOST` | Remote dinleme adresi / `0.0.0.0`; yapılandırıcı korur |
+| `PETREL_REMOTE_PORT` | Remote portu / `8088`; yapılandırıcı korur |
 | `PETREL_AXIS_TRAVEL` | İsteğe bağlı extra kurulum tercihi / ilk yapılandırmada `1`; yalnız bu anahtarı düzenlemek yerine `configure.sh` kullanın |
 | `PETREL_KLIPPER_DIR` | `klippy/extras` içeren Klipper deposu / `~/klipper` |
 | `PETREL_PRINTER_CONFIG` | Yönetilen include eklenecek ana config / `~/printer_data/config/printer.cfg` |
