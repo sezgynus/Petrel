@@ -40,6 +40,7 @@ class CareClassTests(unittest.TestCase):
 
     def test_single_class_skips_choice_and_back_returns_to_devices(self):
         view=display(snapshot());view._maintenance_init();view._maintenance_page='service_devices'
+        view._maintenance_options=lambda:((),())
         view._maintenance_dispatch(Choice('X axis','service_device','stepper_x'))
         self.assertEqual(view._maintenance_page,'service_basis')
         self.assertEqual(view._maintenance_context,('stepper_x','mechanical'))
@@ -57,6 +58,7 @@ class CareClassTests(unittest.TestCase):
         raw['settings']['filament_switch_sensor feed']={'switch_pin':'PA5'}
         raw['objects'].append('filament_switch_sensor feed')
         view=display(raw);view._maintenance_init();view._maintenance_page='service_devices'
+        view._maintenance_options=lambda:((),())
         devices=view.pd.maintenance_service_devices()
         for device in ('probe','endstop stepper_x','filament_switch_sensor feed'):
             with self.subTest(device=device):
