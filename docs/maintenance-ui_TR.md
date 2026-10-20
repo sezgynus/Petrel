@@ -55,3 +55,5 @@ MCU ortalama/değişkenlik değerleri saniyeden mikrosaniyeye çevrilir; yapıla
 Bakım kayıtları Maintenance menüsüne her girişte ve bakım görünümü boşta ve görünürken en fazla dakikada bir asenkron yenilenir. Yenileme sırasında mevcut plan görünür kalır; örneklenmiş saatlere bağlı vade durumu ve açık hatırlatıcı, tamamlanan worker sonucuyla güncellenir.
 
 Komponente özgü hatırlatıcı seçenekleri, desteklenen telemetri ve kapasite durumları [Komponent kullanım takibi](maintenance-usage_TR.md) belgesindedir.
+
+Kayıtlı hatırlatıcıyı kaldırmak için **Care schedule** içinde açın, **Remove reminder** seçin ve ayrı **Remove reminder?** ekranında onaylayın. İlk seçili eylem **Keep reminder** olur. Silme mevcut worker üzerinde çalışır ve yenilenmiş takvime döner. Yalnız kayıtlı politika kaldırılır; kullanım sayaçları, takip referansları ve tamamlanan bakım geçmişi korunur. Onay ekranı açıldıktan sonra düzenlenen hatırlatıcı eski onayla silinemez.

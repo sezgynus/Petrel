@@ -152,6 +152,28 @@ class AssessmentStore:
         data['policies'] = policies+[asdict(policy)]
         self._save(data)
 
+    def remove_service_policy(self,policy):
+        """Remove only an exact saved reminder; retain anchors and service history.
+
+        An old confirmation must never delete a newly edited replacement.
+        Repeating a successful removal is a harmless no-op.
+        """
+        if not isinstance(policy,ServicePolicy):
+            raise ValueError('invalid_service_policy')
+        data=self.load()
+        items=data.get('policies',[])
+        if type(items) is not list or len(items)>64:
+            raise ValueError('invalid_service_policies')
+        same=[item for item in items if (item.get('task_id'),item.get('device'))
+              ==(policy.task_id,policy.device)]
+        if not same:
+            return False
+        if len(same)!=1 or ServicePolicy(**same[0])!=policy:
+            raise ValueError('service_policy_changed')
+        data['policies']=[item for item in items if item is not same[0]]
+        self._save(data)
+        return True
+
     def service_policies(self):
         items = self.load().get('policies',[])
         if type(items) is not list or len(items)>64:

@@ -500,7 +500,8 @@ class MaintenanceViewMixin:
             policy,last,due=self._maintenance_context
             physical,reads=self._maintenance_options()
             if policy.device not in self._maintenance_devices():
-                return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),(back,))
+                return Screen('Service reminder','Device no longer available',('Refresh the service plan.',),
+                    (back,Choice('Remove reminder','service_remove_confirm',policy)))
             due=self._maintenance_policy_due(policy,last,due)
             stamp=last.get('timestamp') if last else None
             date=strftime('%Y-%m-%d',localtime(stamp)) if type(stamp) in (int,float) and 0<=stamp<=32503680000 else 'Not recorded'
@@ -510,7 +511,15 @@ class MaintenanceViewMixin:
                 (device_name(policy.device),'Last service: '+date,
                  {'due':'Your interval has elapsed.','not_due':'Within the configured interval.','unknown':care_items(((policy,last,due),),{policy.device},time())[0].detail}[due],
                  'Follow manufacturer guidance.')+coverage,
-                (back,Choice('I completed this service','service_confirm',policy)),tone='attention' if due=='due' else 'normal')
+                (back,Choice('I completed this service','service_confirm',policy),
+                 Choice('Remove reminder','service_remove_confirm',policy)),tone='attention' if due=='due' else 'normal')
+        if page=='service_remove_confirm':
+            policy=self._maintenance_context
+            return Screen('Remove reminder?',TASKS.get(policy.task_id,policy.task_id),
+                (device_name(policy.device),'Removes this reminder only.',
+                 'Usage and service history stay.'),
+                (Choice('Keep reminder','back'),Choice('Remove reminder','service_remove',policy)),
+                tone='attention')
         if page=='service_confirm':
             return Screen('Confirm completed service','Did you finish the work?',('Only confirm actual maintenance.','This writes a service date,','not a hardware test result.'),
                 (back,Choice('Yes, record completion','service_complete',self._maintenance_context)))
@@ -592,6 +601,8 @@ class MaintenanceViewMixin:
                 amount*(86400 if basis=='calendar_s' else 3600),'user-defined interval'))
         if action=='service_task': return self._maintenance_open('service_task',value)
         if action=='service_confirm': return self._maintenance_open('service_confirm',value)
+        if action=='service_remove_confirm': return self._maintenance_open('service_remove_confirm',value)
+        if action=='service_remove': return self._maintenance_load_records('remove_policy',value)
         if action in ('service_save','service_complete'):
             return self._maintenance_load_records('save_policy' if action=='service_save' else 'complete',value)
         if action=='load_history': return self._maintenance_load_records(history=True)

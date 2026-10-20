@@ -10,18 +10,19 @@ TASKS={'inspect_clean':'Inspect and clean','nozzle_inspect':'Inspect nozzle','lu
 
 def request(worker,operation,*,policy=None,devices=(),history=False,usage_provider=None):
     """Return a Future. Calling this function never performs synchronous disk I/O."""
-    if operation not in ('load','save_policy','complete'):
+    if operation not in ('load','save_policy','complete','remove_policy'):
         raise ValueError('unknown_maintenance_record_operation')
     if operation!='load' and not isinstance(policy,ServicePolicy):
         raise ValueError('service_policy_required')
-    if operation!='load' and policy.device not in devices:
+    if operation not in ('load','remove_policy') and policy.device not in devices:
         raise ValueError('service_device_no_longer_available')
     def work():
         store=AssessmentStore(Path.home()/'.config'/'Petrel'/'maintenance-assessment.json')
         if operation=='save_policy': store.set_service_policy(policy)
+        if operation=='remove_policy': store.remove_service_policy(policy)
         policies=store.service_policies()
         usage=usage_provider() if callable(usage_provider) and any(
-            p.basis in ('sampled_on_s','sampled_print_s') for p in policies+((policy,) if policy else ())) else {}
+            p.basis in ('sampled_on_s','sampled_print_s') for p in policies+((policy,) if policy and operation!='remove_policy' else ())) else {}
         def counter(item):
             value=metric_counter(usage,item.device,item.basis)
             identity=usage.get('counter_id')

@@ -258,6 +258,8 @@ Open **Diagnostics**, choose a group and select a reading. Information is collec
 
 Long reports show a page count in the top-right of the report. Rotate to **Next page** or **Previous page**, then press. **Back** returns to the prior screen. The shared dashboard remains below the report; only actual actions receive a selection cursor.
 
+To delete a saved reminder, open it in **Care schedule → Remove reminder**, then confirm separately. **Keep reminder** is the default selection. Usage counters and completed-service history are preserved.
+
 Supported fan, heater, output and LED objects automatically offer **Sampled powered hours** based on their own usage. Menu visibility does not control sampling. S12 pages include all retained counters and tracking/capacity states; see [Component usage tracking](maintenance-usage.md).
 
 **Diagnostics → Usage and history** contains recorded print usage, sampled component usage and recent check history. Historical evidence is labeled **HISTORY** and does not describe current hardware health. **Support tools** contains optional recording and diagnostic-report export; recording does not start a check.

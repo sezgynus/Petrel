@@ -55,3 +55,5 @@ MCU average/variation values are converted from seconds to microseconds; configu
 Care records refresh asynchronously on every Maintenance entry and at most once per minute while the care view is idle and visible. The existing schedule remains visible during refresh; sampled-hour due states and an open reminder update from the completed worker result.
 
 Component-specific reminder options, supported telemetry and capacity states are documented in [Component usage tracking](maintenance-usage.md).
+
+To remove a saved reminder, open it in **Care schedule**, choose **Remove reminder**, then confirm on the separate **Remove reminder?** screen. **Keep reminder** is selected first. Removal runs on the existing worker and returns to the refreshed schedule. It removes only that saved policy: usage counters, tracking references and completed-service history are retained. A reminder edited after the confirmation opened cannot be deleted by that stale confirmation.

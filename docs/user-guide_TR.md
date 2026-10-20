@@ -258,6 +258,8 @@ Kayıtlı kullanıcı gözlemi, ölçüm ölçütü ve tamamlanamayan kontrol fa
 
 Uzun raporlarda raporun sağ üstünde sayfa sayısı görünür. Enkoderle **Next page** veya **Previous page** seçip basın. **Back** önceki ekrana döner. Ortak dashboard raporun altında kalır; seçim çizgisi yalnız gerçek işlemlerde görünür.
 
+Kayıtlı hatırlatıcıyı silmek için **Care schedule** içinde açıp **Remove reminder** seçin ve ayrı ekranda onaylayın. Varsayılan seçim **Keep reminder** olur. Kullanım sayaçları ve tamamlanan bakım geçmişi korunur.
+
 Desteklenen fan, ısıtıcı, çıkış ve LED nesneleri kendi kullanımlarına göre **Sampled powered hours** seçeneğini otomatik sunar. Örnekleme menünün açık olmasına bağlı değildir. S12 sayfaları tüm saklanan sayaçları, takip/kapasite durumlarını içerir; bkz. [Komponent kullanım takibi](maintenance-usage_TR.md).
 
 **Diagnostics → Usage and history** altında kayıtlı baskı kullanımı, örneklenmiş bileşen kullanımı ve son kontrol geçmişi bulunur. Geçmiş kanıtlar **HISTORY** olarak işaretlenir; güncel donanım sağlığını anlatmaz. **Support tools** isteğe bağlı kayıt ve diagnostik rapor aktarımını içerir; kaydı açmak kontrol başlatmaz.
