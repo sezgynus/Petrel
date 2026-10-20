@@ -21,6 +21,26 @@ Only intervals greater than zero and at most two seconds with valid ON samples a
 
 Use **Maintenance → Care schedule → Add reminder**, choose a device/task, then **Sampled powered hours** when that device has a usage descriptor. The option represents capability and does not disappear merely because its first reading has not arrived. **Sampled printing hours** is the global printer counter and differs from that component's own ON time.
 
+New reminders start with **editable suggested inspection intervals**, selected from the Klipper object family, maintenance task and chosen metric. These are not manufacturer-certified lifetimes and cannot certify a part's health. Values in the editor's native units (calendar days / printing hours / powered hours / travel metres / events) are:
+
+| Hardware or maintenance task | Days | Print h | ON h | Travel m / events |
+|---|---:|---:|---:|---:|
+| X/Y mechanical axis | 90 | 200 | — | 30,000 m |
+| Z mechanical axis | 180 | 500 | — | 10 m |
+| Other mechanical stepper | 180 | 300 | — | — |
+| Physical endstop | 180 | 500 | — | 500 events |
+| Contact probe | 90 | 200 | — | 2,000 events |
+| Filament switch / MMU gate | 90 | 300 | — | 2,000 events |
+| Filament motion encoder | 90 | 300 | — | 50,000 edges (uncalibrated) |
+| G-code button | 180 | 500 | — | 1,000 events |
+| Extruder filament feed / nozzle / heating | 90 / 30 / 180 | 200 / 100 / 500 | — / 100 / 300 | — |
+| Heater / fan / lighting | 180 / 90 / 365 | 500 / 200 / 500 | 300 / 200 / 1,000 | — |
+| `output_pin`, PWM or unknown connected output | 180 | 500 | 500 | — |
+| Temperature sensor / MCU / driver | 365 | 700 | — | — |
+| General equipment | 180 | 500 | 500 | — |
+
+For `output_pin` specifically, the **only offered metrics** remain calendar days, global sampled printing hours and device sampled powered hours (when supported). The attached hardware is never inferred from its arbitrary name. Uncalibrated encoder edge thresholds are convenience prompts, not filament distance or wear estimates. All existing saved policies, counters and baselines remain unchanged. The rules are pure constant-time lookups: no extra discovery, Moonraker traffic, Klipper extras or polling.
+
 A new reminder obtains its durable anchor at the first valid counter read. Saving it does not record maintenance. **I completed this service** starts a new service cycle without resetting the total counter. Missing live readings pause progress and cannot replace an existing anchor or become a fabricated zero. Care schedule and reminder detail use recorded progress / Tracking starting / Tracking paused consistently.
 
 **Diagnostics → Usage and history → Sampled component usage** shows all retained component counters through continuous encoder scrolling, including counters after the former first-16 limit. Exact object keys remain distinct in storage and evidence; only presentation supplies friendly names. Only usage quantities are shown: event classifications, tracking state and recorder capacity remain internal evidence rather than extra LCD rows. S10 Moonraker recorded print history remains separate from S12 Petrel sampled usage.

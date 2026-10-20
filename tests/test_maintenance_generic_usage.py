@@ -147,7 +147,8 @@ class UsagePlannerAndReports(unittest.TestCase):
         # This test isolates passive service inventory from physical adapters.
         view._maintenance_options = lambda: ((), ())
         self.assertIn('output_pin arbitrary', view.pd.maintenance_service_devices())
-        self.assertIn('sampled_on_s', view.pd.maintenance_service_bases('output_pin arbitrary'))
+        self.assertEqual(view.pd.maintenance_service_bases('output_pin arbitrary'),
+                         ('calendar_s','sampled_print_s','sampled_on_s'))
         view._maintenance_page = 'service_devices'
         self.assertTrue(any(c.value == 'output_pin arbitrary' for c in view._maintenance_screen().choices))
         self.assertNotIn('sampled_on_s', view.pd.maintenance_service_bases('stepper_x'))

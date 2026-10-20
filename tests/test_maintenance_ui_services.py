@@ -104,10 +104,31 @@ class MaintenanceServiceUI(unittest.TestCase):
         d._maintenance_dispatch(d._maintenance_screen().choices[0])
         policy=d._maintenance_context
         self.assertEqual(policy.basis,'sampled_print_s')
-        self.assertEqual(policy.interval,30*3600)
+        self.assertEqual(policy.interval,500*3600)
         d.pd.maintenance_ui_records.assert_not_called()
         d._maintenance_dispatch(next(c for c in d._maintenance_screen().choices if c.action=='service_save'))
         d.pd.maintenance_ui_records.assert_called_once_with('save_policy',policy=policy,history=False)
+
+    def test_new_reminder_defaults_depend_on_device_task_and_metric(self):
+        d=self.view()
+        cases=(
+            ('stepper_x','mechanical','travel_mm',30000,30000*1000),
+            ('stepper_z','mechanical','travel_mm',10,10*1000),
+            ('endstop stepper_x','sensor','trigger_count',500,500),
+            ('probe','sensor','trigger_count',2000,2000),
+            ('extruder','nozzle','calendar_s',30,30*86400),
+            ('extruder','heating','sampled_on_s',300,300*3600),
+            ('output_pin any','connected_device','calendar_s',180,180*86400),
+            ('output_pin any','connected_device','sampled_print_s',500,500*3600),
+            ('output_pin any','connected_device','sampled_on_s',500,500*3600),
+        )
+        for device,task,basis,amount,stored in cases:
+            with self.subTest(device=device,task=task,basis=basis):
+                d._maintenance_dispatch(Choice('Select','service_basis',(device,task,basis)))
+                self.assertEqual(d._maintenance_page,'service_interval')
+                self.assertEqual(d._maintenance_context,(device,task,amount,basis))
+                d._maintenance_dispatch(Choice('Review','service_review'))
+                self.assertEqual(d._maintenance_context.interval,stored)
 
     def test_usage_due_survives_render_and_coverage_remains_visible(self):
         d=self.view();d._maintenance_page='service'

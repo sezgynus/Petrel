@@ -21,6 +21,26 @@ Yalnız iki uçta da geçerli ON örneği bulunan, sıfırdan büyük ve en fazl
 
 **Maintenance → Care schedule → Add reminder** üzerinden cihaz/iş seçilir; kullanım tanımı bulunan cihazda **Sampled powered hours** sunulur. Seçenek kabiliyeti gösterir; ilk örnek henüz gelmedi diye kaybolmaz. **Sampled printing hours** global yazıcı sayacıdır; komponentin kendi ON süresinden farklıdır.
 
+Yeni hatırlatıcılar Klipper nesne sınıfına, bakım görevine ve seçilen metriğe göre **değiştirilebilir öneri değerleriyle** açılır. Bunlar üreticinin onayladığı parça ömrü eşikleri değildir; parça sağlığını garanti etmez. Editör birimlerinde (takvim günü / baskı saati / açık kalma saati / hareket metresi / olay sayısı) öneriler şöyledir:
+
+| Donanım veya bakım görevi | Gün | Baskı saati | ON saati | Mesafe / olay |
+|---|---:|---:|---:|---:|
+| X/Y mekanik eksen | 90 | 200 | — | 30.000 m |
+| Z mekanik eksen | 180 | 500 | — | 10 m |
+| Diğer step motor | 180 | 300 | — | — |
+| Fiziksel endstop | 180 | 500 | — | 500 tetik |
+| Temaslı probe | 90 | 200 | — | 2.000 temas |
+| Filament switch / MMU gate | 90 | 300 | — | 2.000 tetik |
+| Filament motion enkoder | 90 | 300 | — | 50.000 darbe (kalibre değil) |
+| G-code butonu | 180 | 500 | — | 1.000 tetik |
+| Extruder besleme / nozzle / ısıtma | 90 / 30 / 180 | 200 / 100 / 500 | — / 100 / 300 | — |
+| Isıtıcı / fan / aydınlatma | 180 / 90 / 365 | 500 / 200 / 500 | 300 / 200 / 1.000 | — |
+| `output_pin`, PWM, belirsiz bağlı çıkış | 180 | 500 | 500 | — |
+| Sıcaklık sensörü / MCU / sürücü | 365 | 700 | — | — |
+| Genel donanım | 180 | 500 | 500 | — |
+
+`output_pin` için **yalnız** takvim günü, genel örneklenmiş baskı saati ve destekleniyorsa kendi örneklenmiş açık kalma süresi seçenekleri sunulur. Çıkışın özel isminden bağlı donanım tahmin edilmez. Kalibre edilmemiş enkoder darbe eşiği, filament uzunluğuna veya gerçek aşınma ömrüne karşılık gelmez. Kayıtlı politikalar, sayaçlar ve başlangıç referansları değişmez. Kurallar sabit maliyetli hesaplamadır; ek keşif, Moonraker sorgusu, Klipper extra'sı veya polling oluşturmaz.
+
 Yeni hatırlatıcı ilk geçerli sayaç okumasında kalıcı başlangıç alır. Kaydetmek bakım yapılmış sayılmaz. **I completed this service**, toplam sayacı sıfırlamadan yeni bakım dönemi başlatır. Güncel okuma kaybolursa ilerleme duraklar; mevcut başlangıç değiştirilemez veya uydurma sıfır üretilemez. Care schedule ve hatırlatıcı ayrıntısı tutarlı biçimde kayıtlı ilerleme / Tracking starting / Tracking paused kullanır.
 
 **Diagnostics → Usage and history → Sampled component usage**, eski ilk-16 sınırından sonraki sayaçlar dahil bütün saklanan komponent sayaçlarını sürekli enkoder kaydırmasıyla gösterir. Nesne anahtarları depolama ve kanıtta ayrı kalır; yalnız sunumda anlaşılır ad kullanılır. Ekranda yalnız kullanım miktarları gösterilir; olay türleri, takip durumu ve sayaç kapasitesi ayrı LCD satırları olarak yazılmaz, ham kanıt verisinde korunur. S10 Moonraker kayıtlı baskı geçmişi ile S12 Petrel örneklenmiş kullanım ayrı kalır.

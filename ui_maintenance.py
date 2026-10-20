@@ -637,7 +637,11 @@ class MaintenanceViewMixin:
             kinds=care_tasks(value)
             return self._maintenance_open('service_basis',(value,kinds[0])) if len(kinds)==1 else self._maintenance_open('service_kind',value)
         if action=='service_kind': return self._maintenance_open('service_basis',value)
-        if action=='service_basis': return self._maintenance_open('service_interval',(value[0],value[1],30,value[2]))
+        if action=='service_basis':
+            from maintenance_care import reminder_default
+            device,task,basis=value
+            return self._maintenance_open('service_interval',
+                (device,task,reminder_default(device,task,basis),basis))
         if action=='service_review':
             from maintenance_assessment_store import ServicePolicy
             device,task,amount=self._maintenance_context[:3]
