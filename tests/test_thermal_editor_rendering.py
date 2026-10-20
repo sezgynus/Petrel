@@ -58,7 +58,10 @@ class ThermalEditorRenderingTests(unittest.TestCase):
         self.assertEqual(len(updated), 1)
         self.assertEqual(updated[0][3], view.lcd.Color_White)
         self.assertEqual(updated[0][4], view.lcd.Color_Bg_Black)
-        self.assertEqual(updated[0][-1].strip(), str(view.pd.HMI_ValueStruct.Fan_speed))
+        # Without a Moonraker subscription echo, confirmation returns to the
+        # last authoritative fan value instead of inventing a successful change.
+        self.assertEqual(updated[0][-1].strip(),
+                         str(view.pd.thermalManager['fan_speed'][0]))
 
     def test_unchanged_confirm_clears_edit_highlight(self):
         view = self.view()
