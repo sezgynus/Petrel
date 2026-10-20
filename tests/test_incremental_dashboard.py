@@ -33,8 +33,9 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.lcd.reset_mock()
         v.pd.thermalManager['temp_hotend'][0]['celsius'] = 201
         v.Draw_Status_Area(True)
-        self.assertEqual(len(v.lcd.method_calls), 2)
+        self.assertEqual(len(v.lcd.method_calls), 1)
         self.assertEqual(v.lcd.draw_text.call_args.args[-3:], (28,380,'201/205'))
+        v.lcd.draw_rectangle.assert_not_called()
 
     @patch.object(ui.time, 'monotonic', return_value=4)
     def test_sub_display_precision_does_not_redraw(self, clock):
@@ -46,16 +47,19 @@ class IncrementalDashboardTests(unittest.TestCase):
         self.assertEqual(v.lcd.method_calls, [])
 
     @patch.object(ui.time, 'monotonic', return_value=4)
-    def test_shorter_text_erases_full_font_height(self, clock):
+    def test_shorter_text_clears_trailing_cells_in_one_opaque_packet(self, clock):
         v = self.make()
         v.Draw_Status_Area(False)
+        old = v._status_render[('draw_text',126,380)][-1]
         v.lcd.reset_mock()
         v.pd.live_velocity = 1
         v.Draw_Status_Area(True)
-        rect = v.lcd.draw_rectangle.call_args.args
-        self.assertEqual(rect[-3], 380)
-        self.assertEqual(rect[-1], 399)
+        v.lcd.draw_rectangle.assert_not_called()
         v.lcd.show_icon.assert_not_called()
+        new = v.lcd.draw_text.call_args.args
+        self.assertEqual((new[1],new[-3:-1]),(True,(126,380)))
+        self.assertEqual(new[-1],('1mm/s').ljust(len(old)))
+        self.assertEqual(v._status_render[('draw_text',126,380)][-1],'1mm/s')
 
     @patch.object(ui.time, 'monotonic', return_value=4)
     def test_homing_bars_are_14x3_under_each_axis_and_cached(self, clock):

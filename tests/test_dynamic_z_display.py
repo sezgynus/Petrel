@@ -42,7 +42,7 @@ class DynamicZDisplayTests(unittest.TestCase):
             v._draw_status_decimal(-.125,224,y)
             v.lcd.reset_mock()
             v._draw_status_decimal(0,224,y)
-            v.lcd.draw_rectangle.assert_called_once_with(1,0x18C4,224,y,271,y+15)
+            v.lcd.draw_rectangle.assert_not_called()
             args=v.lcd.draw_text.call_args.args
             self.assertEqual(args[-1],'0     ')
             self.assertEqual(args[5],224)
