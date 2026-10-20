@@ -77,6 +77,10 @@ class DiagnosticContractCoverage(unittest.TestCase):
         for feature,evidence in CASES.items():
             for key,value in evidence:
                 if key=='register': continue  # Its matching hex field carries the value.
+                if feature=='S12' and key=='coverage':
+                    from maintenance_diagnostic_fields import diagnostic_lines
+                    self.assertEqual(diagnostic_lines(feature,key,value), ())
+                    continue  # Scope metadata belongs in documentation, not a reading row.
                 with self.subTest(feature=feature,key=key):
                     self.readable(feature,((key,value),))
 

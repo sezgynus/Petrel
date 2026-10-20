@@ -118,8 +118,9 @@ class MaintenanceReports(unittest.TestCase):
             self.assertTrue(any(r.choice==selected for r in rows[offset:offset+REPORT_VISIBLE_ROWS]))
         self.assertEqual(report_navigation(rows,choices,count)[0],0)
 
+    @patch('petrel_ui.time.localtime', return_value=(2026,1,1,12,0,0,3,1,-1))
     @patch('t5uic1_driver.time.sleep')
-    def test_incremental_scroll_wrap_focus_and_updates_match_clean_pixels(self,_):
+    def test_incremental_scroll_wrap_focus_and_updates_match_clean_pixels(self,_,_clock):
         d=self.view(True);screen=self.screen(25)
         def compare():
             fresh=self.view(True);fresh._maintenance_selection=d._maintenance_selection

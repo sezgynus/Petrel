@@ -10,7 +10,8 @@ from maintenance_experience import Screen, Choice
 from maintenance_report import ReportSection
 from maintenance_layout import draw_maintenance
 from maintenance_travel import OBJECT
-from test_maintenance_ui_services import DeferredWorker, MaintenanceServiceUI
+from test_maintenance_ui_services import DeferredWorker
+import test_maintenance_ui_services as service_fixture
 
 
 class CurrentUsagePresentationTests(unittest.TestCase):
@@ -59,7 +60,7 @@ class CurrentUsagePresentationTests(unittest.TestCase):
         self.assertIn('Counter capacity reached', str(shown))
 
     def test_scrollable_report_never_draws_encoder_navigation_footer(self):
-        view = MaintenanceServiceUI().view()
+        view = service_fixture.MaintenanceServiceUI().view()
         screen = Screen('Diagnostic data', choices=(Choice('Back', 'back'),),
                         kind='report', sections=(ReportSection(text=tuple('Reading %d' % i for i in range(30))),))
         draw_maintenance(view, screen)
@@ -69,7 +70,7 @@ class CurrentUsagePresentationTests(unittest.TestCase):
         self.assertTrue(view.lcd.draw_text.called)
 
     def test_editors_do_not_explain_encoder_navigation(self):
-        view = MaintenanceServiceUI().view()
+        view = service_fixture.MaintenanceServiceUI().view()
         view._maintenance_page = 'service_interval'
         view._maintenance_context = ('probe', 'sensor', 30, 'trigger_count')
         self.assertNotIn('Turn to', str(view._maintenance_screen()))
