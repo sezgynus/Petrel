@@ -468,6 +468,10 @@ class MaintenanceViewMixin:
         if page=='service_devices':
             physical,reads=self._maintenance_options()
             devices=self._maintenance_devices()
+            # Prefer the existing axis entry over an additional travel-only
+            # alias. Keep that alias available when no axis entry was found.
+            devices=tuple(d for d in devices if not (d in ('axis_x','axis_y','axis_z')
+                          and 'stepper_'+d[-1] in devices))
             return Screen('Choose device',choices=(back,)+tuple(Choice(device_name(d),'service_device',d) for d in devices),kind='list')
         if page=='service_kind':
             device=self._maintenance_context

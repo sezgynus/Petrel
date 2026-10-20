@@ -95,6 +95,9 @@ def metric_counter(usage, device, metric_id):
     Older providers omit availability; new providers distinguish missing live
     samples from the durable (still valid) accumulated lower bound.
     """
+    if metric_id=='travel_mm':
+        from maintenance_travel import travel_device
+        device=travel_device(device)
     available = usage.get('available_metrics')
     if available is not None and (device, metric_id) not in available:
         if metric_id != 'sampled_print_s' or (None, metric_id) not in available:

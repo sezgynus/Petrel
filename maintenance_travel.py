@@ -15,6 +15,15 @@ OBJECT = 'petrel_axis_travel'
 AXES = ('axis_x', 'axis_y', 'axis_z')
 
 
+def travel_device(device):
+    """Existing UI axis names resolve to Cartesian counters, not motor odometry.
+
+    Numbered motors and manual steppers are deliberately not aliases.
+    Existing axis_* policies keep their original identity and anchor.
+    """
+    return 'axis_'+device[-1] if device in ('stepper_x','stepper_y','stepper_z') else device
+
+
 def installed(state):
     return (os.environ.get('PETREL_AXIS_TRAVEL','1')!='0'
             and OBJECT in getattr(state,'objects',()))

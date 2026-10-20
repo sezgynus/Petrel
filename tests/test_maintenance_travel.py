@@ -81,3 +81,54 @@ class TravelLedgerTests(unittest.TestCase):
         d._maintenance_dispatch(Choice('Review','service_review'))
         self.assertEqual(d._maintenance_context.interval,30000)
         self.assertIn('30 metres',str(d._maintenance_screen()))
+
+class ExistingAxisReminderTests(unittest.TestCase):
+    def test_existing_axis_entries_offer_travel_without_duplicate_device_rows(self):
+        from test_capabilities import display,snapshot
+        for axis in 'xyz':
+            with self.subTest(axis=axis):
+                raw=snapshot();raw['objects'].append(OBJECT)
+                raw['status'][OBJECT]=state().status[OBJECT]
+                raw['settings']['stepper_'+axis]={'step_pin':'PA1','dir_pin':'PA2','rotation_distance':40}
+                view=display(raw);view._maintenance_init()
+                device='stepper_'+axis
+                # Use the standard axis device emitted by the existing plans.
+                view._maintenance_options=lambda:((NS(device=device),),())
+                view._maintenance_page='service_devices'
+                choices=view._maintenance_screen().choices
+                self.assertEqual(sum(c.value==device for c in choices),1)
+                self.assertFalse(any(c.value=='axis_'+axis for c in choices))
+                view._maintenance_dispatch(next(c for c in choices if c.value==device))
+                view._maintenance_dispatch(next(c for c in view._maintenance_screen().choices
+                                                if c.value==(device,'lubricate')))
+                choices=view._maintenance_screen().choices
+                self.assertTrue(any(c.value==(device,'lubricate','travel_mm') for c in choices))
+                view._maintenance_dispatch(next(c for c in choices if c.value==(device,'lubricate','travel_mm')))
+                view._maintenance_dispatch(Choice('Review','service_review'))
+                self.assertEqual(view._maintenance_context.device,device)
+                self.assertEqual(view._maintenance_context.basis,'travel_mm')
+                self.assertEqual(view._maintenance_context.interval,30000)
+                self.assertNotIn('travel_mm',view.pd.maintenance_service_bases('stepper_'+axis+'1'))
+                with patch.dict('os.environ',{'PETREL_AXIS_TRAVEL':'0'}):
+                    self.assertNotIn('travel_mm',view.pd.maintenance_service_bases(device))
+
+    def test_existing_axis_policy_resolves_counter_and_legacy_policy_keeps_anchor(self):
+        from maintenance_usage import metric_counter
+        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+            worker=DeferredWorker()
+            usage=dict(travel_mm={'axis_x':100.},travel_counter_id='a'*32,
+                       available_metrics=(('axis_x','travel_mm'),))
+            policies=(ServicePolicy('lubricate','stepper_x','travel_mm',1000,'user'),
+                      ServicePolicy('lubricate','axis_x','travel_mm',1000,'user'))
+            def call(operation,policy=None):
+                f=request(worker,operation,policy=policy,devices=('stepper_x','axis_x'),usage_provider=lambda:usage)
+                worker.run();return f.result()[0]
+            for policy in policies: call('save_policy',policy)
+            usage['travel_mm']['axis_x']=1200
+            self.assertEqual([t[2] for t in call('load')],['due','due'])
+            for policy in policies:
+                self.assertEqual(metric_counter(usage,policy.device,'travel_mm'),1200)
+                call('complete',policy)
+            self.assertEqual(metric_counter(usage,'stepper_x1','travel_mm'),None)
+            usage['available_metrics']=()
+            self.assertEqual([t[2] for t in call('load')],['unknown','unknown'])
