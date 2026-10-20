@@ -31,7 +31,8 @@ class PublishedMaintenanceGuide(unittest.TestCase):
 
     @patch('t5uic1_driver.time.sleep')
     def test_scrolled_host_scene_moves_only_report_content(self,_):
-        with patch.object(time,'strftime',return_value='12:34'):
+        with patch.object(time,'strftime',return_value='12:34'), \
+                patch.object(time,'monotonic',return_value=3.6):
             scenes={scene[0]:scene[-1] for scene in self.scenes()}
             top=scenes['maintenance-host']()
             scrolled=scenes['maintenance-host-page-2']()
