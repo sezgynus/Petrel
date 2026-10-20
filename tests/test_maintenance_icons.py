@@ -17,6 +17,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
         # The generic Sensors destination uses the library's endstop/switch icon.
         # Verify the real menu contract, not a label-based fallback.
         d=display(snapshot());d._maintenance_init();d._maintenance_page='diagnostic_groups'
+        d._maintenance_options=lambda: ((), ())
         sensors=next(c for c in d._maintenance_screen().choices
                      if c.action=='open' and c.value=='sensor_devices')
         self.assertEqual(icon_for(sensors),30)
