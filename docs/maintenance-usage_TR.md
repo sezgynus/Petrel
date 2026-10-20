@@ -39,7 +39,7 @@ Yeni hatırlatıcılar Klipper nesne sınıfına, bakım görevine ve seçilen m
 | Sıcaklık sensörü / MCU / sürücü | 365 | 700 | — | — |
 | Genel donanım | 180 | 500 | 500 | — |
 
-`output_pin` için **yalnız** takvim günü, genel örneklenmiş baskı saati ve destekleniyorsa kendi örneklenmiş açık kalma süresi seçenekleri sunulur. Çıkışın özel isminden bağlı donanım tahmin edilmez. Kalibre edilmemiş enkoder darbe eşiği, filament uzunluğuna veya gerçek aşınma ömrüne karşılık gelmez. Kayıtlı politikalar, sayaçlar ve başlangıç referansları değişmez. Kurallar sabit maliyetli hesaplamadır; ek keşif, Moonraker sorgusu, Klipper extra'sı veya polling oluşturmaz.
+`output_pin` için **yalnız** takvim günü, genel örneklenmiş baskı saati ve destekleniyorsa kendi örneklenmiş açık kalma süresi seçenekleri sunulur. Çıkışın özel isminden bağlı donanım tahmin edilmez. Kalibre edilmemiş enkoder darbe eşiği, filament uzunluğuna veya gerçek aşınma ömrüne karşılık gelmez. Kayıtlı politikalar, sayaçlar ve başlangıç referansları değişmez. Kurallar sabit maliyetli hesaplamadır; ek keşif, Moonraker sorgusu, Klipper extra'sı veya polling oluşturmaz. Aralık editöründe yavaş çevirmede 1 birim hassasiyet korunur; hızlandırılmış enkoder hareketinde büyük değerler için adım 10, 100 veya 1.000 birime büyür, kaydedilen birim değişmez.
 
 Yeni hatırlatıcı ilk geçerli sayaç okumasında kalıcı başlangıç alır. Kaydetmek bakım yapılmış sayılmaz. **I completed this service**, toplam sayacı sıfırlamadan yeni bakım dönemi başlatır. Güncel okuma kaybolursa ilerleme duraklar; mevcut başlangıç değiştirilemez veya uydurma sıfır üretilemez. Care schedule ve hatırlatıcı ayrıntısı tutarlı biçimde kayıtlı ilerleme / Tracking starting / Tracking paused kullanır.
 

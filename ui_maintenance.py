@@ -769,6 +769,11 @@ class MaintenanceViewMixin:
             device,task,days=self._maintenance_context[:3]
             tail=self._maintenance_context[3:]
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
+            # Slow turning keeps single-unit precision. Accelerated encoder
+            # batches skip proportionally through thousands of metres/events.
+            if steps>1:
+                steps *= (1000 if days>=10000 else 100 if days>=1000 else
+                          10 if days>=100 else 1)
             maximum=87600 if tail and tail[0]!='calendar_s' else 3650
             days=max(1,min(maximum,days+(steps if event==self.ENCODER_DIFF_CW else -steps)))
             self._maintenance_context=(device,task,days)+tail

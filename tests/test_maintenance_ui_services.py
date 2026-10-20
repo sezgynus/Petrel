@@ -65,6 +65,37 @@ class MaintenanceServiceUI(unittest.TestCase):
         d.pd.maintenance_ui_records.assert_not_called()
         self.assertEqual(d._maintenance_context.interval,31*86400)
 
+    def test_interval_editor_accelerates_large_values_without_losing_precision(self):
+        d=self.view()
+        examples=(
+            ('calendar_s', 180, 4, 220),
+            ('travel_mm', 30000, 3, 33000),
+            ('travel_mm', 1000, 3, 1300),
+            ('trigger_count', 500, 4, 540),
+            ('trigger_count', 50, 4, 54),
+        )
+        for basis,start,batch,expected in examples:
+            with self.subTest(basis=basis,start=start):
+                d._maintenance_page='service_interval'
+                d._maintenance_context=('stepper_x','mechanical',start,basis)
+                d._menu_batch_steps=batch
+                d.get_encoder_state.return_value=d.ENCODER_DIFF_CW
+                d.HMI_Maintenance_Menu()
+                self.assertEqual(d._maintenance_context[2],expected)
+                d._menu_batch_steps=1
+                d.get_encoder_state.return_value=d.ENCODER_DIFF_CCW
+                d.HMI_Maintenance_Menu()
+                self.assertEqual(d._maintenance_context[2],expected-1)
+        d._maintenance_context=('stepper_x','mechanical',87600,'travel_mm')
+        d._menu_batch_steps=8
+        d.get_encoder_state.return_value=d.ENCODER_DIFF_CW
+        d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_context[2],87600)
+        d._maintenance_context=('stepper_x','mechanical',1,'calendar_s')
+        d.get_encoder_state.return_value=d.ENCODER_DIFF_CCW
+        d.HMI_Maintenance_Menu()
+        self.assertEqual(d._maintenance_context[2],1)
+
     def test_calendar_due_is_recomputed_in_the_same_living_ui(self):
         d=self.view();d._maintenance_page='service'
         p=ServicePolicy('inspect_clean','fan','calendar_s',100,'user')
