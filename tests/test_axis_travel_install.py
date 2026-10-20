@@ -83,7 +83,7 @@ class AxisTravelInstallationTests(unittest.TestCase):
             configure('\n'*20)
             config=home/'.config/Petrel/Petrel.env'
             self.assertIn('PETREL_AXIS_TRAVEL=1\n',config.read_text())
-            configure('\n'*8+'0\n'+'\n'*10)
+            configure('\n'*7+'0\n'+'\n'*10)
             self.assertIn('PETREL_AXIS_TRAVEL=0\n',config.read_text())
             configure('\n'*20)
             self.assertIn('PETREL_AXIS_TRAVEL=0\n',config.read_text())

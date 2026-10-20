@@ -38,7 +38,7 @@ class InstallerDefaultsTests(unittest.TestCase):
             env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp, USER='user', SUDO_USER='user')
             path = home / '.config/Petrel/Petrel.env'
             def configure():
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 8 + '0\n' + '\n' * 10,
+                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 7 + '0\n' + '\n' * 10,
                                text=True, env=env, capture_output=True)
                 if result.returncode:
                     self.fail(result.stdout + result.stderr)
@@ -72,7 +72,7 @@ class InstallerDefaultsTests(unittest.TestCase):
             ]
             path.write_text('PETREL_EMULATOR=1\n' + '\n'.join(custom) + '\n')
             for _ in range(2):
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 8 + '0\n' + '\n' * 10,
+                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 7 + '0\n' + '\n' * 10,
                                         text=True, env=env, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 lines = path.read_text().splitlines()
