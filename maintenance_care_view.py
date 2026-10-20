@@ -47,8 +47,8 @@ def care_items(tasks, devices, now):
                 status=('Service due' if state=='due' else
                         (hours(elapsed/1000.)+'/'+hours(policy.interval/1000.)+'m recorded')
                         if policy.basis=='travel_mm' else
-                        (str(int(elapsed))+'/'+str(int(policy.interval))+' triggers recorded')
-                        if policy.basis=='observed_trigger_count' else
+                        (str(int(elapsed))+'/'+str(int(policy.interval))+' events recorded')
+                        if policy.basis in ('observed_trigger_count','trigger_count') else
                         hours(elapsed/3600.)+'/'+hours(policy.interval/3600.)+'h recorded')
             elif state=='due':
                 progress=1.

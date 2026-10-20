@@ -78,16 +78,27 @@ Tek sınıf otomatik seçilir; eksen veya sensör seçimi doğrudan **Choose rem
 Eski `inspect_clean`, `lubricate`, `nozzle_inspect` görev kimlikleri uygun yeni sınıf etiketleriyle gösterilir. Politikalar, bakım tarihleri, sayaç kimlikleri ve takip başlangıçları yeniden yazılmaz, birleştirilmez veya sıfırlanmaz. Aynı sınıf adıyla görünen iki eski politika ayrı hatırlatıcı kalır; gereksiz tekrar kullanıcı tarafından açıkça silinir.
 
 
-## Gözlenen sensör tetiklenmeleri
+## Olay tabanlı sensör sayaçları
 
-**Usage history / Recorded component usage (S12)**; keşfedilmiş filament switch/motion sensörleri, `gcode_button`, ortak `probe` nesnesi ve `query_endstops` durum kaynağı bulunan yapılandırılmış fiziksel eksen endstop’ları için gözlenen pasif→aktif geçişleri saklar. Sayaç desteği nesne türüne dayanır; genel bir çıkışa adı nedeniyle sensör rolü atanmaz. Sensorless/virtual endstop’lar kapsam dışıdır.
+**Usage history / Recorded component usage (S12)**, mevcut isteğe bağlı `petrel_axis_travel` Klipper extra’sından birikmiş sayaçları alır. Sensör durumları örneklenerek tetiklenme çıkarımı artık yapılmaz. Toplamı daha seyrek okumak, Klipper’ın yakaladığı olayları kaybettirmez.
 
-**Care schedule → Add reminder → sensör → Observed sensor activations** seçilir. **Sensor maintenance** sınıfı otomatik seçilir. Tam sayı tetiklenme aralığını girip gözden geçirin ve kaydedin. İlk doğrulanmış sayaç takip başlangıcı olur; kaydetmek bakım tamamlandığı anlamına gelmez. Bakımı tamamladığınızı onaylamak toplamı sıfırlamadan yeni dönem başlatır.
+| Kaynak | Sayılan olay |
+|---|---|
+| Filament switch sensörü / dijital veya ADC `gcode_button` | Mevcut callback’te pasif → aktif geçiş; mevcut debounce korunur |
+| Filament motion sensörü | Mevcut enkoder girişi callback’inin yükselen kenarı; türetilmiş filament-present bayrağı değil |
+| Fiziksel endstop / desteklenen temaslı probe | Gerçek stepper hareketiyle doğrulanmış pozitif homing tetiklenme sonucu |
 
-Bunlar **kaydedilmiş alt sınırlardır**; eksiksiz switch ömrü sayacı değildir. Endstop/probe durumu sürekli canlı pin okuması yerine **son sorgu sonucudur**. Petrel yalnız gözlenen pasif→aktif çifti sayar; sorgu, probing, hareket veya ek Klipper yapılandırması başlatmaz. Durum bildirimleri arasında kaybolan kısa geçişler geri üretilemez. Filament motion sensöründeki sayı algılama durumu değişimini gösterir; **enkoder darbe sayısı değildir**. İlk aktif örnek, tekrarlanan aktif örnekler, okunamayan değerler, yeniden bağlantı, yapılandırma değişimi ve iki saniyeyi aşan boşluklar tetiklenme üretmez. Eşik altındaki sayı bakım gerekmediğini kanıtlamaz.
+Bu nedenle iki geçişli homing iki temas sayabilir; her gerçek probing teması ayrıdır. G28 komutu veya yalnız homing tamamlanma bildirimi sayılmaz. Timeout, bırakılmayı arayan hareket, değişmeyen stepper konumu ve tekrarlanan tamamlanma olayı artış üretmez. Boştayken elle basılan endstop homing yakalamasının dışındadır. Sensorless/virtual endstop ve temassız tarama fiziksel switch tetiklenmesi gibi sunulmaz. Desteklenmeyen callback/probe iç yapılarında sahte sayaç oluşturulmaz. Bilinmeyen başlangıç seviyesi yeni tetiklenme değil başlangıç durumudur; bilinen pasif seviyeden sonra sayım başlar.
 
-Sınırlı ve atomik `maintenance-sensor-usage.json` kaydı en fazla 128 tarihsel cihaz toplamını ve ayrı kalıcı sayaç kimliğini saklar. Mevcut worker/flush döngüsü kullanılır; disk hatasında bekleyen artışlar tekrar denemek için korunur. Yeniden başlatma/bağlantı kesintisi gözlemi duraklatır; henüz yazılmamış veya gözlenmemiş olaylar kaybolabilir. Mevcut ON süresi, mesafe, reminder geçmişleri ve kimlikleri korunur. Okuma yokluğunda sahte sıfır gösterilmez; sayıya bağlı reminder duraklar. S20 raporu sensör toplamlarını ve ölçüm kapsamını içerir.
+**Care schedule → Add reminder → sensör → Recorded sensor events** seçilir. **Sensor maintenance** otomatik seçilir. Tam sayı olay aralığını girip gözden geçirin ve kaydedin. Kaydetmek bakım tamamlanma kaydı oluşturmadan takip başlangıcı belirler. Bakım tamamlanınca başlangıç ilerler, toplam korunur. Extra eski/eksik/kapalıysa veya kaynak kullanılamıyorsa takip duraklar. Sayaçlar donanımın bütün ömrünü değil etkin yakalama dönemini kapsar; eşik altı değer bakım gerekmediğini kanıtlamaz.
 
+Extra, READY’de mevcut callback teslimine bir kez bağlanır; orijinal callback’in sonucunu ve hatalarını korur. Yeni sensör polling timer’ı, MCU sorgusu, pin kaydı, G-code, thread veya disk yazması eklemez. Mevcut mesafe toplayıcısı korunur. Sensör yakalama durumu ile mesafe toplayıcısının durumu bağımsızdır. En fazla 64 kaynak ve sınırlı geçici homing gözlemi tutulur. Durum nesnesi `sensor_schema`, `sensor_state`, `sensor_counts`, `sensor_kinds`, `sensor_disabled` ve `sensor_excluded` alanlarını sunar.
+
+Petrel’in ayrı atomik `maintenance-sensor-events.json` kaydı; 32 KiB isim bütçesi ve mevcut 64 KiB dosya sınırı içinde en fazla 128 tarihsel cihazı, sekiz oturum checkpoint’ini saklar. Toplam ve checkpoint birlikte kaydedilir. Aynı oturumda yeniden bağlantı/Petrel restart toplamı tekrar eklemez; yeni Klipper oturumu kendi artışını ekler. Worker yazma hatasında bekleyen görüntüler tekrar denemek için korunur. Yazılmamış Klipper oturum sonları, sekizden fazla bekleyen oturum değişimi veya ani kapanma ölçüm kapsamı kaybettirebilir. Çalışan mevcut oturumda okuma sıklığı olay yakalamayı etkilemez.
+
+Eski `maintenance-sensor-usage.json` örneklemeli toplamları, kimlikleri ve reminder başlangıçları **legacy sampled history** olarak değişmeden okunur; takipleri duraklatılır. Bunlar yeni olay toplamlarına eklenmez; özellikle eski motion sensörü varlık sayısı enkoder kenar sayısı değildir. Yeni bakım dönemi için yeni olay dayanağını açıkça seçin. ON süresi/mesafe kayıtları ve kimlikleri korunur. S20 raporu eski örneklemeli sayılarla yeni olay toplamlarını ayırır.
+
+Etkinleştirme/güncelleme mevcut **configure.sh** extra seçeneğiyle yapılır; seçenek artık hem eksen mesafesini hem sensör olaylarını kapsar. Mevcut `PETREL_AXIS_TRAVEL` ayarı, symlink ve include geriye uyumludur. Kurulu symlink güncel extra dosyasını alır; kodu yüklemek için **yazıcı boşta iken Klipper’ı yeniden başlatın**, ardından Petrel’i yeniden başlatın. Klipper restart edilmeden çalışan eski extra yeni alanları sunamaz. Ortak seçeneği kapatmak her iki özelliği duraklatır, kayıtlı geçmişleri korur.
 
 ## Sensör diagnostikleri
 

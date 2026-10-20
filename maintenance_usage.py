@@ -87,11 +87,7 @@ def usage_metrics(objects,settings=None):
                 continue
             pixels+=count
         metrics.append(UsageMetric(name,field,elements=count))
-    from maintenance_sensor_usage import sensor_metrics
-    sensors = sensor_metrics(objects, settings)
-    selected = tuple(m for m in sensors if len(m.device.encode('utf-8')) <= MAX_DEVICE_NAME)
-    selected = selected[:max(0, MAX_TRACKED_METRICS-len(metrics))]
-    return tuple(metrics)+selected, len(names)-len(metrics)+len(sensors)-len(selected)
+    return tuple(metrics), len(names)-len(metrics)
 
 
 def metric_counter(usage, device, metric_id):

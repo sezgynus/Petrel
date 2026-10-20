@@ -49,10 +49,10 @@ api_key="$(read_value MOONRAKER_API_KEY "")"
 settings_file="$(read_value PETREL_SETTINGS_FILE "$CONFIG_DIR/presets.json")"
 emulator="$(read_value PETREL_EMULATOR 0)"
 
-echo "Axis travel: optional Klipper extra for X/Y/Z distance counters and maintenance reminders."
+echo "Optional Klipper extra: X/Y/Z travel and event-based sensor counters for maintenance reminders."
 echo "Installs a symlink and a managed printer.cfg include; adds bounded background work."
 echo "Restart Klipper while idle to apply changes. Run configure.sh again to disable."
-axis_travel="$(prompt_value "Enable axis travel counters? (1=yes, 0=no)" "$(read_value PETREL_AXIS_TRAVEL 1)")"
+axis_travel="$(prompt_value "Enable axis travel and sensor event counters? (1=yes, 0=no)" "$(read_value PETREL_AXIS_TRAVEL 1)")"
 if [[ "$axis_travel" != 0 && "$axis_travel" != 1 ]]; then
     echo "Axis travel must be 1 or 0." >&2
     exit 1

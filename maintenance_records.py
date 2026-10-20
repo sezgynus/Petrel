@@ -116,6 +116,8 @@ class MaintenanceBook:
         self.travel = TravelLedger()
         from maintenance_sensor_usage import SensorUsage
         self.sensors = SensorUsage()
+        from maintenance_sensor_usage import SensorEventLedger
+        self.sensor_events = SensorEventLedger()
 
     def record(self,result,method,state,plan=None):
         if self._closed:
@@ -214,7 +216,7 @@ class MaintenanceBook:
             self._capacity_rejected.clear()
             self._inventory_key = key
             self._last = None
-        self.sensors.note(state, self._metrics, now)
+        self.sensor_events.note(state)
         if state.ready:
             for metric in self._metrics:
                 if metric.metric_id != 'sampled_on_s':
@@ -261,7 +263,7 @@ class MaintenanceBook:
 
     def _flush_locked(self):
         self.travel.flush()
-        self.sensors.counters()
+        self.sensor_events.counters()
         with self._lock:
             pending,self._usage = self._usage,{}
         try:
@@ -362,6 +364,10 @@ class MaintenanceBook:
         result.update(sensors)
         result['available_metrics'] += tuple((d, 'observed_trigger_count')
                                             for d in sensors['sensor_available'])
+        with self._disk:
+            events = self.sensor_events.counters()
+        result.update(events)
+        result['available_metrics'] += tuple((d, 'trigger_count') for d in events['event_available'])
         if travel['travel_available']:
             result['available_metrics'] += tuple((axis,'travel_mm') for axis in travel['travel_mm'])
         return result
@@ -399,11 +405,20 @@ class MaintenanceBook:
             if hasattr(self, 'sensors'):
                 with self._disk:
                     sensors = self.sensors.counters()
-                fields += (('sensor_coverage', 'observed_transitions_lower_bound'),)
+                fields += (('sensor_coverage', 'legacy_sampled_history_paused'),) if sensors['observed_trigger_count'] else ()
                 fields += tuple((d+'.observed_trigger_count', n)
                     for d, n in sorted(sensors['observed_trigger_count'].items()))
-                fields += tuple((d+'.sensor_tracking', status)
-                    for d, status in self.sensors.tracking() if status != 'observed')
+                fields += tuple((d+'.sensor_tracking', 'paused') for d in sensors['observed_trigger_count'])
+            if hasattr(self, 'sensor_events'):
+                with self._disk:
+                    events = self.sensor_events.counters()
+                fields += (('sensor_event_coverage', 'klipper_callback_totals'),)
+                fields += tuple((d+'.trigger_count', n) for d, n in sorted(events['trigger_count'].items()))
+                fields += tuple((d+'.event_kind', kind) for d, kind in sorted(self.sensor_events.kinds.items()))
+                fields += tuple((d+'.event_tracking', 'capacity' if d in self.sensor_events.rejected else 'paused')
+                    for d in events['trigger_count'] if d not in events['event_available'])
+                fields += tuple((d+'.event_tracking', 'capacity')
+                    for d in self.sensor_events.rejected if d not in events['trigger_count'])
             return fields + (('usage_slots_remaining',max(0,MAX_USAGE_COUNTERS-len(counts))),
                              ('usage_tracking_omitted',getattr(self,'usage_omitted',0)))
         if feature=='S20':
@@ -424,12 +439,16 @@ class MaintenanceBook:
                     records.append(record)
             with self._disk:
                 sensors = self.sensors.counters()
+                events = self.sensor_events.counters()
             write_json('maintenance-report.json',{'version':1,'generated_at':time(),'records':records,
                 'sampled_print_s':safe_scalar(usage.get('sampled_print_s')),
                 'usage_counter_id':safe_scalar(usage.get('counter_id')),
                 'sensor_counter_id':sensors['sensor_counter_id'],
                 'observed_trigger_count':sensors['observed_trigger_count'],
-                'sensor_coverage':'observed_transitions_lower_bound',
+                'sensor_coverage':'legacy_sampled_history_paused',
+                'event_counter_id':events['event_counter_id'],
+                'trigger_count':events['trigger_count'],
+                'sensor_event_coverage':'klipper_callback_totals',
                 'usage':{k:v for k,v in usage.get('sampled_on_s',{}).items()
                          if safe_scalar(k) and number(v) and v>=0},
                 'coverage':'sampled_lower_bound_not_lifetime'})

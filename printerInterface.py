@@ -640,6 +640,10 @@ class PrinterData:
         from maintenance_travel import installed, AXES, travel_device
         if travel_device(device) in AXES and installed(self.state):
             return bases+('travel_mm',)
+        from maintenance_sensor_usage import event_sample
+        sample=event_sample(self.state)
+        if sample is not None and device in sample[1] and device not in sample[3]:
+            bases += ('trigger_count',)
         snapshot=self.maintenance.snapshot
         return bases+tuple(dict.fromkeys(m.metric_id for m in getattr(snapshot,'usage_metrics',())
                                           if m.device==device))

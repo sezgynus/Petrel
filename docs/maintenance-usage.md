@@ -78,16 +78,27 @@ A single class is selected automatically; choosing an axis or sensor goes direct
 Legacy `inspect_clean`, `lubricate` and `nozzle_inspect` task IDs are displayed with the appropriate new class labels. Saved policies, completion dates, counter identities and tracking anchors are not rewritten, merged or reset. Two old policies that now share a class label remain two independent reminders; remove an unwanted duplicate explicitly.
 
 
-## Observed sensor activations
+## Event-based sensor counters
 
-**Usage history / Recorded component usage (S12)** now retains observed inactive-to-active transitions for discovered filament switch/motion sensors, `gcode_button`, the shared `probe` object and configured physical axis endstops with a `query_endstops` status source. Counts follow the declared object type; names do not assign a sensor role to a generic output. Sensorless/virtual endstops are excluded.
+**Usage history / Recorded component usage (S12)** receives cumulative counters from the existing optional `petrel_axis_travel` Klipper extra. Sensor states are no longer sampled to infer counts. Reading a total less frequently does not lose events already captured by Klipper.
 
-Choose **Care schedule → Add reminder → sensor → Observed sensor activations**. The automatically selected class is **Sensor maintenance**. Enter a whole activation count, review and save. The initial verified counter becomes a tracking anchor; saving does not mark maintenance completed. Confirming maintenance starts a new cycle without resetting the total.
+| Source | Event counted |
+|---|---|
+| Filament switch sensor / digital or ADC `gcode_button` | Inactive → active transition through its existing callback (existing debounce is preserved) |
+| Filament motion sensor | Rising edge of its existing encoder input callback; not the derived filament-present flag |
+| Physical endstop / supported contact probe | Positive homing trigger result with confirmed stepper movement |
 
-These are **recorded lower bounds**, not exact switch lifetimes. Endstop/probe status contains the **last query result**, not a continuous live pin reading. Petrel counts only an observed inactive → active pair; it does not issue queries, probing, movement or additional Klipper configuration. Short transitions hidden between status reports cannot be reconstructed. Filament motion sensor counts describe detected-state changes, **not encoder pulses**. The first active sample, repeated active samples, unreadable values, reconnects, configuration changes and gaps over two seconds never invent activations. A below-limit count cannot prove maintenance is not due.
+A two-pass homing can therefore count two contacts; each actual probing contact is separate. A G28 command or a homing-complete notification alone is not counted. Timeout, release-seeking move, unchanged stepper position and duplicate completion do not add an event. Endstops pressed while idle are outside homing capture. Sensorless/virtual endstops and non-contact scans are not presented as physical switch activations. Unsupported internal callback/probe layouts do not get a fabricated counter. An unknown startup level is a baseline, not a new activation; counting begins after a known inactive level.
 
-The bounded atomic `maintenance-sensor-usage.json` ledger stores up to 128 historical device totals and a separate persistent counter identity. It uses the existing worker/flush cycle; disk failure retains pending increments for retry. Restart/disconnection pauses observation and can lose unflushed or unobserved events. Existing ON-time, travel, reminder histories and identities remain unchanged. Missing readings pause count-based reminders rather than reporting a fabricated zero. S20 export includes recorded sensor totals and their coverage.
+Choose **Care schedule → Add reminder → sensor → Recorded sensor events**. **Sensor maintenance** is selected automatically. Enter a whole event count, review and save. Saving establishes an anchor without recording completed maintenance. Completion advances the anchor and keeps the total. Missing/old/disabled extra or unavailable source pauses tracking. Counters cover enabled capture, not the hardware's entire lifetime; below-limit totals cannot prove service is not due.
 
+The extra attaches to existing callback delivery once at READY, preserves the original callback's result and exceptions, and adds no sensor polling timer, MCU query, pin registration, G-code, thread or disk write. Its existing distance collector remains unchanged. Sensor capture and distance collector state are independent. Up to 64 sources and bounded temporary homing observations are retained. The status object exposes `sensor_schema`, `sensor_state`, `sensor_counts`, `sensor_kinds`, `sensor_disabled` and `sensor_excluded`.
+
+Petrel's separate atomic `maintenance-sensor-events.json` ledger retains up to 128 historical devices subject to a 32 KiB name budget, eight session checkpoints and the existing 64 KiB record bound. Totals and checkpoints commit together. Same-session reconnect/Petrel restart does not replay a total; a new Klipper session contributes its own counts. Worker write failure retains pending snapshots for retry. Unflushed Klipper session tails, more than eight queued session changes, or abrupt shutdown can lose coverage. Reading frequency does not affect capture within the current running session.
+
+Old `maintenance-sensor-usage.json` sampled totals, identities and reminder anchors remain readable and unchanged as **legacy sampled history**. Their tracking is paused. They are never added to event totals, particularly because an old motion-sensor presence count is not an encoder-edge count. Select the new event basis explicitly for a new maintenance cycle. ON-time/travel ledgers and their identities are unchanged. S20 export distinguishes legacy sampled counts and new event totals.
+
+Enable/update through the existing **configure.sh** extra option, which now covers both axis travel and sensor event counters; the existing `PETREL_AXIS_TRAVEL` setting and symlink/include stay compatible. An already installed symlink picks up the updated extra file, but **restart Klipper while idle** to load it, then restart Petrel. Without this Klipper restart an old extra cannot supply the new fields. Disabling the shared option pauses both features and preserves all recorded histories.
 
 ## Sensor diagnostics
 

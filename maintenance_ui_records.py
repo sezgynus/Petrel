@@ -22,15 +22,16 @@ def request(worker,operation,*,policy=None,devices=(),history=False,usage_provid
         if operation=='remove_policy': store.remove_service_policy(policy)
         policies=store.service_policies()
         usage=usage_provider() if callable(usage_provider) and any(
-            p.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count') for p in policies+((policy,) if policy and operation!='remove_policy' else ())) else {}
+            p.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count') for p in policies+((policy,) if policy and operation!='remove_policy' else ())) else {}
         def counter(item):
             value=metric_counter(usage,item.device,item.basis)
             identity=usage.get('travel_counter_id' if item.basis=='travel_mm' else
-                               'sensor_counter_id' if item.basis=='observed_trigger_count' else 'counter_id')
+                               'sensor_counter_id' if item.basis=='observed_trigger_count' else
+                               'event_counter_id' if item.basis=='trigger_count' else 'counter_id')
             from maintenance_assessment_store import numeric
             return (value,identity) if numeric(value) and isinstance(identity,str) and identity else (None,None)
         if operation=='complete':
-            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count') else (None,None)
+            value,identity=counter(policy) if policy.basis in ('sampled_on_s','sampled_print_s','travel_mm','observed_trigger_count','trigger_count') else (None,None)
             if policy.basis!='calendar_s' and value is None:
                 raise ValueError('service_counter_unknown')
             store.complete_service(policy,timestamp=time(),confirmed=True,counter=value,counter_id=identity)

@@ -26,9 +26,7 @@ class UsageContracts(unittest.TestCase):
         state = NS(ready=True, epoch=1, objects=('servo a', 'stepper_x',
             'gcode_button a', 'filament_switch_sensor a', 'temperature_sensor a'),
             settings={'output_pin absent': {'pin': 'PA1'}}, status={})
-        metrics = discover(state).usage_metrics
-        self.assertEqual({m.device for m in metrics}, {'gcode_button a', 'filament_switch_sensor a'})
-        self.assertTrue(all(m.metric_id == 'observed_trigger_count' and m.unit == 'count' for m in metrics))
+        self.assertEqual(discover(state).usage_metrics, ())
         state.ready = False
         self.assertEqual(discover(state).usage_metrics, ())
 

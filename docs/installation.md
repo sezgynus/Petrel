@@ -143,3 +143,7 @@ sudo systemctl restart Petrel.service
 | Action failed or timed out | Check the actual printer state in Mainsail before repeating |
 
 For a bug report, include the software revision, Pi/OS, configuration relevant to the problem and the log excerpt. Add a photo or [emulator screenshot](ui-emulator.md) for visual problems; remove credentials before sharing.
+
+### Sensor event counters in an extra update
+
+The existing optional axis-travel extra now also supplies event-based sensor counters. The shared `configure.sh` option preserves its existing `PETREL_AXIS_TRAVEL` key. No additional extra file/include is needed. An installed symlink follows the updated file; restart Klipper while idle to load it, then restart Petrel. Klipper is not restarted automatically. An old/disabled/missing extra pauses event-based reminders and preserves histories. See the [usage counter guide](maintenance-usage.md#event-based-sensor-counters) for supported sources and counting coverage.

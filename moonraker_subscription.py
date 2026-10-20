@@ -686,7 +686,9 @@ class MoonrakerSubscription:
             from maintenance_travel import OBJECT
             if OBJECT in names:
                 self._base_subscription[OBJECT] = ['session_id','x_mm','y_mm','z_mm',
-                                                  'state','dropped_batches','coverage']
+                                                  'state','dropped_batches','coverage',
+                                                  'sensor_schema','sensor_state','sensor_counts',
+                                                  'sensor_kinds','sensor_disabled','sensor_excluded']
             subscription_objects = self._subscription_objects()
             if self._case_light_tracking and 'output_pin case_light' in names:
                 subscription_objects['output_pin case_light'] = ['value']

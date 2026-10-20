@@ -259,10 +259,11 @@ class SensorEvents:
             configfile = self.printer.lookup_object('configfile', None)
             config = configfile.get_status(0.).get('settings', {}) if configfile else {}
             for endstop, name in getattr(query, 'endstops', ()):
-                cfg = config.get(name, {})
+                config_name = 'stepper_'+name if name in ('x', 'y', 'z') else name
+                cfg = config.get(config_name, {})
                 pin = cfg.get('endstop_pin') if isinstance(cfg, dict) else None
                 if isinstance(pin, str) and pin and 'virtual_endstop' not in pin:
-                    device = 'endstop '+name
+                    device = 'endstop '+config_name
                     if self._add(device, 'homing_contact'):
                         self._endstops[id(endstop)] = device
             # Contact probes use the same homing path. Eddy scans and other
@@ -328,7 +329,9 @@ class SensorEvents:
                     return result
                 endstop.home_start, endstop.home_wait = start, wait
         except Exception:
-            self._restore(self._moves.pop(id(hmove), {}))
+            observations = self._moves.pop(id(hmove), {})
+            self._disabled.update(slot['device'] for slot in observations.values())
+            self._restore(observations)
 
     def _restore(self, observations):
         for slot in observations.values():

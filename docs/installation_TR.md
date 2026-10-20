@@ -143,3 +143,7 @@ sudo systemctl restart Petrel.service
 | İşlem başarısız veya zaman aşımına uğradı | Tekrarlamadan önce Mainsail'den gerçek yazıcı durumunu kontrol edin |
 
 Hata bildirimine yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
+
+### Extra güncellemesinde sensör olay sayaçları
+
+Mevcut isteğe bağlı axis-travel extra’sı artık olay tabanlı sensör sayaçlarını da sunar. `configure.sh` içindeki ortak seçeneğin mevcut `PETREL_AXIS_TRAVEL` anahtarı korunur. Yeni eklenti dosyası/include eklemek gerekmez. Kurulu symlink güncel dosyayı izler; yüklemek için yazıcı boşta iken Klipper’ı yeniden başlatın, ardından Petrel’i yeniden başlatın. Otomatik Klipper restart yapılmaz. Extra eski/kapalı/eksikse sensör olay reminder’ları duraklar, geçmişler silinmez. Kaynaklar ve sayım kapsamı için [kullanım sayaçları rehberine](maintenance-usage_TR.md#olay-tabanlı-sensör-sayaçları) bakın.
