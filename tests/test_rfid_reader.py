@@ -6,6 +6,22 @@ from test_capabilities import display, printer, snapshot
 
 
 class RFIDTests(unittest.TestCase):
+    def test_ready_recovery_tick_keeps_rfid_open_and_still_exits_recovery(self):
+        from types import SimpleNamespace
+        view = display(snapshot())
+        view.pd.connection_error = None
+        view.pd.recovery = Mock(state=SimpleNamespace(kind='ready'))
+        view.Goto_MainMenu = Mock()
+        view.checkkey = view.RFIDMenu
+        self.assertNotEqual(view.RFIDMenu, view.RecoveryScreen)
+        for _ in range(3):
+            self.assertFalse(view._poll_recovery_ui())
+            self.assertEqual(view.checkkey, view.RFIDMenu)
+        view.Goto_MainMenu.assert_not_called()
+        view.checkkey = view.RecoveryScreen
+        self.assertFalse(view._poll_recovery_ui())
+        view.Goto_MainMenu.assert_called_once()
+
     def test_streaming_uid_type_and_metadata_without_guessing_chip(self):
         card = {}
         for line in ('ISO/IEC 14443A (106 kbps) target:',

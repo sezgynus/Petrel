@@ -161,7 +161,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     DisplayMenu = 47
     MaintenanceMenu = 48
     BuzzerMenu = 49
-    RFIDMenu = 50
+    RFIDMenu = 51
 
     MINUNITMULT = 10
 
