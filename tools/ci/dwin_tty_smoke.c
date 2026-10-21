@@ -38,12 +38,12 @@ static void check_device_identity(void)
     check_attribute("uartclk", "15667200\n");
     check_attribute("port", "0x0\n");
     CHECK(realpath("/sys/class/tty/ttyDWIN0/device/driver", path) != NULL);
-    CHECK(strcmp(path, "/sys/bus/dwin/drivers/dwin_uart") == 0);
+    CHECK(strcmp(path, "/sys/bus/dwin/drivers/petrel_uart") == 0);
     CHECK(realpath("/sys/class/tty/ttyDWIN0/device/subsystem", path) != NULL);
     CHECK(strcmp(path, "/sys/bus/dwin") == 0);
-    CHECK(access("/sys/bus/dwin/drivers/dwin_uart/bind", F_OK) == -1);
-    CHECK(access("/sys/bus/dwin/drivers/dwin_uart/unbind", F_OK) == -1);
-    puts("DWIN_IDENTITY_PASS hardware_uart dwin_uart");
+    CHECK(access("/sys/bus/dwin/drivers/petrel_uart/bind", F_OK) == -1);
+    CHECK(access("/sys/bus/dwin/drivers/petrel_uart/unbind", F_OK) == -1);
+    puts("DWIN_IDENTITY_PASS hardware_uart petrel_uart");
 }
 
 static void client(void)

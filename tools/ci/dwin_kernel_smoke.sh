@@ -41,5 +41,5 @@ timeout 90 qemu-system-x86_64 -m 256 -nographic -no-reboot \
 }
 cat "$test_dir/console.log"
 grep -q 'DWIN_SMOKE_PASS' "$test_dir/console.log"
-grep -q 'DWIN_IDENTITY_PASS hardware_uart dwin_uart' "$test_dir/console.log"
+grep -q 'DWIN_IDENTITY_PASS hardware_uart petrel_uart' "$test_dir/console.log"
 grep -q 'DWIN_LIFECYCLE_PASS' "$test_dir/console.log"

@@ -40,7 +40,7 @@ static struct device *parent;
  */
 static struct bus_type dwin_bus = { .name = "dwin" };
 static struct device_driver transport_driver = {
-	.name = "dwin_uart", .bus = &dwin_bus, .owner = THIS_MODULE,
+	.name = "petrel_uart", .bus = &dwin_bus, .owner = THIS_MODULE,
 	.suppress_bind_attrs = true,
 };
 
@@ -380,7 +380,7 @@ static int __init dwin_init(void)
 		return PTR_ERR(driver);
 	tty_port_init(&port);
 	port.ops = &port_ops;
-	driver->driver_name = "dwin_uart";
+	driver->driver_name = "petrel_uart";
 	driver->name = "ttyDWIN";
 	driver->type = TTY_DRIVER_TYPE_SERIAL;
 	driver->subtype = SERIAL_TYPE_NORMAL;
