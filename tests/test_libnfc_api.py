@@ -71,6 +71,41 @@ class DirectLibNFCTests(unittest.TestCase):
         finally:
             session.close()
 
+    def test_repeated_card_selection_resets_rf_and_does_not_discard_read(self):
+        lib = self.fake_library()
+        lib.nfc_strerror.return_value = b'Input/output error'
+        # Deselect is deliberately unusable: RF reset, not InDeselect, releases
+        # the previous tag before the next activation (also for raw protocols).
+        lib.nfc_initiator_deselect_target.return_value = -1
+        def select(device, modulation, data, length, out):
+            target = out._obj
+            target.modulation = modulation
+            target.info.a.uid_len = 4
+            target.info.a.uid[:] = [0x6b, 0xb3, 0x9d, 0x14] + [0] * 6
+            return 1
+        lib.nfc_initiator_select_passive_target.side_effect = select
+        with patch('libnfc_api.bind_library', return_value=lib):
+            session = NFCSession()
+        for _ in range(3):
+            self.assertEqual(session.scan((1, 1))['uid'], '6B:B3:9D:14')
+        self.assertEqual(lib.nfc_initiator_init.call_count, 4)
+        lib.nfc_initiator_deselect_target.assert_not_called()
+        self.assertEqual(lib.nfc_device_set_property_bool.call_args.args, (100, 7, False))
+        session.close()
+
+    def test_dep_allows_firmware_retry_to_complete_and_errors_identify_protocol(self):
+        lib = self.fake_library()
+        lib.nfc_strerror.return_value = b'Input/output error'
+        lib.nfc_initiator_select_dep_target.return_value = 0
+        with patch('libnfc_api.bind_library', return_value=lib):
+            session = NFCSession()
+        self.assertIsNone(session.scan((8, 1)))
+        self.assertEqual(lib.nfc_initiator_select_dep_target.call_args.args[-1], 1000)
+        lib.nfc_initiator_select_passive_target.return_value = -1
+        with self.assertRaisesRegex(OSError, 'ISO14443A baud=1 select:.*-1.*Input/output'):
+            session.scan((1, 1))
+        session.close()
+
     def test_real_header_layout_and_c_populated_target_match_ctypes(self):
         if not shutil.which('cc') or not Path('/usr/include/nfc/nfc.h').exists():
             if os.environ.get('GITHUB_ACTIONS') == 'true':

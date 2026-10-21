@@ -76,6 +76,7 @@ def bind_library():
         'nfc_open': (PTR, [PTR, C.c_char_p]), 'nfc_close': (None, [PTR]),
         'nfc_abort_command': (INT, [PTR]), 'nfc_initiator_init': (INT, [PTR]),
         'nfc_version': (C.c_char_p, []),
+        'nfc_strerror': (C.c_char_p, [PTR]),
         'nfc_device_get_information_about': (INT, [PTR, C.POINTER(PTR)]),
         'nfc_free': (None, [PTR]),
         'nfc_device_get_supported_modulation': (INT, [PTR, INT, C.POINTER(C.POINTER(INT))]),
@@ -117,10 +118,12 @@ class NFCSession:
             self.close()
             raise
 
-    @staticmethod
-    def _check(result):
+    def _check(self, result, operation='initialization'):
         if result < 0:
-            raise OSError(f'libnfc error {result}')
+            detail = self.lib.nfc_strerror(self.device)
+            if isinstance(detail, bytes):
+                detail = detail.decode('utf-8', 'replace')
+            raise OSError(f'{operation}: libnfc error {result} ({detail})')
         return result
 
     def _modulations(self):
@@ -160,14 +163,20 @@ class NFCSession:
     def scan(self, modulation):
         kind, rate = modulation
         target = Target()
-        # Exotic protocols (notably NFC Barcode) alter CRC/parity and RF field.
-        # Restore shared reader state before the next technology's turn.
-        for prop in (3, 4, 11, 5):
-            self._check(self.lib.nfc_device_set_property_bool(self.device, prop, True))
+        operation = f'{NAMES.get(kind, kind)} baud={rate}'
+        # A previous selection can leave a card halted and raw protocols change
+        # framing, bitrate and modulation registers. Public initiator_init drops
+        # the RF field and restores the initiator defaults before each attempt.
+        # Reapply finite retries: initiator_init enables infinite selection.
+        self._check(self.lib.nfc_initiator_init(self.device), operation + ' reset')
+        self._check(self.lib.nfc_device_set_property_bool(self.device, 7, False),
+                    operation + ' finite retries')
         if kind == 8:
             # Passive NFC-DEP peers, including all advertised baud rates.
+            # Host timeout must allow firmware activation retries to finish;
+            # an 80ms host timeout can expire before the chip's 103ms ATR timer.
             result = self.lib.nfc_initiator_select_dep_target(
-                self.device, 1, rate, None, C.byref(target), 80)
+                self.device, 1, rate, None, C.byref(target), 1000)
         else:
             result = self.lib.nfc_initiator_select_passive_target(
                 self.device, Modulation(kind, rate), None, 0, C.byref(target))
@@ -177,10 +186,11 @@ class NFCSession:
             return 'unsupported'
         if result in (0, -6, -10, -20):
             return None
-        self._check(result)
-        card = decode_target(target)
-        self._check(self.lib.nfc_initiator_deselect_target(self.device))
-        return card
+        self._check(result, operation + ' select')
+        # Publish the successful selection directly. The next RF reset releases
+        # it, including raw protocols where InDeselect is ineffective. This also
+        # avoids discarding a valid read because a later cleanup command failed.
+        return decode_target(target)
 
     def abort(self):
         if self.device:

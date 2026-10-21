@@ -61,7 +61,7 @@ class RFIDReader:
                         raise OSError('No usable NFC modulation')
             except (OSError, ValueError) as error:
                 if not self._stop.is_set():
-                    logging.debug('NFC reader unavailable: %s', error)
+                    logging.warning('NFC reader unavailable: %s', error)
                     self._publish('Reader unavailable', identity={'status': 'Unavailable'})
             finally:
                 with self._lock:
