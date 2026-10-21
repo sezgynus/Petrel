@@ -72,6 +72,36 @@ class BrokerContracts(unittest.TestCase):
         self.assertEqual([call.args[0] for call in broker.uart.write.call_args_list],
                          [b'D', b'A', b'D', b'A', b'D', b'A'])
 
+    def test_delayed_auxiliary_does_not_block_display_and_resumes_when_ready(self):
+        broker = self.broker()
+        broker.turn = 1
+        broker.aux_ready_at = 10
+        broker.display_tx.append(b'D')
+        broker.aux_tx.append(b'A')
+        broker.uart.write.return_value = 1
+        with patch('dwin_broker.time.monotonic', return_value=9):
+            broker._transmit()
+            broker._transmit()
+        self.assertEqual(broker.uart.write.call_count, 1)
+        self.assertEqual(broker.aux_tx.size, 1)
+        with patch('dwin_broker.time.monotonic', return_value=10):
+            broker._transmit()
+        self.assertEqual([call.args[0] for call in broker.uart.write.call_args_list],
+                         [b'D', b'A'])
+
+    def test_zero_length_write_preserves_active_frame_and_completion(self):
+        broker = self.broker()
+        done = Mock()
+        broker.display_tx.append(b'ab', done)
+        broker.aux_tx.append(b'xy')
+        broker.uart.write.side_effect = [0, 1, 1, 2]
+        for _ in range(3):
+            broker._transmit()
+        done.assert_called_once_with()
+        broker._transmit()
+        self.assertEqual([call.args[0] for call in broker.uart.write.call_args_list],
+                         [b'ab', b'ab', b'b', b'xy'])
+
     def test_rx_routes_aux_separately_from_fragmented_display_reply(self):
         broker = self.broker()
         broker.rx = bytearray()

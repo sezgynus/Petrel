@@ -8,7 +8,7 @@ import os
 import struct
 import time
 
-from dwin_protocol import HEADER, TAIL, aux_baud_divisor
+from dwin_protocol import HEADER, TAIL, aux_baud_divisor, aux_frames
 
 LOG = logging.getLogger(__name__)
 RECORD = struct.Struct('<BIH')
@@ -131,13 +131,13 @@ class AuxBackend:
                         self._configure(broker, self.baud)
                         self.needs_configuration = False
                 elif op == 1 and payload and broker.online:
-                    from dwin_broker import aux_frames
                     # All chunks from this record complete before the next record.
-                    frames = list(aux_frames(payload))
                     self.completion = (float('inf'), epoch, len(payload))
                     self._watch(False)
-                    for index, frame in enumerate(frames):
-                        def complete(frame=frame, last=index == len(frames) - 1):
+                    remaining = len(payload)
+                    for frame in aux_frames(payload):
+                        remaining -= len(frame) - 6
+                        def complete(frame=frame, last=remaining == 0):
                             # Physical host UART plus downstream serialization.
                             wait = (len(frame) + broker.uart.out_waiting) * 10 / 115200 + (len(frame) - 6) * 10 / self.baud
                             deadline = time.monotonic() + wait

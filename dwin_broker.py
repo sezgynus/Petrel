@@ -13,7 +13,7 @@ import socket
 import time
 
 import serial
-from dwin_protocol import HEADER, TAIL, MAX_DATA_LENGTH, take_response
+from dwin_protocol import HEADER, TAIL, MAX_DATA_LENGTH, take_response, aux_frames
 
 LOG = logging.getLogger(__name__)
 QUEUE_LIMIT = 65536
@@ -42,17 +42,6 @@ def display_frame(data):
             or data[1] in (0x38, 0x39)):
         raise ValueError('Invalid or reserved display command')
     return data
-
-
-def aux_frames(data):
-    """Split arbitrary binary streams, including in-band frame terminators."""
-    while data:
-        part = data[:MAX_DATA_LENGTH]
-        marker = part.find(TAIL)
-        if marker >= 0:
-            part = part[:marker + len(TAIL) - 1]
-        yield HEADER + b'\x39' + part + TAIL
-        data = data[len(part):]
 
 
 class Broker:
@@ -132,20 +121,23 @@ class Broker:
 
     def _transmit(self):
         if self.active is None:
-            aux = self.aux_tx if time.monotonic() >= self.aux_ready_at else FrameQueue()
-            queues = (self.display_tx, aux)
-            queue = queues[self.turn] if queues[self.turn].frames else queues[1 - self.turn]
-            if not queue.frames:
+            aux_ready = self.aux_tx.frames and time.monotonic() >= self.aux_ready_at
+            if self.display_tx.frames and (self.turn == 0 or not aux_ready):
+                queue = self.display_tx
+            elif aux_ready:
+                queue = self.aux_tx
+            else:
                 return
             self.active = queue.pop()
             self.turn = 1 - self.turn
         data, complete = self.active
         count = self.uart.write(data)
-        self.active = (data[count:], complete)
         if count == len(data):
             self.active = None
             if complete is not None:
                 complete()
+        elif count:
+            self.active = (data[count:], complete)
         self._uart_events()
 
     def _receive(self):

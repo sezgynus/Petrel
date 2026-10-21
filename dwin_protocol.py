@@ -10,6 +10,18 @@ MAX_DATA_LENGTH = 248
 FIXED_RX_PAYLOAD = {0x00: 2, 0x31: 3, 0x33: 2, 0x34: 2, 0xff: 1}
 
 
+def aux_frames(data):
+    """Frame binary TX without copying the unconsumed tail on every chunk."""
+    offset = 0
+    while offset < len(data):
+        end = min(offset + MAX_DATA_LENGTH, len(data))
+        marker = data.find(TAIL, offset, end)
+        if marker >= 0:
+            end = marker + len(TAIL) - 1
+        yield b'\xaa\x39' + data[offset:end] + TAIL
+        offset = end
+
+
 def take_response(buffer):
     """Remove one complete valid inbound frame, or return None for partial RX.
 

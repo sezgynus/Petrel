@@ -1,9 +1,19 @@
 import unittest
 
-from dwin_protocol import TAIL, aux_baud_divisor, take_response
+from dwin_protocol import TAIL, aux_baud_divisor, aux_frames, take_response
 
 
 class SharedProtocolTests(unittest.TestCase):
+    def test_auxiliary_binary_chunk_boundaries_preserve_every_byte(self):
+        for prefix in (0, 1, 243, 244, 245, 246, 247, 248, 249, 496):
+            data = b'x' * prefix + TAIL * 3 + bytes(range(256)) * 2
+            with self.subTest(prefix=prefix):
+                frames = list(aux_frames(data))
+                self.assertEqual(b''.join(f[2:-4] for f in frames), data)
+                self.assertTrue(all(6 < len(f) <= 254 for f in frames))
+                self.assertTrue(all(TAIL not in f[2:-4] for f in frames))
+        self.assertEqual(list(aux_frames(b'')), [])
+
     def test_fragmented_upload_keeps_embedded_header_and_trailer(self):
         data = b'\xaa' + TAIL + b'\x00\xff'
         frame = b'\xaa\x3a' + bytes([len(data)]) + data + TAIL
