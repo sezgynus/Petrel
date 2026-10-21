@@ -384,7 +384,11 @@ ISO14443A/B, B', ST SRx, ASK CTx, iki hızda FeliCa, Jewel/Topaz, NFC Barcode,
 iClass/PicoPass ve destekleniyorsa pasif NFC-DEP. Type A seçimi 106 kbps ile başlar;
 yüksek haberleşme hızları seçimden sonra görüşülür. Her sırada tek aktivasyon
 denemesi yapılır; ek sleep, AutoPoll periyodu veya kartın kaldırılmasını bekleme
-yoktur. Aynı aygıt bağlantısı açık kalır. Tüm protokollerin turu gerçek RF/aktarım
+yoktur. Başlangıçta diğer teknolojilerin arasına Type A taraması konur; kart
+bulununca bu ek sıralar son okunan kartın teknolojisine verilir. Diğer tüm
+bildirilmiş modlar sırayla ilerlemeye devam eder. RFID sayfası önbellekteki kartı
+50 ms aralıkla kontrol eder; normal yazıcı/durum işleri 500 ms aralıkta kalır.
+Aynı aygıt bağlantısı açık kalır. Tüm protokollerin turu gerçek RF/aktarım
 süresi gerektirir; mutlak algılama gecikmesi veya eşzamanlı tarama vaat edilmez.
 Firmware'in reddettiği bildirilmiş modlar loglanır; durum kısmi desteği belirtir.
 Bağlantı hatasında iki saniye beklenip yeniden bağlanılır.

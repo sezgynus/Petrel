@@ -919,6 +919,15 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                         self._mmu_animation_tick()
                     return
                 self._mmu_status_at = now + .5
+            elif getattr(self, 'checkkey', None) == self.RFIDMenu:
+                if hasattr(self, '_loop'):
+                    self._loop.set_interval(.05)
+                # Read only the worker's cached snapshot on fast ticks. Keep
+                # printer/status/maintenance work at its usual 500ms cadence.
+                self._poll_rfid_ui()
+                if now < getattr(self, '_rfid_status_at', 0):
+                    return
+                self._rfid_status_at = now + .5
             elif getattr(self, 'checkkey', None) == self.FilePreview:
                 if not getattr(self, '_pending_start', None) and not getattr(self, '_start_error_visible', False):
                     self._poll_file_preview()
@@ -2037,7 +2046,14 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.Draw_Display_Menu()
         self.lcd.update()
 
+    def _poll_rfid_ui(self):
+        if self.pd.refresh_rfid() and self.checkkey == self.RFIDMenu:
+            self.Draw_RFID_Menu(full=False)
+            self.lcd.update()
+
     def Draw_RFID_Menu(self, full=True):
+        if full and hasattr(self, '_loop'):
+            self._loop.set_interval(.05)
         self.pd.refresh_rfid()
         state = self.pd.system_info.get('rfid') or {}
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
@@ -3704,9 +3720,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.pd.probe_wizard.update()
         info_update = False
         if self.checkkey == self.RFIDMenu or getattr(self.pd, '_rfid_reader', None) is not None:
-            if self.pd.refresh_rfid() and self.checkkey == self.RFIDMenu:
-                self.Draw_RFID_Menu(full=False)
-                self.lcd.update()
+            self._poll_rfid_ui()
         if self.checkkey == self.Info:
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:

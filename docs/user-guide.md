@@ -382,7 +382,11 @@ ISO14443A/B, B', ST SRx, ASK CTx, FeliCa at both rates, Jewel/Topaz, NFC Barcode
 iClass/PicoPass and passive NFC-DEP when supported. A starts at 106 kbps; higher
 Type A communication rates are negotiated after selection. Discovery uses one
 activation attempt per turn, with no added sleep, AutoPoll period or card-removal
-wait. The same device handle remains open. A full multi-protocol scan still has
+wait. Type A is initially revisited between other technologies; after a card is
+found, its technology receives those extra turns instead. Every other advertised
+mode still advances in order. The RFID page checks the cached card every 50 ms,
+while ordinary printer/status work keeps its 500 ms cadence. The same device
+handle remains open. A full multi-protocol scan still has
 real RF/transport time; no absolute detection latency or simultaneous scan is
 promised. Firmware-rejected advertised modes are logged and the status indicates
 partial support. Transport failures reconnect with a two-second backoff.

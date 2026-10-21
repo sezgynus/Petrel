@@ -16,16 +16,64 @@ class RFIDTests(unittest.TestCase):
         seen = []
         def scan(modulation):
             seen.append(modulation)
-            if len(seen) == 20:
+            if len(seen) == 38:
                 reader._stop.set()
             return {'uid': '01:02:03:04', 'type': 'ISO14443A'} if modulation[0] == 1 else None
         session.scan.side_effect = scan
         with patch('rfid_reader.NFCSession', return_value=session) as factory:
             reader._run()
             factory.assert_called_once()
-        self.assertEqual(seen, session.modulations * 2)
+        expected = [(1, 1)]
+        for modulation in session.modulations[1:]:
+            expected.extend([(1, 1), modulation])
+        self.assertEqual(seen, expected * 2)
+        self.assertEqual([m for m in seen if m != (1, 1)], session.modulations[1:] * 2)
         self.assertEqual(reader.snapshot()[2]['uid'], '01:02:03:04')
         session.close.assert_called_once()
+
+    def test_fast_revisit_follows_last_successful_non_type_a_card(self):
+        with patch('rfid_reader.Thread'):
+            reader = RFIDReader()
+        session = Mock()
+        session.identity.return_value = {'status': 'Connected'}
+        session.modulations = [(1, 1), (3, 1), (7, 2), (8, 1)]
+        seen = []
+        def scan(modulation):
+            seen.append(modulation)
+            if len(seen) >= 18:
+                reader._stop.set()
+            if modulation == (7, 2):
+                return {'uid': '01:02', 'type': 'FeliCa'}
+            return None
+        session.scan.side_effect = scan
+        with patch('rfid_reader.NFCSession', return_value=session):
+            reader._run()
+        first = seen.index((7, 2))
+        self.assertIn((8, 1), seen[first:])
+        self.assertIn((3, 1), seen[first:])
+        # Once FeliCa is learned, at most one other scan separates its turns.
+        positions = [i for i, m in enumerate(seen) if m == (7, 2)]
+        self.assertTrue(all(b - a <= 2 for a, b in zip(positions, positions[1:])))
+
+    def test_fast_rfid_tick_updates_card_without_running_full_status_cycle(self):
+        import time
+        view = display(snapshot())
+        view._loop = Mock()
+        view._uart_online = True
+        view._power_hold_tick = Mock(return_value=False)
+        view._power_popup_tick = Mock(return_value=False)
+        view._boot_active = False
+        view._next_uart_probe = time.monotonic() + 100
+        view._rfid_status_at = time.monotonic() + 100
+        view._poll_panel_power = Mock()
+        view._sync_case_light_tracking = Mock()
+        view._poll_rfid_ui = Mock()
+        view.EachMomentUpdate = Mock()
+        view.checkkey = view.RFIDMenu
+        view._ui_tick_body()
+        view._loop.set_interval.assert_called_with(.05)
+        view._poll_rfid_ui.assert_called_once()
+        view.EachMomentUpdate.assert_not_called()
 
     def test_ready_recovery_tick_keeps_rfid_open_and_still_exits_recovery(self):
         from types import SimpleNamespace

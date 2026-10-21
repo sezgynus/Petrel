@@ -44,19 +44,30 @@ class RFIDReader:
                     self._session = session
                 self._publish('Listening', identity=session.identity())
                 unsupported = set()
+                # Start with Type A when available, then follow the most recent
+                # successful technology. Revisit it between every other scan,
+                # while advancing all advertised technologies fairly in order.
+                preferred = (1, 1) if (1, 1) in session.modulations else None
                 while not self._stop.is_set():
                     for modulation in session.modulations:
+                        candidates = ((preferred, modulation)
+                                      if preferred and preferred != modulation
+                                      else (modulation,))
+                        for candidate in candidates:
+                            if self._stop.is_set():
+                                break
+                            if candidate in unsupported:
+                                continue
+                            card = session.scan(candidate)
+                            if card == 'unsupported':
+                                unsupported.add(candidate)
+                                logging.warning('NFC reader rejected advertised modulation %s', candidate)
+                                self._publish('Partial support')
+                            elif card:
+                                preferred = candidate
+                                self._publish('Partial support' if unsupported else 'Listening', card)
                         if self._stop.is_set():
                             break
-                        if modulation in unsupported:
-                            continue
-                        card = session.scan(modulation)
-                        if card == 'unsupported':
-                            unsupported.add(modulation)
-                            logging.warning('NFC reader rejected advertised modulation %s', modulation)
-                            self._publish('Partial support')
-                        elif card:
-                            self._publish('Partial support' if unsupported else 'Listening', card)
                     if len(unsupported) == len(session.modulations):
                         raise OSError('No usable NFC modulation')
             except (OSError, ValueError) as error:
