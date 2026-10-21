@@ -1,0 +1,36 @@
+name: DWIN C Broker
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, sanitize]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build production executable and packet-backend contract executable
+        shell: bash
+        run: |
+          make -C native
+          flags='-Os'
+          if [ '${{ matrix.mode }}' = sanitize ]; then
+            flags='-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie'
+          fi
+          cc $flags -std=c11 -Wall -Wextra -Werror -Wformat=2 -DDWIN_TEST_BACKEND \
+            native/dwin_broker.c -lm -o "$RUNNER_TEMP/dwin-broker-contract"
+      - name: Exercise PTY serial, real packet sockets, faults and binary streams
+        env:
+          DWIN_C_BROKER: ${{ runner.temp }}/dwin-broker-contract
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: python -m unittest discover -s tests -p test_dwin_native.py -v

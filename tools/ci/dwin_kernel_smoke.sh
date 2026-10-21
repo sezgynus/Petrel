@@ -12,6 +12,8 @@ mkdir -p "$test_dir/root"/{bin,dev,proc,sys}
 cp /bin/busybox "$test_dir/root/bin/busybox"
 cp "$repo_dir/kernel/dwin_uart/dwin_uart.ko" "$test_dir/root/"
 gcc -static -O2 -Wall -Wextra -Werror "$repo_dir/tools/ci/dwin_tty_smoke.c" -o "$test_dir/root/smoke"
+gcc -static -Os -std=c11 -Wall -Wextra -Werror "$repo_dir/native/dwin_broker.c" -lm -o "$test_dir/root/broker"
+gcc -static -O2 -Wall -Wextra -Werror "$repo_dir/tools/ci/dwin_broker_kernel_smoke.c" -lutil -o "$test_dir/root/broker-smoke"
 cat > "$test_dir/root/init" <<'INIT'
 #!/bin/busybox sh
 /bin/busybox mount -t proc proc /proc
@@ -20,6 +22,7 @@ cat > "$test_dir/root/init" <<'INIT'
 for pass in 1 2; do
     /bin/busybox insmod /dwin_uart.ko || /bin/busybox poweroff -f
     /smoke || /bin/busybox poweroff -f
+    /broker-smoke || /bin/busybox poweroff -f
     /bin/busybox rmmod dwin_uart || /bin/busybox poweroff -f
     for path in /sys/class/tty/ttyDWIN0 /sys/devices/dwin-uart /sys/bus/dwin /dev/ttyDWIN0 /dev/dwin-uart-backend; do
         if [ -e "$path" ]; then
@@ -43,3 +46,4 @@ cat "$test_dir/console.log"
 grep -q 'DWIN_SMOKE_PASS' "$test_dir/console.log"
 grep -q 'DWIN_IDENTITY_PASS hardware_uart petrel_uart' "$test_dir/console.log"
 grep -q 'DWIN_LIFECYCLE_PASS' "$test_dir/console.log"
+grep -q 'DWIN_C_KERNEL_PASS' "$test_dir/console.log"
