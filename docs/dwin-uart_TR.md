@@ -98,6 +98,11 @@ Servis hataları için `journalctl -u Petrel-dwin.service`, servis durumu için
 Ekran kapalıyken aygıt düğümü bulunabilir; portun açılması için ortak servis
 bağlantısı ve başarılı panel handshake gerekir.
 
+Ortak servis, tam logging tanılamasını raporlanan ilk bağlantı hatasında yükler;
+asıl exception traceback'i journal'da korunur. Logging modülleri yüklü kaldığı için
+ilk hata sonrasında bellek artabilir. Belleği aynı başlangıç, trafik ve hata
+koşullarında karşılaştırın; PSS yanında `SwapPss` değerini de ölçün.
+
 Sürüm öncesinde gerçek panel/Pi üzerinde doğrulanacaklar: kurulum/kaldırma/tekrar kurulum;
 `CC 33 C3 3C` dahil ikili verilerle yardımcı TX/RX loopback; logic analyzer ile
 19200/115200 baud; pySerial/minicom erişimi ve listeleme; eşzamanlı ekran gezinmesi;

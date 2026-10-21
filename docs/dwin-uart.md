@@ -95,6 +95,11 @@ Use `journalctl -u Petrel-dwin.service` for broker errors and
 A port node can exist while the screen is powered off; opening it requires a
 connected broker and a successful panel handshake.
 
+The broker loads full logging diagnostics on its first reported transport fault;
+the original exception traceback is retained in the journal. Memory can rise after
+that first fault as the logging modules stay loaded. Compare memory at matching
+startup, traffic and fault states, including `SwapPss` alongside PSS.
+
 Before release, verify on the actual panel/Pi: setup/removal/reinstallation;
 auxiliary TX/RX loopback with binary bytes including `CC 33 C3 3C`; 19200/115200 baud
 on a logic analyzer; pySerial/minicom access and enumeration; simultaneous screen

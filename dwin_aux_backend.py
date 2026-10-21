@@ -3,14 +3,13 @@
 Only one TX record is in flight. Completions wait a conservative serialization
 interval because DWIN's transmit command has no physical TX-complete reply.
 """
-import logging
 import os
 import struct
 import time
 
 from dwin_protocol import HEADER, TAIL, aux_baud_divisor, aux_frames
+from dwin_diagnostics import log_exception
 
-LOG = logging.getLogger(__name__)
 RECORD = struct.Struct('<BIH')
 LIMIT = 65536
 
@@ -152,7 +151,7 @@ class AuxBackend:
                 self._configure(broker, self.baud)
                 self.needs_configuration = False
         except (OSError, ValueError, BufferError):
-            LOG.exception('Auxiliary kernel transport failed')
+            log_exception(__name__, 'Auxiliary kernel transport failed')
             # In-flight records cannot be replayed safely after a backend fault.
             broker._disconnect()
 

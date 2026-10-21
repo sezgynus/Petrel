@@ -4,9 +4,7 @@ Unix SEQPACKET carries exactly one complete display command per message.
 Auxiliary traffic has its own bounded queue; scheduling never interleaves bytes
 inside a panel frame. Kernel TTY backend integration is isolated in AuxBackend.
 """
-import argparse
 from collections import deque
-import logging
 import os
 import selectors
 import socket
@@ -14,8 +12,8 @@ import time
 
 import serial
 from dwin_protocol import HEADER, TAIL, MAX_DATA_LENGTH, take_response, aux_frames
+from dwin_diagnostics import log_exception
 
-LOG = logging.getLogger(__name__)
 QUEUE_LIMIT = 65536
 
 
@@ -218,7 +216,7 @@ class Broker:
             except BlockingIOError:
                 continue
             except (OSError, BufferError, ValueError):
-                LOG.exception('DWIN connection failed (%s)', key.data)
+                log_exception(__name__, 'DWIN connection failed (%s)', key.data)
                 if key.data == 'client':
                     self._drop_client()
                 else:
@@ -233,15 +231,26 @@ class Broker:
         os.unlink(self.path)
 
 
-def main():
+def parse_arguments(argv=None):
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', required=True)
     parser.add_argument('--backend', default='/dev/dwin-uart-backend')
     parser.add_argument('--socket', default='/run/petrel-dwin/display.sock')
-    args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    args = parser.parse_args(argv)
+    # argparse's actions/groups contain cycles. Release them now rather than
+    # keeping the parser in the long-running main frame or awaiting a later GC.
+    del parser
+    import gc
+    gc.collect()
+    return args
+
+
+def main():
+    args = parse_arguments()
     from dwin_aux_backend import AuxBackend
     broker = Broker(args.port, args.socket, AuxBackend(args.backend))
+    del args
     try:
         while True:
             broker.step()
