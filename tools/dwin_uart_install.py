@@ -70,16 +70,35 @@ def broker_binary(repo):
     return BROKER_DIRECTORY + '/broker-' + digest.hexdigest()[:12]
 
 
+def prepare_broker_directory(root):
+    # configure.sh intentionally uses umask 077 for private settings. Public
+    # executables need traversable installation directories independently of it.
+    for relative in ('usr', 'usr/local', 'usr/local/libexec', BROKER_DIRECTORY.lstrip('/')):
+        path = root / relative
+        try:
+            path.mkdir()
+        except FileExistsError:
+            pass
+        else:
+            path.chmod(0o755)
+    directory = root / BROKER_DIRECTORY.lstrip('/')
+    directory.chmod(0o755)
+    # Repair a libexec ancestor created with 0700 by the initial C installer.
+    # Only add search permission; preserve other existing libexec mode bits.
+    parent = directory.parent
+    parent.chmod(stat.S_IMODE(parent.stat().st_mode) | 0o111)
+
+
 def build_broker(repo, root=Path('/'), execute=run):
     """Compile atomically to an immutable, root-owned versioned executable.
 
     The existing running binary remains available for rollback until the entire
     transport transition succeeds. Kernel build already supplies build-essential.
     """
+    prepare_broker_directory(root)
     destination = root / broker_binary(repo).lstrip('/')
     if destination.is_file() and os.access(destination, os.X_OK) and destination.stat().st_size:
         return
-    destination.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix='.build-', dir=destination.parent)
     os.close(fd)
     try:
@@ -249,6 +268,9 @@ class Installer:
             new['asvc'] = str(asvc)
         registration = self.registration_changes(enabled, updater, asvc)
 
+        if enabled:
+            prepare_broker_directory(self.root)
+
         if (enabled and old == new and self.active(SERVICE)
                 and all(self.path(p).exists() for p in OWNED)
                 and self.path(binary).is_file() and self.path(binary).stat().st_size
@@ -269,6 +291,10 @@ class Installer:
             try:
                 self.builder(repo, version, self.root, self.execute)
                 self.broker_builder(repo, self.root, self.execute)
+                # Root's access() cannot validate an unprivileged service exec.
+                # Catch permissions, noexec mounts and loader errors before
+                # stopping either running service.
+                self.execute('runuser', '-u', user, '--', str(self.path(binary)), '--help')
             except BaseException:
                 if not binary_existed:
                     self.path(binary).unlink(missing_ok=True)

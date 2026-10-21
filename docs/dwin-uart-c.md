@@ -26,6 +26,10 @@ migrated automatically. No additional Kconfig toggle or manual compiler command 
 needed. Reapply configuration after native source updates; the service intentionally
 runs an installed binary rather than source files from the checkout.
 
+Installation makes the binary directories searchable despite configure's private
+`umask 077`, and checks `--help` as the service user before stopping services.
+Reapplying also repairs directory permissions from the initial C installer.
+
 ```bash
 systemctl show Petrel-dwin.service -p ExecStart
 systemctl is-active Petrel.service Petrel-dwin.service

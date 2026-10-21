@@ -129,6 +129,34 @@ class InstallationContracts(unittest.TestCase):
             self.assertIn('Petrel.service', active)
             self.assertFalse(installer.path(MANIFEST).exists())
 
+    def test_unprivileged_exec_failure_does_not_stop_running_services(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            fail.append(('runuser', '-u', 'printer', '--',
+                         str(installer.path(broker_binary(ROOT))), '--help'))
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.apply(installer, True)
+            self.assertFalse(any(c[:2] == ('systemctl', 'stop') for c in calls))
+            self.assertIn('Petrel.service', active)
+            self.assertFalse(installer.path(MANIFEST).exists())
+            self.assertFalse(installer.path(broker_binary(ROOT)).exists())
+
+    def test_cached_install_repairs_directory_permissions_under_private_umask(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            self.apply(installer, True)
+            directory = installer.path(BROKER_DIRECTORY)
+            directory.chmod(0o700)
+            directory.parent.chmod(0o700)
+            saved = os.umask(0o077)
+            try:
+                self.apply(installer, True)
+            finally:
+                os.umask(saved)
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o755)
+            self.assertEqual(directory.parent.stat().st_mode & 0o111, 0o111)
+            self.assertEqual(builder.call_count, 1)
+
     def test_existing_python_manifest_migrates_and_failure_restores_old_unit(self):
         with tempfile.TemporaryDirectory() as tmp:
             installer, active, calls, fail, builder = self.fixture(Path(tmp))
@@ -184,12 +212,23 @@ class InstallationContracts(unittest.TestCase):
             self.skipTest('native toolchain unavailable')
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            build_broker(ROOT, root)
+            root.chmod(0o755)
+            saved = os.umask(0o077)
+            try:
+                build_broker(ROOT, root)
+            finally:
+                os.umask(saved)
             binary = root / broker_binary(ROOT).lstrip('/')
             self.assertEqual(binary.stat().st_mode & 0o777, 0o755)
+            for relative in ('usr', 'usr/local', 'usr/local/libexec', BROKER_DIRECTORY.lstrip('/')):
+                self.assertEqual((root / relative).stat().st_mode & 0o111, 0o111)
             result = subprocess.run([str(binary), '--help'], capture_output=True, text=True, timeout=5)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('--backend', result.stdout)
+            if os.environ.get('GITHUB_ACTIONS') == 'true':
+                result = subprocess.run(['sudo', '-n', '-u', 'nobody', '--', str(binary), '--help'],
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             stat = binary.stat()
             build_broker(ROOT, root, execute=Mock(side_effect=AssertionError('unnecessary rebuild')))
             self.assertEqual(binary.stat().st_ino, stat.st_ino)

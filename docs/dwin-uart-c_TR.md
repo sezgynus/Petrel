@@ -26,6 +26,10 @@ otomatik taşınır. Ek Kconfig seçeneği veya elle derleyici komutu gerekmez. 
 kaynak güncellemelerinden sonra yapılandırmayı yeniden uygulayın; servis çalışma
 dizinindeki kaynak dosyalar yerine kurulmuş binary'yi çalıştırır.
 
+Kurulum, configure'ın özel `umask 077` ayarından bağımsız olarak binary dizinlerini
+erişilebilir yapar ve servisleri durdurmadan önce servis kullanıcısıyla `--help`
+çalıştırır. Yeniden uygulama, ilk C installer'ındaki dizin izinlerini de onarır.
+
 ```bash
 systemctl show Petrel-dwin.service -p ExecStart
 systemctl is-active Petrel.service Petrel-dwin.service
