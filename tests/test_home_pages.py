@@ -136,13 +136,13 @@ class HomePageTests(unittest.TestCase):
         view.lcd.draw_circle.assert_not_called()
         view.lcd.fill_circle.assert_not_called()
 
-    def test_capability_removal_clamps_cursor_to_existing_info(self):
-        view=self.make();view.select_page.set(7)
+    def test_capability_removal_clamps_cursor_to_existing_rfid(self):
+        view=self.make();view.select_page.set(8)
         source=snapshot(probe=False)
         view.pd.subscription.snapshot.return_value=source
         view.pd.update_variable()
-        view._draw_home_page();self.assertEqual(view.select_page.now,6)
-        self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        view._draw_home_page();self.assertEqual(view.select_page.now,7)
+        self.assertIn((view.ICON_Info_1,145,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
 
     def test_mmu_entry_and_back_preserve_home_selection(self):
         for mesh in (True, False):

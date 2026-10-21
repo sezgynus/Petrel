@@ -35,7 +35,8 @@ class RFIDTests(unittest.TestCase):
         pd = printer(snapshot())
         pd._nfc_info_complete = True
         pd.system_info['nfc'] = {'status': 'Connected'}
-        with patch('printerInterface.RFIDReader') as factory:
+        factory = Mock()
+        with patch.dict(pd.refresh_rfid.__func__.__globals__, RFIDReader=factory):
             factory.return_value.snapshot.return_value = (1, 'Listening', {'uid': '01:02:03:04'})
             self.assertTrue(pd.refresh_rfid())
             self.assertFalse(pd.refresh_rfid())

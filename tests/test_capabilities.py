@@ -604,10 +604,10 @@ class CapabilityMenuTests(unittest.TestCase):
         self.assertEqual(call[-3:-1], (120, 100))
         self.assertEqual(call[2], result.lcd.font8x16)
         self.assertEqual([label for kind, label, _ in items if kind == 'section'],
-                         ['Machine', 'Host', 'MCU: mcu', 'MCU: mmu', 'Software'])
+                         ['Machine', 'Host', 'MCU: mcu', 'MCU: mmu', 'NFC', 'Software'])
         result.pd.system_info['mcus'] = ()
         self.assertEqual([label for kind, label, _ in result._info_items() if kind == 'section'],
-                         ['Machine', 'Host', 'MCU', 'Software'])
+                         ['Machine', 'Host', 'MCU', 'NFC', 'Software'])
 
     def test_info_qr_scrolls_one_row_without_native_out_of_screen_commands(self):
         result = display(snapshot())

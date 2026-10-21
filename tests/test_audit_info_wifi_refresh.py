@@ -11,6 +11,8 @@ class InfoWifiRefresh(unittest.TestCase):
         v.pd.HMI_flag.home_flag=False
         v.pd.refresh_wifi_status=Mock(side_effect=[True,False])
         v.pd.refresh_system_info=Mock(return_value=False)
+        v.pd.refresh_nfc_info=Mock(return_value=False)
+        v.pd._rfid_reader=None
         for name in ('_poll_case_light_live','_sync_case_light_tracking','_poll_case_light_state',
                      '_poll_maintenance_ui','_focus_tick_quiet','_poll_screws_tilt','_poll_bed_mesh',
                      'Draw_Info_Menu','Draw_Status_Area'):

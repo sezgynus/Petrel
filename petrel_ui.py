@@ -3149,6 +3149,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             'MACHINE': (0x07FF, ICON_MACHINE),
             'HOST': (0x4C7F, ICON_HOST),
             'SOFTWARE': (0x03DF, ICON_SOFTWARE),
+            'NFC': (0x07FF, ICON_MCU),
         }
         key = text.upper()
         if key.startswith('MCU'):
