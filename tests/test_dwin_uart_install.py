@@ -1,4 +1,7 @@
 import json
+import getpass
+import shutil
+import sys
 import os
 from pathlib import Path
 import subprocess
@@ -6,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tools.dwin_uart_install import Installer, OWNED, MANIFEST, DROPIN, SERVICE, source_version, quote
+from tools.dwin_uart_install import Installer, OWNED, MANIFEST, DROPIN, SERVICE, source_version, quote, service_text
 from tools.env_defaults import ensure_aux_uart_default
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,6 +176,34 @@ class InstallationContracts(unittest.TestCase):
             calls = (home / 'sudo.log').read_text()
             self.assertIn('--enabled 1', calls)
             self.assertIn('--enabled 0', calls)
+
+    def test_generated_service_passes_real_systemd_unit_validation(self):
+        verifier = shutil.which('systemd-analyze')
+        if not verifier:
+            if os.environ.get('GITHUB_ACTIONS') == 'true':
+                self.fail('CI must provide systemd-analyze for generated service verification')
+            self.skipTest('systemd-analyze is unavailable')
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / 'printer home'
+            binary = home / 'petrel-env/bin/python'
+            binary.parent.mkdir(parents=True)
+            binary.symlink_to(sys.executable)
+            repo = home / 'Petrel'
+            repo.mkdir()
+            unit = Path(tmp) / 'Petrel-dwin.service'
+            text = service_text(repo, home, getpass.getuser(), '/dev/ttyAMA0')
+            env = dict(os.environ, LC_ALL='C', SYSTEMD_LOG_COLOR='0')
+            unit.write_text(text)
+            result = subprocess.run([verifier, 'verify', '--man=no', str(unit)],
+                                    text=True, capture_output=True, env=env)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            # The original failure must be caught by the same real parser.
+            unit.write_text(text.replace('[Service]\n',
+                '[Service]\nWorkingDirectory=' + quote(str(repo)) + '\n'))
+            result = subprocess.run([verifier, 'verify', '--man=no', str(unit)],
+                                    text=True, capture_output=True, env=env)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('WorkingDirectory=', result.stderr)
 
     def test_systemd_arguments_escape_specifiers_and_reject_newlines(self):
         self.assertEqual(quote('/tmp/with space%/a"b'), '"/tmp/with space%%/a\\"b"')

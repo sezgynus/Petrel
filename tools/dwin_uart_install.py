@@ -143,7 +143,6 @@ StartLimitIntervalSec=0
 Type=simple
 User={user}
 Group=dialout
-WorkingDirectory={quote(str(repo))}
 ExecStart={argv}
 RuntimeDirectory=petrel-dwin
 RuntimeDirectoryMode=0750
