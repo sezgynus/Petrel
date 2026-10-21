@@ -78,6 +78,7 @@ class Broker:
         self.rx = bytearray()
         self.active = None
         self.turn = 0
+        self.aux_ready_at = 0
         self.online = False
         self.probe_at = 0
         self.probe_deadline = None
@@ -126,11 +127,13 @@ class Broker:
     def _uart_events(self):
         self.selector.modify(self.uart.fileno(), selectors.EVENT_READ |
                              (selectors.EVENT_WRITE if self.active is not None
-                              or self.display_tx.frames or self.aux_tx.frames else 0), 'uart')
+                              or self.display_tx.frames or (self.aux_tx.frames
+                                  and time.monotonic() >= self.aux_ready_at) else 0), 'uart')
 
     def _transmit(self):
         if self.active is None:
-            queues = (self.display_tx, self.aux_tx)
+            aux = self.aux_tx if time.monotonic() >= self.aux_ready_at else FrameQueue()
+            queues = (self.display_tx, aux)
             queue = queues[self.turn] if queues[self.turn].frames else queues[1 - self.turn]
             if not queue.frames:
                 return
@@ -187,9 +190,15 @@ class Broker:
                 self._uart_events()
         if self.auxiliary is not None:
             self.auxiliary.poll(self)
+        if self.uart is not None:
+            self._uart_events()
+        if self.aux_tx.frames:
+            timeout = min(timeout, max(0, self.aux_ready_at - time.monotonic())) if self.aux_ready_at > time.monotonic() else timeout
         for key, events in self.selector.select(timeout):
             try:
-                if key.data == 'accept':
+                if key.data == 'backend':
+                    self.auxiliary.poll(self)
+                elif key.data == 'accept':
                     self._accept()
                 elif key.data == 'client' and key.fileobj is self.client:
                     if events & selectors.EVENT_READ:
@@ -232,10 +241,12 @@ class Broker:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', required=True)
+    parser.add_argument('--backend', default='/dev/dwin-uart-backend')
     parser.add_argument('--socket', default='/run/petrel-dwin/display.sock')
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
-    broker = Broker(args.port, args.socket)
+    from dwin_aux_backend import AuxBackend
+    broker = Broker(args.port, args.socket, AuxBackend(args.backend))
     try:
         while True:
             broker.step()

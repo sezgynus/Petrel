@@ -1,0 +1,26 @@
+name: DWIN UART Kernel
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  kernel:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: [bookworm, trixie]
+    container: debian:${{ matrix.distribution }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packaged kernel and VM test tools
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential linux-headers-amd64 linux-image-amd64 busybox-static \
+            qemu-system-x86 cpio kmod
+      - name: Compile module and exercise real TTY APIs in isolated Linux
+        run: bash tools/ci/dwin_kernel_smoke.sh

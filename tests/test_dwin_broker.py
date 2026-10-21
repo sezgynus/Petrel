@@ -41,6 +41,7 @@ class BrokerContracts(unittest.TestCase):
         broker.aux_tx = FrameQueue()
         broker.active = None
         broker.turn = 0
+        broker.aux_ready_at = 0
         return broker
 
     def test_partial_uart_write_finishes_before_other_channel(self):
