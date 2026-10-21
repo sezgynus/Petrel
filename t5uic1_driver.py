@@ -17,6 +17,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from threading import Lock
 
 import display_settings
+import dwin_protocol
 import buzzer_control
 import serial
 from graphite_theme import BACKGROUND_COLOR
@@ -319,44 +320,10 @@ class T5UIC1Display:
 
     def _parse_rx(self):
         while True:
-            start = self._rx.find(self.HEADER)
-            if start < 0:
-                # Keep no arbitrary noise. A future frame always starts at AA.
-                self._rx.clear()
+            response = dwin_protocol.take_response(self._rx)
+            if response is None:
                 return
-            if start:
-                del self._rx[:start]
-            if len(self._rx) < 2:
-                return
-
-            command = self._rx[1]
-            if command == 0x32:
-                # AA 32 TYPE ADDR_H ADDR_L LEN DATA... TAIL
-                if len(self._rx) < 6:
-                    return
-                payload_length = 4 + self._rx[5]
-            elif command == 0x3A:
-                # AA 3A LEN DATA... TAIL
-                if len(self._rx) < 3:
-                    return
-                payload_length = 1 + self._rx[2]
-            else:
-                payload_length = self._FIXED_RX_PAYLOAD.get(command)
-                if payload_length is None:
-                    # Unknown inbound opcode. Drop only the header byte and
-                    # resynchronize without treating data bytes as a frame.
-                    del self._rx[0]
-                    continue
-
-            total = 2 + payload_length + len(self.TAIL)
-            if len(self._rx) < total:
-                return
-            if bytes(self._rx[total - len(self.TAIL):total]) != self.TAIL:
-                del self._rx[0]
-                continue
-
-            payload = bytes(self._rx[2:2 + payload_length])
-            del self._rx[:total]
+            command, payload = response
             if command == 0x3A:
                 if len(self._aux_rx) == self._aux_rx.maxlen:
                     self._rx_discarded_aux += 1
@@ -535,13 +502,9 @@ class T5UIC1Display:
         self._send(0x38, self._word(divisor))
 
     def set_aux_baudrate(self, baudrate):
-        if not isinstance(baudrate, int) or baudrate < 15300:
-            raise ValueError("extended UART baudrate must be at least 15300")
-        divisor = round(15667200 / baudrate)
-        if not 1 <= divisor <= 0x03FF:
-            raise ValueError("extended UART baudrate is outside panel range")
+        divisor, actual = dwin_protocol.aux_baud_divisor(baudrate)
         self.set_aux_baud_divisor(divisor)
-        return 15667200 / divisor
+        return actual
 
     def aux_write(self, data):
         data = self._ensure_bytes(data)
