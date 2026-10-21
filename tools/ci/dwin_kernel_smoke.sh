@@ -19,6 +19,8 @@ cat > "$test_dir/root/init" <<'INIT'
 /bin/busybox mount -t proc proc /proc
 /bin/busybox mount -t sysfs sysfs /sys
 /bin/busybox mount -t devtmpfs devtmpfs /dev
+/bin/busybox mkdir -p /dev/pts
+/bin/busybox mount -t devpts devpts /dev/pts
 for pass in 1 2; do
     /bin/busybox insmod /dwin_uart.ko || /bin/busybox poweroff -f
     /smoke || /bin/busybox poweroff -f

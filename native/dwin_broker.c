@@ -295,6 +295,7 @@ static bool response(struct broker *b, const uint8_t *data, size_t size)
 }
 static bool receive_uart(struct broker *b)
 {
+    if (b->rx_size >= sizeof(b->rx)) { errno = ENOBUFS; return false; }
     ssize_t n = read(b->uart, b->rx + b->rx_size, sizeof(b->rx) - b->rx_size);
     if (n < 0) return again();
     b->rx_size += (size_t)n;
