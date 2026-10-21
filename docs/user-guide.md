@@ -363,3 +363,31 @@ When the configured Moonraker power device turns on, Petrel starts nonblocking L
 ![Power hold, release, incomplete-hold cancellation and active-print blocking](assets/framed/power-shortcut-demo.gif)
 
 Real UI emulator output with example data. [Original panel PNGs](screenshots.md) and [reproduction](ui-emulator.md#refresh-pngs-frames-and-gifs).
+
+### NFC identification (experimental)
+
+Info includes an **NFC** section. On its first opening per Petrel process, a
+background `nfc-scan-device -v` read identifies the reader through libnfc; the
+result is cached, with no continuous card polling or UI-thread UART access.
+The default connection is `pn532_uart:/dev/ttyDWIN0:115200`; an optional
+`PETREL_NFC_DEVICE` service environment value overrides it. Only that connection
+is used; automatic and intrusive scans are disabled. Install `libnfc-bin` and
+stop other NFC terminal/test programs before opening Info, then restart Petrel
+to retry identification after changing hardware. Missing software/readers and
+four-second timeouts show a status rather than a fabricated identity.
+Model, firmware, libnfc version and reported initiator protocols are displayed.
+PN532 does not report the module board's hardware revision; Hardware therefore
+shows **Not reported**. This experimental section is not yet in the screenshots.
+
+### RFID live card viewer (experimental)
+
+**Home → RFID** starts one background libnfc `nfc-poll -v` process at a time,
+following the same cached reader identification as Info. Install `libnfc-examples`
+and keep other NFC tools closed. ISO14443A card type (protocol), complete UID,
+ATQA and SAK update live; the last card remains visible after removal. A UID is
+not a UUID and ATQA/SAK alone do not prove an exact MIFARE chip model. The worker
+continues after leaving the page and releases the reader on Petrel shutdown.
+PN532 handles card discovery; libnfc also checks presence until card removal,
+then a new scan starts. No card memory is written. Only changed values are
+redrawn; up to ten UID bytes are shown across two lines. Press to return Home.
+The test menu temporarily reuses the Info tile icon and has no screenshot yet.

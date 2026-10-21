@@ -40,6 +40,8 @@ from maintenance_assessment_service import MaintenanceAssessment
 from maintenance_system import travel_profile
 from maintenance_physical import MaintenancePulseController
 from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
+from nfc_info import read_nfc_info
+from rfid_reader import RFIDReader
 from system_info import host_memory_usage, host_metrics, network_info, updater_version, wifi_info
 
 class xyze_t:
@@ -337,6 +339,36 @@ class PrinterData:
         self._read_jobs.pop(key)
         return job[1].result()
 
+    def refresh_nfc_info(self):
+        """Identify once per process on Info entry, outside the UI thread."""
+        if getattr(self, '_nfc_info_complete', False):
+            return False
+        try:
+            info = self._read('nfc_info', read_nfc_info, stamp='nfc-identification')
+        except ReadPending:
+            return False
+        except Exception:
+            logging.debug('NFC identification unavailable', exc_info=True)
+            info = {'status': 'Unavailable'}
+        self._nfc_info_complete = True
+        self.system_info['nfc'] = info
+        return True
+
+    def refresh_rfid(self):
+        changed = self.refresh_nfc_info()
+        if self.system_info.get('nfc', {}).get('status') != 'Connected':
+            return changed
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is None:
+            reader = self._rfid_reader = RFIDReader()
+        revision, status, card = reader.snapshot()
+        token = (revision, status, card)
+        if token == getattr(self, '_rfid_token', None):
+            return changed
+        self._rfid_token = token
+        self.system_info['rfid'] = {'status': status, 'card': card}
+        return True
+
     def refresh_wifi_status(self):
         """Keep header RSSI fresh on the existing read worker, without blocking UI."""
         now = time.monotonic()
@@ -514,6 +546,9 @@ class PrinterData:
         self.MACHINE_SIZE = 'x'.join('{:g}'.format(value) for value in caps.build_size)
 
     def close(self):
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is not None:
+            reader.close()
         self.recovery.close()
         self.maintenance_pulse.close()
         self.maintenance_reader.close()

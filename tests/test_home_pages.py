@@ -18,7 +18,7 @@ class HomePageTests(unittest.TestCase):
 
     def test_forward_and_reverse_page_crossing_skips_empty_slots(self):
         view=self.make()
-        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','LEVEL','MMU','DISPLAY','MAINTENANCE','INFO'])
+        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','LEVEL','MMU','DISPLAY','MAINTENANCE','INFO','RFID'])
         for index in range(1,5):
             self.step(view,view.ENCODER_DIFF_CW)
             self.assertEqual(view.select_page.now,index)
@@ -45,8 +45,8 @@ class HomePageTests(unittest.TestCase):
 
     def test_without_mesh_mmu_first_page_and_info_second_page(self):
         view=self.make(False)
-        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','MMU','DISPLAY','MAINTENANCE','INFO'])
-        for _ in range(8):self.step(view,view.ENCODER_DIFF_CW)
+        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','MMU','DISPLAY','MAINTENANCE','INFO','RFID'])
+        for _ in range(6):self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,6)
         view.lcd.reset_mock();view._draw_home_page()
         self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
@@ -67,11 +67,11 @@ class HomePageTests(unittest.TestCase):
         for mesh in (True, False):
             view = self.make(mesh)
             entries = view._home_entries()
-            self.assertEqual(entries[-2][0], 'MAINTENANCE')
-            self.assertEqual(entries[-1][0], 'INFO')
-            self.assertEqual(entries[-2][2:], (90, 91))
-            self.assertEqual(entries[-1][2:], (92, 93))
-            index = len(entries) - 2
+            self.assertEqual(entries[-3][0], 'MAINTENANCE')
+            self.assertEqual(entries[-2][0], 'INFO')
+            self.assertEqual(entries[-3][2:], (90, 91))
+            self.assertEqual(entries[-2][2:], (92, 93))
+            index = len(entries) - 3
             view.select_page.set(index)
             self.step(view, view.ENCODER_DIFF_ENTER)
             self.assertEqual(view.checkkey, view.MaintenanceMenu)
@@ -109,8 +109,10 @@ class HomePageTests(unittest.TestCase):
             self.assertGreaterEqual(c.args[3],126)
             self.assertLess(c.args[5],view.STATUS_Y)
         view.Draw_Status_Area.assert_not_called();view.Draw_MMU_Status.assert_not_called()
-        view.lcd.fill_circle.assert_called_once_with(view.lcd.Color_White, 145, 354, 4)
-        view.lcd.draw_circle.assert_called_once_with(0x8410, 127, 354, 4)
+        view.lcd.fill_circle.assert_called_once_with(view.lcd.Color_White, 136, 354, 4)
+        self.assertEqual(view.lcd.draw_circle.call_count, 2)
+        view.lcd.draw_circle.assert_any_call(0x8410, 118, 354, 4)
+        view.lcd.draw_circle.assert_any_call(0x8410, 154, 354, 4)
         self.assertNotIn('2/2', [c.args[-1] for c in view.lcd.draw_text.call_args_list])
 
     def test_page_dots_center_and_follow_active_page_with_three_pages(self):
@@ -172,7 +174,7 @@ class HomePageTests(unittest.TestCase):
             entries = view._home_entries()
             index = next(i for i, entry in enumerate(entries) if entry[0] == 'DISPLAY')
             self.assertEqual(entries[index + 1][0], 'MAINTENANCE')
-            self.assertEqual(entries[-1][0], 'INFO')
+            self.assertEqual(entries[-2][0], 'INFO')
             self.assertEqual(index // 4, 1)
             view.select_page.set(index)
             self.step(view, view.ENCODER_DIFF_ENTER)

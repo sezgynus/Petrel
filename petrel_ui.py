@@ -161,6 +161,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     DisplayMenu = 47
     MaintenanceMenu = 48
     BuzzerMenu = 49
+    RFIDMenu = 50
 
     MINUNITMULT = 10
 
@@ -1645,6 +1646,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         entries.append(('DISPLAY', 'Display', self.ICON_Display_0, self.ICON_Display_1))
         entries.append(('MAINTENANCE', 'Maintenance', self.ICON_Maintenance_0, self.ICON_Maintenance_1))
         entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
+        entries.append(('RFID', 'RFID', self.ICON_Info_0, self.ICON_Info_1))
         return tuple(entries)
 
     def _draw_home_page(self, previous=None):
@@ -1719,6 +1721,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 from maintenance_session import idle
                 if idle(self.pd.state):
                     self.Enter_Maintenance_Menu()
+            elif key == 'RFID':
+                self.checkkey = self.RFIDMenu
+                self.Draw_RFID_Menu()
             elif key == 'INFO':
                 self._info_origin = self.MainMenu
                 self.checkkey = self.Info
@@ -2031,6 +2036,44 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         self.Draw_Display_Menu()
         self.lcd.update()
+
+    def Draw_RFID_Menu(self, full=True):
+        self.pd.refresh_rfid()
+        state = self.pd.system_info.get('rfid') or {}
+        status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
+        card = state.get('card') or {}
+        rows = (('Status', status, 132), ('Type', card.get('type', '-'), 164),
+                ('ATQA', card.get('atqa', '-'), 286), ('SAK', card.get('sak', '-'), 310))
+        old_rows, old_uid = getattr(self, '_rfid_render', ((), None))
+        if full:
+            self.Clear_Main_Window()
+            self.Draw_Title('RFID')
+            self.Draw_Back_First(True)
+            self._draw_info_section('Last card', 100)
+            self._draw_menu_text('UID', 8, 200)
+            old_rows, old_uid = (), None
+        for index, (label, value, y) in enumerate(rows):
+            if full:
+                self._draw_info_row(label, value, y)
+            elif index >= len(old_rows) or old_rows[index] != rows[index]:
+                self._draw_info_value(label, value, y, clear=True)
+        # Full-width UID lines preserve all ten bytes; never truncate identity.
+        uid = card.get('uid', 'Waiting for card')
+        if uid != old_uid:
+            if not full:
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 224, 263, 263)
+            parts = uid.split(':')
+            lines = [':'.join(parts[i:i+7]) for i in range(0, len(parts), 7)]
+            for index, text in enumerate(lines[:2]):
+                self._draw_menu_text(text, 8, 224 + index * 24)
+        self._rfid_render = (rows, uid)
+
+    def HMI_RFID(self):
+        if self.get_encoder_state() == self.ENCODER_DIFF_ENTER:
+            self.select_page.set(next(i for i, entry in enumerate(self._home_entries())
+                                      if entry[0] == 'RFID'))
+            self.Goto_MainMenu()
+            self.lcd.update()
 
     def HMI_Info(self):
         event = self.get_encoder_state()
@@ -3207,6 +3250,15 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 ('row', 'Load', 'N/A' if load is None else str(js_round(load))+'%'),
                 ('row', 'Temp', 'N/A' if temperature is None else fixed(temperature)+' C'),
             ))
+        nfc = info.get('nfc') or {'status': 'Reading...'}
+        items.extend((('section', 'NFC', None),
+                      ('row', 'Status', nfc.get('status', 'Unavailable'))))
+        if nfc.get('status') == 'Connected':
+            for label, key in (('Model', 'model'), ('Firmware', 'firmware'),
+                               ('Hardware', 'hardware'), ('libnfc', 'library'),
+                               ('ISO14443A', 'iso_a'), ('ISO14443B', 'iso_b'),
+                               ('FeliCa', 'felica')):
+                items.append(('row', label, nfc.get(key, 'Unavailable')))
         items.extend([
             ('section', 'Software', None),
             ('row', 'Petrel', info.get('petrel', 'Unavailable')),
@@ -3219,6 +3271,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         return items
 
     def Draw_Info_Menu(self):
+        self.pd.refresh_nfc_info()
         self.lcd.ensure_cached_picture(SHARED_PICTURE_ID)
         self.pd.refresh_system_info()
         items = self._info_items()
@@ -3649,11 +3702,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         self.pd.probe_wizard.update()
         info_update = False
+        if self.checkkey == self.RFIDMenu or getattr(self.pd, '_rfid_reader', None) is not None:
+            if self.pd.refresh_rfid() and self.checkkey == self.RFIDMenu:
+                self.Draw_RFID_Menu(full=False)
+                self.lcd.update()
         if self.checkkey == self.Info:
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
-            if system_changed or wifi_changed:
+            nfc_changed = self.pd.refresh_nfc_info()
+            if system_changed or wifi_changed or nfc_changed:
                 self.Draw_Info_Menu()
                 self.lcd.update()
             elif info_update:
@@ -3818,6 +3876,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.TemperatureID: self.Draw_Temperature_Menu,
             self.Motion: self.Draw_Motion_Menu,
             self.Info: self.Draw_Info_Menu,
+            self.RFIDMenu: self.Draw_RFID_Menu,
             self.DisplayMenu: self.Draw_Display_Menu,
             self.BuzzerMenu: self.Draw_Buzzer_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
@@ -3950,6 +4009,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.HMI_Buzzer_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
+        elif self.checkkey == self.RFIDMenu:
+            self.HMI_RFID()
         elif self.checkkey == self.Info:
             self.HMI_Info()
         elif self.checkkey == self.Tune:

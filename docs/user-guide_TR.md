@@ -365,3 +365,31 @@ Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 
 ![Güç için basılı tutma, bırakma, yarım basışın iptali ve aktif baskı engeli](assets/framed/power-shortcut-demo.gif)
 
 Örnek verilerle gerçek UI emülatörü çıktısıdır. [Özgün panel PNG'leri](screenshots_TR.md) ve [yeniden üretim](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme).
+
+### NFC aygıt bilgisi (deneysel)
+
+Info altında **NFC** bölümü bulunur. Her Petrel sürecinde ilk açılışta arka planda
+`nfc-scan-device -v` ile libnfc üzerinden okuyucu tanınır ve sonuç saklanır;
+sürekli kart taraması veya UI thread'inde UART erişimi yapılmaz. Varsayılan
+bağlantı `pn532_uart:/dev/ttyDWIN0:115200`; isteğe bağlı `PETREL_NFC_DEVICE` servis
+ortam değişkeniyle değiştirilebilir. Yalnız bu bağlantı kullanılır; otomatik ve
+intrusive aygıt taraması kapalıdır. `libnfc-bin` kurun; Info'yu açmadan diğer NFC
+terminal/test programlarını kapatın. Donanım değişince bilgiyi yeniden okumak için
+Petrel'i yeniden başlatın. Eksik yazılım/okuyucu veya dört saniyelik zaman aşımı
+uydurulmuş kimlik yerine durum satırı gösterir.
+Model, firmware, libnfc sürümü ve bildirilen initiator protokolleri gösterilir.
+PN532 modül kartının donanım revizyonunu bildirmez; Hardware alanında bu nedenle
+**Not reported** görünür. Deneysel bölüm henüz ekran görüntülerine eklenmemiştir.
+
+### RFID canlı kart ekranı (deneysel)
+
+**Home → RFID**, Info ile ortak önbellekli aygıt tanımasından sonra aynı anda tek
+arka plan libnfc `nfc-poll -v` süreci başlatır. `libnfc-examples` kurulu, diğer NFC
+araçları kapalı olmalıdır. ISO14443A kart türü (protokol), tam UID, ATQA ve SAK
+canlı güncellenir; kart uzaklaştırılınca son kart ekranda kalır. UID, UUID değildir;
+ATQA/SAK tek başına kesin MIFARE çip modelini kanıtlamaz. Sayfadan çıkılınca okuyucu
+çalışır; Petrel kapanışında bırakılır. Kart keşfini PN532 yapar; libnfc kart
+uzaklaştırılana kadar varlığını da kontrol eder, ardından yeni tarama başlar.
+Kart belleğine yazılmaz. Yalnız değişen değerler çizilir; on bayta kadar UID iki
+satırda eksiksiz gösterilir. Basarak Home'a dönülür. Test menüsü geçici olarak
+Info simgesini kullanır; henüz ekran görüntüsü yoktur.
