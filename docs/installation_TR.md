@@ -147,3 +147,8 @@ Hata bildirimine yazılım revizyonunu, Pi/işletim sistemini, ilgili yapıland�
 ### Extra güncellemesinde sensör olay sayaçları
 
 Mevcut isteğe bağlı axis-travel extra’sı artık olay tabanlı sensör sayaçlarını da sunar. `configure.sh` içindeki ortak seçeneğin mevcut `PETREL_AXIS_TRAVEL` anahtarı korunur. Yeni eklenti dosyası/include eklemek gerekmez. Kurulu symlink güncel dosyayı izler; yüklemek için yazıcı boşta iken Klipper’ı yeniden başlatın, ardından Petrel’i yeniden başlatın. Otomatik Klipper restart yapılmaz. Extra eski/kapalı/eksikse sensör olay reminder’ları duraklar, geçmişler silinmez. Kaynaklar ve sayım kapsamı için [kullanım sayaçları rehberine](maintenance-usage_TR.md#olay-tabanlı-sensör-sayaçları) bakın.
+
+## İsteğe bağlı yardımcı UART
+
+DWIN yardımcı UART üzerinden sunulan isteğe bağlı Linux seri portunu kurmak veya
+kaldırmak için `./configure.sh` çalıştırın. Varsayılan kapalıdır. [Kurulum ve sınırlar](dwin-uart_TR.md).

@@ -147,3 +147,8 @@ For a bug report, include the software revision, Pi/OS, configuration relevant t
 ### Sensor event counters in an extra update
 
 The existing optional axis-travel extra now also supplies event-based sensor counters. The shared `configure.sh` option preserves its existing `PETREL_AXIS_TRAVEL` key. No additional extra file/include is needed. An installed symlink follows the updated file; restart Klipper while idle to load it, then restart Petrel. Klipper is not restarted automatically. An old/disabled/missing extra pauses event-based reminders and preserves histories. See the [usage counter guide](maintenance-usage.md#event-based-sensor-counters) for supported sources and counting coverage.
+
+## Optional auxiliary UART
+
+Run `./configure.sh` to install or remove the optional Linux serial port provided
+by the DWIN auxiliary UART. It is off by default. See [setup and limits](dwin-uart.md).

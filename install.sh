@@ -116,6 +116,15 @@ if ! grep -Fqx "$SERVICE_NAME" "$ASVC_FILE"; then
 fi
 chown "$INSTALL_USER:$INSTALL_USER" "$ASVC_FILE"
 
+aux_uart="$(sed -n 's/^PETREL_AUX_UART=//p' "$ENV_FILE" | tail -n 1)"
+if [[ "${aux_uart:-0}" == 1 || -f /var/lib/Petrel/dwin-uart.json ]]; then
+    display_port="$(sed -n 's/^PETREL_SERIAL_PORT=//p' "$ENV_FILE" | tail -n 1)"
+    display_port="${display_port%\"}"
+    display_port="${display_port#\"}"
+    sudo python3 "$REPO_DIR/tools/dwin_uart_install.py" --enabled "${aux_uart:-0}" \
+        --repo "$REPO_DIR" --home "$INSTALL_HOME" --user "$INSTALL_USER" --port "$display_port"
+fi
+
 sudo systemctl enable --now "$SERVICE_NAME.service"
 
 if systemctl list-unit-files moonraker.service >/dev/null 2>&1; then
