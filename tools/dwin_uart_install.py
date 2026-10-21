@@ -35,11 +35,14 @@ def run(*args, check=True):
 def atomic(path, text):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    info = path.stat() if path.exists() else None
     fd, temporary = tempfile.mkstemp(prefix='.dwin-', dir=path.parent)
     try:
         with os.fdopen(fd, 'w') as stream:
             stream.write(text)
-        os.chmod(temporary, 0o644)
+        os.chmod(temporary, info.st_mode & 0o777 if info else 0o644)
+        if info:
+            os.chown(temporary, info.st_uid, info.st_gid)
         os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
@@ -168,14 +171,56 @@ class Installer:
     def active(self, service):
         return self.execute('systemctl', 'is-active', '--quiet', service, check=False).returncode == 0
 
-    def apply(self, enabled, repo, home, user, serial_port):
+    def registration_changes(self, enabled, updater, asvc):
+        changes = {}
+        if updater and self.path(str(updater)).exists():
+            text = self.path(str(updater)).read_text()
+            pattern = r'(?m)^managed_services:[^\n]*(?:\n[ \t]+[^\n]*)*'
+            match = re.search(pattern, text)
+            if match:
+                services = [item for item in re.split(r'[,\s]+', match[0].split(':', 1)[1].strip())
+                            if item and item != 'Petrel-dwin']
+                if enabled:
+                    services.append('Petrel-dwin')
+                replacement = 'managed_services: ' + '\n  '.join(services)
+                updated = text[:match.start()] + replacement + text[match.end():]
+                if updated != text:
+                    changes[str(updater)] = updated
+        if asvc and self.path(str(asvc)).exists():
+            text = self.path(str(asvc)).read_text()
+            lines = [line for line in text.splitlines() if line.strip() != 'Petrel-dwin']
+            if enabled:
+                lines.append('Petrel-dwin')
+            updated = '\n'.join(lines) + '\n'
+            if updated != text:
+                changes[str(asvc)] = updated
+        return changes
+
+    def apply(self, enabled, repo, home, user, serial_port, updater=None, asvc=None):
         manifest = self.path(MANIFEST)
         old = valid_manifest(json.loads(manifest.read_text()) if manifest.exists() else None)
         version = source_version(repo)
         new = {'version': version, 'user': user, 'port': serial_port, 'repo': str(repo)}
+        if updater is None:
+            updater = Path(old['updater']) if old and old.get('updater') else next(
+                (p for p in (home / 'printer_data/config/Petrel.conf', home / 'Petrel.conf')
+                 if self.path(str(p)).exists()), None)
+        if asvc is None:
+            asvc = Path(old['asvc']) if old and old.get('asvc') else home / 'printer_data/moonraker.asvc'
+        if updater:
+            new['updater'] = str(updater)
+        if self.path(str(asvc)).exists():
+            new['asvc'] = str(asvc)
+        registration = self.registration_changes(enabled, updater, asvc)
+
         if enabled and old == new and self.active(SERVICE) and all(self.path(p).exists() for p in OWNED):
-            return  # No restart/build and no interruption to a port in use.
-        if not enabled and old is None and not any(self.path(p).exists() for p in OWNED):
+            # Registry-only repairs need no UART restart, even with open clients.
+            for p, text in registration.items():
+                atomic(self.path(p), text)
+            if registration and self.active('moonraker.service'):
+                self.execute('systemctl', 'restart', 'moonraker.service')
+            return
+        if not enabled and old is None and not any(self.path(p).exists() for p in OWNED) and not registration:
             return
         users = self.busy()
         if users:
@@ -188,7 +233,7 @@ class Installer:
                     self.execute('dkms', 'remove', '-m', PACKAGE, '-v', version, '--all', check=False)
                     shutil.rmtree(self.path('/usr/src/' + PACKAGE + '-' + version), ignore_errors=True)
                 raise
-        snapshot = {p: self.path(p).read_text() if self.path(p).exists() else None for p in OWNED}
+        snapshot = {p: self.path(p).read_text() if self.path(p).exists() else None for p in (*OWNED, *registration)}
         was_active = self.active('Petrel.service')
         broker_active = self.active(SERVICE)
         broker_enabled = self.execute('systemctl', 'is-enabled', '--quiet', SERVICE, check=False).returncode == 0
@@ -223,6 +268,10 @@ class Installer:
                     self.path(p).unlink(missing_ok=True)
                 self.execute('udevadm', 'control', '--reload-rules')
                 self.execute('systemctl', 'daemon-reload')
+            for p, text in registration.items():
+                atomic(self.path(p), text)
+            if registration and self.active('moonraker.service'):
+                self.execute('systemctl', 'restart', 'moonraker.service')
             if was_active:
                 self.execute('systemctl', 'start', 'Petrel.service')
         except BaseException:
@@ -247,13 +296,18 @@ class Installer:
             if broker_active:
                 self.execute('modprobe', 'dwin_uart', check=False)
                 self.execute('systemctl', 'start', SERVICE, check=False)
+            if registration and self.active('moonraker.service'):
+                self.execute('systemctl', 'restart', 'moonraker.service', check=False)
             if was_active:
                 self.execute('systemctl', 'start', 'Petrel.service', check=False)
             raise
         # Remove superseded/disabled DKMS versions only after transport transition.
         if old and (not enabled or old['version'] != version):
             if enabled:
-                self.execute('dkms', 'remove', '-m', PACKAGE, '-v', old['version'], '--all', check=False)
+                result = self.execute('dkms', 'remove', '-m', PACKAGE, '-v', old['version'], '--all', check=False)
+                if result.returncode:
+                    print('Previous DWIN DKMS version could not be removed; its source was retained: ' + old['version'])
+                    return
             shutil.rmtree(self.path('/usr/src/' + PACKAGE + '-' + old['version']), ignore_errors=True)
 
 
@@ -264,6 +318,8 @@ def main():
     parser.add_argument('--home', type=Path, required=True)
     parser.add_argument('--user', required=True)
     parser.add_argument('--port', required=True)
+    parser.add_argument('--updater', type=Path)
+    parser.add_argument('--asvc', type=Path)
     args = parser.parse_args()
     if os.geteuid() != 0:
         parser.error('Run the installer through sudo')
@@ -275,11 +331,14 @@ def main():
     if not args.port.startswith('/dev/') or args.port.startswith(('/dev/ttyDWIN', '/dev/ttyS_DWIN')):
         parser.error('Select the physical display UART under /dev')
     quote(args.port)
+    for path in (args.updater, args.asvc):
+        if path and not path.resolve().is_relative_to(args.home.resolve()):
+            parser.error('Moonraker registration must belong to the installed home')
     Path('/run/lock').mkdir(exist_ok=True)
     with open('/run/lock/petrel-dwin-install.lock', 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            Installer().apply(args.enabled == '1', args.repo, args.home, args.user, args.port)
+            Installer().apply(args.enabled == '1', args.repo, args.home, args.user, args.port, args.updater, args.asvc)
         except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
             detail = getattr(error, 'stderr', '') or str(error)
             parser.exit(1, 'DWIN UART configuration failed: ' + detail + '\n')

@@ -22,6 +22,13 @@ denenir. Ortak derleme bağımlılıkları kaldırmada korunur. DKMS, uygun baş
 sonraki kerneller için modülü yeniden derler. Secure Boot sistemlerinde mevcut modül
 imzalama/anahtar kaydetme sürecinin uygulanması gerekebilir.
 
+
+Etkinleştirildiğinde mevcut Moonraker Petrel güncelleme kaydı ortak servisi de yönetir.
+Güncellemeden önce yardımcı port istemcilerini kapatın; ortak servisin yeniden başlaması
+hangup üretir. Kernel modülü kaynak değişikliklerini uygulamak için `configure.sh`
+yeniden çalıştırılmalıdır; DKMS kernel sürüm değişikliklerini yönetir, Git çalışma
+dizinindeki her kaynak değişikliğini kendiliğinden yüklemez.
+
 ## Başka programdan kullanma
 
 Port `/dev/ttyDWIN0` yolundadır. `/dev/ttyS_DWIN0` listeleme takma adı, Linux tarayıcısında

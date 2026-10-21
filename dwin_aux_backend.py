@@ -32,11 +32,22 @@ class AuxBackend:
     def __init__(self, path='/dev/dwin-uart-backend'):
         self.path = path
         self.fd = None
+        self.watching = False
+        self.tty_ready = False
         self.baud = 115200
         self.rx = bytearray()
         self.completion = None
         self.configuring = False
         self.reconnect_at = 0
+
+    def _watch(self, enabled):
+        if self.fd is None or self.watching == enabled:
+            return
+        if enabled:
+            self.selector.register(self.fd, 1, 'backend')
+        else:
+            self.selector.unregister(self.fd)
+        self.watching = enabled
 
     def _write(self, data):
         count = os.write(self.fd, data)
@@ -47,9 +58,12 @@ class AuxBackend:
         divisor, actual = aux_baud_divisor(requested)
         self.baud = round(actual)
         self.configuring = True
+        self._watch(False)
         def complete():
             self.configuring = False
             self._write(record(4, 0, b'\x01'))
+            self.tty_ready = True
+            self._watch(True)
         broker.aux_tx.append(HEADER + b'\x38' + struct.pack('>H', divisor) + TAIL,
                              complete)
         broker._uart_events()
@@ -58,6 +72,7 @@ class AuxBackend:
         # Initial configuration is queued by poll after the next handshake.
         self.configuring = False
         self.needs_configuration = True
+        self.tty_ready = False
 
     def disconnected(self):
         self.close()
@@ -78,8 +93,8 @@ class AuxBackend:
                 return
             try:
                 self.fd = os.open(self.path, os.O_RDWR | os.O_NONBLOCK | os.O_CLOEXEC)
-                broker.selector.register(self.fd, 1, 'backend')
                 self.selector = broker.selector
+                self._watch(True)
                 self.needs_configuration = True
             except OSError:
                 self.reconnect_at = now + 1
@@ -91,8 +106,9 @@ class AuxBackend:
                     return
                 self._write(record(3, epoch, struct.pack('<I', count)))
                 self.completion = None
+                self._watch(True)
             # Drain received bytes with short-write/backpressure support.
-            if self.rx:
+            if self.rx and self.tty_ready:
                 data = bytes(self.rx[:248])
                 try:
                     count = os.write(self.fd, record(1, 0, data))
@@ -119,6 +135,7 @@ class AuxBackend:
                     # All chunks from this record complete before the next record.
                     frames = list(aux_frames(payload))
                     self.completion = (float('inf'), epoch, len(payload))
+                    self._watch(False)
                     for index, frame in enumerate(frames):
                         def complete(frame=frame, last=index == len(frames) - 1):
                             # Physical host UART plus downstream serialization.
@@ -141,6 +158,7 @@ class AuxBackend:
 
     def close(self):
         if self.fd is not None:
-            self.selector.unregister(self.fd)
+            self._watch(False)
             os.close(self.fd)
+            self.tty_ready = False
             self.fd = None

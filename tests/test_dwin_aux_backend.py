@@ -11,6 +11,8 @@ class KernelAdapterTests(unittest.TestCase):
     def adapter(self):
         adapter = AuxBackend()
         adapter.fd = 4
+        adapter.watching = True
+        adapter.tty_ready = True
         adapter.selector = Mock()
         adapter.needs_configuration = False
         broker = Mock(online=True, aux_tx=FrameQueue())
@@ -62,6 +64,29 @@ class KernelAdapterTests(unittest.TestCase):
                 patch('dwin_aux_backend.os.write', return_value=RECORD.size + 2):
             adapter.poll(broker)
         self.assertEqual(adapter.rx, b'cdef')
+
+    def test_busy_tx_unsubscribes_readable_backend_until_completion(self):
+        adapter, broker = self.adapter()
+        with patch('dwin_aux_backend.os.read', return_value=record(1, 7, b'abc')):
+            adapter.poll(broker)
+        adapter.selector.unregister.assert_called_once_with(4)
+        self.assertFalse(adapter.watching)
+        adapter.completion = (0, 7, 3)
+        with patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
+                patch('dwin_aux_backend.os.write', return_value=11):
+            adapter.poll(broker)
+        adapter.selector.register.assert_called_once_with(4, 1, 'backend')
+
+    def test_startup_rx_waits_until_kernel_port_is_ready(self):
+        adapter, broker = self.adapter()
+        adapter.tty_ready = False
+        adapter.receive(b'early streaming data')
+        with patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
+                patch('dwin_aux_backend.os.write') as write:
+            adapter.poll(broker)
+        write.assert_not_called()
+        self.assertEqual(adapter.rx, b'early streaming data')
+        broker._disconnect.assert_not_called()
 
     def test_rx_capacity_exhaustion_is_explicit(self):
         adapter = AuxBackend()

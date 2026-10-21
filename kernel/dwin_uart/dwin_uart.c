@@ -275,6 +275,9 @@ static ssize_t backend_write(struct file *file, const char __user *buffer,
 	if (size != HEADER + length)
 		return -EINVAL;
 	if (record[0] == 1) {
+		/* A closed serial port does not retain an earlier client's input. */
+		if (!tty_port_initialized(&port))
+			return size;
 		if (mutex_lock_interruptible(&rx_lock))
 			return -ERESTARTSYS;
 		if (!READ_ONCE(ready))

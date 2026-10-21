@@ -122,7 +122,8 @@ if [[ "${aux_uart:-0}" == 1 || -f /var/lib/Petrel/dwin-uart.json ]]; then
     display_port="${display_port%\"}"
     display_port="${display_port#\"}"
     sudo python3 "$REPO_DIR/tools/dwin_uart_install.py" --enabled "${aux_uart:-0}" \
-        --repo "$REPO_DIR" --home "$INSTALL_HOME" --user "$INSTALL_USER" --port "$display_port"
+        --repo "$REPO_DIR" --home "$INSTALL_HOME" --user "$INSTALL_USER" --port "$display_port" \
+        --updater "$UPDATE_CONF" --asvc "$ASVC_FILE"
 fi
 
 sudo systemctl enable --now "$SERVICE_NAME.service"

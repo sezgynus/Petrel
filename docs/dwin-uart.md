@@ -22,6 +22,12 @@ restore the previous transport. Shared build dependencies are retained on remova
 DKMS rebuilds the module for later kernels when matching headers are available.
 Secure Boot systems may require their existing module-signing/key-enrollment process.
 
+
+When enabled, the existing Moonraker Petrel update entry also manages the broker.
+Close auxiliary-port clients before updating: a broker restart hangs them up.
+Rerun `configure.sh` to apply changed kernel-module sources; DKMS handles kernel
+version changes, not arbitrary source changes in a Git checkout.
+
 ## Use from another program
 
 The port is `/dev/ttyDWIN0`. The enumeration alias `/dev/ttyS_DWIN0` points to the

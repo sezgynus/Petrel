@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from tools.dwin_uart_install import Installer, OWNED, MANIFEST, DROPIN, SERVICE, source_version, quote
 from tools.env_defaults import ensure_aux_uart_default
@@ -128,6 +128,51 @@ class InstallationContracts(unittest.TestCase):
             self.assertFalse(ensure_aux_uart_default(path))
             self.assertEqual(path.read_text(), 'PETREL_AUX_UART=1\n')
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_updater_registration_tracks_optional_service_and_preserves_others(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            conf = installer.path('/home/printer/printer_data/config/Petrel.conf')
+            conf.parent.mkdir(parents=True)
+            conf.write_text('[update_manager Petrel]\nmanaged_services: Petrel\n  OtherService\nrequirements: requirements.txt\n')
+            registry = installer.path('/home/printer/printer_data/moonraker.asvc')
+            registry.write_text('Petrel\nOtherService\n')
+            self.apply(installer, True)
+            self.assertIn('managed_services: Petrel\n  OtherService\n  Petrel-dwin\n', conf.read_text())
+            self.assertIn('requirements: requirements.txt\n', conf.read_text())
+            self.assertEqual(registry.read_text(), 'Petrel\nOtherService\nPetrel-dwin\n')
+            self.apply(installer, False)
+            self.assertNotIn('Petrel-dwin', conf.read_text())
+            self.assertEqual(registry.read_text(), 'Petrel\nOtherService\n')
+            self.assertTrue(conf.exists())
+
+    def test_configurator_persists_enable_and_disable_after_installer_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            bin_dir = home / 'bin'
+            bin_dir.mkdir()
+            commands = {
+                'getent': 'echo "user:x:1000:1000::${TEST_HOME}:/bin/bash"',
+                'chown': 'exit 0',
+                'systemctl': 'exit 1',
+                'sudo': 'printf \'%s\\n\' "$*" >> "$TEST_HOME/sudo.log"',
+            }
+            for name, content in commands.items():
+                command = bin_dir / name
+                command.write_text('#!/bin/sh\n' + content + '\n')
+                command.chmod(0o755)
+            env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'],
+                       TEST_HOME=tmp, USER='user', SUDO_USER='user')
+            for enabled in ('1', '0'):
+                answers = '\n' * 7 + '0\n' + '\n' * 2 + enabled + '\n'
+                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input=answers,
+                                        text=True, env=env, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn('PETREL_AUX_UART=' + enabled + '\n',
+                              (home / '.config/Petrel/Petrel.env').read_text())
+            calls = (home / 'sudo.log').read_text()
+            self.assertIn('--enabled 1', calls)
+            self.assertIn('--enabled 0', calls)
 
     def test_systemd_arguments_escape_specifiers_and_reject_newlines(self):
         self.assertEqual(quote('/tmp/with space%/a"b'), '"/tmp/with space%%/a\\"b"')

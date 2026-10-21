@@ -194,6 +194,9 @@ class Broker:
             self._uart_events()
         if self.aux_tx.frames:
             timeout = min(timeout, max(0, self.aux_ready_at - time.monotonic())) if self.aux_ready_at > time.monotonic() else timeout
+        if self.auxiliary is not None and self.auxiliary.completion is not None:
+            deadline = self.auxiliary.completion[0]
+            timeout = min(timeout, max(0, deadline - time.monotonic()))
         for key, events in self.selector.select(timeout):
             try:
                 if key.data == 'backend':
