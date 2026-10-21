@@ -6,6 +6,15 @@ Yardımcı port Linux TTY aygıtı olarak sunulabilir. İsteğe bağlıdır ve *
 Özellik `feature/dwin-aux-uart` dalında geliştirilmektedir: CI, gerçek TTY arayüzünü
 Linux 6.1 ve 6.12 sanal makinelerinde sınar; fiziksel DWIN/Pi kabulü beklemektedir.
 
+## Yardımcı portun yeri
+
+![Siyah ekran konnektörünün yanındaki DWIN yardımcı UART bağlantısı](assets/hardware/dwin-aux-uart-location.png)
+
+Sarı çerçeve ve ok, fotoğraftaki kartın siyah ekran konnektörü yanındaki yardımcı
+UART bağlantısını gösterir. Bağlantıda VCC, RX, TX ve GND bulunur; konnektör gövdesi
+fotoğrafta bağlantının bir kısmını örter. İşaretleme pin sırasını değil bağlantı
+bölgesini gösterir; kendi kartınızdaki baskı yazılarını esas alın.
+
 ## Etkinleştirme veya kaldırma
 
 `~/Petrel` içinde `./configure.sh` çalıştırın. **DWIN auxiliary UART** menüsündeki

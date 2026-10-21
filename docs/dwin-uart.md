@@ -6,6 +6,15 @@ The auxiliary port can be exposed as a Linux TTY. It is optional and **off by de
 This feature is under development on `feature/dwin-aux-uart`: CI exercises the real
 TTY in Linux 6.1 and 6.12 virtual machines; physical DWIN/Pi acceptance is pending.
 
+## Locate the auxiliary port
+
+![DWIN auxiliary UART connection beside the black display connector](assets/hardware/dwin-aux-uart-location.png)
+
+The yellow box and arrow identify the auxiliary UART connection beside the black
+display connector on the pictured board. The connection has VCC, RX, TX and GND;
+the connector housing obscures part of it in this photo. The marker identifies the
+connection area, not the pin order; use the markings on your own board.
+
 ## Enable or remove
 
 Run `./configure.sh` from `~/Petrel`. Under **DWIN auxiliary UART**, toggle
