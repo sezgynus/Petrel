@@ -364,30 +364,32 @@ When the configured Moonraker power device turns on, Petrel starts nonblocking L
 
 Real UI emulator output with example data. [Original panel PNGs](screenshots.md) and [reproduction](ui-emulator.md#refresh-pngs-frames-and-gifs).
 
-### NFC identification (experimental)
+### NFC and RFID (experimental)
 
-Info includes an **NFC** section. On its first opening per Petrel process, a
-background `nfc-scan-device -v` read identifies the reader through libnfc; the
-result is cached, with no continuous card polling or UI-thread UART access.
-The default connection is `pn532_uart:/dev/ttyDWIN0:115200`; an optional
-`PETREL_NFC_DEVICE` service environment value overrides it. Only that connection
-is used; automatic and intrusive scans are disabled. Install `libnfc-bin` and
-stop other NFC terminal/test programs before opening Info, then restart Petrel
-to retry identification after changing hardware. Missing software/readers and
-four-second timeouts show a status rather than a fabricated identity.
-Model, firmware, libnfc version and reported initiator protocols are displayed.
-PN532 does not report the module board's hardware revision; Hardware therefore
-shows **Not reported**. This experimental section is not yet in the screenshots.
+**Info → NFC** and **Home → RFID** share one background owner using the public
+libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
+stdout parser is used. Keep other NFC tools closed. The system libnfc shared
+library (included with `libnfc-bin`) is required; no compiler or development
+headers are needed on the Pi. The default connection is
+`pn532_uart:/dev/ttyDWIN0:115200`; `PETREL_NFC_DEVICE` overrides it. The reader is
+opened explicitly, without scanning other serial ports, and remains open across
+both menus. Identity is read once per connection and refreshed after reconnect.
+Info shows model, firmware, libnfc version and supported A/B/FeliCa protocols;
+PN532 does not expose its module board revision, so Hardware is **Not reported**.
 
-### RFID live card viewer (experimental)
+RFID scans all initiator technologies advertised by the reader through libnfc:
+ISO14443A/B, B', ST SRx, ASK CTx, FeliCa at both rates, Jewel/Topaz, NFC Barcode,
+iClass/PicoPass and passive NFC-DEP when supported. A starts at 106 kbps; higher
+Type A communication rates are negotiated after selection. Discovery uses one
+activation attempt per turn, with no added sleep, AutoPoll period or card-removal
+wait. The same device handle remains open. A full multi-protocol scan still has
+real RF/transport time; no absolute detection latency or simultaneous scan is
+promised. Firmware-rejected advertised modes are logged and the status indicates
+partial support. Transport failures reconnect with a two-second backoff.
 
-**Home → RFID** starts one background libnfc `nfc-poll -v` process at a time,
-following the same cached reader identification as Info. Install `libnfc-examples`
-and keep other NFC tools closed. ISO14443A card type (protocol), complete UID,
-ATQA and SAK update live; the last card remains visible after removal. A UID is
-not a UUID and ATQA/SAK alone do not prove an exact MIFARE chip model. The worker
-continues after leaving the page and releases the reader on Petrel shutdown.
-PN532 handles card discovery; libnfc also checks presence until card removal,
-then a new scan starts. No card memory is written. Only changed values are
-redrawn; up to ten UID bytes are shown across two lines. Press to return Home.
-The test menu temporarily reuses the Info tile icon and has no screenshot yet.
+The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
+live; the identity remains after removal. IDs are not UUIDs, and ATQA/SAK do not
+prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
+written or persisted. Scanning continues after leaving the page, and shutdown
+aborts pending libnfc I/O before closing the reader. Press to return Home. The
+experimental tile reuses the Info icon; screenshots do not yet show these pages.

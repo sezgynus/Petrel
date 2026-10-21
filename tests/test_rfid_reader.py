@@ -1,11 +1,32 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from rfid_reader import RFIDReader, parse_card_line
+from rfid_reader import RFIDReader
+from libnfc_api import Target, decode_target
 from test_capabilities import display, printer, snapshot
 
 
 class RFIDTests(unittest.TestCase):
+    def test_worker_keeps_one_session_and_scans_every_advertised_type(self):
+        with patch('rfid_reader.Thread'):
+            reader = RFIDReader()
+        session = Mock()
+        session.identity.return_value = {'status': 'Connected', 'model': 'PN532'}
+        session.modulations = [(kind, 1) for kind in range(1, 11)]
+        seen = []
+        def scan(modulation):
+            seen.append(modulation)
+            if len(seen) == 20:
+                reader._stop.set()
+            return {'uid': '01:02:03:04', 'type': 'ISO14443A'} if modulation[0] == 1 else None
+        session.scan.side_effect = scan
+        with patch('rfid_reader.NFCSession', return_value=session) as factory:
+            reader._run()
+            factory.assert_called_once()
+        self.assertEqual(seen, session.modulations * 2)
+        self.assertEqual(reader.snapshot()[2]['uid'], '01:02:03:04')
+        session.close.assert_called_once()
+
     def test_ready_recovery_tick_keeps_rfid_open_and_still_exits_recovery(self):
         from types import SimpleNamespace
         view = display(snapshot())
@@ -22,16 +43,27 @@ class RFIDTests(unittest.TestCase):
         self.assertFalse(view._poll_recovery_ui())
         view.Goto_MainMenu.assert_called_once()
 
-    def test_streaming_uid_type_and_metadata_without_guessing_chip(self):
-        card = {}
-        for line in ('ISO/IEC 14443A (106 kbps) target:',
-                     'ATQA (SENS_RES): 00 04', 'UID (NFCID1): 6b b3 9d 14',
-                     'SAK (SEL_RES): 08'):
-            card = parse_card_line(line, card)
-        self.assertEqual(card, {'type': 'ISO14443A', 'rate': '106 kbps',
-            'uid': '6B:B3:9D:14', 'atqa': '00 04', 'sak': '08'})
-        self.assertEqual(parse_card_line('Waiting for card removing...', card), card)
-        self.assertEqual(parse_card_line('UID (NFCID1): nonsense', {}), {})
+    def test_all_card_families_decode_their_native_identifiers(self):
+        fields = {1: 'a', 2: 'jewel', 3: 'b', 4: 'bi', 5: 'sr', 6: 'ct',
+                  7: 'felica', 8: 'dep', 10: 'iclass'}
+        for kind, field in fields.items():
+            target = Target()
+            target.modulation.kind = kind
+            target.modulation.baud = 1
+            item = getattr(target.info, field)
+            if kind == 1:
+                item.uid_len = 4
+            item.uid[0] = 0xAB
+            card = decode_target(target)
+            self.assertTrue(card['uid'].startswith('AB:'), kind)
+            self.assertNotEqual(card['type'], 'Unknown')
+        target = Target()
+        target.modulation.kind = 9
+        target.info.barcode.length = 32
+        self.assertEqual(len(decode_target(target)['uid'].split(':')), 32)
+        target.info.barcode.length = 33
+        with self.assertRaises(ValueError):
+            decode_target(target)
 
     def test_reader_retains_last_card_and_caches_unchanged_values(self):
         with patch('rfid_reader.Thread'):
@@ -49,10 +81,11 @@ class RFIDTests(unittest.TestCase):
 
     def test_one_reader_owner_and_changed_card_reaches_ui(self):
         pd = printer(snapshot())
-        pd._nfc_info_complete = True
+        del pd._rfid_reader
         pd.system_info['nfc'] = {'status': 'Connected'}
         factory = Mock()
-        with patch.dict(pd.refresh_rfid.__func__.__globals__, RFIDReader=factory):
+        with patch.dict(pd.refresh_nfc_info.__func__.__globals__, RFIDReader=factory):
+            factory.return_value.identity.return_value = {'status': 'Connected'}
             factory.return_value.snapshot.return_value = (1, 'Listening', {'uid': '01:02:03:04'})
             self.assertTrue(pd.refresh_rfid())
             self.assertFalse(pd.refresh_rfid())
@@ -69,8 +102,7 @@ class RFIDTests(unittest.TestCase):
             'card': {'type': 'ISO14443A', 'uid': uid}}
         view.Draw_RFID_Menu()
         texts = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
-        self.assertIn('00:01:02:03:04:05:06', texts)
-        self.assertIn('07:08:09', texts)
+        self.assertIn('00:01:02:03:04:05:06:07:08:09', texts)
         view.lcd.reset_mock()
         view.Draw_RFID_Menu(full=False)
         view.lcd.draw_text.assert_not_called()

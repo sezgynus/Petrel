@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_info import DEFAULT_DEVICE, parse_info, read_nfc_info
+from nfc_info import parse_info
 from test_capabilities import display, printer, snapshot
 
 OUTPUT = '''nfc-scan-device uses libnfc 1.8.0
@@ -28,47 +28,14 @@ class NFCInfoTests(unittest.TestCase):
         self.assertEqual(parse_info('nfc_open failed')['status'], 'Unavailable')
         self.assertEqual(parse_info(OUTPUT.replace('PN532 v1.6', 'PN533 v2.1'))['model'], 'PN533')
 
-    def test_explicit_device_and_no_autoscan_with_bounded_subprocess(self):
-        with patch('nfc_info.shutil.which', return_value='/usr/bin/nfc-scan-device'), \
-             patch('nfc_info.Path.exists', return_value=True), \
-             patch.dict('os.environ', {'LIBNFC_AUTO_SCAN': 'true'}, clear=True), \
-             patch('nfc_info.subprocess.run') as run:
-            run.return_value = subprocess.CompletedProcess([], 0, OUTPUT, '')
-            self.assertEqual(read_nfc_info()['firmware'], '1.6')
-            args, kwargs = run.call_args
-            self.assertEqual(args[0], ['/usr/bin/nfc-scan-device', '-v'])
-            self.assertEqual(kwargs['env']['LIBNFC_DEVICE'], DEFAULT_DEVICE)
-            self.assertEqual(kwargs['env']['LIBNFC_AUTO_SCAN'], 'false')
-            self.assertEqual(kwargs['env']['LIBNFC_INTRUSIVE_SCAN'], 'false')
-            self.assertEqual(kwargs['timeout'], 4)
-            run.side_effect = subprocess.TimeoutExpired('scan', 4)
-            self.assertEqual(read_nfc_info()['status'], 'Timed out')
-
-    def test_missing_tool_or_port_does_not_launch_a_scan(self):
-        with patch('nfc_info.shutil.which', return_value=None), \
-             patch('nfc_info.subprocess.run') as run:
-            self.assertEqual(read_nfc_info()['status'], 'libnfc missing')
-            run.assert_not_called()
-        with patch('nfc_info.shutil.which', return_value='/usr/bin/nfc-scan-device'), \
-             patch('nfc_info.Path.exists', return_value=False), \
-             patch.dict('os.environ', {}, clear=True), patch('nfc_info.subprocess.run') as run:
-            self.assertEqual(read_nfc_info()['status'], 'Unavailable')
-            run.assert_not_called()
-
-    def test_pending_read_never_blocks_and_completed_identity_is_cached(self):
+    def test_shared_background_identity_is_cached_without_ui_io(self):
         pd = printer(snapshot())
-        future = Future()
-        pd._read_worker = Mock()
-        pd._read_worker.submit.return_value = future
-        self.assertFalse(pd.refresh_nfc_info())
-        self.assertFalse(pd.refresh_nfc_info())
-        pd._read_worker.submit.assert_called_once()
-        future.set_result(parse_info(OUTPUT))
+        reader = pd._rfid_reader
+        reader.identity.return_value = parse_info(OUTPUT)
         self.assertTrue(pd.refresh_nfc_info())
         self.assertEqual(pd.system_info['nfc']['firmware'], '1.6')
-        for _ in range(5):
-            self.assertFalse(pd.refresh_nfc_info())
-        pd._read_worker.submit.assert_called_once()
+        self.assertFalse(pd.refresh_rfid())
+        reader.identity.assert_called()
 
     def test_info_section_and_rows_use_actual_device_values(self):
         view = display(snapshot())

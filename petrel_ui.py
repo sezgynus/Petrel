@@ -2043,29 +2043,29 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
         card = state.get('card') or {}
         rows = (('Status', status, 132), ('Type', card.get('type', '-'), 164),
-                ('ATQA', card.get('atqa', '-'), 286), ('SAK', card.get('sak', '-'), 310))
+                ('ATQA', card.get('atqa', '-'), 316), ('SAK', card.get('sak', '-'), 340))
         old_rows, old_uid = getattr(self, '_rfid_render', ((), None))
         if full:
             self.Clear_Main_Window()
             self.Draw_Title('RFID')
             self.Draw_Back_First(True)
             self._draw_info_section('Last card', 100)
-            self._draw_menu_text('UID', 8, 200)
+            self._draw_menu_text('UID / ID', 8, 188)
             old_rows, old_uid = (), None
         for index, (label, value, y) in enumerate(rows):
             if full:
                 self._draw_info_row(label, value, y)
             elif index >= len(old_rows) or old_rows[index] != rows[index]:
                 self._draw_info_value(label, value, y, clear=True)
-        # Full-width UID lines preserve all ten bytes; never truncate identity.
+        # Full-width UID lines preserve identifiers up to 32 bytes; never truncate identity.
         uid = card.get('uid', 'Waiting for card')
         if uid != old_uid:
             if not full:
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 224, 263, 263)
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 208, 263, 303)
             parts = uid.split(':')
-            lines = [':'.join(parts[i:i+7]) for i in range(0, len(parts), 7)]
-            for index, text in enumerate(lines[:2]):
-                self._draw_menu_text(text, 8, 224 + index * 24)
+            lines = [':'.join(parts[i:i+10]) for i in range(0, len(parts), 10)]
+            for index, text in enumerate(lines[:4]):
+                self._draw_menu_text(text, 8, 208 + index * 24)
         self._rfid_render = (rows, uid)
 
     def HMI_RFID(self):
