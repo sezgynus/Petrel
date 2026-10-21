@@ -27,6 +27,7 @@
 | [Contributing](../CONTRIBUTING.md) | Issues, pull requests, documentation and development checks |
 | [Emulator screenshots](ui-emulator.md) | Enable capture and save images from the running service |
 | [Tests](../tests/README.md) | Run automated checks and plan hardware validation |
+| [UI native-code candidate profiling](ui-native-profiling.md) | Separate normal resource measurements, CPU sampling and Python allocation ownership |
 | [LCD artwork](../assets/README.md) | Prepare custom icons and identify artwork |
 | [Emulator assets](../assets/emulator/README.md) | Choose matching host-side fonts and icons |
 

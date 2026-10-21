@@ -27,6 +27,7 @@
 | [Katkıda bulunma](../CONTRIBUTING_TR.md) | Issue, pull request, dokümantasyon ve geliştirme kontrolleri |
 | [Emülatör ekran görüntüleri](ui-emulator_TR.md) | Çalışan serviste görüntü almayı açma ve görselleri kaydetme |
 | [Testler](../tests/README_TR.md) | Otomatik kontrolleri çalıştırma ve donanım doğrulamasını planlama |
+| [UI için C adayı profilleme](ui-native-profiling_TR.md) | Normal kaynak ölçümü, CPU örneklemesi ve Python tahsis kaynağını ayrı inceleme |
 | [LCD görselleri](../assets/README_TR.md) | Özel ikon hazırlama ve görselleri tanıma |
 | [Emülatör kaynakları](../assets/emulator/README_TR.md) | Eşleşen bilgisayar tarafı font ve ikonları seçme |
 

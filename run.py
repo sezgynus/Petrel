@@ -62,6 +62,9 @@ def parse_args(argv=None):
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    if os.environ.get('PETREL_PROFILE_MEMORY_DIR'):
+        from ui_memory_profile import start_from_environment
+        start_from_environment()
     from petrel_migration import bootstrap
     if bootstrap():
         return  # The independent migration job starts Petrel with its new paths.
