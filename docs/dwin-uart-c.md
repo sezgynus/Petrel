@@ -23,8 +23,9 @@ Keep **DWIN auxiliary UART as a Linux serial port** checked, save, exit and appl
 The installer builds the native executable before stopping services, then changes
 `Petrel-dwin.service` to the versioned binary. A Python installation manifest is
 migrated automatically. No additional Kconfig toggle or manual compiler command is
-needed. Reapply configuration after native source updates; the service intentionally
-runs an installed binary rather than source files from the checkout.
+needed. Apply once to install the startup preflight described in the
+[UART update guide](dwin-uart.md). Later Petrel restarts automatically rebuild changed
+native sources; the broker still runs an installed binary.
 
 Installation makes the binary directories searchable despite configure's private
 `umask 077`, and checks `--help` as the service user before stopping services.

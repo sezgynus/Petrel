@@ -22,9 +22,10 @@ git pull --ff-only
 **DWIN auxiliary UART as a Linux serial port** işaretli kalsın; kaydedin, çıkın ve
 uygulayın. Kurulum, servisleri durdurmadan önce native binary'yi derler, ardından
 `Petrel-dwin.service` komutunu sürümlenmiş binary'ye geçirir. Python kurulum manifesti
-otomatik taşınır. Ek Kconfig seçeneği veya elle derleyici komutu gerekmez. Native
-kaynak güncellemelerinden sonra yapılandırmayı yeniden uygulayın; servis çalışma
-dizinindeki kaynak dosyalar yerine kurulmuş binary'yi çalıştırır.
+otomatik taşınır. Ek Kconfig seçeneği veya elle derleyici komutu gerekmez.
+[UART güncelleme rehberindeki](dwin-uart_TR.md) başlangıç ön kontrolünü kurmak için
+bir kez uygulayın. Sonraki Petrel restart işlemleri değişen native kaynakları otomatik
+derler; broker yine kurulmuş binary üzerinden çalışır.
 
 Kurulum, configure'ın özel `umask 077` ayarından bağımsız olarak binary dizinlerini
 erişilebilir yapar ve servisleri durdurmadan önce servis kullanıcısıyla `--help`

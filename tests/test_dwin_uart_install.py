@@ -200,6 +200,78 @@ class InstallationContracts(unittest.TestCase):
             self.assertFalse(old_binary.exists())
             self.assertTrue(new_binary.exists())
 
+    def test_startup_refresh_updates_native_without_restarting_own_ui_or_moonraker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            installer, active, calls, fail, builder = self.fixture(root)
+            self.apply(installer, True)
+            changed = root / 'checkout'
+            shutil.copytree(ROOT / 'native', changed / 'native')
+            shutil.copytree(ROOT / 'kernel/dwin_uart', changed / 'kernel/dwin_uart')
+            with (changed / 'native/dwin_broker.c').open('a') as stream:
+                stream.write('\n/* updated broker */\n')
+            calls.clear()
+            installer.apply(True, changed, Path('/home/printer'), 'printer',
+                            '/dev/ttyAMA0', manage_ui=False, restart_moonraker=False)
+            self.assertTrue(installer.path(broker_binary(changed)).exists())
+            self.assertFalse(any(c[:2] in (('systemctl', 'start'), ('systemctl', 'stop'),
+                                          ('systemctl', 'restart')) and
+                                 c[-1] in ('Petrel.service', 'moonraker.service') for c in calls))
+            calls.clear()
+            installer.busy.return_value = [123]
+            installer.apply(True, changed, Path('/home/printer'), 'printer',
+                            '/dev/ttyAMA0', manage_ui=False, restart_moonraker=False)
+            self.assertFalse(any(c[:2] == ('systemctl', 'stop') for c in calls))
+            dropin = installer.path(DROPIN).read_text()
+            self.assertIn('ExecStartPre=+/usr/bin/python3 ', dropin)
+            self.assertIn('--refresh-installed', dropin)
+            self.assertIn('TimeoutStartSec=900', dropin)
+
+    def test_startup_refresh_build_failure_retains_running_broker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            self.apply(installer, True)
+            before = installer.path(MANIFEST).read_text()
+            installer.path(broker_binary(ROOT)).unlink()
+            installer.broker_builder.side_effect = RuntimeError('compile failure')
+            calls.clear()
+            with self.assertRaisesRegex(RuntimeError, 'compile failure'):
+                installer.apply(True, ROOT, Path('/home/printer'), 'printer',
+                                '/dev/ttyAMA0', manage_ui=False, restart_moonraker=False)
+            self.assertEqual(installer.path(MANIFEST).read_text(), before)
+            self.assertIn(SERVICE, active)
+            self.assertFalse(any(c[:2] == ('systemctl', 'stop') for c in calls))
+
+    def test_refresh_cli_uses_manifest_and_skips_nested_installer_lock(self):
+        from types import SimpleNamespace
+        from tools import dwin_uart_install as module
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            repo = home / 'Petrel'
+            repo.mkdir()
+            manifest = home / 'manifest.json'
+            manifest.write_text(json.dumps({'version': source_version(ROOT),
+                'user': 'printer', 'repo': str(repo), 'port': '/dev/ttyAMA0'}))
+            argv = ['installer', '--refresh-installed', '--repo', str(repo),
+                    '--home', str(home), '--user', 'printer']
+            with patch.object(sys, 'argv', argv), patch.object(module, 'MANIFEST', str(manifest)), \
+                 patch.object(module, 'LOCK', str(home / 'lock')), \
+                 patch.object(module.os, 'geteuid', return_value=0), \
+                 patch.object(module.pwd, 'getpwnam', return_value=SimpleNamespace(pw_dir=str(home))), \
+                 patch.object(module, 'Installer') as factory, patch.object(module.fcntl, 'flock') as flock:
+                module.main()
+                factory.return_value.apply.assert_called_once_with(
+                    True, repo, home, 'printer', '/dev/ttyAMA0', None, None,
+                    manage_ui=False, restart_moonraker=False)
+                factory.reset_mock()
+                flock.side_effect = BlockingIOError()
+                module.main()
+                factory.assert_not_called()
+                flock.side_effect = None
+                manifest.unlink()
+                module.main()
+                factory.assert_not_called()
+
     def test_manifest_rejects_foreign_binary_paths(self):
         for path in ('/bin/sh', BROKER_DIRECTORY + '/../../bin/sh', BROKER_DIRECTORY + '/broker-xyz'):
             with self.subTest(path=path), self.assertRaises(ValueError):
@@ -265,11 +337,12 @@ class InstallationContracts(unittest.TestCase):
             installer, active, calls, fail, builder = self.fixture(Path(tmp))
             conf = installer.path('/home/printer/printer_data/config/Petrel.conf')
             conf.parent.mkdir(parents=True)
-            conf.write_text('[update_manager Petrel]\nmanaged_services: Petrel\n  OtherService\nrequirements: requirements.txt\n')
+            conf.write_text('[update_manager Petrel]\nmanaged_services: Petrel\n  Petrel-dwin\nrequirements: requirements.txt\n')
             registry = installer.path('/home/printer/printer_data/moonraker.asvc')
             registry.write_text('Petrel\nOtherService\n')
             self.apply(installer, True)
-            self.assertIn('managed_services: Petrel\n  OtherService\n  Petrel-dwin\n', conf.read_text())
+            self.assertIn('managed_services: Petrel\n', conf.read_text())
+            self.assertNotIn('Petrel-dwin', conf.read_text())
             self.assertIn('requirements: requirements.txt\n', conf.read_text())
             self.assertEqual(registry.read_text(), 'Petrel\nOtherService\nPetrel-dwin\n')
             self.apply(installer, False)

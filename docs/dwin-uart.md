@@ -44,11 +44,21 @@ place. Failed transitions restore the previous unit and retain its executable;
 successful removal or replacement cleans up superseded native executables.
 
 
-When enabled, the existing Moonraker Petrel update entry also manages the broker.
-Close auxiliary-port clients before updating: a broker restart hangs them up.
-Rerun `configure.sh` to apply changed kernel-module or C-broker sources; a Git pull
-and service restart alone do not compile a new native executable. DKMS handles
-kernel version changes, not arbitrary source changes in a Git checkout.
+Moonraker manages only `Petrel` in `managed_services`; adding `Petrel-dwin`
+to that option is rejected by Moonraker, even when it is in `moonraker.asvc`.
+Run `./configure.sh` once after pulling this fix and apply with auxiliary UART
+enabled. This removes the invalid entry, reloads Moonraker and installs a root
+startup preflight in the Petrel service drop-in. Future Moonraker updates (or
+manual Git pulls followed by a Petrel restart) refresh the installed C broker and
+kernel sources before starting the UI. Unchanged installations skip rebuilding
+and do not restart the broker, including when an auxiliary client is open.
+Close auxiliary clients before source updates: an in-use port blocks replacement;
+a successful replacement hangs up old descriptors. Build/transition failures
+fail the UI start and preserve/restore the previous transport; check the journal,
+resolve the error and restart Petrel. The preflight never restarts its own UI or
+Moonraker during an update. DKMS still handles kernel version changes.
+The privileged preflight uses the installed account's `~/Petrel` checkout, just
+like the sudo installer; only trusted code should be installed there.
 
 ## Use from another program
 

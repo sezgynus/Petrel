@@ -45,12 +45,22 @@ korunur. Geçiş başarısızsa önceki servis dosyası geri yüklenir ve eski b
 başarılı kaldırma veya değiştirme sonrasında eski native binary'ler temizlenir.
 
 
-Etkinleştirildiğinde mevcut Moonraker Petrel güncelleme kaydı ortak servisi de yönetir.
-Güncellemeden önce yardımcı port istemcilerini kapatın; ortak servisin yeniden başlaması
-hangup üretir. Kernel modülü veya C broker kaynak değişikliklerini uygulamak için
-`configure.sh` yeniden çalıştırılmalıdır; yalnız Git pull ve servis restart yeni
-native binary derlemez. DKMS kernel sürüm değişikliklerini yönetir, Git çalışma
-dizinindeki her kaynak değişikliğini kendiliğinden yüklemez.
+Moonraker `managed_services` alanında yalnız `Petrel` servisini yönetir;
+`Petrel-dwin`, `moonraker.asvc` içinde olsa bile bu seçenekte kabul edilmez.
+Bu düzeltmeyi çektikten sonra bir kez `./configure.sh` çalıştırıp yardımcı UART
+etkin halde uygulayın. Geçersiz kayıt temizlenir, Moonraker yeniden yüklenir ve
+Petrel servis ekine root yetkili başlangıç ön kontrolü kurulur. Sonraki Moonraker
+güncellemeleri (veya Git pull ardından Petrel restart), UI başlamadan kurulu C
+broker ve kernel kaynaklarını günceller. Kurulum değişmemişse yeniden derleme ve
+broker restart yapılmaz; yardımcı port açıkken de bu yol güvenlidir.
+Kaynak güncellemesinden önce yardımcı istemcileri kapatın: kullanımda port
+değiştirmeyi engeller; başarılı değiştirme eski bağlantılarda hangup üretir.
+Derleme/geçiş hatası UI başlangıcını başarısız kılar, önceki bağlantıyı korur veya
+geri yükler. Journal kaydını inceleyip hatayı giderin ve Petrel'i yeniden başlatın.
+Ön kontrol güncelleme sırasında kendi UI servisini veya Moonraker'ı yeniden
+başlatmaz. DKMS kernel sürüm değişikliklerini yönetmeye devam eder.
+Yetkili ön kontrol, sudo kurucu gibi kurulu hesabın `~/Petrel` kaynaklarını
+kullanır; bu dizine yalnız güvenilen kod kurulmalıdır.
 
 ## Başka programdan kullanma
 

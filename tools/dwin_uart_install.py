@@ -21,6 +21,7 @@ import tempfile
 PACKAGE = 'petrel-dwin-uart'
 SERVICE = 'Petrel-dwin.service'
 MANIFEST = '/var/lib/Petrel/dwin-uart.json'
+LOCK = '/run/lock/petrel-dwin-install.lock'
 UNIT = '/etc/systemd/system/' + SERVICE
 DROPIN = '/etc/systemd/system/Petrel.service.d/dwin-uart.conf'
 RULES = '/etc/udev/rules.d/70-petrel-dwin-uart.rules'
@@ -233,8 +234,6 @@ class Installer:
             if match:
                 services = [item for item in re.split(r'[,\s]+', match[0].split(':', 1)[1].strip())
                             if item and item != 'Petrel-dwin']
-                if enabled:
-                    services.append('Petrel-dwin')
                 replacement = 'managed_services: ' + '\n  '.join(services)
                 updated = text[:match.start()] + replacement + text[match.end():]
                 if updated != text:
@@ -249,7 +248,8 @@ class Installer:
                 changes[str(asvc)] = updated
         return changes
 
-    def apply(self, enabled, repo, home, user, serial_port, updater=None, asvc=None):
+    def apply(self, enabled, repo, home, user, serial_port, updater=None, asvc=None,
+              *, manage_ui=True, restart_moonraker=True):
         manifest = self.path(MANIFEST)
         old = valid_manifest(json.loads(manifest.read_text()) if manifest.exists() else None)
         version = source_version(repo)
@@ -271,14 +271,22 @@ class Installer:
         if enabled:
             prepare_broker_directory(self.root)
 
+        dropin = ('[Unit]\nWants=Petrel-dwin.service\nAfter=Petrel-dwin.service\n\n'
+                  '[Service]\nEnvironment=PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock\n'
+                  'TimeoutStartSec=900\nExecStartPre=+/usr/bin/python3 ' +
+                  ' '.join(quote(str(value)) for value in (
+                      repo / 'tools/dwin_uart_install.py', '--refresh-installed',
+                      '--repo', repo, '--home', home, '--user', user)) + '\n')
+
         if (enabled and old == new and self.active(SERVICE)
                 and all(self.path(p).exists() for p in OWNED)
+                and self.path(DROPIN).read_text() == dropin
                 and self.path(binary).is_file() and self.path(binary).stat().st_size
                 and os.access(self.path(binary), os.X_OK)):
             # Registry-only repairs need no UART restart, even with open clients.
             for p, text in registration.items():
                 atomic(self.path(p), text)
-            if registration and self.active('moonraker.service'):
+            if registration and restart_moonraker and self.active('moonraker.service'):
                 self.execute('systemctl', 'restart', 'moonraker.service')
             return
         if not enabled and old is None and not any(self.path(p).exists() for p in OWNED) and not registration:
@@ -303,7 +311,7 @@ class Installer:
                     shutil.rmtree(self.path('/usr/src/' + PACKAGE + '-' + version), ignore_errors=True)
                 raise
         snapshot = {p: self.path(p).read_text() if self.path(p).exists() else None for p in (*OWNED, *registration)}
-        was_active = self.active('Petrel.service')
+        was_active = manage_ui and self.active('Petrel.service')
         broker_active = self.active(SERVICE)
         broker_enabled = self.execute('systemctl', 'is-enabled', '--quiet', SERVICE, check=False).returncode == 0
         was_loaded = self.path('/sys/module/dwin_uart').exists()
@@ -316,7 +324,7 @@ class Installer:
                 self.execute('modprobe', '-r', 'dwin_uart')
             if enabled:
                 atomic(self.path(UNIT), service_text(repo, home, user, serial_port))
-                atomic(self.path(DROPIN), '[Unit]\nWants=Petrel-dwin.service\nAfter=Petrel-dwin.service\n\n[Service]\nEnvironment=PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock\n')
+                atomic(self.path(DROPIN), dropin)
                 atomic(self.path(RULES), 'KERNEL=="ttyDWIN0", GROUP="dialout", MODE="0660", SYMLINK+="ttyS_DWIN0", ENV{ID_MM_DEVICE_IGNORE}="1"\nKERNEL=="dwin-uart-backend", GROUP="dialout", MODE="0660", ENV{ID_MM_DEVICE_IGNORE}="1"\n')
                 atomic(self.path(MODULES), 'dwin_uart\n')
                 self.execute('udevadm', 'control', '--reload-rules')
@@ -339,7 +347,7 @@ class Installer:
                 self.execute('systemctl', 'daemon-reload')
             for p, text in registration.items():
                 atomic(self.path(p), text)
-            if registration and self.active('moonraker.service'):
+            if registration and restart_moonraker and self.active('moonraker.service'):
                 self.execute('systemctl', 'restart', 'moonraker.service')
             if was_active:
                 self.execute('systemctl', 'start', 'Petrel.service')
@@ -365,7 +373,7 @@ class Installer:
             if broker_active:
                 self.execute('modprobe', 'dwin_uart', check=False)
                 self.execute('systemctl', 'start', SERVICE, check=False)
-            if registration and self.active('moonraker.service'):
+            if registration and restart_moonraker and self.active('moonraker.service'):
                 self.execute('systemctl', 'restart', 'moonraker.service', check=False)
             if was_active:
                 self.execute('systemctl', 'start', 'Petrel.service', check=False)
@@ -392,11 +400,12 @@ class Installer:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--enabled', choices=('0', '1'), required=True)
+    parser.add_argument('--enabled', choices=('0', '1'))
+    parser.add_argument('--refresh-installed', action='store_true')
     parser.add_argument('--repo', type=Path, required=True)
     parser.add_argument('--home', type=Path, required=True)
     parser.add_argument('--user', required=True)
-    parser.add_argument('--port', required=True)
+    parser.add_argument('--port')
     parser.add_argument('--updater', type=Path)
     parser.add_argument('--asvc', type=Path)
     args = parser.parse_args()
@@ -407,17 +416,39 @@ def main():
         parser.error('Use the installed account and its ~/Petrel checkout')
     if not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_-]*\$?', args.user):
         parser.error('Invalid account name')
+    if args.refresh_installed:
+        if args.enabled is not None or args.port is not None:
+            parser.error('Refresh uses the installed manifest, not new settings')
+        manifest = Path(MANIFEST)
+        if not manifest.exists():
+            return
+        installed = valid_manifest(json.loads(manifest.read_text()))
+        if installed.get('user') != args.user or installed.get('repo') != str(args.repo):
+            parser.error('Installed UART belongs to another account or checkout')
+        args.enabled, args.port = '1', installed['port']
+    elif args.enabled is None or args.port is None:
+        parser.error('--enabled and --port are required for configuration')
     if not args.port.startswith('/dev/') or args.port.startswith(('/dev/ttyDWIN', '/dev/ttyS_DWIN')):
         parser.error('Select the physical display UART under /dev')
     quote(args.port)
     for path in (args.updater, args.asvc):
         if path and not path.resolve().is_relative_to(args.home.resolve()):
             parser.error('Moonraker registration must belong to the installed home')
-    Path('/run/lock').mkdir(exist_ok=True)
-    with open('/run/lock/petrel-dwin-install.lock', 'w') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+    Path(LOCK).parent.mkdir(exist_ok=True)
+    with open(LOCK, 'w') as lock:
+        if args.refresh_installed:
+            # configure/install starts the UI while holding this same lock;
+            # that transaction already owns the complete transport transition.
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return
+        else:
+            fcntl.flock(lock, fcntl.LOCK_EX)
         try:
-            Installer().apply(args.enabled == '1', args.repo, args.home, args.user, args.port, args.updater, args.asvc)
+            Installer().apply(args.enabled == '1', args.repo, args.home, args.user, args.port, args.updater, args.asvc,
+                              manage_ui=not args.refresh_installed,
+                              restart_moonraker=not args.refresh_installed)
         except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
             detail = getattr(error, 'stderr', '') or str(error)
             parser.exit(1, 'DWIN UART configuration failed: ' + detail + '\n')
