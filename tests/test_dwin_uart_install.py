@@ -9,7 +9,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tools.dwin_uart_install import Installer, OWNED, MANIFEST, DROPIN, SERVICE, source_version, quote, service_text
+from tools.dwin_uart_install import (Installer, OWNED, MANIFEST, DROPIN, SERVICE,
+    source_version, quote, service_text, broker_binary, build_broker, valid_manifest,
+    BROKER_DIRECTORY)
 from tools.env_defaults import ensure_aux_uart_default
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +47,13 @@ class InstallationContracts(unittest.TestCase):
                     module.rmdir()
             return result
         builder = Mock()
-        installer = Installer(root, execute, busy=Mock(return_value=[]), builder=builder)
+        def native_build(repo, build_root, execute):
+            path = build_root / broker_binary(repo).lstrip('/')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'test executable')
+            path.chmod(0o755)
+        installer = Installer(root, execute, busy=Mock(return_value=[]), builder=builder,
+                              broker_builder=Mock(side_effect=native_build))
         return installer, active, calls, fail, builder
 
     def apply(self, installer, enabled):
@@ -60,6 +68,9 @@ class InstallationContracts(unittest.TestCase):
             self.assertIn('PETREL_DWIN_SOCKET=', installer.path(DROPIN).read_text())
             self.assertEqual(json.loads(installer.path(MANIFEST).read_text())['version'], source_version(ROOT))
             self.assertIn('Petrel.service', active)
+            binary = installer.path(broker_binary(ROOT))
+            self.assertTrue(binary.exists())
+            self.assertIn(quote(broker_binary(ROOT)), installer.path('/etc/systemd/system/' + SERVICE).read_text())
             calls.clear()
             installer.busy.return_value = [123]
             self.apply(installer, True)  # No-op is safe even while the TTY is open.
@@ -70,6 +81,7 @@ class InstallationContracts(unittest.TestCase):
             self.assertFalse(any(installer.path(p).exists() for p in OWNED))
             self.assertIn('Petrel.service', active)
             self.assertNotIn(SERVICE, active)
+            self.assertFalse(binary.exists())
             self.apply(installer, True)
             self.assertIn(SERVICE, active)
 
@@ -105,6 +117,83 @@ class InstallationContracts(unittest.TestCase):
             self.assertFalse(any(installer.path(p).exists() for p in OWNED))
             self.assertIn('Petrel.service', active)
             self.assertNotIn(SERVICE, active)
+            self.assertFalse(installer.path(broker_binary(ROOT)).exists())
+
+    def test_native_build_failure_keeps_existing_python_transport_running(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            installer.broker_builder.side_effect = RuntimeError('native compilation failed')
+            with self.assertRaisesRegex(RuntimeError, 'native compilation'):
+                self.apply(installer, True)
+            self.assertFalse(any(c[:2] == ('systemctl', 'stop') for c in calls))
+            self.assertIn('Petrel.service', active)
+            self.assertFalse(installer.path(MANIFEST).exists())
+
+    def test_existing_python_manifest_migrates_and_failure_restores_old_unit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            installer, active, calls, fail, builder = self.fixture(Path(tmp))
+            self.apply(installer, True)
+            old = json.loads(installer.path(MANIFEST).read_text())
+            del old['broker']
+            installer.path(MANIFEST).write_text(json.dumps(old))
+            unit = installer.path('/etc/systemd/system/' + SERVICE)
+            unit.write_text('original Python service')
+            installer.path(broker_binary(ROOT)).unlink()
+            fail.append(('systemctl', 'enable', '--now', SERVICE))
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.apply(installer, True)
+            self.assertEqual(json.loads(installer.path(MANIFEST).read_text()), old)
+            self.assertEqual(unit.read_text(), 'original Python service')
+            self.assertIn(SERVICE, active)
+            self.assertFalse(installer.path(broker_binary(ROOT)).exists())
+            self.apply(installer, True)
+            self.assertEqual(json.loads(installer.path(MANIFEST).read_text())['broker'], broker_binary(ROOT))
+            self.assertIn(quote(broker_binary(ROOT)), unit.read_text())
+
+    def test_source_update_keeps_rollback_binary_until_transition_succeeds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            installer, active, calls, fail, builder = self.fixture(root)
+            self.apply(installer, True)
+            old_binary = installer.path(broker_binary(ROOT))
+            changed = root / 'checkout'
+            shutil.copytree(ROOT / 'native', changed / 'native')
+            shutil.copytree(ROOT / 'kernel/dwin_uart', changed / 'kernel/dwin_uart')
+            with (changed / 'native/dwin_broker.c').open('a') as f:
+                f.write('\n/* new source version */\n')
+            new_binary = installer.path(broker_binary(changed))
+            fail.append(('systemctl', 'enable', '--now', SERVICE))
+            with self.assertRaises(subprocess.CalledProcessError):
+                installer.apply(True, changed, Path('/home/printer'), 'printer', '/dev/ttyAMA0')
+            self.assertTrue(old_binary.exists())
+            self.assertFalse(new_binary.exists())
+            self.assertEqual(json.loads(installer.path(MANIFEST).read_text())['broker'], broker_binary(ROOT))
+            installer.apply(True, changed, Path('/home/printer'), 'printer', '/dev/ttyAMA0')
+            self.assertFalse(old_binary.exists())
+            self.assertTrue(new_binary.exists())
+
+    def test_manifest_rejects_foreign_binary_paths(self):
+        for path in ('/bin/sh', BROKER_DIRECTORY + '/../../bin/sh', BROKER_DIRECTORY + '/broker-xyz'):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                valid_manifest({'version': source_version(ROOT), 'broker': path})
+
+    def test_real_native_build_is_versioned_executable_and_leaves_checkout_clean(self):
+        if not shutil.which('make') or not shutil.which('cc'):
+            if os.environ.get('GITHUB_ACTIONS') == 'true':
+                self.fail('Native build CI needs make and cc')
+            self.skipTest('native toolchain unavailable')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build_broker(ROOT, root)
+            binary = root / broker_binary(ROOT).lstrip('/')
+            self.assertEqual(binary.stat().st_mode & 0o777, 0o755)
+            result = subprocess.run([str(binary), '--help'], capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('--backend', result.stdout)
+            stat = binary.stat()
+            build_broker(ROOT, root, execute=Mock(side_effect=AssertionError('unnecessary rebuild')))
+            self.assertEqual(binary.stat().st_ino, stat.st_ino)
+            self.assertEqual(list(binary.parent.glob('.build-*')), [])
 
     def test_failed_removal_restores_broker_and_its_configuration(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -186,7 +275,7 @@ class InstallationContracts(unittest.TestCase):
             repo = home / 'Petrel'
             repo.mkdir()
             unit = Path(tmp) / 'Petrel-dwin.service'
-            text = service_text(repo, home, getpass.getuser(), '/dev/ttyAMA0')
+            text = service_text(repo, home, getpass.getuser(), '/dev/ttyAMA0', binary=binary)
             env = dict(os.environ, LC_ALL='C', SYSTEMD_LOG_COLOR='0')
             unit.write_text(text)
             result = subprocess.run([verifier, 'verify', '--man=no', str(unit)],

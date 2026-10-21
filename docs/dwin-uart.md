@@ -3,8 +3,10 @@
 [Documentation](README.md) · [Türkçe](dwin-uart_TR.md)
 
 The auxiliary port can be exposed as a Linux TTY. It is optional and **off by default**.
-This feature is under development on `feature/dwin-aux-uart`: CI exercises the real
-TTY in Linux 6.1 and 6.12 virtual machines; physical DWIN/Pi acceptance is pending.
+This C variant is under development on `feature/dwin-aux-uart-c`, forked from the
+preserved Python branch `feature/dwin-aux-uart`. CI exercises the real TTY through
+the native broker in Linux 6.1 and 6.12 virtual machines; physical C-broker DWIN/Pi
+acceptance is pending. See the [C broker trial and rollback guide](dwin-uart-c.md).
 
 ## Locate the auxiliary port
 
@@ -34,11 +36,19 @@ restore the previous transport. Shared build dependencies are retained on remova
 DKMS rebuilds the module for later kernels when matching headers are available.
 Secure Boot systems may require their existing module-signing/key-enrollment process.
 
+On this branch it also compiles the C broker for the host architecture before
+stopping either service. The service runs a root-owned, versioned executable under
+`/usr/local/libexec/petrel-dwin/` as the installed user in `dialout`; the running
+broker needs no Python interpreter. Build failures leave the active transport in
+place. Failed transitions restore the previous unit and retain its executable;
+successful removal or replacement cleans up superseded native executables.
+
 
 When enabled, the existing Moonraker Petrel update entry also manages the broker.
 Close auxiliary-port clients before updating: a broker restart hangs them up.
-Rerun `configure.sh` to apply changed kernel-module sources; DKMS handles kernel
-version changes, not arbitrary source changes in a Git checkout.
+Rerun `configure.sh` to apply changed kernel-module or C-broker sources; a Git pull
+and service restart alone do not compile a new native executable. DKMS handles
+kernel version changes, not arbitrary source changes in a Git checkout.
 
 ## Use from another program
 
@@ -95,9 +105,8 @@ Use `journalctl -u Petrel-dwin.service` for broker errors and
 A port node can exist while the screen is powered off; opening it requires a
 connected broker and a successful panel handshake.
 
-The broker loads full logging diagnostics on its first reported transport fault;
-the original exception traceback is retained in the journal. Memory can rise after
-that first fault as the logging modules stay loaded. Compare memory at matching
+The native broker writes transport errors directly to stderr, captured by the
+service journal. It does not load Python logging modules. Compare memory at matching
 startup, traffic and fault states, including `SwapPss` alongside PSS.
 
 Before release, verify on the actual panel/Pi: setup/removal/reinstallation;

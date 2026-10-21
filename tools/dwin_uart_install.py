@@ -25,6 +25,7 @@ UNIT = '/etc/systemd/system/' + SERVICE
 DROPIN = '/etc/systemd/system/Petrel.service.d/dwin-uart.conf'
 RULES = '/etc/udev/rules.d/70-petrel-dwin-uart.rules'
 MODULES = '/etc/modules-load.d/petrel-dwin-uart.conf'
+BROKER_DIRECTORY = '/usr/local/libexec/petrel-dwin'
 OWNED = (UNIT, DROPIN, RULES, MODULES, MANIFEST)
 
 
@@ -62,9 +63,41 @@ def source_version(repo):
     return '0.1.0-' + digest.hexdigest()[:12]
 
 
+def broker_binary(repo):
+    digest = hashlib.sha256(platform.machine().encode())
+    for name in ('dwin_broker.c', 'Makefile'):
+        digest.update((repo / 'native' / name).read_bytes())
+    return BROKER_DIRECTORY + '/broker-' + digest.hexdigest()[:12]
+
+
+def build_broker(repo, root=Path('/'), execute=run):
+    """Compile atomically to an immutable, root-owned versioned executable.
+
+    The existing running binary remains available for rollback until the entire
+    transport transition succeeds. Kernel build already supplies build-essential.
+    """
+    destination = root / broker_binary(repo).lstrip('/')
+    if destination.is_file() and os.access(destination, os.X_OK) and destination.stat().st_size:
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix='.build-', dir=destination.parent)
+    os.close(fd)
+    try:
+        execute('make', '-B', '-C', str(repo / 'native'), 'OUTPUT=' + temporary)
+        if not Path(temporary).stat().st_size:
+            raise RuntimeError('Native DWIN broker build produced no executable')
+        os.chmod(temporary, 0o755)
+        os.replace(temporary, destination)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def valid_manifest(data):
     if data and not re.fullmatch(r'0\.1\.0-[0-9a-f]{12}', data.get('version', '')):
         raise ValueError('Invalid DWIN installation manifest; refusing removal')
+    if data and data.get('broker') and not re.fullmatch(
+            re.escape(BROKER_DIRECTORY) + r'/broker-[0-9a-f]{12}', data['broker']):
+        raise ValueError('Invalid native DWIN broker path in installation manifest')
     return data
 
 
@@ -131,9 +164,9 @@ def build(repo, version, root=Path('/'), execute=run):
     execute('dkms', 'install', '-m', PACKAGE, '-v', version, '-k', release, '--force')
 
 
-def service_text(repo, home, user, serial_port):
+def service_text(repo, home, user, serial_port, *, binary=None):
     argv = ' '.join(quote(str(value)) for value in (
-        home / 'petrel-env/bin/python', repo / 'dwin_broker.py', '--port', serial_port))
+        binary if binary is not None else broker_binary(repo), '--port', serial_port))
     return f'''[Unit]
 Description=DWIN shared UART transport
 After=systemd-udev-trigger.service
@@ -161,8 +194,10 @@ WantedBy=multi-user.target
 
 
 class Installer:
-    def __init__(self, root=Path('/'), execute=run, busy=port_users, builder=build):
+    def __init__(self, root=Path('/'), execute=run, busy=port_users, builder=build,
+                 broker_builder=build_broker):
         self.root, self.execute, self.busy, self.builder = root, execute, busy, builder
+        self.broker_builder = broker_builder
 
     def path(self, path):
         return self.root / path.lstrip('/')
@@ -199,7 +234,9 @@ class Installer:
         manifest = self.path(MANIFEST)
         old = valid_manifest(json.loads(manifest.read_text()) if manifest.exists() else None)
         version = source_version(repo)
-        new = {'version': version, 'user': user, 'port': serial_port, 'repo': str(repo)}
+        binary = broker_binary(repo)
+        new = {'version': version, 'user': user, 'port': serial_port, 'repo': str(repo),
+               'broker': binary}
         if updater is None:
             updater = Path(old['updater']) if old and old.get('updater') else next(
                 (p for p in (home / 'printer_data/config/Petrel.conf', home / 'Petrel.conf')
@@ -212,7 +249,10 @@ class Installer:
             new['asvc'] = str(asvc)
         registration = self.registration_changes(enabled, updater, asvc)
 
-        if enabled and old == new and self.active(SERVICE) and all(self.path(p).exists() for p in OWNED):
+        if (enabled and old == new and self.active(SERVICE)
+                and all(self.path(p).exists() for p in OWNED)
+                and self.path(binary).is_file() and self.path(binary).stat().st_size
+                and os.access(self.path(binary), os.X_OK)):
             # Registry-only repairs need no UART restart, even with open clients.
             for p, text in registration.items():
                 atomic(self.path(p), text)
@@ -224,10 +264,14 @@ class Installer:
         users = self.busy()
         if users:
             raise RuntimeError('DWIN UART is in use by PID(s) ' + ', '.join(map(str, users)) + '; close the port before changing its installation')
+        binary_existed = self.path(binary).exists()
         if enabled:
             try:
                 self.builder(repo, version, self.root, self.execute)
+                self.broker_builder(repo, self.root, self.execute)
             except BaseException:
+                if not binary_existed:
+                    self.path(binary).unlink(missing_ok=True)
                 if not old or old['version'] != version:
                     self.execute('dkms', 'remove', '-m', PACKAGE, '-v', version, '--all', check=False)
                     shutil.rmtree(self.path('/usr/src/' + PACKAGE + '-' + version), ignore_errors=True)
@@ -299,7 +343,17 @@ class Installer:
                 self.execute('systemctl', 'restart', 'moonraker.service', check=False)
             if was_active:
                 self.execute('systemctl', 'start', 'Petrel.service', check=False)
+            if enabled and not binary_existed:
+                self.path(binary).unlink(missing_ok=True)
             raise
+        # Only after the old unit no longer needs its immutable rollback binary.
+        directory = self.path(BROKER_DIRECTORY)
+        if directory.exists():
+            for candidate in directory.iterdir():
+                if (re.fullmatch(r'broker-[0-9a-f]{12}', candidate.name)
+                        and (candidate.is_file() or candidate.is_symlink())):
+                    if not enabled or candidate != self.path(binary):
+                        candidate.unlink()
         # Remove superseded/disabled DKMS versions only after transport transition.
         if old and (not enabled or old['version'] != version):
             if enabled:

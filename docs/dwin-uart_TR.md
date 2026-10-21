@@ -3,8 +3,10 @@
 [Dokümantasyon](README_TR.md) · [English](dwin-uart.md)
 
 Yardımcı port Linux TTY aygıtı olarak sunulabilir. İsteğe bağlıdır ve **varsayılan kapalıdır**.
-Özellik `feature/dwin-aux-uart` dalında geliştirilmektedir: CI, gerçek TTY arayüzünü
-Linux 6.1 ve 6.12 sanal makinelerinde sınar; fiziksel DWIN/Pi kabulü beklemektedir.
+Bu C varyantı, korunan Python dalı `feature/dwin-aux-uart` üzerinden açılan
+`feature/dwin-aux-uart-c` dalında geliştirilmektedir. CI, gerçek TTY arayüzünü native
+broker üzerinden Linux 6.1 ve 6.12 sanal makinelerinde sınar; C broker'ın fiziksel
+DWIN/Pi kabulü beklemektedir. [C broker deneme ve geri dönüş rehberine](dwin-uart-c_TR.md) bakın.
 
 ## Yardımcı portun yeri
 
@@ -35,11 +37,19 @@ denenir. Ortak derleme bağımlılıkları kaldırmada korunur. DKMS, uygun baş
 sonraki kerneller için modülü yeniden derler. Secure Boot sistemlerinde mevcut modül
 imzalama/anahtar kaydetme sürecinin uygulanması gerekebilir.
 
+Bu dalda iki servis durdurulmadan önce host mimarisi için C broker da derlenir.
+Servis, `/usr/local/libexec/petrel-dwin/` altındaki root sahipli, sürümlenmiş
+yürütülebilir dosyayı kurulu kullanıcı ve `dialout` grubu ile çalıştırır; çalışan
+broker Python yorumlayıcısına ihtiyaç duymaz. Derleme hatasında aktif bağlantı
+korunur. Geçiş başarısızsa önceki servis dosyası geri yüklenir ve eski binary korunur;
+başarılı kaldırma veya değiştirme sonrasında eski native binary'ler temizlenir.
+
 
 Etkinleştirildiğinde mevcut Moonraker Petrel güncelleme kaydı ortak servisi de yönetir.
 Güncellemeden önce yardımcı port istemcilerini kapatın; ortak servisin yeniden başlaması
-hangup üretir. Kernel modülü kaynak değişikliklerini uygulamak için `configure.sh`
-yeniden çalıştırılmalıdır; DKMS kernel sürüm değişikliklerini yönetir, Git çalışma
+hangup üretir. Kernel modülü veya C broker kaynak değişikliklerini uygulamak için
+`configure.sh` yeniden çalıştırılmalıdır; yalnız Git pull ve servis restart yeni
+native binary derlemez. DKMS kernel sürüm değişikliklerini yönetir, Git çalışma
 dizinindeki her kaynak değişikliğini kendiliğinden yüklemez.
 
 ## Başka programdan kullanma
@@ -98,9 +108,8 @@ Servis hataları için `journalctl -u Petrel-dwin.service`, servis durumu için
 Ekran kapalıyken aygıt düğümü bulunabilir; portun açılması için ortak servis
 bağlantısı ve başarılı panel handshake gerekir.
 
-Ortak servis, tam logging tanılamasını raporlanan ilk bağlantı hatasında yükler;
-asıl exception traceback'i journal'da korunur. Logging modülleri yüklü kaldığı için
-ilk hata sonrasında bellek artabilir. Belleği aynı başlangıç, trafik ve hata
+Native broker bağlantı hatalarını doğrudan stderr'e yazar; servis journal'ı bunları
+kaydeder. Python logging modülleri yüklenmez. Belleği aynı başlangıç, trafik ve hata
 koşullarında karşılaştırın; PSS yanında `SwapPss` değerini de ölçün.
 
 Sürüm öncesinde gerçek panel/Pi üzerinde doğrulanacaklar: kurulum/kaldırma/tekrar kurulum;
