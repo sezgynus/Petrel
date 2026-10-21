@@ -1,6 +1,6 @@
 """MMU menu and Happy Hare home-screen rendering mixin."""
 
-from functools import partial
+from functools import partial as bind_arguments
 
 from spool_view import SpoolView
 from mmu_filament_view import MMUFilamentView, filament_color
@@ -283,8 +283,8 @@ class MMUViewMixin:
         if snapshot is None:
             snapshot = self.pd.subscription.snapshot()
             m = MMUState.from_snapshot(snapshot)
-        prepare = partial(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
-        action_item = partial(self._mmu_action_item, prepare=prepare)
+        prepare = bind_arguments(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
+        action_item = bind_arguments(self._mmu_action_item, prepare=prepare)
         page = self._mmu_page
         nav = lambda key, label: (('page', key), label, '>', True)
         if page == 'confirm':
@@ -575,7 +575,7 @@ class MMUViewMixin:
         page = self._mmu_page
         snapshot = self.pd.subscription.snapshot()
         m = MMUState.from_snapshot(snapshot)
-        prepare = partial(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
+        prepare = bind_arguments(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
         if (getattr(self, '_mmu_canvas_page', None) != page or
                 page == 'home' and getattr(self, '_mmu_available', None) != (m is not None)):
             self._list_render = None
