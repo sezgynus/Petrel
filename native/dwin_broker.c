@@ -339,7 +339,7 @@ static void client_events(struct broker *b, short events)
         uint8_t data[PAYLOAD + 7];
         ssize_t n = recv(b->client, data, sizeof(data), MSG_TRUNC);
         if (n <= 0) { if (!n || !again()) drop_client(b); return; }
-        if (n < 6 || n > PAYLOAD + 6 || data[0] != 0xaa || data[1] == 0x38 || data[1] == 0x39 ||
+        if (n < 6 || n > (ssize_t)(PAYLOAD + 6) || data[0] != 0xaa || data[1] == 0x38 || data[1] == 0x39 ||
             memcmp(data + n - 4, tail, sizeof(tail)) || !append(&b->display_tx, data, (size_t)n, DISPLAY, false)) {
             drop_client(b); return;
         }
