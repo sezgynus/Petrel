@@ -8,8 +8,10 @@ Linux 6.1 ve 6.12 sanal makinelerinde sınar; fiziksel DWIN/Pi kabulü beklemekt
 
 ## Etkinleştirme veya kaldırma
 
-`~/Petrel` içinde `./configure.sh` çalıştırın. **Enable DWIN auxiliary UART?**
-seçeneğini kurulum için `1`, kaldırma için `0` yapın. İlk `./install.sh` kurulumu da
+`~/Petrel` içinde `./configure.sh` çalıştırın. **DWIN auxiliary UART** menüsündeki
+**DWIN auxiliary UART as a Linux serial port** seçeneğini Space ile değiştirin;
+kaydedip çıkın ve Apply sorusunu onaylayın. İşaretli seçenek portu kurar, işareti
+kaldırmak portu kaldırır. İlk `./install.sh` kurulumu da
 bu seçimi içerir. Mevcut ayarlar korunur; aynı yapılandırmayla tekrar etkinleştirme,
 çalışan portu kesmez. Kaldırmadan veya kurulumu değiştirmeden önce yardımcı portu
 kullanan programları kapatın. Kaldırma, Petrel'in doğrudan ekran bağlantısını geri getirir.

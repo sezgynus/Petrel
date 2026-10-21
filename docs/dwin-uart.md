@@ -8,8 +8,9 @@ TTY in Linux 6.1 and 6.12 virtual machines; physical DWIN/Pi acceptance is pendi
 
 ## Enable or remove
 
-Run `./configure.sh` from `~/Petrel` and set **Enable DWIN auxiliary UART?** to
-`1` to install, or `0` to remove. First-time `./install.sh` includes this choice.
+Run `./configure.sh` from `~/Petrel`. Under **DWIN auxiliary UART**, toggle
+**DWIN auxiliary UART as a Linux serial port** with Space; save, exit and confirm
+Apply. Checked installs the port; unchecked removes it. First-time `./install.sh` includes this choice.
 Existing settings are preserved, and a repeated enable with unchanged configuration
 leaves an active port alone. Close programs using the auxiliary port before removing
 or changing the installation. Removal restores direct Petrel display communication.

@@ -26,69 +26,61 @@ class InstallerDefaultsTests(unittest.TestCase):
             self.assertEqual(path.read_text(), 'PETREL_EMULATOR=1\n')
 
     def test_configurator_writes_off_and_preserves_existing_enabled_value(self):
+        from tools.configure import apply, read_settings
         with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp); bin_dir = home / 'bin'; bin_dir.mkdir()
-            commands = {
-                'getent': f'#!/bin/sh\necho "user:x:1000:1000::${{TEST_HOME}}:/bin/bash"\n',
-                'chown': '#!/bin/sh\nexit 0\n',
-                'systemctl': '#!/bin/sh\nexit 1\n',
-            }
-            for name, content in commands.items():
-                command = bin_dir / name; command.write_text(content); command.chmod(0o755)
-            env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp, USER='user', SUDO_USER='user')
+            home = Path(tmp)
             path = home / '.config/Petrel/Petrel.env'
-            def configure(answers=None):
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input=answers or '\n' * 7 + '0\n' + '\n' * 10,
-                               text=True, env=env, capture_output=True)
-                if result.returncode:
-                    self.fail(result.stdout + result.stderr)
+            def configure(enabled=None):
+                original = path.read_text() if path.exists() else ''
+                values = read_settings(home, original)
+                values['PETREL_AXIS_TRAVEL'] = 'n'
+                if enabled is not None:
+                    values['PETREL_EMULATOR'] = values['PETREL_REMOTE'] = enabled
+                apply(values, repo=ROOT, home=home, user='user', original=original,
+                      dwin_manifest=home / 'no-dwin-manifest')
             configure()
-            self.assertIn('PETREL_EMULATOR=0\n', path.read_text())
-            self.assertIn('PETREL_REMOTE=0\n', path.read_text())
-            configure('\n' * 7 + '0\n1\n1\n')
-            self.assertIn('PETREL_EMULATOR=1\n', path.read_text())
-            self.assertIn('PETREL_REMOTE=1\n', path.read_text())
+            for key in ('PETREL_EMULATOR', 'PETREL_REMOTE'):
+                self.assertEqual(read_settings(home, path.read_text())[key], 'n')
+            configure('y')
             configure()
-            self.assertIn('PETREL_EMULATOR=1\n', path.read_text())
-            self.assertIn('PETREL_REMOTE=1\n', path.read_text())
-            configure('\n' * 7 + '0\n0\n0\n')
-            for key in ('PETREL_EMULATOR','PETREL_REMOTE'):
-                self.assertIn(key+'=0\n',path.read_text())
-                self.assertEqual(path.read_text().count(key+'='),1)
+            for key in ('PETREL_EMULATOR', 'PETREL_REMOTE'):
+                self.assertEqual(read_settings(home, path.read_text())[key], 'y')
+            configure('n')
+            for key in ('PETREL_EMULATOR', 'PETREL_REMOTE'):
+                self.assertEqual(read_settings(home, path.read_text())[key], 'n')
+                self.assertEqual(path.read_text().count(key + '='), 1)
 
-    @unittest.skipUnless(os.name == 'posix', 'Configurator integration needs POSIX shell paths')
     def test_configurator_preserves_custom_settings_and_literal_values(self):
+        from tools.configure import apply, read_settings
         with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp); bin_dir = home / 'bin'; bin_dir.mkdir()
-            commands = {
-                'getent': '#!/bin/sh\necho "user:x:1000:1000::${TEST_HOME}:/bin/bash"\n',
-                'chown': '#!/bin/sh\nexit 0\n',
-                'systemctl': '#!/bin/sh\nexit 1\n',
-            }
-            for name, content in commands.items():
-                command = bin_dir / name; command.write_text(content); command.chmod(0o755)
-            env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'],
-                       TEST_HOME=tmp, USER='user', SUDO_USER='user')
-            path = home / '.config/Petrel/Petrel.env'; path.parent.mkdir(parents=True)
+            home = Path(tmp)
+            path = home / '.config/Petrel/Petrel.env'
+            path.parent.mkdir(parents=True)
             literal = '$(touch ' + str(home / 'unexpected-evaluation') + ')'
             custom = [
-                'PETREL_SETTINGS_FILE=' + str(home / 'custom-presets.json'),
                 'PETREL_EMULATOR_FONT="/tmp/custom font.HZK"',
                 'PETREL_EMULATOR_SOCKET=/tmp/custom-capture.sock',
                 'PETREL_SCREENSHOT_DIRECTORY=/tmp/custom-shots',
-                'PETREL_REMOTE_HOST=127.0.0.1',
-                'PETREL_REMOTE_PORT=8099',
                 'FUTURE_OPTION=' + literal,
+                'MOONRAKER_API_KEY="private literal $value"',
             ]
-            path.write_text('PETREL_EMULATOR=1\nPETREL_REMOTE=true\n' + '\n'.join(custom) + '\n')
+            path.write_text('PETREL_EMULATOR=1\nPETREL_REMOTE=true\n'
+                            'PETREL_SETTINGS_FILE="/tmp/custom presets.json"\n'
+                            'PETREL_REMOTE_HOST=127.0.0.1\nPETREL_REMOTE_PORT=8099\n'
+                            + '\n'.join(custom) + '\n')
             for _ in range(2):
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 7 + '0\n' + '\n' * 10,
-                                        text=True, env=env, capture_output=True)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                lines = path.read_text().splitlines()
+                original = path.read_text()
+                values = read_settings(home, original)
+                values['PETREL_AXIS_TRAVEL'] = 'n'
+                apply(values, repo=ROOT, home=home, user='user', original=original,
+                      dwin_manifest=home / 'no-dwin-manifest')
                 for line in custom:
-                    self.assertEqual(lines.count(line), 1)
-                self.assertEqual(lines.count('PETREL_EMULATOR=1'), 1)
-                self.assertEqual(lines.count('PETREL_REMOTE=true'), 1)
+                    self.assertEqual(path.read_text().splitlines().count(line), 1)
+                saved = read_settings(home, path.read_text())
+                self.assertEqual(saved['PETREL_SETTINGS_FILE'], '/tmp/custom presets.json')
+                self.assertEqual(saved['PETREL_REMOTE_HOST'], '127.0.0.1')
+                self.assertEqual(saved['PETREL_REMOTE_PORT'], '8099')
+                self.assertEqual(saved['PETREL_EMULATOR'], 'y')
+                self.assertEqual(saved['PETREL_REMOTE'], 'y')
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
                 self.assertFalse((home / 'unexpected-evaluation').exists())

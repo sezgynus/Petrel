@@ -154,24 +154,19 @@ class InstallationContracts(unittest.TestCase):
             home = Path(tmp)
             bin_dir = home / 'bin'
             bin_dir.mkdir()
-            commands = {
-                'getent': 'echo "user:x:1000:1000::${TEST_HOME}:/bin/bash"',
-                'chown': 'exit 0',
-                'systemctl': 'exit 1',
-                'sudo': 'printf \'%s\\n\' "$*" >> "$TEST_HOME/sudo.log"',
-            }
-            for name, content in commands.items():
-                command = bin_dir / name
-                command.write_text('#!/bin/sh\n' + content + '\n')
-                command.chmod(0o755)
-            env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'],
-                       TEST_HOME=tmp, USER='user', SUDO_USER='user')
-            for enabled in ('1', '0'):
-                answers = '\n' * 7 + '0\n' + '\n' * 2 + enabled + '\n'
-                result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input=answers,
-                                        text=True, env=env, capture_output=True)
+            command = bin_dir / 'sudo'
+            command.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$TEST_HOME/sudo.log"\n')
+            command.chmod(0o755)
+            env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp)
+            selection = home / 'selection.config'
+            for enabled in ('y', 'n'):
+                selection.write_text('CONFIG_PETREL_AXIS_TRAVEL=n\nCONFIG_PETREL_AUX_UART=' + enabled + '\n')
+                result = subprocess.run([sys.executable, str(ROOT / 'tools/configure.py'),
+                    '--home', tmp, '--user', 'user', '--apply-config', str(selection), '--no-restart'],
+                    text=True, env=env, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn('PETREL_AUX_UART=' + enabled + '\n',
+                flag = '1' if enabled == 'y' else '0'
+                self.assertIn('PETREL_AUX_UART=' + flag + '\n',
                               (home / '.config/Petrel/Petrel.env').read_text())
             calls = (home / 'sudo.log').read_text()
             self.assertIn('--enabled 1', calls)

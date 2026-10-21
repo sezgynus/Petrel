@@ -72,7 +72,7 @@ cd ~/Petrel
 
 Installer bağımlılıkları, `Petrel.service` servisini, harici ayarları ve Moonraker Update Manager kaydını hazırlar. [İlk açılış kontrollerini](docs/installation_TR.md#lcd-kaynakları-ve-ilk-açılış) tamamlayın. Petrel'i Moonraker Update Manager veya LCD'deki Info ekranından güncelleyebilirsiniz; ayrıntılar için [güncelleme rehberine](docs/installation_TR.md#güncelleme) bakın. Mevcut kurulumların ayarları [geçişte](docs/installation_TR.md#güncelleme) korunur.
 
-Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` içinde `./configure.sh` çalıştırın. Gezinmek için çevirin, seçmek için basın; sayısal değerlerde çevirip yeniden basarak onaylayın. Tune düzenleyicisi **Apply** kullanır; bazı sayfalarda ayrıca **Save** gerekir. **Back** geri döner; Home sayfaları arasında ilerlemek için çevirmeye devam edin.
+Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` içinde `./configure.sh` ile [Kconfig yapılandırma menüsünü](docs/configuration_TR.md) açın. Gezinmek için çevirin, seçmek için basın; sayısal değerlerde çevirip yeniden basarak onaylayın. Tune düzenleyicisi **Apply** kullanır; bazı sayfalarda ayrıca **Save** gerekir. **Back** geri döner; Home sayfaları arasında ilerlemek için çevirmeye devam edin.
 
 ## Doğru rehberi bulun
 

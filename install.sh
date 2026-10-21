@@ -63,7 +63,14 @@ sudo -u "$INSTALL_USER" mkdir -p "$APP_CONFIG_DIR"
 if [[ ! -f "$ENV_FILE" ]]; then
     echo "No existing Petrel configuration found."
     echo "Starting first-time configuration..."
-    sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh"
+    configure_status=0
+    sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh" || configure_status=$?
+    if [[ "$configure_status" == 2 ]]; then
+        echo "Configuration cancelled. Run install.sh again when ready."
+        exit 0
+    elif [[ "$configure_status" != 0 ]]; then
+        exit "$configure_status"
+    fi
 else
     echo "Keeping existing configuration: $ENV_FILE"
     sudo -u "$INSTALL_USER" "$VENV_DIR/bin/python" "$REPO_DIR/tools/env_defaults.py" "$ENV_FILE"

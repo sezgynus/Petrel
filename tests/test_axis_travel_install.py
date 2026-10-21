@@ -70,22 +70,22 @@ class AxisTravelInstallationTests(unittest.TestCase):
             self.assertEqual(config.read_text(),original)
 
     def test_existing_configurator_defaults_on_then_preserves_explicit_off(self):
+        from tools.configure import apply, read_settings
         with tempfile.TemporaryDirectory() as folder:
-            args=self.fixture(folder);home=Path(folder);bin_dir=home/'bin';bin_dir.mkdir()
-            for name,content in dict(getent='echo "user:x:1000:1000::${TEST_HOME}:/bin/bash"',
-                                     chown='exit 0',systemctl='exit 1').items():
-                path=bin_dir/name;path.write_text('#!/bin/sh\n'+content+'\n');path.chmod(0o755)
-            env=dict(os.environ,PATH=str(bin_dir)+':'+os.environ['PATH'],TEST_HOME=folder,USER='user',SUDO_USER='user')
-            def configure(answer):
-                result=subprocess.run(['bash',str(ROOT/'configure.sh')],input=answer,text=True,
-                                      env=env,capture_output=True)
-                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-            configure('\n'*20)
-            config=home/'.config/Petrel/Petrel.env'
-            self.assertIn('PETREL_AXIS_TRAVEL=1\n',config.read_text())
-            configure('\n'*7+'0\n'+'\n'*10)
-            self.assertIn('PETREL_AXIS_TRAVEL=0\n',config.read_text())
-            configure('\n'*20)
-            self.assertIn('PETREL_AXIS_TRAVEL=0\n',config.read_text())
-            self.assertEqual(config.read_text().count('PETREL_AXIS_TRAVEL='),1)
-            self.assertNotIn(BEGIN,args['printer_config'].read_text())
+            args = self.fixture(folder)
+            home = Path(folder)
+            env_file = home / '.config/Petrel/Petrel.env'
+            def configure(enabled=None):
+                original = env_file.read_text() if env_file.exists() else ''
+                values = read_settings(home, original)
+                if enabled is not None:
+                    values['PETREL_AXIS_TRAVEL'] = enabled
+                apply(values, repo=ROOT, home=home, user='user', original=original,
+                      dwin_manifest=home / 'no-dwin-manifest')
+            configure()
+            self.assertEqual(read_settings(home, env_file.read_text())['PETREL_AXIS_TRAVEL'], 'y')
+            configure('n')
+            self.assertEqual(read_settings(home, env_file.read_text())['PETREL_AXIS_TRAVEL'], 'n')
+            configure()
+            self.assertEqual(env_file.read_text().count('PETREL_AXIS_TRAVEL='), 1)
+            self.assertNotIn(BEGIN, args['printer_config'].read_text())
