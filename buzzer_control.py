@@ -84,13 +84,13 @@ class Player:
         return (self.subscription.buzzer_snapshot() if callable(reader)
                 else self.subscription.snapshot())
 
-    def play(self, settings, kind):
+    def play(self, settings, kind, priority=False):
         settings.validate()
         tone = settings.click if kind == 'press' else settings.encoder
         if not settings.output or not settings.volume or not tone:
             return False
         with self.condition:
-            if self.stopped or self.busy or self.pending is not None:
+            if self.stopped or (not priority and (self.busy or self.pending is not None)):
                 return False
         snapshot = self._snapshot()
         name = resolve_output(settings.output, available(snapshot))
@@ -98,7 +98,7 @@ class Player:
             return False
         settings = replace(settings, output=name)
         with self.condition:
-            if self.stopped or self.busy or self.pending is not None:
+            if self.stopped or (not priority and (self.busy or self.pending is not None)):
                 return False
             self.pending = (settings, tone, snapshot['epoch'], self.generation, time.monotonic())
             self.condition.notify()

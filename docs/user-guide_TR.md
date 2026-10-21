@@ -394,7 +394,10 @@ Firmware'in reddettiği bildirilmiş modlar loglanır; durum kısmi desteği bel
 Bağlantı hatasında iki saniye beklenip yeniden bağlanılır.
 
 Son kartın protokolü, tam UID/ID'si (32 bayta kadar), ATQA ve SAK canlı güncellenir;
-kart uzaklaşınca kimlik kalır. Kimlikler UUID değildir; ATQA/SAK kesin MIFARE çipini
+kart uzaklaşınca kimlik kalır. Her kart sunumunda seçili kullanılabilir buzzer
+(Disabled ise ilk kullanılabilir çıkış), Display ses tercihlerinden bağımsız
+700 Hz, %100 seviyede kısa bip verir. Tutulan kart bir kez öter; kendi
+teknolojisindeki iki başarısız tarama aynı kart için yeniden bipi etkinleştirir. Kimlikler UUID değildir; ATQA/SAK kesin MIFARE çipini
 kanıtlamaz. Yalnız değişen alanlar çizilir; kart belleğine veya diske yazılmaz.
 Sayfadan çıkılınca tarama sürer; kapanışta bekleyen libnfc I/O'su iptal edilip port
 kapatılır. Basarak Home'a dönülür. Deneysel kutucuk Info simgesini kullanır;

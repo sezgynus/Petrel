@@ -11,6 +11,10 @@ class RFIDReader:
         self._lock = Lock()
         self._session = None
         self._card = {}
+        self._present_card = None
+        self._present_modulation = None
+        self._missing_reads = 0
+        self._card_event = False
         self._identity = {'status': 'Reading...'}
         self._status = 'Starting...'
         self._revision = 0
@@ -24,6 +28,28 @@ class RFIDReader:
     def identity(self):
         with self._lock:
             return dict(self._identity)
+
+    def take_card_event(self):
+        """Consume a bounded arrival notification without changing the last card."""
+        with self._lock:
+            event, self._card_event = self._card_event, False
+            return event
+
+    def _observe_card(self, modulation, card):
+        with self._lock:
+            if card:
+                key = (card.get('type'), card['uid'])
+                if key != self._present_card:
+                    self._card_event = True
+                self._present_card = key
+                self._present_modulation = modulation
+                self._missing_reads = 0
+            elif modulation == self._present_modulation:
+                # Other technologies missing this card do not mean removal.
+                self._missing_reads += 1
+                if self._missing_reads >= 2:
+                    self._present_card = None
+                    self._present_modulation = None
 
     def _publish(self, status, card=None, identity=None):
         with self._lock:
@@ -59,6 +85,8 @@ class RFIDReader:
                             if candidate in unsupported:
                                 continue
                             card = session.scan(candidate)
+                            if card != 'unsupported':
+                                self._observe_card(candidate, card)
                             if card == 'unsupported':
                                 unsupported.add(candidate)
                                 logging.warning('NFC reader rejected advertised modulation %s', candidate)

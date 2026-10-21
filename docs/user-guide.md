@@ -392,7 +392,10 @@ promised. Firmware-rejected advertised modes are logged and the status indicates
 partial support. Transport failures reconnect with a two-second backoff.
 
 The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
-live; the identity remains after removal. IDs are not UUIDs, and ATQA/SAK do not
+live; the identity remains after removal. Each card presentation plays a short
+700 Hz beep at 100% volume on the selected available buzzer (or the first available
+output when disabled), independently of Display sound preferences. A held card
+beeps once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
 prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
 written or persisted. Scanning continues after leaving the page, and shutdown
 aborts pending libnfc I/O before closing the reader. Press to return Home. The

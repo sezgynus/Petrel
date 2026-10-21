@@ -2047,7 +2047,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.lcd.update()
 
     def _poll_rfid_ui(self):
-        if self.pd.refresh_rfid() and self.checkkey == self.RFIDMenu:
+        changed = self.pd.refresh_rfid()
+        reader = getattr(self.pd, '_rfid_reader', None)
+        if reader is not None and reader.take_card_event() is True:
+            self._rfid_buzzer_feedback()
+        if changed and self.checkkey == self.RFIDMenu:
             self.Draw_RFID_Menu(full=False)
             self.lcd.update()
 

@@ -75,6 +75,57 @@ class RFIDTests(unittest.TestCase):
         view._poll_rfid_ui.assert_called_once()
         view.EachMomentUpdate.assert_not_called()
 
+    def test_arrival_event_once_per_presentation_and_removal_uses_matching_mode(self):
+        with patch('rfid_reader.Thread'):
+            reader = RFIDReader()
+        card = {'type': 'ISO14443A', 'uid': '01:02'}
+        reader._observe_card((1, 1), card)
+        self.assertTrue(reader.take_card_event())
+        for _ in range(4):
+            reader._observe_card((1, 1), card)
+            reader._observe_card((3, 1), None)
+        self.assertFalse(reader.take_card_event())
+        reader._observe_card((1, 1), None)
+        reader._observe_card((1, 1), None)
+        reader._observe_card((1, 1), card)
+        self.assertTrue(reader.take_card_event())
+        self.assertFalse(reader.take_card_event())
+        reader._observe_card((1, 1), dict(card, uid='03:04'))
+        self.assertTrue(reader.take_card_event())
+
+    def test_card_beep_ignores_disabled_output_zero_volume_and_off_tones(self):
+        from buzzer_control import Settings
+        view = display(snapshot())
+        view._buzzer_outputs = Mock(return_value=('buzzer',))
+        view._buzzer_values = Settings(output='', volume=0, click=0, encoder=0)
+        view._buzzer_player = Mock()
+        view._rfid_buzzer_feedback()
+        settings, kind = view._buzzer_player.play.call_args.args
+        self.assertEqual((settings.output, settings.volume, settings.click, kind),
+                         ('buzzer', 100, 3, 'press'))
+        self.assertTrue(view._buzzer_player.play.call_args.kwargs['priority'])
+        self.assertEqual(view._buzzer_values.volume, 0)
+        view._buzzer_outputs.return_value = ()
+        view._buzzer_player.reset_mock()
+        view._rfid_buzzer_feedback()
+        view._buzzer_player.play.assert_not_called()
+
+    def test_card_beep_can_queue_behind_busy_click_player(self):
+        from buzzer_control import Player, Settings
+        subscription = Mock()
+        subscription.snapshot.return_value = {
+            'state': 'ready', 'epoch': 1,
+            'settings': {'pwm_cycle_time buzzer': {}},
+            'objects': ('pwm_cycle_time buzzer',)}
+        with patch('buzzer_control.Thread'):
+            player = Player(subscription)
+        player.busy = True
+        settings = Settings(output='buzzer', volume=100, click=3)
+        self.assertFalse(player.play(settings, 'press'))
+        self.assertTrue(player.play(settings, 'press', priority=True))
+        self.assertEqual(player.pending[1], 3)
+        player.close()
+
     def test_ready_recovery_tick_keeps_rfid_open_and_still_exits_recovery(self):
         from types import SimpleNamespace
         view = display(snapshot())
