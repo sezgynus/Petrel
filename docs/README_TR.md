@@ -8,6 +8,8 @@
 |---|---|
 | [Yazıcı bağlantısı ve kurtarma](klipper-recovery_TR.md) | Olağan açılış bekleyişi, hata ayrıntıları ve korumalı restart eylemleri |
 | [Kurulum ve yapılandırma](installation_TR.md) | Bağlantı, kurulum, harici ayarlar, güncellemeler ve sorun giderme |
+| [Kconfig yapılandırma menüsü](configuration_TR.md) | Menüde gezinme, ayarları kaydetme ve uygulama, isteğe bağlı bileşenler ve otomatik yapılandırma |
+| [DWIN yardımcı UART](dwin-uart_TR.md) | İsteğe bağlı Linux seri portunu kurma/kaldırma, programlardan erişim, baud hızları ve bağlantı sınırları |
 | [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Display, Info, ışık ve güç |
 | [Maintenance kullanımı](user-guide_TR.md#maintenance) | Bakım planları, donanım kontrolleri, sonuçlar, diagnostik, öneriler ve güncel ekranlar |
 | [Maintenance fiziksel kabulü](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
