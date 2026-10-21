@@ -18,6 +18,7 @@ from threading import Lock
 
 import display_settings
 import dwin_protocol
+from dwin_transport import open_display_serial
 import buzzer_control
 import serial
 from graphite_theme import BACKGROUND_COLOR
@@ -150,7 +151,7 @@ class T5UIC1Display:
             raise ValueError("wake delay must be nonnegative")
 
         self.serial = (connected_serial if connected_serial is not None else
-                       serial.Serial(port, baudrate, timeout=0.05, write_timeout=1))
+                       open_display_serial(port, serial.Serial, baudrate=baudrate, timeout=0.05, write_timeout=1))
         self.serial.timeout = 0.05
         self.serial.write_timeout = 1
         # Compatibility attribute while the rest of the application migrates.
