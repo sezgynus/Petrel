@@ -155,3 +155,22 @@ between draws. Input handling takes a new snapshot, and command preparation,
 confirmation and dispatch retain their independent current-state validation.
 Refresh intervals are unchanged. Measure actual Pi savings before accepting any
 CPU or memory improvement claim.
+
+## Incremental immutable UI state
+
+`MoonrakerSubscription.immutable_state()` freezes each changed status object
+under the subscription lock and reuses unchanged immutable object trees. A fresh
+outer mapping preserves a coherent revision; old published states cannot change.
+The latest trees are cached, without retaining revision history. Settings are
+frozen once per loaded configuration and reset on disconnect/bootstrap.
+
+`PrinterData.update_variable()` uses this API when explicitly supported. The
+existing mutable `snapshot()` API and command validation remain unchanged.
+Optional thermal field seeding/pruning and case-light updates invalidate their
+object caches. Live update frequency and field coverage are unchanged.
+
+CI checks value equivalence, alias isolation, delta sharing, disconnect/replacement,
+optional telemetry and concurrent access. `tools/benchmark_ui_state.py` compares
+the legacy path against the incremental path on a synthetic mostly static tree;
+its timing is not a claim about whole-process Pi CPU or RAM savings. Repeat
+uninstrumented dashboard measurements and the same navigation profile on the Pi.

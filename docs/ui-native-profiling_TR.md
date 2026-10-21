@@ -154,3 +154,22 @@ ayrıştırılmış MMU durumunu paylaşır. Çizimler arasında snapshot önbel
 Girdi işleme yeniden snapshot alır; komut hazırlama, onaylama ve gönderim kendi
 güncel durum doğrulamasını korur. Yenileme aralıkları değişmedi. CPU/bellek
 kazancı kabul edilmeden önce gerçek Pi ölçümü yapılmalıdır.
+
+## Artımlı değiştirilemez UI durumu
+
+`MoonrakerSubscription.immutable_state()` abonelik kilidi altında yalnız değişen
+durum nesnelerini dönüştürür; değişmeyen değiştirilemez ağaçları paylaşır. Yeni dış
+mapping tutarlı revision verir; eski yayımlanmış durumlar değişmez. Önbellek yalnız
+son ağaçları tutar, revision geçmişi biriktirmez. Ayarlar yüklenen yapılandırmada
+bir kez dönüştürülür; bağlantı kesilmesi/bootstrap sırasında sıfırlanır.
+
+`PrinterData.update_variable()` açıkça destekleniyorsa bu API'yi kullanır. Mevcut
+değiştirilebilir `snapshot()` API'si ve komut doğrulaması korunur. İsteğe bağlı
+termal alan ekleme/çıkarma ve case-light değişiklikleri ilgili nesne önbelleğini
+geçersiz kılar. Canlı yenileme sıklığı ve alan kapsamı değişmez.
+
+CI değer eşdeğerliği, alias yalıtımı, delta paylaşımı, bağlantı kesilmesi/yerine
+koyma, isteğe bağlı telemetri ve eşzamanlı okumayı denetler.
+`tools/benchmark_ui_state.py` çoğunlukla sabit sentetik ağaçta eski/yeni yolları
+karşılaştırır; süresi bütün Pi sürecinin CPU veya RAM kazancı değildir. Pi'de
+profilsiz dashboard ölçümü ve aynı gezinme profili tekrarlanmalıdır.

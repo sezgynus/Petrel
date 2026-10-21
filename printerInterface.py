@@ -1217,9 +1217,8 @@ class PrinterData:
         presets_changed = self.refresh_mainsail_presets()
         sort_changed = self.refresh_file_sort() if self._files_loaded else False
         try:
-            # Effective Klipper config stays stable within a websocket epoch.
-            # Avoid copying and recursively freezing the entire settings tree
-            # on every status revision; status itself remains freshly copied.
+            # The native subscription publishes immutable per-object trees.
+            # Legacy/test subscriptions retain the detached snapshot path.
             lifecycle_reader = getattr(self.subscription,'lifecycle',None)
             life = lifecycle_reader() if callable(lifecycle_reader) else None
             same_revision = (isinstance(life,dict) and self.state.ready
@@ -1228,6 +1227,8 @@ class PrinterData:
                              and life.get('revision') == self.state.revision)
             if same_revision:
                 state = replace(self.state, file_revision=life.get('file_revision',self.state.file_revision))
+            elif getattr(self.subscription, '_supports_immutable_state', None) is True:
+                state = self.subscription.immutable_state()
             elif getattr(self.subscription, '_supports_settings_elision', None) is True:
                 snap = self.subscription.snapshot(include_settings=False)
                 reuse = self.state.ready and snap['epoch'] == self.state.epoch
