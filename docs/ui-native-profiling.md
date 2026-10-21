@@ -146,3 +146,12 @@ error handling and cancellation. Any native prototype needs ARM32/ARM64 builds,
 sanitizers and CI regression coverage, followed by uninstrumented Pi A/B runs.
 Per project policy, do not run local tests/emulator: push each logical commit,
 wait for signing, and wait for all CI checks on the final signed SHA.
+
+## First measured candidate change
+
+MMU menu rendering and item eligibility now share one fresh snapshot per build,
+including status/settings and the parsed MMU state. The snapshot is not cached
+between draws. Input handling takes a new snapshot, and command preparation,
+confirmation and dispatch retain their independent current-state validation.
+Refresh intervals are unchanged. Measure actual Pi savings before accepting any
+CPU or memory improvement claim.

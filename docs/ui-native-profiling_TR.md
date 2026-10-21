@@ -146,3 +146,11 @@ davranışları karşılaştırılır. Native prototip ARM32/ARM64 derlemesi, sa
 CI regresyonları; ardından profilsiz Pi A/B ölçümü gerektirir. Proje kuralı:
 yerel test/emülatör çalıştırmayın; her mantıksal commit sonrası imzalama ve son
 imzalı SHA'nın bütün CI kontrollerini bekleyin.
+
+## İlk ölçümlere dayanan değişiklik
+
+MMU menüsü çizimi ve öğe uygunluğu aynı oluşturma içinde güncel snapshot ile
+ayrıştırılmış MMU durumunu paylaşır. Çizimler arasında snapshot önbelleği yoktur.
+Girdi işleme yeniden snapshot alır; komut hazırlama, onaylama ve gönderim kendi
+güncel durum doğrulamasını korur. Yenileme aralıkları değişmedi. CPU/bellek
+kazancı kabul edilmeden önce gerçek Pi ölçümü yapılmalıdır.
