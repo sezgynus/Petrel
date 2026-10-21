@@ -37,6 +37,8 @@ cd ~/Petrel
 
 The first installation opens the Kconfig menu. Review these defaults, then save, exit and confirm Apply:
 
+![First-install Kconfig menu](assets/configuration/main-menu.png)
+
 | Setting | Installer default |
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |

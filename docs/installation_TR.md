@@ -37,6 +37,8 @@ cd ~/Petrel
 
 İlk kurulum Kconfig menüsünü açar. Bu varsayılanları gözden geçirip kaydedin, çıkın ve Apply sorusunu onaylayın:
 
+![İlk kurulum Kconfig menüsü](assets/configuration/main-menu.png)
+
 | Ayar | Kurulum varsayılanı |
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |

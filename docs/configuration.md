@@ -8,6 +8,12 @@ the wrapper installs it into the existing Petrel virtual environment if missing.
 Without that environment it creates a separate private configuration virtualenv.
 The configurator adds no background work to the running UI.
 
+![Petrel Kconfig main menu](assets/configuration/main-menu.png)
+
+The screenshots show an existing installation. Displayed values and user paths are
+examples, not a complete list of first-install defaults; choose values for your wiring
+and installation. Menu labels remain in English in both language guides.
+
 ## Navigate and apply
 
 Use arrows and Enter to navigate/edit, Space to toggle, `?` for help, `S` to save,
@@ -26,6 +32,46 @@ service registration. Dependency bootstrap may already have completed.
 the final restart; changing the shared UART transport can still require a restart
 inside its installer. Klipper is never restarted automatically. After changing the
 counter extra, restart Klipper manually while idle.
+
+## Settings by menu
+
+### Connections and power
+
+Set the Moonraker URL, request timeout, physical display UART and power controls.
+**Physical display UART** is the host port wired to the screen; do not enter
+`/dev/ttyDWIN0` or its alias here.
+
+![Moonraker, physical display UART and power settings](assets/configuration/connections-power.png)
+
+### Encoder and presets
+
+Set the encoder A/B and button GPIOs in BCM numbering, plus the external preset JSON
+path. Use the actual pin assignments of your wiring.
+
+![Encoder GPIO and preset file settings](assets/configuration/encoder-presets.png)
+
+### Maintenance usage counters
+
+Enable or remove the optional Klipper extra and select the existing Klipper checkout
+and main printer configuration. Restart Klipper manually while idle after changing
+the extra. See the [installation guide](installation.md#optional-axis-travel-counters).
+
+![Optional axis travel and event-based sensor counters](assets/configuration/maintenance-counters.png)
+
+### Display tools
+
+Toggle screenshot capture and remote display/encoder control. Enabling remote display
+reveals its bind address and port settings. See the [emulator guide](ui-emulator.md).
+
+![Screenshot capture and remote display options](assets/configuration/display-tools.png)
+
+### DWIN auxiliary UART
+
+Toggle installation of the Linux serial port. The checked example below selects
+installation; save, exit and confirm Apply to perform it. Unchecking and applying
+removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
+
+![DWIN auxiliary UART enabled in Kconfig](assets/configuration/auxiliary-uart.png)
 
 ## Preservation and failures
 

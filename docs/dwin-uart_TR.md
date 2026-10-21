@@ -25,6 +25,8 @@ bu seçimi içerir. Mevcut ayarlar korunur; aynı yapılandırmayla tekrar etkin
 çalışan portu kesmez. Kaldırmadan veya kurulumu değiştirmeden önce yardımcı portu
 kullanan programları kapatın. Kaldırma, Petrel'in doğrudan ekran bağlantısını geri getirir.
 
+![Kconfig içinde seçili yardımcı UART kurulumu](assets/configuration/auxiliary-uart.png)
+
 Kurulum, **çalışan** kernelin başlıklarını edinir, DKMS modülünü derler, udev izinlerini
 kurar ve `Petrel-dwin.service` servisini etkinleştirir. Device Tree değiştirilmez ve
 başka kernel kurulmaz. Eksik başlık/derleme hatası, ekran bağlantısı değiştirilmeden

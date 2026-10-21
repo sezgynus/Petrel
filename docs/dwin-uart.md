@@ -24,6 +24,8 @@ Existing settings are preserved, and a repeated enable with unchanged configurat
 leaves an active port alone. Close programs using the auxiliary port before removing
 or changing the installation. Removal restores direct Petrel display communication.
 
+![Auxiliary UART installation selected in Kconfig](assets/configuration/auxiliary-uart.png)
+
 The installer obtains headers for the **running** kernel, builds a DKMS module,
 installs udev permissions and enables `Petrel-dwin.service`. It does not change the
 Device Tree or install a different kernel. Missing headers/build failures stop the

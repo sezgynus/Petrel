@@ -10,6 +10,8 @@ The optional emulator captures the screens drawn by the running Petrel service. 
 
 Run `./configure.sh` and use **Display tools → Emulator / screenshot capture** and **Remote display and encoder control**. Both default off on new configurations; existing saved values become the defaults. Save, exit and confirm Apply to use the selected settings. Remote display also starts the emulator. Custom host/port, font and socket settings are preserved.
 
+![Kconfig display tools menu](assets/configuration/display-tools.png)
+
 Dependencies are included in normal installation and Moonraker updates. In `~/.config/Petrel/Petrel.env`, change the default:
 
 ```ini

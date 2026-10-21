@@ -8,6 +8,13 @@ bağımlılığıdır; eksikse betik mevcut Petrel sanal ortamına kurar. Bu ort
 ve özel bir yapılandırma sanal ortamı oluşturur. Yapılandırıcı çalışan arayüze arka
 plan işi eklemez.
 
+![Petrel Kconfig ana menüsü](assets/configuration/main-menu.png)
+
+Görüntüler mevcut bir kurulumu gösterir. Görünen değerler ve kullanıcı yolları
+örnektir; ilk kurulum varsayılanlarının tamamını temsil etmez. Kendi bağlantınıza
+ve kurulumunuza uygun değerleri seçin. Menü etiketleri her iki dildeki rehberde de
+İngilizce olarak gösterilir.
+
 ## Gezinme ve uygulama
 
 Oklar ve Enter ile gezinin/düzenleyin, Space ile seçenek değiştirin, `?` ile yardımı
@@ -26,6 +33,48 @@ installer durur. Bağımlılık hazırlığı o aşamada tamamlanmış olabilir.
 atlamak için kapatın; ortak UART bağlantısını değiştirmek, bileşen installer'ının
 içinde yine restart gerektirebilir. Klipper otomatik yeniden başlatılmaz. Sayaç
 extra'sını değiştirdikten sonra Klipper'ı boşta iken elle yeniden başlatın.
+
+## Menülere göre ayarlar
+
+### Connections and power
+
+Moonraker adresini, istek zaman aşımını, fiziksel ekran UART'ını ve güç kontrollerini
+ayarlayın. **Physical display UART**, host üzerinde ekrana bağlı porttur; buraya
+`/dev/ttyDWIN0` veya takma adını girmeyin.
+
+![Moonraker, fiziksel ekran UART'ı ve güç ayarları](assets/configuration/connections-power.png)
+
+### Encoder and presets
+
+Enkoder A/B ve düğme GPIO'larını BCM numaralandırmasıyla, harici preset JSON dosyasının
+yolunu ise kendi kurulumunuza göre ayarlayın. Gerçek kablolamanızdaki pinleri kullanın.
+
+![Enkoder GPIO ve preset dosyası ayarları](assets/configuration/encoder-presets.png)
+
+### Maintenance usage counters
+
+İsteğe bağlı Klipper extra'sını açın veya kaldırın; mevcut Klipper deposunu ve ana
+yazıcı yapılandırmasını seçin. Extra değişikliğinden sonra Klipper'ı boşta iken elle
+yeniden başlatın. Ayrıntılar [kurulum rehberindedir](installation_TR.md#isteğe-bağlı-eksen-mesafesi-sayaçları).
+
+![İsteğe bağlı eksen mesafesi ve olay tabanlı sensör sayaçları](assets/configuration/maintenance-counters.png)
+
+### Display tools
+
+Ekran görüntüsü yakalamayı ve uzaktan ekran/enkoder kontrolünü açın veya kapatın.
+Remote display açıldığında dinleme adresi ve port ayarları görünür. Ayrıntılar
+[emülatör rehberindedir](ui-emulator_TR.md).
+
+![Ekran görüntüsü yakalama ve uzaktan ekran seçenekleri](assets/configuration/display-tools.png)
+
+### DWIN auxiliary UART
+
+Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki işaretli örnek kurulumu
+seçer; işlemi yapmak için kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
+uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
+[UART rehberine](dwin-uart_TR.md) bakın.
+
+![Kconfig içinde etkin seçilmiş DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
 
 ## Koruma ve hatalar
 
