@@ -323,7 +323,6 @@ static __poll_t backend_poll(struct file *file, poll_table *wait)
 static const struct file_operations backend_ops = {
 	.owner = THIS_MODULE, .open = backend_open, .release = backend_release,
 	.read = backend_read, .write = backend_write, .poll = backend_poll,
-	.llseek = no_llseek,
 };
 static struct miscdevice backend = {
 	.minor = MISC_DYNAMIC_MINOR, .name = "dwin-uart-backend",
