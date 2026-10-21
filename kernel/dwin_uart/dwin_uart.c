@@ -13,6 +13,7 @@
 #include <linux/mutex.h>
 #include <linux/poll.h>
 #include <linux/serial.h>
+#include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/tty.h>
 #include <linux/tty_driver.h>
@@ -32,6 +33,43 @@
 static struct tty_driver *driver;
 static struct tty_port port;
 static struct device *parent;
+/* A DWIN transport endpoint, not a host platform/MMIO UART.  In particular,
+ * pySerial excludes platform devices from enumeration.  Bind a real driver
+ * on this bus so sysfs consumers can resolve device/driver as usual.
+ * Manual bind/unbind is disabled: the module owns both endpoint lifetimes.
+ */
+static struct bus_type dwin_bus = { .name = "dwin" };
+static struct device_driver transport_driver = {
+	.name = "dwin_uart", .bus = &dwin_bus, .owner = THIS_MODULE,
+	.suppress_bind_attrs = true,
+};
+
+static void endpoint_release(struct device *dev)
+{
+	kfree(dev);
+}
+
+/* Serial discovery (including Moonraker) uses these TTY attributes.  CLOCK is
+ * the panel's baud-generator clock; port=0 means no host I/O-port address.
+ */
+static ssize_t uartclk_show(struct device *dev, struct device_attribute *attr,
+			   char *buf)
+{
+	return sysfs_emit(buf, "%u\n", CLOCK);
+}
+static DEVICE_ATTR_RO(uartclk);
+
+static ssize_t port_show(struct device *dev, struct device_attribute *attr,
+			char *buf)
+{
+	return sysfs_emit(buf, "0x0\n");
+}
+static DEVICE_ATTR_RO(port);
+
+static struct attribute *uart_attrs[] = {
+	&dev_attr_uartclk.attr, &dev_attr_port.attr, NULL,
+};
+ATTRIBUTE_GROUPS(uart);
 static DEFINE_KFIFO(queue, unsigned char, CAPACITY);
 static DEFINE_SPINLOCK(state_lock);
 static DEFINE_MUTEX(read_lock);
@@ -356,12 +394,28 @@ static int __init dwin_init(void)
 	ret = tty_register_driver(driver);
 	if (ret)
 		goto free_driver;
-	parent = root_device_register("dwin-uart");
-	if (IS_ERR(parent)) {
-		ret = PTR_ERR(parent);
+	ret = bus_register(&dwin_bus);
+	if (ret)
 		goto unregister;
+	ret = driver_register(&transport_driver);
+	if (ret)
+		goto unregister_bus;
+	parent = kzalloc(sizeof(*parent), GFP_KERNEL);
+	if (!parent) {
+		ret = -ENOMEM;
+		goto unregister_transport;
 	}
-	device = tty_port_register_device(&port, driver, 0, parent);
+	device_initialize(parent);
+	parent->bus = &dwin_bus;
+	parent->release = endpoint_release;
+	ret = dev_set_name(parent, "dwin-uart");
+	if (ret)
+		goto put_parent;
+	ret = device_add(parent);
+	if (ret)
+		goto put_parent;
+	device = tty_port_register_device_attr(&port, driver, 0, parent, NULL,
+					      uart_groups);
 	if (IS_ERR(device)) {
 		ret = PTR_ERR(device);
 		goto free_parent;
@@ -371,7 +425,13 @@ static int __init dwin_init(void)
 		return 0;
 	tty_unregister_device(driver, 0);
 	free_parent:
-	root_device_unregister(parent);
+	device_del(parent);
+	put_parent:
+	put_device(parent);
+	unregister_transport:
+	driver_unregister(&transport_driver);
+	unregister_bus:
+	bus_unregister(&dwin_bus);
 	unregister:
 	tty_unregister_driver(driver);
 	free_driver:
@@ -384,7 +444,9 @@ static void __exit dwin_exit(void)
 {
 	misc_deregister(&backend);
 	tty_unregister_device(driver, 0);
-	root_device_unregister(parent);
+	device_unregister(parent);
+	driver_unregister(&transport_driver);
+	bus_unregister(&dwin_bus);
 	tty_unregister_driver(driver);
 	tty_driver_kref_put(driver);
 	tty_port_destroy(&port);

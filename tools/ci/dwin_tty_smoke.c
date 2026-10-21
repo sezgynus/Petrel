@@ -7,12 +7,44 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
 #define CHECK(x) do { if (!(x)) { perror(#x); exit(1); } } while (0)
 static unsigned char msg[255];
+
+static void check_attribute(const char *name, const char *expected)
+{
+    char path[256], value[128];
+    struct stat st;
+    snprintf(path, sizeof(path), "/sys/class/tty/ttyDWIN0/%s", name);
+    CHECK(stat(path, &st) == 0 && S_ISREG(st.st_mode));
+    CHECK((st.st_mode & 0222) == 0);
+    int fd = open(path, O_RDONLY);
+    CHECK(fd >= 0);
+    ssize_t count = read(fd, value, sizeof(value) - 1);
+    CHECK(count > 0);
+    value[count] = '\0';
+    CHECK(strcmp(value, expected) == 0);
+    close(fd);
+}
+
+static void check_device_identity(void)
+{
+    char path[512];
+    /* These are the exact paths consumed by Moonraker serial discovery. */
+    check_attribute("uartclk", "15667200\n");
+    check_attribute("port", "0x0\n");
+    CHECK(realpath("/sys/class/tty/ttyDWIN0/device/driver", path) != NULL);
+    CHECK(strcmp(path, "/sys/bus/dwin/drivers/dwin_uart") == 0);
+    CHECK(realpath("/sys/class/tty/ttyDWIN0/device/subsystem", path) != NULL);
+    CHECK(strcmp(path, "/sys/bus/dwin") == 0);
+    CHECK(access("/sys/bus/dwin/drivers/dwin_uart/bind", F_OK) == -1);
+    CHECK(access("/sys/bus/dwin/drivers/dwin_uart/unbind", F_OK) == -1);
+    puts("DWIN_IDENTITY_PASS hardware_uart dwin_uart");
+}
 
 static void client(void)
 {
@@ -60,6 +92,7 @@ static void client(void)
 
 int main(void)
 {
+    check_device_identity();
     int status = 1, echoed = 0;
     int backend = open("/dev/dwin-uart-backend", O_RDWR | O_NONBLOCK);
     CHECK(backend >= 0);

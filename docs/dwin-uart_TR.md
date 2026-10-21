@@ -39,6 +39,14 @@ Uygulamalar Petrel API'sine ihtiyaç duymaz. Otomatik listeleme, uygulamanın ta
 bağlıdır; her iki yol da elle girilebilir. Erişim, ekranın fiziksel UART'ında olduğu
 gibi standart `dialout` grubu üzerinden sağlanır.
 
+Moonraker/Mainsail portu **HARDWARE UART**, sürücüyü **dwin_uart** olarak listeler.
+Uç nokta `dwin` bus'ında sürücüye bağlanır; salt okunur TTY sysfs alanları
+`uartclk=15667200` (panelin baud üreteci saati) ve `port=0x0` (host I/O adresi yok)
+bilgilerini sunar. Bu sınıflandırma doğrudan host MMIO UART anlamına gelmez ve
+aşağıdaki ortak bağlantı sınırlarını değiştirmez. Mevcut kurulumda güncelleme için
+`./configure.sh` yeniden çalıştırılıp yardımcı UART etkin halde uygulanmalıdır;
+modül yeniden derlenip yüklenir. Ardından Mainsail cihaz listesini yenileyin.
+
 ```python
 import serial
 

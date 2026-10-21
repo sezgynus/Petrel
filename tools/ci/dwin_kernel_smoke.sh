@@ -17,8 +17,18 @@ cat > "$test_dir/root/init" <<'INIT'
 /bin/busybox mount -t proc proc /proc
 /bin/busybox mount -t sysfs sysfs /sys
 /bin/busybox mount -t devtmpfs devtmpfs /dev
-/bin/busybox insmod /dwin_uart.ko || /bin/busybox poweroff -f
-/smoke
+for pass in 1 2; do
+    /bin/busybox insmod /dwin_uart.ko || /bin/busybox poweroff -f
+    /smoke || /bin/busybox poweroff -f
+    /bin/busybox rmmod dwin_uart || /bin/busybox poweroff -f
+    for path in /sys/class/tty/ttyDWIN0 /sys/devices/dwin-uart /sys/bus/dwin /dev/ttyDWIN0 /dev/dwin-uart-backend; do
+        if [ -e "$path" ]; then
+            echo "DWIN_UNLOAD_FAILED: $path remains"
+            /bin/busybox poweroff -f
+        fi
+    done
+done
+echo DWIN_LIFECYCLE_PASS
 /bin/busybox poweroff -f
 INIT
 chmod +x "$test_dir/root/init"
@@ -31,3 +41,5 @@ timeout 90 qemu-system-x86_64 -m 256 -nographic -no-reboot \
 }
 cat "$test_dir/console.log"
 grep -q 'DWIN_SMOKE_PASS' "$test_dir/console.log"
+grep -q 'DWIN_IDENTITY_PASS hardware_uart dwin_uart' "$test_dir/console.log"
+grep -q 'DWIN_LIFECYCLE_PASS' "$test_dir/console.log"

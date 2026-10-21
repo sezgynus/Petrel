@@ -37,6 +37,14 @@ patterns. Applications do not need a Petrel API. Automatic enumeration behavior
 still depends on the application's scanner; either path can be entered explicitly.
 Access uses the normal `dialout` group, like the display's physical UART.
 
+Moonraker/Mainsail lists it as **HARDWARE UART**, with driver **dwin_uart**.
+The endpoint is bound on the `dwin` bus; read-only TTY sysfs attributes expose
+`uartclk=15667200` (the panel's baud-generator clock) and `port=0x0` (no host I/O
+address). This classification does not imply a direct host MMIO UART or remove the
+shared-transport limits below. Updating an existing installation requires rerunning
+`./configure.sh` and applying with the auxiliary UART enabled to rebuild/reload the
+module; then refresh Mainsail's device list.
+
 ```python
 import serial
 
