@@ -142,8 +142,8 @@ class BuzzerMenuTests(unittest.TestCase):
         self.assertEqual(len(view._buzzer_rows()), 1)
         view._display_selection = 7
         self.step(view, view.ENCODER_DIFF_CW)
-        self.assertEqual(view._display_selection, 4)
-        self.assertFalse(view._display_edit)
+        self.assertEqual(view._display_selection, 5)  # NFC follows the remaining Buzzer row.
+        self.assertFalse(getattr(view, '_display_edit', False))
         view.pd.state = replace(view.pd.state, settings={})
         self.assertEqual(view._buzzer_outputs(), ())
         view.Draw_Buzzer_Menu()

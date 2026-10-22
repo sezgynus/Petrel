@@ -28,6 +28,7 @@ from ui_recovery import RecoveryViewMixin
 from ui_power import PowerShortcutMixin
 from ui_mmu import MMUViewMixin
 from ui_buzzer import BuzzerViewMixin
+from ui_nfc_settings import NFCSettingsViewMixin
 import buzzer_control
 from buzzer_control import Settings as BuzzerSettings
 from ui_screws_tilt import ScrewsTiltMixin
@@ -81,7 +82,7 @@ class select_t:
         return self.changed()
 
 
-class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, NFCSettingsViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -162,6 +163,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     MaintenanceMenu = 48
     BuzzerMenu = 49
     RFIDMenu = 51
+    NFCSettingsMenu = 52
 
     MINUNITMULT = 10
 
@@ -666,6 +668,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.Draw_Maintenance_Menu()
             if getattr(self, 'checkkey', None) == self.BuzzerMenu:
                 self.Draw_Buzzer_Menu()
+            if getattr(self, 'checkkey', None) == self.NFCSettingsMenu:
+                self.Draw_NFC_Settings_Menu()
             if getattr(self, 'checkkey', None) == self.RecoveryScreen:
                 self.Clear_Popup_Area()
                 self._recovery_render = None
@@ -829,6 +833,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.lcd.update()
             elif getattr(self, 'checkkey', None) == self.BuzzerMenu:
                 self.Draw_Buzzer_Menu()
+                self.lcd.update()
+            elif getattr(self, 'checkkey', None) == self.NFCSettingsMenu:
+                self.Draw_NFC_Settings_Menu()
                 self.lcd.update()
 
     def _update_ui_state(self):
@@ -1963,7 +1970,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def Draw_Display_Menu(self):
         selection = getattr(self, '_display_selection', 0)
-        if selection >= 5 and not self._buzzer_enabled():
+        if 5 <= selection < 4 + len(self._buzzer_rows()) and not self._buzzer_enabled():
             self._display_selection = selection = 4
             self._display_edit = False
         values = getattr(self, '_display_values', [100, 0, 10])
@@ -1986,6 +1993,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
                 max(172, 260 - len(text) * 8), self.MBASE(row) - 1, text)
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
+        entries.append(('NFC settings', self.ICON_Info, None, None))
         self._display_selection = min(selection, len(entries) - 1)
         title = 'Display - not saved' if getattr(self, '_display_save_message', '') else 'Display'
         self._draw_list_menu(title, entries, self._display_selection)
@@ -2009,13 +2017,21 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 if index == 0:
                     self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
             else:
-                self._display_selection = max(0, min(3 + len(self._buzzer_rows()), selection + delta))
+                self._display_selection = max(0, min(4 + len(self._buzzer_rows()), selection + delta))
             self._display_save_message = ''
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
                 self.select_page.set(next(i for i, entry in enumerate(self._home_entries())
                                           if entry[0] == 'DISPLAY'))
                 self.Goto_MainMenu()
+                self.lcd.update()
+                return
+            if selection == 4 + len(self._buzzer_rows()):
+                self._nfc_selection = 0
+                self._nfc_edit = False
+                self._nfc_save_error = False
+                self.checkkey = self.NFCSettingsMenu
+                self.Draw_NFC_Settings_Menu()
                 self.lcd.update()
                 return
             if editing:
@@ -3835,6 +3851,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.Info: '_info_scroll',
             self.DisplayMenu: '_display_selection',
             self.BuzzerMenu: '_buzzer_selection',
+            self.NFCSettingsMenu: '_nfc_selection',
             self.MaintenanceMenu: '_maintenance_selection',
         }
         if self.checkkey == self.MMUMenu:
@@ -3898,6 +3915,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.RFIDMenu: self.Draw_RFID_Menu,
             self.DisplayMenu: self.Draw_Display_Menu,
             self.BuzzerMenu: self.Draw_Buzzer_Menu,
+            self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
             self.Tune: self.Draw_Tune_Menu,
             self.MMUMenu: self.Draw_MMU_Menu,
@@ -4026,6 +4044,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.HMI_Maintenance_Menu()
         elif self.checkkey == self.BuzzerMenu:
             self.HMI_Buzzer_Menu()
+        elif self.checkkey == self.NFCSettingsMenu:
+            self.HMI_NFC_Settings_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
         elif self.checkkey == self.RFIDMenu:

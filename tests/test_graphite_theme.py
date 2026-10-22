@@ -53,7 +53,7 @@ class GraphiteContracts(unittest.TestCase):
         v._draw_list_menu = Mock()
         v.Draw_Display_Menu()
         rows = v._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[1] for r in rows[4:]], [214, 215, 216, 217])
+        self.assertEqual([r[1] for r in rows[4:8]], [214, 215, 216, 217])
         # Brightness artwork only belongs to PWM-capable case lights.
         data = snapshot()
         data['objects'].append('output_pin case_light')

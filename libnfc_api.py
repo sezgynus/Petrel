@@ -4,6 +4,7 @@ import ctypes.util
 import os
 
 from nfc_info import DEFAULT_DEVICE, parse_info
+from nfc_settings import load as load_nfc_settings
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
 PTR = C.c_void_p
@@ -93,6 +94,29 @@ def bind_library():
     return lib
 
 
+def list_devices(limit=32):
+    """Ask the installed libnfc build to enumerate its compatible devices."""
+    if not 1 <= int(limit) <= 256:
+        raise ValueError('Invalid NFC device limit')
+    lib = bind_library()
+    connstring = C.c_char * 1024
+    devices = (connstring * int(limit))()
+    context = PTR()
+    lib.nfc_init.argtypes = [C.POINTER(PTR)]
+    lib.nfc_init(C.byref(context))
+    if not context:
+        raise OSError('libnfc context unavailable')
+    try:
+        enumerate_devices = lib.nfc_list_devices
+        enumerate_devices.restype = SIZE
+        enumerate_devices.argtypes = [PTR, C.POINTER(connstring), SIZE]
+        count = min(int(enumerate_devices(context, devices, int(limit))), int(limit))
+        return tuple(bytes(devices[index]).split(b'\0', 1)[0].decode('utf-8', 'replace')
+                     for index in range(count))
+    finally:
+        lib.nfc_exit(context)
+
+
 class NFCSession:
     """One device handle, all supported passive card technologies, no CLI tools."""
     def __init__(self):
@@ -102,7 +126,12 @@ class NFCSession:
             self.lib.nfc_init(C.byref(self.context))
             if not self.context:
                 raise OSError('libnfc context unavailable')
-            connection = os.environ.get('PETREL_NFC_DEVICE', DEFAULT_DEVICE)
+            connection = os.environ.get('PETREL_NFC_DEVICE')
+            if not connection:
+                try:
+                    connection = load_nfc_settings().connection_string()
+                except ValueError:
+                    connection = DEFAULT_DEVICE
             self.device = self.lib.nfc_open(self.context, connection.encode())
             if not self.device:
                 raise OSError('NFC reader unavailable')

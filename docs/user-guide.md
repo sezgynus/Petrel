@@ -195,6 +195,26 @@ Open **Display → Buzzer** to choose one of the configured `[pwm_cycle_time nam
 
 Press an audio setting, rotate to adjust it and press again to save. Volume uses 10% steps from 0 to 100%. Tones include Off, Tick, Short beep, Low, High and Double. Output and sound preferences survive restarts. Sounds play in the background; rapid rotations do not build a sound queue. If the selected section is removed from Klipper configuration, sound controls are hidden until an available output is chosen.
 
+### NFC reader settings
+
+Open **Display → NFC settings**. The page reports whether NFC was enabled in
+`configure.sh`. When it was not enabled, the NFC rows remain visible but cannot
+be selected. Enable NFC in `configure.sh` and restart Petrel to unlock them.
+Choose a libnfc reader family, one of that family's available interfaces, an
+existing system port/device and the interface speed, then choose **Save**.
+Changing the reader or interface clears dependent selections. UART, I2C and SPI
+port lists come from existing Linux device nodes; USB, PC/SC and NCI lists come
+from devices actually enumerated by the installed libnfc build. These interfaces do not have
+a separate link-speed control. Settings are stored in the Petrel user's private
+configuration directory and the selected connection is applied to the background
+reader after saving. Link speed is editable only for UART. I2C, SPI, USB, PC/SC
+and NCI show an inactive speed field because libnfc does not apply a configurable
+host-interface speed for those transports.
+
+The list follows libnfc driver families rather than every board vendor's product
+name. PN532 offers UART, I2C and SPI in upstream libnfc; the available set still
+depends on the installed libnfc build.
+
 ## Maintenance
 
 Open **Home → Maintenance** while the printer is idle. Available checks and devices follow the discovered printer configuration. Screen labels remain English.
@@ -369,11 +389,11 @@ Real UI emulator output with example data. [Original panel PNGs](screenshots.md)
 **Info → NFC** and **Home → RFID** share one background owner using the public
 libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
-library (included with `libnfc-bin`) is required; no compiler or development
-headers are needed on the Pi. The default connection is
-`pn532_uart:/dev/ttyDWIN0:115200`; `PETREL_NFC_DEVICE` overrides it. The reader is
-opened explicitly, without scanning other serial ports, and remains open across
-both menus. Identity is read once per connection and refreshed after reconnect.
+library is required; no compiler or development headers are needed on the Pi.
+The reader configuration is selected under **Display → NFC settings**;
+`PETREL_NFC_DEVICE` remains an advanced override. The reader is opened explicitly
+and remains open across both menus. Identity is read once per connection and
+refreshed after reconnect.
 Info shows model, firmware, libnfc version and supported A/B/FeliCa protocols;
 PN532 does not expose its module board revision, so Hardware is **Not reported**.
 

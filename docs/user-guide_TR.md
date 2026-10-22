@@ -193,6 +193,25 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 Yapılandırılmış `[pwm_cycle_time ad]` çıkışlarından birini veya **Disabled** seçmek için **Display → Buzzer** açın. Seçime basınca kaydedilir ve Display’e dönülür. Kullanılabilir bir çıkış seçiliyken **Volume**, **Click tone** ve **Encoder tone**, Display’de Buzzer’ın altında görünür.
 
+### NFC okuyucu ayarları
+
+**Display → NFC settings** menüsü `configure.sh` sırasında NFC'nin etkin olup
+olmadığını gösterir. Kurulumda açılmadıysa NFC satırları görünür ama odaklanıp
+değiştirilemez. `configure.sh` ile NFC'yi açıp Petrel'i yeniden başlattığınızda
+ayarlar kullanılabilir. Libnfc okuyucu ailesini, o ailenin arayüzünü, sistemde
+mevcut port/aygıtı ve haberleşme hızını seçip **Save**'e basın. Okuyucu veya
+arayüz değişince alt seçimler sıfırlanır. UART/I2C/SPI listeleri mevcut Linux
+aygıt düğümlerinden; USB, PC/SC ve NCI listeleri kurulu libnfc'nin gerçekten
+bulduğu aygıtlardan oluşturulur. Bu arayüzlerde hız ayarı yoktur. Seçimler Petrel
+kullanıcısının özel yapılandırma dizininde saklanır ve seçilen bağlantı kaydedince
+arka plan okuyucusuna uygulanır. Hız ayarı yalnızca UART için değiştirilebilir.
+Libnfc I2C, SPI, USB, PC/SC ve NCI için bu ayarı uygulamadığından hız satırı
+pasiftir ve odaklanamaz.
+
+Liste libnfc sürücü ailelerini gösterir; tüm üreticilerin kart adlarını ayrı ayrı
+listelemez. Upstream libnfc'de PN532 UART, I2C ve SPI arayüzlerini destekler;
+kurulu derlemenin etkin sürücüleri kullanılabilir seçenekleri belirler.
+
 Ses ayarına basın, çevirmeyle değiştirin ve tekrar basarak kaydedin. Ses seviyesi %0–100 arasında 10’ar adımla değişir. Tonlar Off, Tick, Short beep, Low, High ve Double seçeneklerini içerir. Çıkış ve ses tercihleri yeniden başlatmada korunur. Sesler arka planda çalar; hızlı çevirmelerde birikmez. Seçili section Klipper yapılandırmasından kaldırılırsa kullanılabilir bir çıkış seçilene kadar ses kontrolleri gizlenir.
 
 ## Maintenance
@@ -371,11 +390,11 @@ Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 
 **Info → NFC** ve **Home → RFID**, ctypes üzerinden doğrudan libnfc C API'sini
 kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-device`,
 shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
-olmalıdır. Sistem libnfc paylaşımlı kütüphanesi (`libnfc-bin` ile gelir) gerekir;
-Pi'de derleyici veya geliştirme başlıkları gerekmez. Varsayılan bağlantı
-`pn532_uart:/dev/ttyDWIN0:115200`; `PETREL_NFC_DEVICE` ile değiştirilebilir.
-Başka seri port taranmadan okuyucu doğrudan açılır ve iki menü arasında açık
-kalır. Kimlik bağlantı başına bir kez okunur, yeniden bağlantıda yenilenir.
+olmalıdır. Sistem libnfc paylaşımlı kütüphanesi gerekir; Pi'de derleyici veya
+geliştirme başlıkları gerekmez. Okuyucu **Display → NFC settings** içinden
+seçilir; `PETREL_NFC_DEVICE` gelişmiş kullanım için geçersiz kılma seçeneği
+olarak kalır. Okuyucu doğrudan açılır ve iki menü arasında açık kalır. Kimlik
+bağlantı başına bir kez okunur, yeniden bağlantıda yenilenir.
 Info model, firmware, libnfc sürümü ve desteklenen A/B/FeliCa protokollerini gösterir.
 PN532 modül kartının revizyonunu bildirmez; Hardware alanı **Not reported** olur.
 

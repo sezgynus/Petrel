@@ -70,7 +70,8 @@ class BuzzerViewMixin:
         if event == self.ENCODER_DIFF_NO:
             return False
         selection = getattr(self, '_display_selection', 0)
-        if selection >= 5 and not self._buzzer_enabled():
+        nfc_index = 4 + len(self._buzzer_rows())
+        if 5 <= selection < nfc_index and not self._buzzer_enabled():
             self._display_selection = selection = 4
             self._display_edit = False
         if selection < 4:
@@ -83,7 +84,7 @@ class BuzzerViewMixin:
             self.Draw_Buzzer_Menu()
             self.lcd.update()
             return True
-        if selection >= 5 and getattr(self, '_display_edit', False):
+        if 5 <= selection < nfc_index and getattr(self, '_display_edit', False):
             if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
                 delta = getattr(self,"_rotation_steps",1)*(1 if event == self.ENCODER_DIFF_CW else -1)
                 value = self._buzzer_settings()
@@ -101,7 +102,7 @@ class BuzzerViewMixin:
             self.Draw_Display_Menu()
             self.lcd.update()
             return True
-        if selection >= 5 and event == self.ENCODER_DIFF_ENTER:
+        if 5 <= selection < nfc_index and event == self.ENCODER_DIFF_ENTER:
             self._display_edit = True
             self.Draw_Display_Menu()
             self.lcd.update()
