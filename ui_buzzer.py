@@ -25,6 +25,16 @@ class BuzzerViewMixin:
                 self._buzzer_player = Player(self.pd.subscription)
             self._buzzer_player.play(settings, kind)
 
+    def _rfid_buzzer_feedback(self):
+        # Card acceptance is independent of optional encoder/click preferences.
+        names = self._buzzer_outputs()
+        if not names:
+            return
+        selected = resolve_output(self._buzzer_settings().output, names) or names[0]
+        if getattr(self, '_buzzer_player', None) is None:
+            self._buzzer_player = Player(self.pd.subscription)
+        self._buzzer_player.play(Settings(output=selected, volume=100, click=3), 'press', priority=True)
+
     def _save_buzzer(self, values):
         if getattr(self, '_buzzer_save_future', None) is not None:
             raise RuntimeError('Buzzer save already pending')

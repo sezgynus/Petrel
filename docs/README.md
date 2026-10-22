@@ -8,6 +8,8 @@
 |---|---|
 | [Printer connection and recovery](klipper-recovery.md) | Normal startup delay, error details and guarded restart actions |
 | [Installation and configuration](installation.md) | Wiring, setup, external settings, updates and troubleshooting |
+| [Kconfig configuration menu](configuration.md) | Menu navigation, saving and applying settings, optional components and automated configuration |
+| [DWIN auxiliary UART](dwin-uart.md) | Optional Linux serial port installation/removal, application access, baud rates and transport limits |
 | [Daily use](user-guide.md) | Printing, movement, heating, calibration, Display, Info, light and power |
 | [Using Maintenance](user-guide.md#maintenance) | Care plans, hardware checks, results, diagnostics, recommendations and current screenshots |
 | [Maintenance physical acceptance](maintenance-stage8-acceptance.md) | Guarded physical tests, optional output profiles, operator observation and real-Pi acceptance |
@@ -25,6 +27,7 @@
 | [Contributing](../CONTRIBUTING.md) | Issues, pull requests, documentation and development checks |
 | [Emulator screenshots](ui-emulator.md) | Enable capture and save images from the running service |
 | [Tests](../tests/README.md) | Run automated checks and plan hardware validation |
+| [UI native-code candidate profiling](ui-native-profiling.md) | Separate normal resource measurements, CPU sampling and Python allocation ownership |
 | [LCD artwork](../assets/README.md) | Prepare custom icons and identify artwork |
 | [Emulator assets](../assets/emulator/README.md) | Choose matching host-side fonts and icons |
 

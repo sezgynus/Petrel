@@ -35,7 +35,9 @@ cd ~/Petrel
 ./install.sh
 ```
 
-Press Enter to accept a prompt's default, or enter your own value:
+The first installation opens the Kconfig menu. Review these defaults, then save, exit and confirm Apply:
+
+![First-install Kconfig menu](assets/configuration/main-menu.png)
 
 | Setting | Installer default |
 |---|---|
@@ -45,7 +47,7 @@ Press Enter to accept a prompt's default, or enter your own value:
 | Encoder button | `20` |
 | Moonraker power device | `Printer` |
 | Power-on hold | `2000` ms (2 seconds) |
-| Axis travel counters | `1` enabled; enter `0` to decline |
+| Axis travel counters | Enabled; toggle off with Space to decline |
 | Klipper repository (when enabled) | `~/klipper` |
 | Main Klipper config (when enabled) | `~/printer_data/config/printer.cfg` |
 | Emulator / screenshot capture | `0` disabled |
@@ -61,13 +63,13 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 
 ## Optional axis travel counters
 
-The existing `configure.sh` offers **Enable axis travel counters? (1=yes, 0=no)**. First configuration defaults to **1**; Enter accepts installation, `0` declines it. Later runs preserve your saved choice. Existing installations are not silently modified on update: run `./configure.sh` to select this feature.
+The Kconfig menu provides **Maintenance usage counters → Axis travel and event-based sensor counters**. It defaults to enabled at first configuration; toggle it with Space. Later runs preserve your saved choice. Existing installations are not silently modified on update: run `./configure.sh` to select this feature.
 
-Enabling creates `klippy/extras/petrel_axis_travel.py` as a symlink to the extra in the Petrel repository, creates `petrel-axis-travel.cfg` beside your main Klipper config, and inserts a marked include block at the beginning of that main config, unless an existing wildcard include already covers the fragment. It does not change tracked Klipper source or `.gitignore`: only that exact symlink path is added to the repository-local Git exclude file. Existing user exclusions are retained. Foreign conflicting files are not overwritten. **Each `configure.sh` prompt above is editable:** URL selects the Moonraker instance, UART selects the LCD port, GPIO entries select encoder wiring, power device selects the relay, hold time controls power-on, and the last three entries control this optional integration and its paths.
+Enabling creates `klippy/extras/petrel_axis_travel.py` as a symlink to the extra in the Petrel repository, creates `petrel-axis-travel.cfg` beside your main Klipper config, and inserts a marked include block at the beginning of that main config, unless an existing wildcard include already covers the fragment. It does not change tracked Klipper source or `.gitignore`: only that exact symlink path is added to the repository-local Git exclude file. Existing user exclusions are retained. Foreign conflicting files are not overwritten. Connection, encoder, power and optional integration settings are editable in the corresponding Kconfig menus.
 
 **Restart Klipper while idle after enabling or disabling**, then restart Petrel to refresh discovery. The configurator never restarts Klipper automatically. Petrel offers X/Y/Z travel devices and **Recorded travel (metres)** reminders only when the extra is actually loaded. See [usage tracking](maintenance-usage.md) for measurement limits and resource bounds.
 
-Run `./configure.sh` again and choose **0** to disable. This removes only Petrel's managed config fragment/include, symlink and its own added Git exclusion. Counters and maintenance history remain; saved distance reminders pause. Apply the same idle Klipper restart. The extra follows Petrel updates through the symlink; running Klipper loads the updated module on its next restart. A Klipper reinstall/hard recovery may remove the link: rerun `configure.sh` to repair it.
+Run `./configure.sh` again, uncheck the counters option, save and apply to disable. This removes only Petrel's managed config fragment/include, symlink and its own added Git exclusion. Counters and maintenance history remain; saved distance reminders pause. Apply the same idle Klipper restart. The extra follows Petrel updates through the symlink; running Klipper loads the updated module on its next restart. A Klipper reinstall/hard recovery may remove the link: rerun `configure.sh` to repair it.
 
 ## LCD resources and first start
 
@@ -88,9 +90,17 @@ cd ~/Petrel
 ./configure.sh
 ```
 
-Current values become the prompt defaults. The emulator and remote-display prompts default to **0 (off)** on new configurations; saved values are preserved on subsequent runs. Emulator enables screen capture; remote display enables browser viewing and encoder control and also starts the emulator, even if the separate capture preference is off. Existing remote host/port settings are preserved; the default listener is `0.0.0.0:8088`. Your custom `PETREL_SETTINGS_FILE` path and other environment settings, including unprompted font/socket/screenshot-directory options, are preserved without duplicating keys. The file is replaced atomically with private permissions. After saving, accept the offered service restart to apply them. Display brightness/dimming are adjusted on the LCD under **Home → Display**, rather than here.
+`configure.sh` opens a Kconfig terminal menu. Existing values are imported from `Petrel.env`;
+new emulator, remote display and auxiliary UART options default to off. Use arrows/Enter
+to navigate, Space to toggle, `?` for help, `S` to save and `Q` to exit. After saving,
+confirm **Apply saved configuration** to install/remove selected components and write
+settings. Exit without saving, or decline Apply, to keep the current installation.
+The **Apply options** menu controls the final restart of a running Petrel; Klipper is
+never restarted automatically. See the [configuration guide](configuration.md) for
+unattended setup, preservation and failure handling. Brightness/dimming remain on
+the LCD under **Home → Display**.
 
-For settings not prompted by the configurator, edit the external environment file. Use plain `KEY=value` lines, without `export`:
+For settings not listed in the menu, edit the external environment file. Use plain `KEY=value` lines, without `export`:
 
 | Setting | Purpose / default |
 |---|---|
@@ -103,7 +113,7 @@ For settings not prompted by the configurator, edit the external environment fil
 | `PETREL_SETTINGS_FILE` | Local preset fallback / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |
-| `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled; prompted by `configure.sh` |
+| `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled; selectable in the Kconfig menu |
 | `PETREL_REMOTE` | Browser display and encoder control / `0` disabled, `1` enabled; also starts emulator |
 | `PETREL_REMOTE_HOST` | Remote listener / `0.0.0.0`; preserved by configurator |
 | `PETREL_REMOTE_PORT` | Remote port / `8088`; preserved by configurator |
@@ -147,3 +157,8 @@ For a bug report, include the software revision, Pi/OS, configuration relevant t
 ### Sensor event counters in an extra update
 
 The existing optional axis-travel extra now also supplies event-based sensor counters. The shared `configure.sh` option preserves its existing `PETREL_AXIS_TRAVEL` key. No additional extra file/include is needed. An installed symlink follows the updated file; restart Klipper while idle to load it, then restart Petrel. Klipper is not restarted automatically. An old/disabled/missing extra pauses event-based reminders and preserves histories. See the [usage counter guide](maintenance-usage.md#event-based-sensor-counters) for supported sources and counting coverage.
+
+## Optional auxiliary UART
+
+Run `./configure.sh` to install or remove the optional Linux serial port provided
+by the DWIN auxiliary UART. It is off by default. See [setup and limits](dwin-uart.md).

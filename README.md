@@ -72,7 +72,7 @@ cd ~/Petrel
 
 The installer prepares dependencies, `Petrel.service`, external settings and Moonraker Update Manager. Complete the [first-start checks](docs/installation.md#lcd-resources-and-first-start). You can update Petrel through Moonraker Update Manager or the LCD Info screen; see the [update guidance](docs/installation.md#update). Existing installations preserve settings during [migration](docs/installation.md#update).
 
-To change connection/encoder/power settings later, run `./configure.sh` from `~/Petrel`. Rotate to navigate and press to select; confirm numeric values by rotating and pressing again. The Tune editor uses **Apply**; some pages also require **Save**. **Back** returns; keep rotating to move between Home pages.
+To change connection/encoder/power settings later, open the [Kconfig configuration menu](docs/configuration.md) with `./configure.sh` from `~/Petrel`. Rotate to navigate and press to select; confirm numeric values by rotating and pressing again. The Tune editor uses **Apply**; some pages also require **Save**. **Back** returns; keep rotating to move between Home pages.
 
 ## Find the right guide
 

@@ -8,6 +8,8 @@
 |---|---|
 | [Yazıcı bağlantısı ve kurtarma](klipper-recovery_TR.md) | Olağan açılış bekleyişi, hata ayrıntıları ve korumalı restart eylemleri |
 | [Kurulum ve yapılandırma](installation_TR.md) | Bağlantı, kurulum, harici ayarlar, güncellemeler ve sorun giderme |
+| [Kconfig yapılandırma menüsü](configuration_TR.md) | Menüde gezinme, ayarları kaydetme ve uygulama, isteğe bağlı bileşenler ve otomatik yapılandırma |
+| [DWIN yardımcı UART](dwin-uart_TR.md) | İsteğe bağlı Linux seri portunu kurma/kaldırma, programlardan erişim, baud hızları ve bağlantı sınırları |
 | [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Display, Info, ışık ve güç |
 | [Maintenance kullanımı](user-guide_TR.md#maintenance) | Bakım planları, donanım kontrolleri, sonuçlar, diagnostik, öneriler ve güncel ekranlar |
 | [Maintenance fiziksel kabulü](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
@@ -25,6 +27,7 @@
 | [Katkıda bulunma](../CONTRIBUTING_TR.md) | Issue, pull request, dokümantasyon ve geliştirme kontrolleri |
 | [Emülatör ekran görüntüleri](ui-emulator_TR.md) | Çalışan serviste görüntü almayı açma ve görselleri kaydetme |
 | [Testler](../tests/README_TR.md) | Otomatik kontrolleri çalıştırma ve donanım doğrulamasını planlama |
+| [UI için C adayı profilleme](ui-native-profiling_TR.md) | Normal kaynak ölçümü, CPU örneklemesi ve Python tahsis kaynağını ayrı inceleme |
 | [LCD görselleri](../assets/README_TR.md) | Özel ikon hazırlama ve görselleri tanıma |
 | [Emülatör kaynakları](../assets/emulator/README_TR.md) | Eşleşen bilgisayar tarafı font ve ikonları seçme |
 

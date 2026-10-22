@@ -40,6 +40,7 @@ from maintenance_assessment_service import MaintenanceAssessment
 from maintenance_system import travel_profile
 from maintenance_physical import MaintenancePulseController
 from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
+from rfid_reader import RFIDReader
 from system_info import host_memory_usage, host_metrics, network_info, updater_version, wifi_info
 
 class xyze_t:
@@ -337,6 +338,24 @@ class PrinterData:
         self._read_jobs.pop(key)
         return job[1].result()
 
+    def refresh_nfc_info(self):
+        """Read one shared background owner's snapshots, never touch UART here."""
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is None:
+            reader = self._rfid_reader = RFIDReader()
+        revision, status, card = reader.snapshot()
+        identity = reader.identity()
+        token = (revision, status, card, identity)
+        if token == getattr(self, '_rfid_token', None):
+            return False
+        self._rfid_token = token
+        self.system_info['nfc'] = identity
+        self.system_info['rfid'] = {'status': status, 'card': card}
+        return True
+
+    def refresh_rfid(self):
+        return self.refresh_nfc_info()
+
     def refresh_wifi_status(self):
         """Keep header RSSI fresh on the existing read worker, without blocking UI."""
         now = time.monotonic()
@@ -514,6 +533,9 @@ class PrinterData:
         self.MACHINE_SIZE = 'x'.join('{:g}'.format(value) for value in caps.build_size)
 
     def close(self):
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is not None:
+            reader.close()
         self.recovery.close()
         self.maintenance_pulse.close()
         self.maintenance_reader.close()
@@ -1217,9 +1239,8 @@ class PrinterData:
         presets_changed = self.refresh_mainsail_presets()
         sort_changed = self.refresh_file_sort() if self._files_loaded else False
         try:
-            # Effective Klipper config stays stable within a websocket epoch.
-            # Avoid copying and recursively freezing the entire settings tree
-            # on every status revision; status itself remains freshly copied.
+            # The native subscription publishes immutable per-object trees.
+            # Legacy/test subscriptions retain the detached snapshot path.
             lifecycle_reader = getattr(self.subscription,'lifecycle',None)
             life = lifecycle_reader() if callable(lifecycle_reader) else None
             same_revision = (isinstance(life,dict) and self.state.ready
@@ -1228,6 +1249,8 @@ class PrinterData:
                              and life.get('revision') == self.state.revision)
             if same_revision:
                 state = replace(self.state, file_revision=life.get('file_revision',self.state.file_revision))
+            elif getattr(self.subscription, '_supports_immutable_state', None) is True:
+                state = self.subscription.immutable_state()
             elif getattr(self.subscription, '_supports_settings_elision', None) is True:
                 snap = self.subscription.snapshot(include_settings=False)
                 reuse = self.state.ready and snap['epoch'] == self.state.epoch

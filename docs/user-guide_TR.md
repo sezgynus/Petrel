@@ -365,3 +365,40 @@ Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 
 ![Güç için basılı tutma, bırakma, yarım basışın iptali ve aktif baskı engeli](assets/framed/power-shortcut-demo.gif)
 
 Örnek verilerle gerçek UI emülatörü çıktısıdır. [Özgün panel PNG'leri](screenshots_TR.md) ve [yeniden üretim](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme).
+
+### NFC ve RFID (deneysel)
+
+**Info → NFC** ve **Home → RFID**, ctypes üzerinden doğrudan libnfc C API'sini
+kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-device`,
+shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
+olmalıdır. Sistem libnfc paylaşımlı kütüphanesi (`libnfc-bin` ile gelir) gerekir;
+Pi'de derleyici veya geliştirme başlıkları gerekmez. Varsayılan bağlantı
+`pn532_uart:/dev/ttyDWIN0:115200`; `PETREL_NFC_DEVICE` ile değiştirilebilir.
+Başka seri port taranmadan okuyucu doğrudan açılır ve iki menü arasında açık
+kalır. Kimlik bağlantı başına bir kez okunur, yeniden bağlantıda yenilenir.
+Info model, firmware, libnfc sürümü ve desteklenen A/B/FeliCa protokollerini gösterir.
+PN532 modül kartının revizyonunu bildirmez; Hardware alanı **Not reported** olur.
+
+RFID, okuyucunun libnfc üzerinden bildirdiği tüm initiator teknolojilerini tarar:
+ISO14443A/B, B', ST SRx, ASK CTx, iki hızda FeliCa, Jewel/Topaz, NFC Barcode,
+iClass/PicoPass ve destekleniyorsa pasif NFC-DEP. Type A seçimi 106 kbps ile başlar;
+yüksek haberleşme hızları seçimden sonra görüşülür. Her sırada tek aktivasyon
+denemesi yapılır; ek sleep, AutoPoll periyodu veya kartın kaldırılmasını bekleme
+yoktur. Başlangıçta diğer teknolojilerin arasına Type A taraması konur; kart
+bulununca bu ek sıralar son okunan kartın teknolojisine verilir. Diğer tüm
+bildirilmiş modlar sırayla ilerlemeye devam eder. RFID sayfası önbellekteki kartı
+50 ms aralıkla kontrol eder; normal yazıcı/durum işleri 500 ms aralıkta kalır.
+Aynı aygıt bağlantısı açık kalır. Tüm protokollerin turu gerçek RF/aktarım
+süresi gerektirir; mutlak algılama gecikmesi veya eşzamanlı tarama vaat edilmez.
+Firmware'in reddettiği bildirilmiş modlar loglanır; durum kısmi desteği belirtir.
+Bağlantı hatasında iki saniye beklenip yeniden bağlanılır.
+
+Son kartın protokolü, tam UID/ID'si (32 bayta kadar), ATQA ve SAK canlı güncellenir;
+kart uzaklaşınca kimlik kalır. Her kart sunumunda seçili kullanılabilir buzzer
+(Disabled ise ilk kullanılabilir çıkış), Display ses tercihlerinden bağımsız
+700 Hz, %100 seviyede kısa bip verir. Tutulan kart bir kez öter; kendi
+teknolojisindeki iki başarısız tarama aynı kart için yeniden bipi etkinleştirir. Kimlikler UUID değildir; ATQA/SAK kesin MIFARE çipini
+kanıtlamaz. Yalnız değişen alanlar çizilir; kart belleğine veya diske yazılmaz.
+Sayfadan çıkılınca tarama sürer; kapanışta bekleyen libnfc I/O'su iptal edilip port
+kapatılır. Basarak Home'a dönülür. Deneysel kutucuk Info simgesini kullanır;
+ekran görüntülerinde bu sayfalar henüz yoktur.

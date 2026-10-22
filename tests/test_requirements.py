@@ -18,6 +18,12 @@ class RequirementPinTests(unittest.TestCase):
                 msg='Runtime dependencies must use exact versions: ' + requirement,
             )
 
+    def test_configurator_bootstrap_pin_matches_installed_dependency(self):
+        root = Path(__file__).resolve().parents[1]
+        config = (root / 'requirements-config.txt').read_text().strip()
+        self.assertRegex(config, r'^kconfiglib==[^=<>!~\s]+$')
+        self.assertIn(config, (root / 'requirements.txt').read_text().splitlines())
+
     def test_expected_runtime_dependencies_are_present(self):
         requirements = (
             Path(__file__).resolve().parents[1] / 'requirements.txt'
@@ -29,7 +35,7 @@ class RequirementPinTests(unittest.TestCase):
         }
         self.assertEqual(
             names,
-            {'gpiozero', 'lgpio', 'pyserial', 'websocket-client', 'pillow', 'qrcode'},
+            {'gpiozero', 'lgpio', 'pyserial', 'websocket-client', 'pillow', 'qrcode', 'kconfiglib'},
         )
 
 

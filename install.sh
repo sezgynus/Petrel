@@ -63,7 +63,14 @@ sudo -u "$INSTALL_USER" mkdir -p "$APP_CONFIG_DIR"
 if [[ ! -f "$ENV_FILE" ]]; then
     echo "No existing Petrel configuration found."
     echo "Starting first-time configuration..."
-    sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh"
+    configure_status=0
+    sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh" || configure_status=$?
+    if [[ "$configure_status" == 2 ]]; then
+        echo "Configuration cancelled. Run install.sh again when ready."
+        exit 0
+    elif [[ "$configure_status" != 0 ]]; then
+        exit "$configure_status"
+    fi
 else
     echo "Keeping existing configuration: $ENV_FILE"
     sudo -u "$INSTALL_USER" "$VENV_DIR/bin/python" "$REPO_DIR/tools/env_defaults.py" "$ENV_FILE"
@@ -115,6 +122,16 @@ if ! grep -Fqx "$SERVICE_NAME" "$ASVC_FILE"; then
     printf '%s\n' "$SERVICE_NAME" >> "$ASVC_FILE"
 fi
 chown "$INSTALL_USER:$INSTALL_USER" "$ASVC_FILE"
+
+aux_uart="$(sed -n 's/^PETREL_AUX_UART=//p' "$ENV_FILE" | tail -n 1)"
+if [[ "${aux_uart:-0}" == 1 || -f /var/lib/Petrel/dwin-uart.json ]]; then
+    display_port="$(sed -n 's/^PETREL_SERIAL_PORT=//p' "$ENV_FILE" | tail -n 1)"
+    display_port="${display_port%\"}"
+    display_port="${display_port#\"}"
+    sudo python3 "$REPO_DIR/tools/dwin_uart_install.py" --enabled "${aux_uart:-0}" \
+        --repo "$REPO_DIR" --home "$INSTALL_HOME" --user "$INSTALL_USER" --port "$display_port" \
+        --updater "$UPDATE_CONF" --asvc "$ASVC_FILE"
+fi
 
 sudo systemctl enable --now "$SERVICE_NAME.service"
 

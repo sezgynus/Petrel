@@ -53,6 +53,9 @@ def snapshot(hotend=True, bed=True, fan=True, probe=False, multiple=False):
 def printer(data):
     with patch.object(backend, 'MoonrakerClient'), patch.object(backend, 'MoonrakerSubscription'), patch.object(backend, 'ReadWorker', ImmediateReadWorker):
         result = backend.PrinterData(settings_path=tempfile.mktemp(prefix='dwin-test-', suffix='.json'))
+    result._rfid_reader = Mock()
+    result._rfid_reader.snapshot.return_value = (0, 'Unavailable', {})
+    result._rfid_reader.identity.return_value = {'status': 'Unavailable'}
     result.check_command_results = Mock()
     result.subscription.snapshot.return_value = data
     result.sendGCode = Mock()
@@ -604,10 +607,10 @@ class CapabilityMenuTests(unittest.TestCase):
         self.assertEqual(call[-3:-1], (120, 100))
         self.assertEqual(call[2], result.lcd.font8x16)
         self.assertEqual([label for kind, label, _ in items if kind == 'section'],
-                         ['Machine', 'Host', 'MCU: mcu', 'MCU: mmu', 'Software'])
+                         ['Machine', 'Host', 'MCU: mcu', 'MCU: mmu', 'NFC', 'Software'])
         result.pd.system_info['mcus'] = ()
         self.assertEqual([label for kind, label, _ in result._info_items() if kind == 'section'],
-                         ['Machine', 'Host', 'MCU', 'Software'])
+                         ['Machine', 'Host', 'MCU', 'NFC', 'Software'])
 
     def test_info_qr_scrolls_one_row_without_native_out_of_screen_commands(self):
         result = display(snapshot())

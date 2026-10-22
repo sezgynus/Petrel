@@ -13,11 +13,13 @@ import time
 from concurrent.futures import Future, wait
 from queue import Empty, Full, Queue
 from threading import Event, Lock, Thread
+from types import MappingProxyType
 from urllib.parse import urlsplit, urlunsplit
 
 from moonraker_client import MoonrakerError
 from print_tuning import JOB_OBJECTS
 from petrel_version import client_version
+from printer_state import PrinterState, freeze
 
 
 OBJECTS = ('webhooks', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard',
@@ -71,6 +73,8 @@ class MoonrakerSubscription:
         self._case_light_callback = None
         self._case_light_generation = 0
         self._settings = {}
+        self._frozen_status = {}
+        self._frozen_settings = None
         self._software_version = 'unknown'
         self._eventtime = None
         self._id = 0
@@ -95,6 +99,7 @@ class MoonrakerSubscription:
         self._last_receive = time.monotonic()
         self._last_ping = time.monotonic()
         self._supports_settings_elision = True
+        self._supports_immutable_state = True
         self._thread = Thread(target=self._run, name='moonraker-status', daemon=True)
         # Sending on a separate socket writer avoids waiting for an idle
         # recv_data timeout. websocket-client serializes send and ping itself.
@@ -138,6 +143,29 @@ class MoonrakerSubscription:
                 result['settings'] = copy.deepcopy(self._settings)
             return result
 
+    def immutable_state(self):
+        """Coherent UI state; freeze changed objects once, share unchanged trees.
+
+        The mutable snapshot API remains independent for command consumers.
+        All cache reads/invalidations use the same lock as status mutations.
+        Only the latest object trees are retained here, never revision history.
+        """
+        with self._lock:
+            for name in tuple(self._frozen_status):
+                if name not in self._status:
+                    del self._frozen_status[name]
+            for name, value in self._status.items():
+                if name not in self._frozen_status:
+                    self._frozen_status[name] = freeze(value)
+            if self._frozen_settings is None:
+                self._frozen_settings = freeze(self._settings)
+            return PrinterState(
+                connection=self._state, error=self._error, epoch=self._epoch,
+                revision=self._revision, file_revision=self._file_revision,
+                software_version=self._software_version, objects=tuple(self._objects),
+                settings=self._frozen_settings,
+                status=MappingProxyType(dict(self._frozen_status)))
+
     def _subscription_objects(self):
         objects = copy.deepcopy(self._base_subscription)
         if self._case_light_tracking and 'output_pin case_light' in self._objects:
@@ -158,6 +186,7 @@ class MoonrakerSubscription:
         for name in tuple(self._status):
             if not name.startswith('heater_generic ') or name in self._thermal_objects:
                 continue
+            self._frozen_status.pop(name, None)
             field = self._usage_fields.get(name)
             if field is None:
                 self._status.pop(name, None)
@@ -196,6 +225,7 @@ class MoonrakerSubscription:
                     for field in ('temperature', 'target', 'power'):
                         if field not in values and field in status[name]:
                             values[field] = copy.deepcopy(status[name][field])
+                            self._frozen_status.pop(name, None)
                             self._revision += 1
         future.add_done_callback(receive)
         return future
@@ -212,6 +242,7 @@ class MoonrakerSubscription:
                 objects['output_pin case_light'] = ['value']
             if not enabled and 'output_pin case_light' not in self._usage_fields:
                 self._status.pop('output_pin case_light', None)
+                self._frozen_status.pop('output_pin case_light', None)
         future = self.request('printer.objects.subscribe', {'objects': objects})
         def receive(done):
             if done.cancelled() or done.exception():
@@ -231,6 +262,7 @@ class MoonrakerSubscription:
                             and self._case_light_tracking and isinstance(light, dict)
                             and 'output_pin case_light' not in self._status):
                         self._status['output_pin case_light'] = copy.deepcopy(light)
+                        self._frozen_status.pop('output_pin case_light', None)
                         self._revision += 1
                         callback = self._case_light_callback
                 if callback is not None:
@@ -250,6 +282,8 @@ class MoonrakerSubscription:
             self._status = {}
             self._objects = []
             self._settings = {}
+            self._frozen_status.clear()
+            self._frozen_settings = None
             self._eventtime = None
             self._revision += 1
             self._epoch += 1
@@ -266,9 +300,11 @@ class MoonrakerSubscription:
                 return
             if replace:
                 self._status = copy.deepcopy(status)
+                self._frozen_status.clear()
             else:
                 for name, fields in status.items():
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
+                    self._frozen_status.pop(name, None)
             self._prune_thermal_status()
             self._eventtime = eventtime
             self._revision += 1
@@ -710,6 +746,7 @@ class MoonrakerSubscription:
                 raise MoonrakerError('Klipper is not ready')
             self._objects = names
             self._settings = copy.deepcopy(settings)
+            self._frozen_settings = None
             self._software_version = printer_info.get('software_version', 'unknown')
             self._state = 'ready'
             self._error = None

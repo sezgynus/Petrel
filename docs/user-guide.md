@@ -363,3 +363,40 @@ When the configured Moonraker power device turns on, Petrel starts nonblocking L
 ![Power hold, release, incomplete-hold cancellation and active-print blocking](assets/framed/power-shortcut-demo.gif)
 
 Real UI emulator output with example data. [Original panel PNGs](screenshots.md) and [reproduction](ui-emulator.md#refresh-pngs-frames-and-gifs).
+
+### NFC and RFID (experimental)
+
+**Info → NFC** and **Home → RFID** share one background owner using the public
+libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
+stdout parser is used. Keep other NFC tools closed. The system libnfc shared
+library (included with `libnfc-bin`) is required; no compiler or development
+headers are needed on the Pi. The default connection is
+`pn532_uart:/dev/ttyDWIN0:115200`; `PETREL_NFC_DEVICE` overrides it. The reader is
+opened explicitly, without scanning other serial ports, and remains open across
+both menus. Identity is read once per connection and refreshed after reconnect.
+Info shows model, firmware, libnfc version and supported A/B/FeliCa protocols;
+PN532 does not expose its module board revision, so Hardware is **Not reported**.
+
+RFID scans all initiator technologies advertised by the reader through libnfc:
+ISO14443A/B, B', ST SRx, ASK CTx, FeliCa at both rates, Jewel/Topaz, NFC Barcode,
+iClass/PicoPass and passive NFC-DEP when supported. A starts at 106 kbps; higher
+Type A communication rates are negotiated after selection. Discovery uses one
+activation attempt per turn, with no added sleep, AutoPoll period or card-removal
+wait. Type A is initially revisited between other technologies; after a card is
+found, its technology receives those extra turns instead. Every other advertised
+mode still advances in order. The RFID page checks the cached card every 50 ms,
+while ordinary printer/status work keeps its 500 ms cadence. The same device
+handle remains open. A full multi-protocol scan still has
+real RF/transport time; no absolute detection latency or simultaneous scan is
+promised. Firmware-rejected advertised modes are logged and the status indicates
+partial support. Transport failures reconnect with a two-second backoff.
+
+The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
+live; the identity remains after removal. Each card presentation plays a short
+700 Hz beep at 100% volume on the selected available buzzer (or the first available
+output when disabled), independently of Display sound preferences. A held card
+beeps once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
+prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
+written or persisted. Scanning continues after leaving the page, and shutdown
+aborts pending libnfc I/O before closing the reader. Press to return Home. The
+experimental tile reuses the Info icon; screenshots do not yet show these pages.

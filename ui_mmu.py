@@ -1,5 +1,7 @@
 """MMU menu and Happy Hare home-screen rendering mixin."""
 
+from functools import partial as bind_arguments
+
 from spool_view import SpoolView
 from mmu_filament_view import MMUFilamentView, filament_color
 from mmu_control import MMUState
@@ -214,10 +216,10 @@ class MMUViewMixin:
     def _mmu_tool_label(tool):
         return 'Bypass' if tool == -2 else 'T%d' % tool if tool is not None and tool >= 0 else 'T?'
 
-    def _mmu_action_item(self, action, label, gate=None, desired_enabled=None):
+    def _mmu_action_item(self, action, label, gate=None, desired_enabled=None, prepare=None):
         key = ('action', action, gate) if desired_enabled is None else ('action', action, gate, desired_enabled)
         try:
-            self.pd.mmu_session.prepare(action, gate=gate, enabled=desired_enabled)
+            (prepare or self.pd.mmu_session.prepare)(action, gate=gate, enabled=desired_enabled)
         except ValueError:
             return (key, label, 'LOCK', False)
         return (key, label, '>', True)
@@ -228,11 +230,11 @@ class MMUViewMixin:
         self._mmu_map_base = m.fingerprint if m else None
         self._mmu_map_original = tuple(self._mmu_map_draft)
 
-    def _mmu_map_writable(self, m):
+    def _mmu_map_writable(self, m, prepare=None):
         if m is None or m.fingerprint != getattr(self, '_mmu_map_base', None):
             return False
         try:
-            self.pd.mmu_session.prepare('map', values=self._mmu_map_draft)
+            (prepare or self.pd.mmu_session.prepare)('map', values=self._mmu_map_draft)
         except ValueError:
             return False
         return True
@@ -245,12 +247,12 @@ class MMUViewMixin:
         self._mmu_endless_original = (self._mmu_endless_draft['enabled'], tuple(self._mmu_endless_draft['groups']))
         self._mmu_group = next((g for g in self._mmu_endless_draft['groups'] if g is not None), 0)
 
-    def _mmu_endless_writable(self, m):
+    def _mmu_endless_writable(self, m, prepare=None):
         if m is None or m.fingerprint != getattr(self, '_mmu_endless_base', None):
             return False
         draft = self._mmu_endless_draft
         try:
-            self.pd.mmu_session.prepare('endless', values=draft['groups'], enabled=draft['enabled'])
+            (prepare or self.pd.mmu_session.prepare)('endless', values=draft['groups'], enabled=draft['enabled'])
         except ValueError:
             return False
         return True
@@ -266,33 +268,34 @@ class MMUViewMixin:
         self._mmu_spool_original = sid
         self._mmu_spool_base = m.fingerprint if m else None
 
-    def _mmu_spool_writable(self, m):
+    def _mmu_spool_writable(self, m, prepare=None):
         if m is None or m.fingerprint != getattr(self, '_mmu_spool_base', None):
             return False
         try:
-            self.pd.mmu_session.prepare('spool', gate=self._mmu_gate, values=(self._mmu_spool_draft,))
+            (prepare or self.pd.mmu_session.prepare)('spool', gate=self._mmu_gate, values=(self._mmu_spool_draft,))
         except ValueError:
             return False
         return True
 
-    def _mmu_items(self, m):
+    def _mmu_items(self, m, snapshot=None):
+        # Scope reuse to this item build only; never cache across UI updates.
+        # Dispatch/confirmation paths continue to call prepare() with fresh data.
+        if snapshot is None:
+            snapshot = self.pd.subscription.snapshot()
+            m = MMUState.from_snapshot(snapshot)
+        prepare = bind_arguments(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
+        action_item = bind_arguments(self._mmu_action_item, prepare=prepare)
         page = self._mmu_page
         nav = lambda key, label: (('page', key), label, '>', True)
         if page == 'confirm':
             return [(('cancel',), 'Cancel', '', True),
-                    (('execute',), 'Confirm', '', self._mmu_confirmation_valid())]
+                    (('execute',), 'Confirm', '', self._mmu_confirmation_valid(prepare=prepare))]
         if page == 'home':
             tools = []
             if m:
-                snapshot = self.pd.subscription.snapshot()
-                parsed = MMUState.from_snapshot(snapshot)
                 for tool, gate in enumerate(m.ttg_map):
                     try:
-                        if parsed is None:
-                            raise ValueError('MMU unavailable')
-                        self.pd.mmu_session.prepare(
-                            'change', gate=gate, tool=tool, snapshot=snapshot,
-                            parsed_state=parsed)
+                        prepare('change', gate=gate, tool=tool)
                         enabled = not (m.tool == tool and m.filament == 'loaded')
                     except ValueError:
                         enabled = False
@@ -304,12 +307,12 @@ class MMUViewMixin:
                 primary = (primary[0] + '_extruder', primary[1])
             control = (nav('status', 'Recover') if self.pd.mmu_session.phase == 'error' else
                        nav('recover', 'Recover') if m and m.locked is True else
-                       self._mmu_action_item(*primary, gate=current))
+                       action_item(*primary, gate=current))
             return tools + [control, nav('more', 'More')]
         if page == 'more':
             current = m.gate if m and m.gate is not None and m.gate >= 0 else None
             primary = ('unload', 'Unload') if m and m.filament == 'loaded' else ('load', 'Load')
-            return [nav('gates', 'Gates'), self._mmu_action_item(*primary, gate=current),
+            return [nav('gates', 'Gates'), action_item(*primary, gate=current),
                     nav('map', 'Tool map'), nav('bypass', 'Bypass'),
                     nav('manage', 'Manage'), nav('status', 'Status')]
         if page == 'gates':
@@ -319,41 +322,41 @@ class MMUViewMixin:
                      self._mmu_percent(gate), True) for gate in range(m.num_gates)]
         if page == 'gate':
             gate = self._mmu_gate
-            return [self._mmu_action_item(action, label, gate) for action, label in
+            return [action_item(action, label, gate) for action, label in
                     [('select', 'Select only'), ('load', 'Load selected'), ('change', 'Load / change'),
                      ('unload', 'Unload'), ('eject', 'Eject spool'), ('preload', 'Preload'), ('check', 'Check')]] + [nav('filament', 'Filament details')]
         if page == 'bypass':
             current = m.gate if m and m.gate is not None and m.gate >= 0 else None
-            return [self._mmu_action_item('unload', 'Unload current gate', current),
-                    self._mmu_action_item('bypass', 'Select bypass'),
-                    self._mmu_action_item('load_extruder', 'Load extruder'),
-                    self._mmu_action_item('unload_extruder', 'Unload extruder')]
+            return [action_item('unload', 'Unload current gate', current),
+                    action_item('bypass', 'Select bypass'),
+                    action_item('load_extruder', 'Load extruder'),
+                    action_item('unload_extruder', 'Unload extruder')]
         if page == 'manage':
             return [nav('recover', 'Recover state'), nav('status', 'Sensors / status'),
                     nav('bypass', 'Extruder / bypass'), (('web',), 'Calibration', 'WEB', False),
                     nav('maintenance', 'Maintenance'), nav('options', 'Options')]
         if page == 'maintenance':
-            items = [self._mmu_action_item('check_all', 'Check all gates')]
+            items = [action_item('check_all', 'Check all gates')]
             unit = m.active_unit if m else None
             session = self.pd.mmu_session
             if unit and len(m.units) == 1 and unit.selector_type in session.HOME_SELECTORS:
-                items.insert(0, self._mmu_action_item('home_selector', 'Home selector'))
+                items.insert(0, action_item('home_selector', 'Home selector'))
             if unit and unit.selector_type in session.GRIP_SELECTORS:
-                items += [self._mmu_action_item('grip', 'Grip')]
+                items += [action_item('grip', 'Grip')]
                 if unit.always_gripped is False:
-                    items += [self._mmu_action_item('release', 'Release')]
+                    items += [action_item('release', 'Release')]
             return items + [nav('bypass', 'Extruder / bypass')]
         if page == 'options':
             unit = m.active_unit if m else None
             desired = not m.enabled if m and m.enabled is not None else None
             label = 'MMU enable / disable' if desired is None else 'Enable MMU' if desired else 'Disable MMU'
-            items = [self._mmu_action_item('enable', label, desired_enabled=desired)]
+            items = [action_item('enable', label, desired_enabled=desired)]
             if unit and unit.always_gripped is not None:
-                items.append(self._mmu_action_item('sync_on', 'Gear sync ON'))
+                items.append(action_item('sync_on', 'Gear sync ON'))
                 if not unit.always_gripped:
-                    items.append(self._mmu_action_item('sync_off', 'Gear sync OFF'))
+                    items.append(action_item('sync_off', 'Gear sync OFF'))
             if m and m.motors and all(v is not None for _, v in m.motors):
-                items.append(self._mmu_action_item('motors_off', 'Release MMU motors'))
+                items.append(action_item('motors_off', 'Release MMU motors'))
             if m and m.leds is not None:
                 items.append(nav('leds', 'LEDs'))
             if m and len(m.units) > 1:
@@ -370,7 +373,7 @@ class MMUViewMixin:
                 return []
             unit = m.units[index]
             try:
-                self.pd.mmu_session.prepare('unit_select', values=(index,))
+                prepare('unit_select', values=(index,))
                 enabled = True
             except ValueError:
                 enabled = False
@@ -381,12 +384,12 @@ class MMUViewMixin:
             if not m or not m.leds:
                 return []
             leds = m.leds
-            items = [self._mmu_action_item('led_enable', 'LEDs OFF' if leds.enabled else 'LEDs ON', desired_enabled=not leds.enabled if leds.enabled is not None else None),
-                     self._mmu_action_item('led_animation', 'Animation OFF' if leds.animation else 'Animation ON', desired_enabled=not leds.animation if leds.animation is not None else None)]
+            items = [action_item('led_enable', 'LEDs OFF' if leds.enabled else 'LEDs ON', desired_enabled=not leds.enabled if leds.enabled is not None else None),
+                     action_item('led_animation', 'Animation OFF' if leds.animation else 'Animation ON', desired_enabled=not leds.animation if leds.animation is not None else None)]
             if leds.segments[0]:
                 for mode in self.pd.mmu_session.LED_MODES:
                     try:
-                        self.pd.mmu_session.prepare('led_mode', values=(mode,))
+                        prepare('led_mode', values=(mode,))
                         enabled = True
                     except ValueError:
                         enabled = False
@@ -395,19 +398,19 @@ class MMUViewMixin:
         if page == 'filament':
             return [nav('spool', 'Assign spool ID')]
         if page == 'spool':
-            writable = self._mmu_spool_writable(m)
+            writable = self._mmu_spool_writable(m, prepare=prepare)
             return [(('spool_edit',), 'Spool ID', '#%d' % self._mmu_spool_draft, writable),
                     (('spool_save',), 'Save', '>' if writable else 'LOCK',
                      writable and self._mmu_spool_draft != self._mmu_spool_original),
                     (('spool_clear',), 'Clear assignment', '>', writable and self._mmu_spool_original is not None and self._mmu_spool_original > 0),
                     (('cancel',), 'Cancel', '', True)]
         if page == 'recover':
-            return [self._mmu_action_item('recover', 'Auto recover'), nav('manual', 'Set state manually'),
-                    self._mmu_action_item('unlock', 'Unlock / reheat'),
-                    self._mmu_action_item('resume', 'Resume print')]
+            return [action_item('recover', 'Auto recover'), nav('manual', 'Set state manually'),
+                    action_item('unlock', 'Unlock / reheat'),
+                    action_item('resume', 'Resume print')]
         if page == 'map':
             draft = self._mmu_map_draft
-            writable = self._mmu_map_writable(m)
+            writable = self._mmu_map_writable(m, prepare=prepare)
             return [(('map_edit', tool), 'T%d' % tool, self._mmu_gate_label(gate), writable)
                     for tool, gate in enumerate(draft)] + [
                         nav('endless', 'EndlessSpool'),
@@ -416,7 +419,7 @@ class MMUViewMixin:
                         (('cancel',), 'Cancel', '', True)]
         if page in ('endless', 'group'):
             draft = self._mmu_endless_draft
-            writable = self._mmu_endless_writable(m)
+            writable = self._mmu_endless_writable(m, prepare=prepare)
             groups = draft['groups']
             if page == 'group':
                 return [(('member', gate), '%s %s %s' % (self._mmu_gate_label(gate),
@@ -554,12 +557,12 @@ class MMUViewMixin:
         for x in (26, 106, 229):
             self.lcd.draw_rectangle(1, color, x, y + 20, x + 7, y + 27)
 
-    def _mmu_confirmation_valid(self):
+    def _mmu_confirmation_valid(self, prepare=None):
         op = getattr(self, '_mmu_confirmation', None)
         if op is None:
             return False
         try:
-            return self.pd.mmu_session.prepare(op.action, op.gate, op.tool, op.loaded,
+            return (prepare or self.pd.mmu_session.prepare)(op.action, op.gate, op.tool, op.loaded,
                                                values=op.values, enabled=op.enabled) == op
         except ValueError:
             return False
@@ -570,7 +573,9 @@ class MMUViewMixin:
             self._mmu_page, self._mmu_selection = 'home', 0
             self._mmu_gate, self._mmu_history, self._mmu_notice = 0, [], ''
         page = self._mmu_page
-        m = self.pd.mmu_session.state
+        snapshot = self.pd.subscription.snapshot()
+        m = MMUState.from_snapshot(snapshot)
+        prepare = bind_arguments(self.pd.mmu_session.prepare, snapshot=snapshot, parsed_state=m)
         if (getattr(self, '_mmu_canvas_page', None) != page or
                 page == 'home' and getattr(self, '_mmu_available', None) != (m is not None)):
             self._list_render = None
@@ -593,7 +598,7 @@ class MMUViewMixin:
             self._mmu_manual = {'tool': m.tool if m and m.tool is not None and m.tool >= 0 else 0,
                                 'gate': m.gate if m and m.gate is not None and m.gate >= 0 else 0,
                                 'loaded': bool(m and m.filament == 'loaded')}
-        items = self._mmu_items(m)
+        items = self._mmu_items(m, snapshot=snapshot)
         self._mmu_drawn_keys = tuple(item[0] for item in items)
         self._mmu_selection = min(self._mmu_selection, len(items))
         self._mmu_text('back', '<', 8, 5, 2, bg=0x19E9 if self._mmu_selection == 0 else 0x2966)
@@ -631,7 +636,7 @@ class MMUViewMixin:
                 self._mmu_text('readonly', 'Metadata: read-only; use web UI', 12, 338, 40, small=True)
             first_y, visible = 376, 1
         elif page == 'spool':
-            writable = self._mmu_spool_writable(m)
+            writable = self._mmu_spool_writable(m, prepare=prepare)
             old = self._mmu_spool_original
             self._mmu_text('oldspool', 'Current: ' + ('#%d' % old if old and old > 0 else '--'), 12, 66)
             self._mmu_text('spoolmode', 'Spoolman: ' + (m.spoolman_support if m else 'Unknown'), 12, 99, 40, small=True)
@@ -662,13 +667,13 @@ class MMUViewMixin:
             self._mmu_text('ledscope', 'Only the active unit is changed', 12, 119, 40, small=True)
             first_y, visible = 148, 6
         elif page == 'map':
-            writable = self._mmu_map_writable(m)
+            writable = self._mmu_map_writable(m, prepare=prepare)
             self._mmu_text('maphint', 'Press row, turn gate, press again', 12, 66, 40, small=True)
             self._mmu_text('mapdraft', 'Changes wait for Save' if writable else 'Locked; reopen after state change',
                            12, 87, 40, small=True, color=0x8410 if writable else 0xFD20)
             first_y, visible = 114, 7
         elif page in ('endless', 'group'):
-            writable = self._mmu_endless_writable(m)
+            writable = self._mmu_endless_writable(m, prepare=prepare)
             hint = 'Changes wait for Save' if writable else 'Locked; reopen after state change'
             if page == 'group':
                 members = [i for i, g in enumerate(self._mmu_endless_draft['groups'])
@@ -720,7 +725,7 @@ class MMUViewMixin:
             self._mmu_text('target', op.label, 12, 82)
             summary = 'Physical state: ' + (m.filament.upper() if m else 'UNKNOWN')
             self._mmu_text('details', summary, 12, 120, 40, small=True)
-            self._mmu_text('valid', 'Target changed; cancel and retry' if not self._mmu_confirmation_valid() else 'Check target before confirming', 12, 170, 40, small=True, color=0xFD20)
+            self._mmu_text('valid', 'Target changed; cancel and retry' if not self._mmu_confirmation_valid(prepare=prepare) else 'Check target before confirming', 12, 170, 40, small=True, color=0xFD20)
             message = {'unload': 'Filament returns to MMU.', 'eject': 'Spool removed from MMU.',
                        'manual': 'Reports state; does not move.', 'map': 'Saves mapping; no filament movement.',
                        'endless': 'Saves groups; no filament movement.', 'resume': 'Print motion will resume.'}.get(op.action, 'This may move filament/motors.')
@@ -834,7 +839,8 @@ class MMUViewMixin:
         event = self.get_encoder_state()
         if event == self.ENCODER_DIFF_NO:
             return
-        m = self.pd.mmu_session.state
+        snapshot = self.pd.subscription.snapshot()
+        m = MMUState.from_snapshot(snapshot)
         edit = getattr(self, '_mmu_edit', None)
         if edit:
             if event == self.ENCODER_DIFF_ENTER:
@@ -866,7 +872,7 @@ class MMUViewMixin:
                     else max(0, min(m.num_gates - 1, self._mmu_manual[edit] + delta)))
             self.Draw_MMU_Menu()
             return
-        items = self._mmu_items(m)
+        items = self._mmu_items(m, snapshot=snapshot)
         if event == self.ENCODER_DIFF_ENTER and tuple(item[0] for item in items) != self._mmu_drawn_keys:
             self._mmu_notice = 'Menu changed; select again'
             self.Draw_MMU_Menu()

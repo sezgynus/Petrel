@@ -23,11 +23,15 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install test dependencies
-        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2
+        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2 kconfiglib==14.1.0
+      - name: Install libnfc headers for real ABI verification
+        run: sudo apt-get update && sudo apt-get install -y libnfc-dev
       - name: Compile Python sources
         run: python -m compileall -q .
       - name: Run regression suite
         run: python -m unittest discover -s tests -v
+      - name: Compare incremental UI state with legacy copying
+        run: python tools/benchmark_ui_state.py
       - name: Report uninstrumented Maintenance RSS/PSS/USS
         run: python tools/benchmark_maintenance_discovery.py --fans 150 --runs 20
       - name: Report traced Maintenance allocations

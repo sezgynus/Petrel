@@ -1,0 +1,113 @@
+mainmenu "Petrel configuration"
+
+menu "Connections and power"
+config MOONRAKER_URL
+    string "Moonraker URL"
+    default "http://127.0.0.1:7125"
+    help
+      HTTP(S) address of the Moonraker instance. An existing API key is
+      preserved privately in Petrel.env and is not displayed in this menu.
+config PETREL_REQUEST_TIMEOUT
+    string "Request timeout (seconds)"
+    default "5"
+    help
+      Positive timeout in seconds. Decimal values are supported.
+config PETREL_SERIAL_PORT
+    string "Physical display UART"
+    default "/dev/ttyS0"
+    help
+      Host UART wired to the display, also used by the shared DWIN broker.
+      Do not select /dev/ttyDWIN0 or its alias here.
+config PETREL_POWER_DEVICE
+    string "Moonraker power device"
+    default "Printer"
+config PETREL_POWER_ON_HOLD_MS
+    int "Power-on button hold (ms, 0 = immediate)"
+    range 0 2147483647
+    default 2000
+endmenu
+
+menu "Encoder and presets"
+config ENCODER_A_GPIO
+    int "Encoder A GPIO (BCM)"
+    range 0 65535
+    default 21
+config ENCODER_B_GPIO
+    int "Encoder B GPIO (BCM)"
+    range 0 65535
+    default 19
+config PETREL_BUTTON_PIN
+    int "Encoder button GPIO (BCM)"
+    range 0 65535
+    default 20
+    help
+      Preserve the installed pin assignment. All three GPIOs must differ.
+config PETREL_SETTINGS_FILE
+    string "Preset JSON path"
+    help
+      External Petrel preset file. Existing paths are imported automatically.
+endmenu
+
+menu "Maintenance usage counters"
+config PETREL_AXIS_TRAVEL
+    bool "Axis travel and event-based sensor counters"
+    default y
+    help
+      Install the optional Klipper extra and managed printer.cfg include.
+      Disable here to remove it while preserving recorded usage history.
+      Restart Klipper manually while idle after changing the extra.
+config PETREL_KLIPPER_DIR
+    string "Klipper repository path"
+    depends on PETREL_AXIS_TRAVEL
+    help
+      Existing Klipper checkout. Disable the extra before changing paths.
+config PETREL_PRINTER_CONFIG
+    string "Main printer.cfg path"
+    depends on PETREL_AXIS_TRAVEL
+endmenu
+
+menu "Display tools"
+config PETREL_EMULATOR
+    bool "Emulator / screenshot capture"
+    default n
+config PETREL_REMOTE
+    bool "Remote display and encoder control"
+    default n
+    help
+      Remote display also starts the emulator at runtime. The separate
+      screenshot-capture preference is retained when remote is disabled.
+config PETREL_REMOTE_HOST
+    string "Remote bind address"
+    depends on PETREL_REMOTE
+    default "0.0.0.0"
+    help
+      0.0.0.0 listens on all interfaces; 127.0.0.1 permits local access only.
+config PETREL_REMOTE_PORT
+    int "Remote port"
+    depends on PETREL_REMOTE
+    range 1 65535
+    default 8088
+endmenu
+
+menu "DWIN auxiliary UART"
+config PETREL_AUX_UART
+    bool "DWIN auxiliary UART as a Linux serial port"
+    default n
+    help
+      Expose /dev/ttyDWIN0 with data transfer and baud control (8N1).
+      Auxiliary baud rates below about 15300, including 9600, are unsupported.
+      Applying this option installs/removes a DKMS module and shared broker.
+      Close serial-port clients before removing or changing the installation.
+      Missing running-kernel headers stop the optional setup safely.
+endmenu
+
+menu "Apply options"
+config RESTART_PETREL
+    bool "Restart running Petrel after applying"
+    default y
+    help
+      Restart Petrel only if its service is already active. Klipper is never
+      restarted automatically. Saving in menuconfig alone changes no service;
+      the final Apply confirmation performs the installation and saves settings.
+      Changing the UART transport may restart Petrel as part of installation.
+endmenu

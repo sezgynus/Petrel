@@ -1,6 +1,7 @@
 """Nonblocking panel handshake; keep one UART open while waiting for power."""
 import time
 import serial
+from dwin_transport import open_display_serial
 
 
 class PanelProbe:
@@ -8,7 +9,7 @@ class PanelProbe:
     RESPONSE = bytes.fromhex('AA 00 4F 4B CC 33 C3 3C')
 
     def __init__(self, port):
-        self.serial = serial.Serial(port, 115200, timeout=0, write_timeout=.05)
+        self.serial = open_display_serial(port, serial.Serial, baudrate=115200, timeout=0, write_timeout=.05)
         self.received = bytearray()
         self.next_send = 0
         self.fast_until = 0
