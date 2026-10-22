@@ -147,7 +147,7 @@ class SystemRegisterExperimentTests(unittest.TestCase):
 
     def test_invalid_activation_marker_is_rejected(self):
         flag = system_modedet_file()
-        flag.parent.mkdir(parents=True)
+        flag.parent.mkdir(parents=True, exist_ok=True)
         flag.write_text('bad')
         with self.assertRaisesRegex(ValueError, 'marker'):
             system_modedet_enabled()
