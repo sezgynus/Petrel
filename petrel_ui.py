@@ -1759,7 +1759,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         entries.append(('MMU', 'MMU', self.ICON_MMU_0, self.ICON_MMU_1))
         entries.append(('DISPLAY', 'Display', self.ICON_Display_0, self.ICON_Display_1))
         entries.append(('MAINTENANCE', 'Maintenance', self.ICON_Maintenance_0, self.ICON_Maintenance_1))
-        entries.append(('RFID', 'NFZ', ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
+        entries.append(('RFID', 'NFC', ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
         # Home navigation contract: append new features above Info; Info is always last.
         entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
         return tuple(entries)

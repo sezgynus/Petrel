@@ -426,7 +426,7 @@ Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 
 
 ### NFC ve RFID (deneysel)
 
-**Info → NFC** ve **Home → NFZ**, ctypes üzerinden doğrudan libnfc C API'sini
+**Info → NFC** ve **Home → NFC**, ctypes üzerinden doğrudan libnfc C API'sini
 kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-device`,
 shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
 olmalıdır. Sistem libnfc paylaşımlı kütüphanesi gerekir; Pi'de derleyici veya
@@ -546,8 +546,8 @@ ekran görüntülerinde bu sayfalar henüz yoktur.
 
 ### Acil durdurma kartı
 
-Ana menü daima **NFZ → Info** ile biter; gelecekteki yeni ana menü öğeleri
-Info'dan önce eklenir. **NFZ** içinde encoderi çevirip **Emergency stop tag**
+Ana menü daima **NFC → Info** ile biter; gelecekteki yeni ana menü öğeleri
+Info'dan önce eklenir. **NFC** içinde encoderi çevirip **Emergency stop tag**
 seçeneğini, ardından **Assign tag** (veya **Replace tag**) seçeneğini açın.
 Okuyucuda tutulan kartı uzaklaştırıp yeni kartı okutun. Görünen UID'yi kontrol
 edip **Save tag** ile onaylayın; **Cancel** önceki atamayı korur.
