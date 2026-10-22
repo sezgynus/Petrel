@@ -1583,6 +1583,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         if (not getattr(self, '_uart_online', True)
                 or event.ui_epoch != getattr(self, '_uart_epoch', 0)):
             return
+        # An active NFC target-mode session must remain cancellable even if
+        # Moonraker/Klipper becomes unavailable during phone interaction.
+        if getattr(self, '_nfc_share_popup', None) and event.kind in ('press', 'rotate'):
+            if event.kind == 'press':
+                self._cancel_nfc_share_popup()
+            return
         if (getattr(self, 'checkkey', None) == self.RecoveryScreen
                 and self.pd.connection_error and not self._closed):
             self._recovery_input(event)
@@ -1602,10 +1608,6 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         if event.kind == 'live_jog_flush':
             self._flush_live_jog()
-            return
-        if getattr(self, '_nfc_share_popup', None) and event.kind in ('press', 'rotate'):
-            if event.kind == 'press':
-                self._cancel_nfc_share_popup()
             return
         if self._power_button_input(event):
             return
