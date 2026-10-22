@@ -100,13 +100,22 @@ class NFCSettingsViewMixin:
             return name if len(name) <= 9 else '...' + name[-6:]
         return current
 
-    def _nfc_value_painter(self, label, value, active, cells=10):
+    def _nfc_value_painter(self, label, value, active, cells=10, color=None):
         # Match the shared right-aligned Display menu value column. Inactive
         # labels/values are grey; long paths never overlap their left labels.
         def paint(row):
             y = self.MBASE(row) - 1
             if active:
-                self._draw_menu_value(value, y, self.lcd.Color_Bg_Black, cells)
+                if color is None:
+                    self._draw_menu_value(value, y, self.lcd.Color_Bg_Black, cells)
+                else:
+                    # Same opaque right-aligned value field as other menu
+                    # options; only the connection result is state-colored.
+                    self.lcd.draw_text(
+                        False, True, self.lcd.font8x16, color,
+                        self.lcd.Color_Bg_Black,
+                        self.MENU_VALUE_RIGHT - cells * self.MENU_CHR_W,
+                        y, str(value).rjust(cells))
             else:
                 text = str(value)[:cells].rjust(cells)
                 self.lcd.draw_text(False, True, self.lcd.font8x16, 0x8410,
@@ -156,11 +165,17 @@ class NFCSettingsViewMixin:
         test_enabled = enabled and 7 in self._nfc_focusable()
         status = 'Run'
         if getattr(self, '_nfc_test_values', None) == value:
-            status = 'Checking' if running else (
+            status = 'Wait' if running else (
                 getattr(self, '_nfc_test_state', None) or 'Run')
+        result_color = (0x07E0 if status == 'OK' else
+                        0xF800 if status == 'Fail' else None)
+        # The full-width 9-character field overlaps "Test connection" on
+        # 272px panels. Keep result values short and right-aligned.
+        cells = 4
         rows.append(('Test connection', self.ICON_Info, (status, test_enabled),
                      self._nfc_value_painter('Test connection',
-                                             status, test_enabled, 9)))
+                                             status, test_enabled, cells,
+                                             color=result_color)))
         self._nfc_selection = min(getattr(self, '_nfc_selection', 0), len(rows) - 1)
         if not enabled or self._nfc_selection not in self._nfc_focusable():
             self._nfc_selection = 0
@@ -311,7 +326,7 @@ class NFCSettingsViewMixin:
         except Exception as error:
             logging.warning('NFC connection test failed: %s', error)
             success = False
-        self._nfc_test_state = 'Conn. OK' if success else 'Failed'
+        self._nfc_test_state = 'OK' if success else 'Fail'
         if (getattr(self, 'checkkey', None) == self.NFCSettingsMenu
                 and getattr(self, '_nfc_test_values', None) == self._nfc_config()):
             self.Draw_NFC_Settings_Menu()
@@ -360,7 +375,7 @@ class NFCSettingsViewMixin:
                         self._nfc_test_values)
                 except (OSError, ValueError) as error:
                     logging.warning('NFC connection test could not start: %s', error)
-                    self._nfc_test_state = 'Failed'
+                    self._nfc_test_state = 'Fail'
                 self.Draw_NFC_Settings_Menu()
                 self.lcd.update()
                 return

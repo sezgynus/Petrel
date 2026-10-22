@@ -226,8 +226,8 @@ host-interface speed for those transports.
 
 **Test connection** is the final action below **Save** and becomes selectable
 once the model, interface and device have been chosen. It tests the *currently
-selected* values without saving them. The display shows **Checking** followed
-by **Conn. OK** or **Failed**. The shared libnfc API initializes and opens the
+selected* values without saving them. The display shows **Wait** followed
+by green **OK** or red **Fail**. The shared libnfc API initializes and opens the
 specified reader in initiator mode without needing a tag; it does not establish
 card-read quality or RF range. The connection probe is serialized through
 Petrel's existing RFID worker, never opens a second handle alongside an active

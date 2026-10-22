@@ -224,8 +224,8 @@ pasiftir ve odaklanamaz.
 
 **Test connection**, **Save** altındaki son seçenektir ve model, arayüz,
 aygıt seçildikten sonra etkinleşir. Dosyaya kaydetmeden *ekranda seçili*
-değerleri sınar. Ekranda önce **Checking**, ardından **Conn. OK** veya
-**Failed** görülür. Ortak libnfc API'si, karta ihtiyaç duymadan seçilen
+değerleri sınar. Ekranda önce **Wait**, ardından yeşil **OK** veya
+kırmızı **Fail** görülür. Ortak libnfc API'si, karta ihtiyaç duymadan seçilen
 okuyucuyu açar ve initiator modunda başlatır; kart okuma kalitesini veya
 RF menzilini doğrulamaz. Test, Petrel'in mevcut RFID iş parçacığında
 seri olarak yürütülür; aktif taramayla aynı anda ikinci libnfc oturumu

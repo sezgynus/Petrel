@@ -281,13 +281,20 @@ class NFCSettingsTests(unittest.TestCase):
             view.pd.test_nfc_connection.assert_called_once_with(view._nfc_values)
             rows = view._draw_list_menu.call_args.args[1]
             self.assertEqual(rows[7][:3],
-                             ('Test connection', view.ICON_Info, ('Checking', True)))
+                             ('Test connection', view.ICON_Info, ('Wait', True)))
             self.assertEqual(rows[6][2][0], 'Busy')
             self.assertFalse(view._nfc_poll_test_connection())
             future.set_result(True)
             self.assertTrue(view._nfc_poll_test_connection())
             rows = view._draw_list_menu.call_args.args[1]
-            self.assertEqual(rows[7][2], ('Conn. OK', True))
+            self.assertEqual(rows[7][2], ('OK', True))
+            view.lcd.reset_mock()
+            rows[7][3](7)
+            view.lcd.draw_text.assert_called_once_with(
+                False, True, view.lcd.font8x16, 0x07E0,
+                view.lcd.Color_Bg_Black,
+                view.MENU_VALUE_RIGHT - 4 * view.MENU_CHR_W,
+                view.MBASE(7) - 1, '  OK')
             # A connectivity test never modifies the persisted settings.
             fake_save.assert_not_called()
             self.assertEqual(view._nfc_saved, view._nfc_values)
@@ -297,7 +304,14 @@ class NFCSettingsTests(unittest.TestCase):
             view.HMI_NFC_Settings_Menu()
             self.assertTrue(view._nfc_poll_test_connection())
             rows = view._draw_list_menu.call_args.args[1]
-            self.assertEqual(rows[7][2], ('Failed', True))
+            self.assertEqual(rows[7][2], ('Fail', True))
+            view.lcd.reset_mock()
+            rows[7][3](7)
+            view.lcd.draw_text.assert_called_once_with(
+                False, True, view.lcd.font8x16, 0xF800,
+                view.lcd.Color_Bg_Black,
+                view.MENU_VALUE_RIGHT - 4 * view.MENU_CHR_W,
+                view.MBASE(7) - 1, 'Fail')
 
     def test_connection_test_disabled_until_valid_configuration(self):
         view = display(snapshot())
