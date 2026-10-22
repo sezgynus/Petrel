@@ -116,15 +116,24 @@ class NFCSettingsViewMixin:
                                    self.lcd.Color_Bg_Black, self.LBLX, y, label)
         return paint
 
+    def _nfc_status_painter(self, status, enabled):
+        """Info-style read-only status, not a selectable menu item."""
+        def paint(row):
+            y = self.MBASE(row) - 1
+            self._draw_menu_text('NFC feature', 8, y)
+            self.lcd.draw_text(False, False, self.lcd.font8x16,
+                               0x07E0 if enabled else 0x9CD3,
+                               self.lcd.Color_Bg_Black, 120, y, status)
+        return paint
+
     def Draw_NFC_Settings_Menu(self):
         enabled = self._nfc_enabled()
         value = self._nfc_config()
         status = 'Enabled' if enabled else 'Disabled in setup'
         rows = [('Back', self.ICON_Back, None, None),
-                ('NFC feature', ICON_NFC, status,
-                 self._nfc_value_painter('NFC feature',
-                                         'Enabled' if enabled else 'Disabled',
-                                         enabled))]
+                # Empty label/icon: the standard list renderer skips action
+                # artwork and separator; only the Info-style status is drawn.
+                ('', None, status, self._nfc_status_painter(status, enabled))]
         for _, field, label in NFC_FIELDS:
             active = enabled and self._nfc_field_enabled(field)
             text = self._nfc_value_text(field)

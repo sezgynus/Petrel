@@ -205,7 +205,9 @@ seçeneğin üzerine gelip basınca seçim NFC ayar ekranına aktarılır.
 **Back** seçimi değiştirmeden döner. Ana ekranda seçili değerler
 satırların sağında gösterilir; uzun aygıt adları özet satırında
 kısaltılır, seçim listesinde ayırt edilebilir biçimde görünür.
-**NFC feature** satırı yalnızca durumu bildirir. Okuyucu veya
+**NFC feature** bilgisi, Info ekranındaki gibi salt okunur durum
+göstergesidir (yeşil **Enabled**, soluk **Disabled in setup**); menü ikonu,
+işlem satırı ayracı veya enkoder odağı bulunmaz. Okuyucu veya
 arayüz değişince alt seçimler sıfırlanır. UART listesi Moonraker'ın
 `/machine/peripherals/serial` API'sinden gelir: her cihazın yalnızca ana
 `device_path` yolu görünür; `/dev/serial/by-id`, `/dev/serial/by-path`

@@ -52,4 +52,4 @@ Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski 
 
 Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 10×32 KiB yer kaplar.
 
-NFC ayarları menü satırı ve NFC özellik durumu, temassız kart ve radyo dalgalarını gösteren 20×20 Graphite ikonu **171** (`ICON_NFC`) kullanır. Düzenlenebilir kaynak `assets/icon-source/171.svg` dosyasındadır.
+NFC ayarları menü satırı, temassız kart ve radyo dalgalarını gösteren 20×20 Graphite ikonu **171** (`ICON_NFC`) kullanır. Salt okunur NFC özellik durumu Info düzenini izler ve işlem ikonu kullanmaz. Düzenlenebilir ikon kaynağı `assets/icon-source/171.svg` dosyasındadır.

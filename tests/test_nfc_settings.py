@@ -115,7 +115,7 @@ class NFCSettingsTests(unittest.TestCase):
             self.assertEqual(available_ports('USB', 'PN53x USB'), ('pn53x_usb:001:003',))
             self.assertEqual(available_ports('USB', 'ACR122U'), ('acr122_usb:001:005',))
 
-    def test_dedicated_nfc_icon_on_display_and_nfc_feature_rows(self):
+    def test_nfc_entry_icon_and_info_style_read_only_status(self):
         view = display(snapshot())
         view._draw_list_menu = Mock()
         view.Draw_Display_Menu()
@@ -127,8 +127,16 @@ class NFCSettingsTests(unittest.TestCase):
         with patch.dict('os.environ', {'PETREL_NFC': '1'}):
             view.Draw_NFC_Settings_Menu()
         rows = view._draw_list_menu.call_args.args[1]
-        self.assertEqual(rows[1][0], 'NFC feature')
-        self.assertEqual(rows[1][1], ICON_NFC)
+        self.assertEqual(rows[1][:3], ('', None, 'Enabled'))
+        self.assertEqual(view._nfc_focusable(), [0, 2])
+        view._draw_menu_text = Mock()
+        view.lcd.reset_mock()
+        rows[1][3](1)
+        view._draw_menu_text.assert_called_once_with(
+            'NFC feature', 8, view.MBASE(1) - 1)
+        self.assertEqual(view.lcd.draw_text.call_args.args[3], 0x07E0)
+        self.assertEqual(view.lcd.draw_text.call_args.args[5:],
+                         (120, view.MBASE(1) - 1, 'Enabled'))
 
     def test_disabled_installation_shows_rows_without_moving_focus(self):
         view = display(snapshot())
@@ -139,9 +147,18 @@ class NFCSettingsTests(unittest.TestCase):
         self.assertEqual(selection, 0)
         self.assertEqual(entries[1][2], 'Disabled in setup')
         self.assertEqual([entry[0] for entry in entries],
-                         ['Back', 'NFC feature', 'RFID module', 'Interface',
+                         ['Back', '', 'RFID module', 'Interface',
                           'Port / device', 'Link speed', 'Save'])
+        self.assertIsNone(entries[1][1])
         self.assertTrue(all(not entry[2][1] for entry in entries[2:]))
+        view._draw_menu_text = Mock()
+        view.lcd.reset_mock()
+        entries[1][3](1)
+        view._draw_menu_text.assert_called_once_with(
+            'NFC feature', 8, view.MBASE(1) - 1)
+        self.assertEqual(view.lcd.draw_text.call_args.args[3], 0x9CD3)
+        self.assertEqual(view.lcd.draw_text.call_args.args[7],
+                         'Disabled in setup')
         view._nfc_selection = 0
         view._encoder_event = view.ENCODER_DIFF_CW
         with patch.dict('os.environ', {'PETREL_NFC': '0'}):
