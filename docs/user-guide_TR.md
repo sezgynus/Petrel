@@ -199,7 +199,13 @@ Yapılandırılmış `[pwm_cycle_time ad]` çıkışlarından birini veya **Disa
 olmadığını gösterir. Kurulumda açılmadıysa NFC satırları görünür ama odaklanıp
 değiştirilemez. `configure.sh` ile NFC'yi açıp Petrel'i yeniden başlattığınızda
 ayarlar kullanılabilir. Libnfc okuyucu ailesini, o ailenin arayüzünü, sistemde
-mevcut port/aygıtı ve haberleşme hızını seçip **Save**'e basın. Okuyucu veya
+mevcut port/aygıtı ve haberleşme hızını seçip **Save**'e basın. Her ayara
+basıldığında ayrı bir kaydırılabilir seçenek listesi açılır; enkoderle
+seçeneğin üzerine gelip basınca seçim NFC ayar ekranına aktarılır.
+**Back** seçimi değiştirmeden döner. Ana ekranda seçili değerler
+satırların sağında gösterilir; uzun aygıt adları özet satırında
+kısaltılır, seçim listesinde ayırt edilebilir biçimde görünür.
+**NFC feature** satırı yalnızca durumu bildirir. Okuyucu veya
 arayüz değişince alt seçimler sıfırlanır. UART/I2C/SPI listeleri mevcut Linux
 aygıt düğümlerinden; USB, PC/SC ve NCI listeleri kurulu libnfc'nin gerçekten
 bulduğu aygıtlardan oluşturulur. Bu arayüzlerde hız ayarı yoktur. Seçimler Petrel

@@ -202,6 +202,11 @@ Open **Display → NFC settings**. The page reports whether NFC was enabled in
 be selected. Enable NFC in `configure.sh` and restart Petrel to unlock them.
 Choose a libnfc reader family, one of that family's available interfaces, an
 existing system port/device and the interface speed, then choose **Save**.
+Each editable setting opens its own scrollable list: rotate to a choice and
+press to select it and return to NFC settings. **Back** leaves the choice list
+without changes. The NFC settings rows show each selection right-aligned;
+long device names are shortened in the summary but remain identifiable in
+the selection list. The **NFC feature** row is informational, not editable.
 Changing the reader or interface clears dependent selections. UART, I2C and SPI
 port lists come from existing Linux device nodes; USB, PC/SC and NCI lists come
 from devices actually enumerated by the installed libnfc build. These interfaces do not have

@@ -164,6 +164,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
     BuzzerMenu = 49
     RFIDMenu = 51
     NFCSettingsMenu = 52
+    NFCChoiceMenu = 53
 
     MINUNITMULT = 10
 
@@ -476,6 +477,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._display_selection = 0
         self._display_edit = False
         self._display_save_message = ''
+        self._nfc_choice_field = None
+        self._nfc_choice_options = ()
+        self._nfc_choice_selection = 0
+        self._nfc_port_choices = None
         if hasattr(self, '_display_saved'):
             self._display_values = list(self._display_saved)
         self._mmu_canvas_page = None
@@ -670,6 +675,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.Draw_Buzzer_Menu()
             if getattr(self, 'checkkey', None) == self.NFCSettingsMenu:
                 self.Draw_NFC_Settings_Menu()
+            if getattr(self, 'checkkey', None) == self.NFCChoiceMenu:
+                self.Draw_NFC_Choice_Menu()
             if getattr(self, 'checkkey', None) == self.RecoveryScreen:
                 self.Clear_Popup_Area()
                 self._recovery_render = None
@@ -2028,7 +2035,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 return
             if selection == 4 + len(self._buzzer_rows()):
                 self._nfc_selection = 0
-                self._nfc_edit = False
+                self._nfc_choice_field = None
+                self._nfc_choice_options = ()
+                self._nfc_port_choices = None
                 self._nfc_save_error = False
                 self.checkkey = self.NFCSettingsMenu
                 self.Draw_NFC_Settings_Menu()
@@ -3852,6 +3861,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.DisplayMenu: '_display_selection',
             self.BuzzerMenu: '_buzzer_selection',
             self.NFCSettingsMenu: '_nfc_selection',
+            self.NFCChoiceMenu: '_nfc_choice_selection',
             self.MaintenanceMenu: '_maintenance_selection',
         }
         if self.checkkey == self.MMUMenu:
@@ -3916,6 +3926,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.DisplayMenu: self.Draw_Display_Menu,
             self.BuzzerMenu: self.Draw_Buzzer_Menu,
             self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,
+            self.NFCChoiceMenu: self.Draw_NFC_Choice_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
             self.Tune: self.Draw_Tune_Menu,
             self.MMUMenu: self.Draw_MMU_Menu,
@@ -4046,6 +4057,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.HMI_Buzzer_Menu()
         elif self.checkkey == self.NFCSettingsMenu:
             self.HMI_NFC_Settings_Menu()
+        elif self.checkkey == self.NFCChoiceMenu:
+            self.HMI_NFC_Choice_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
         elif self.checkkey == self.RFIDMenu:

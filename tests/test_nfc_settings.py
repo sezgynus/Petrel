@@ -101,7 +101,15 @@ class NFCSettingsTests(unittest.TestCase):
         title, entries, selection = view._draw_list_menu.call_args.args
         self.assertEqual(selection, 0)
         self.assertEqual(entries[1][2], 'Disabled in setup')
-        self.assertTrue(all('(disabled)' in entry[0] for entry in entries[1:]))
+        self.assertEqual([entry[0] for entry in entries],
+                         ['Back', 'NFC feature', 'RFID module', 'Interface',
+                          'Port / device', 'Link speed', 'Save'])
+        self.assertTrue(all(not entry[2][1] for entry in entries[2:]))
+        view._nfc_selection = 0
+        view._encoder_event = view.ENCODER_DIFF_CW
+        with patch.dict('os.environ', {'PETREL_NFC': '0'}):
+            view.HMI_NFC_Settings_Menu()
+        self.assertEqual(view._nfc_selection, 0)
 
     def test_child_fields_become_focusable_only_after_parent_confirmation(self):
         view = display(snapshot())
@@ -110,6 +118,107 @@ class NFCSettingsTests(unittest.TestCase):
         self.assertEqual(view._nfc_focusable(), [0, 2])
         view._nfc_confirmed['model'] = True
         self.assertEqual(view._nfc_focusable(), [0, 2, 3])
+
+    def test_model_choice_submenu_and_cancel_semantics(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings()
+        view._nfc_confirmed = {'model': False, 'interface': False, 'port': False}
+        view._nfc_selection = 2
+        view.checkkey = view.NFCSettingsMenu
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view.checkkey, view.NFCChoiceMenu)
+            self.assertEqual(view._nfc_choice_field, 'model')
+            self.assertEqual(view._draw_list_menu.call_args.args[0], 'RFID module')
+            self.assertEqual(view._draw_list_menu.call_args.args[1][0][0], 'Back')
+
+            # Back leaves the draft and parent confirmations untouched.
+            view._nfc_choice_selection = 0
+            view.HMI_NFC_Choice_Menu()
+            self.assertEqual(view.checkkey, view.NFCSettingsMenu)
+            self.assertEqual(view._nfc_values, ViewSettings())
+            self.assertEqual(view._nfc_focusable(), [0, 2])
+
+            # Choosing a reader returns to the settings summary.
+            view._nfc_selection = 2
+            view.HMI_NFC_Settings_Menu()
+            view._nfc_choice_selection = view._nfc_choice_options.index('ACR122U') + 1
+            view.HMI_NFC_Choice_Menu()
+            self.assertEqual(view.checkkey, view.NFCSettingsMenu)
+            self.assertEqual(view._nfc_values,
+                             ViewSettings('ACR122U', 'USB', '', 0))
+            self.assertEqual(view._nfc_confirmed,
+                             {'model': True, 'interface': False, 'port': False})
+            self.assertEqual(view._nfc_focusable(), [0, 2, 3])
+            entries = view._draw_list_menu.call_args.args[1]
+            self.assertEqual(entries[2][2], ('ACR122U', True))
+            self.assertEqual(entries[3][2], ('Select', True))
+
+    def test_port_and_speed_submenus_save_only_after_confirmation(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings('PN532', 'UART', '', 115200)
+        view._nfc_saved = view._nfc_values
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': False}
+        view._nfc_selection = 4
+        view.checkkey = view.NFCSettingsMenu
+        ports = ('/dev/ttyAMA0', '/dev/ttyDWIN0')
+        fake_ports = Mock(return_value=ports)
+        fake_save = Mock()
+        code = view._nfc_options.__func__.__globals__
+        save_code = view.HMI_NFC_Settings_Menu.__func__.__globals__
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
+                patch.dict(code, {'available_ports': fake_ports}), \
+                patch.dict(save_code, {'save': fake_save}):
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view.checkkey, view.NFCChoiceMenu)
+            self.assertEqual(view._nfc_choice_options, ports)
+            view._nfc_choice_selection = 2
+            view.HMI_NFC_Choice_Menu()
+            self.assertEqual(view._nfc_values.port, '/dev/ttyDWIN0')
+            self.assertTrue(view._nfc_confirmed['port'])
+            self.assertEqual(view._nfc_value_text('port'), 'ttyDWIN0')
+            self.assertEqual(view._nfc_focusable(), [0, 2, 3, 4, 5, 6])
+
+            view._nfc_selection = 5
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view.checkkey, view.NFCChoiceMenu)
+            self.assertEqual(view._nfc_choice_options[-1], 921600)
+            view._nfc_choice_selection = view._nfc_choice_options.index(230400) + 1
+            view.HMI_NFC_Choice_Menu()
+            self.assertEqual(view._nfc_values.speed, 230400)
+            self.assertFalse(fake_save.called)
+
+            rows = view._draw_list_menu.call_args.args[1]
+            self.assertEqual(rows[4][2], ('ttyDWIN0', True))
+            self.assertEqual(rows[5][2], ('230400', True))
+            view._draw_menu_value = Mock()
+            rows[4][3](4)
+            view._draw_menu_value.assert_called_once_with(
+                'ttyDWIN0', view.MBASE(4) - 1, view.lcd.Color_Bg_Black, 9)
+            view._nfc_selection = 6
+            view.HMI_NFC_Settings_Menu()
+            fake_save.assert_called_once_with(view._nfc_values)
+            self.assertEqual(view._nfc_saved, view._nfc_values)
+
+    def test_choice_rendering_truncates_long_ports_and_shows_checkmark(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': True}
+        view._nfc_choice_field = 'port'
+        view._nfc_choice_options = ('/dev/serial/by-id/very-long-usb-adapter-name',
+                                    '/dev/ttyDWIN0')
+        view._nfc_choice_selection = 2
+        view.Draw_NFC_Choice_Menu()
+        title, entries, selection = view._draw_list_menu.call_args.args
+        self.assertEqual((title, selection), ('Port / device', 2))
+        self.assertTrue(all(len(entry[0]) <= 22 for entry in entries))
+        self.assertEqual([row[2] for row in entries], [None, False, True])
+        self.assertIn('adapter-name', entries[1][0])
 
 
 if __name__ == '__main__':
