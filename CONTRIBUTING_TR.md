@@ -63,3 +63,31 @@ Tüm dokümantasyon ekranlarını yazıcı olmadan üretmek için `tools/render_
 Print/Tune doğrulaması: After Job tıklaması yalnız `SET_PIN` yapmalı, cihazı anında kapatmamalı; eski yanıt yeni düzenlemeyi ezmemeli; reddedilen değer/switch/Pause iki kez kırmızı yanıp sönüp gerçek abonelik durumuna dönmeli; yarım basılı tutma taslağı korumalı. Kaynak ve donanım kontrolleri [test rehberindedir](tests/README_TR.md).
 
 JPEG değişikliklerinde [fan/buton kurallarını](assets/icons/README_TR.md#print-butonları-switchler-ve-fan-görselleri), font ID 0'ı, baseline 4:2:0'ı ve kaynak/export denkliğini koruyun. Normal/seçili buton maskesi aynı kalmalı. Emülatör kontrolünden sonra ilgili durumları fiziksel panelde de deneyin.
+
+## PN532 Type 4 target geçici çözümünün gerekçesi
+
+### Sorun ve seçilen uygulama
+
+PN532 ile salt okunur Type 4 NDEF URI emülasyonu sırasında Android bazen hedefi ISO14443A NDEF yerine **Unknown FeliCa / NfcF** olarak tanıyordu. Deneylerde target Mode `0x05` / `0x04`, ATQA `00 04` / `00 08` ve PN532 mod algılama register müdahalesi karşılaştırıldı.
+
+`libnfc_api.py` içindeki üretim yolu dağıtımın orijinal `libnfc.so.6` kütüphanesini, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` ve SAK `0x20` değerlerini korur. PN532 target oturumu, **her** `nfc_target_init()` denemesinden hemen önce `ctypes` üzerinden şu maskeli yazmayı kuyruğa alır:
+
+```python
+pn53x_write_register(device, 0x6301, 0x04, 0x04)
+```
+
+`0x6301` adresi `CIU_Mode` register'ıdır; `0x04` maskesi AutoColl mod algılamasıyla ilişkili bit 2'yi, `ModeDetOff` alanını seçer. Bu, gözlenen yanlış tanıma için donanıma özgü bir çözümdür; **belgelenmiş genel bir “FeliCa kapat” API'si değildir**. Maskeli yazma diğer bitleri korur. libnfc yazmayı önbelleğe alıp sonraki native PN532 haberleşmesinde uygular; `0` dönüşü isteğin kabulünü gösterir, register geri okuması veya başarılı RF davranışı anlamına gelmez.
+
+Fiziksel denemelerde gözlenen FeliCa yanlış tanıması giderildiği için sistem kütüphanesi ve bu register müdahalesi seçildi. Böylece özel libnfc derlemelerini sürdürmek, sistem kütüphanelerini değiştirmek veya deneysel A/B/C/D profillerini ve işaret dosyalarını ürün ayarına dönüştürmek gerekmez. Yalnız yapılandırılmış okuyucu modeli `PN532` olduğunda ve özel erişimli target oturumunda otomatik uygulanmalıdır. Bu yazmaları diğer okuyuculara göndermeyin ve normal initiator taramasına eklemeyin.
+
+### Ayrı Android URL yönlendirme sorunu
+
+NFC Tools içinde NDEF URI okunmasına rağmen Android başlangıçta URL açmayı önermiyor/açmıyordu. Bu ayrı bir oturum ömrü hatasıydı: ilk tam NDEF okumasının hemen ardından kapanmak, Android'in sonraki `SELECT`/`READ` APDU'larını engelliyordu. `NFCTargetSession.serve_uri()` artık aktarım sonrasında APDU yanıtlamayı sürdürür, aktarım sonrası alımda 2000 ms zaman aşımı kullanır ve `share.ndef_transferred` olayını yalnız bir kez üretir. **ModeDetOff teknoloji yanlış tanımasını; aktarım sonrası APDU oturum ömrü URL yönlendirmesini çözer.** İki mekanizmayı bağımsız koruyun.
+
+### Kanıt ve bakım sınırları
+
+- Denenen PN532/Pi/Android birleşiminde kullanıcı 20/20 NDEF okuma ve URL açılması, sıfır FeliCa tanıması ve ayrıca bir kırmızı aktivasyon hatası bildirdi. Bu sınırlı fiziksel kanıttır; bütün telefonlar veya libnfc paketleri için garanti değildir. Nadir `nfc_target_init(-1)` hatası henüz çözülmedi.
+- `pn53x_write_register`, denenen upstream/dağıtım libnfc 1.8.x tarafından dışarı aktarılır ancak **özel bir semboldür; kararlı public API değildir**. `bind_pn532_register()` tam ABI imzasını bağlar ve sembol yoksa anlaşılır hata verir; sessiz fallback eklemeyin. CI dağıtım sembolünü ve PN532'ye özgü davranışı denetler. libnfc sürümü veya platform değiştiğinde sembol/ABI uyumluluğunu yeniden kontrol edin.
+- PN532 target oturumu kapanırken bit 2'nin maskeli temizlenmesi **best effort** olarak kuyruğa alınır. Cihazın deaktive olması veya yazmanın önbellekte kalması nedeniyle bu, doğrulanmış donanım restorasyonu değildir.
+- Dağıtım kütüphanesini koruyun. Özel `.so` seçimini, deney profillerini veya aktivasyon işaret dosyalarını geri getirmeyin. Gerçek NFC okuyucu yapılandırması ve özelliğin isteğe bağlı kurulumu ayrı ve geçerli konulardır.
+- İlgili regresyonlar: `tests/test_nfc_system_modedet.py`, `tests/test_nfc_type4_dispatch.py` ve `tests/test_libnfc_api.py`. Otomatik testler RF uyumluluğunu kanıtlayamaz; bu yol değiştiğinde teknoloji tanımasını ve Android URL açılmasını fiziksel olarak doğrulayın.

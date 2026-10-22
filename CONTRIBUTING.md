@@ -63,3 +63,31 @@ Run the [PNG and GIF refresh commands](docs/ui-emulator.md#refresh-pngs-frames-a
 Print/Tune validation: an After Job click must only send `SET_PIN`, never immediately switch off hardware; older replies must not overwrite a newer edit; rejected values/switches/Pause blink red twice and return to subscribed state; an incomplete hold preserves the draft. Source and hardware checks are in the [test guide](tests/README.md).
 
 For JPEG changes preserve the [fan/button contracts](assets/icons/README.md#print-buttons-switches-and-fan-artwork), font ID 0, baseline 4:2:0 and source/export equivalence. Normal/selected button masks must match. Validate relevant states on the physical panel after emulator review.
+
+## PN532 Type 4 target workaround
+
+### Problem and chosen implementation
+
+During PN532 read-only Type 4 NDEF URI emulation, Android sometimes identified the target as **Unknown FeliCa / NfcF**, rather than ISO14443A NDEF. Experiments compared target Mode `0x05` / `0x04`, ATQA `00 04` / `00 08`, and a PN532 mode-detector register intervention.
+
+The production path in `libnfc_api.py` retains the distribution's original `libnfc.so.6`, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` and SAK `0x20`. Immediately before **each** `nfc_target_init()` attempt, PN532 targets queue this masked write through `ctypes`:
+
+```python
+pn53x_write_register(device, 0x6301, 0x04, 0x04)
+```
+
+Address `0x6301` is `CIU_Mode`; mask `0x04` selects bit 2, `ModeDetOff`, associated with AutoColl mode detection. This is a hardware-specific workaround for the observed misidentification, **not a documented public “disable FeliCa” API**. The masked write preserves unrelated bits. libnfc caches the write and flushes it on subsequent native PN532 communication; return code `0` confirms acceptance, not register readback or successful RF behavior.
+
+The original system library plus this register intervention was chosen because physical trials removed the observed FeliCa misidentification without maintaining custom libnfc builds, replacing system libraries, or exposing experimental A/B/C/D profiles and marker files as product settings. Apply it automatically only when the configured reader model is `PN532` and the exclusive target session is active. Do not send these writes to other readers or add them to ordinary initiator scanning.
+
+### Separate Android URL-dispatch issue
+
+Reading an NDEF URI in NFC Tools did not initially cause Android to offer/open the URL. That was a separate session-lifetime defect: closing immediately after the first complete NDEF read prevented subsequent Android `SELECT`/`READ` APDUs. `NFCTargetSession.serve_uri()` now continues serving APDUs after transfer, uses a 2000 ms post-transfer receive timeout, and emits `share.ndef_transferred` only once. **ModeDetOff addresses technology misidentification; the post-transfer APDU lifetime addresses URL dispatch.** Preserve both mechanisms independently.
+
+### Evidence and maintenance limits
+
+- On the tested PN532/Pi/Android combination, the user reported 20/20 NDEF reads with URL opening, no FeliCa detections, and one separate red activation error. This is limited physical evidence, not a guarantee for all phones or libnfc packages; the rare `nfc_target_init(-1)` error remains unresolved.
+- `pn53x_write_register` is exported by the tested upstream/distro libnfc 1.8.x, but is a **private symbol, not a stable public API**. `bind_pn532_register()` binds its exact ABI and reports a clear error if unavailable; do not silently fall back. CI checks the distro symbol and PN532-specific behavior. Recheck symbol/ABI compatibility when changing libnfc versions or platforms.
+- Closing the PN532 target session queues a masked clear of bit 2 as **best effort**. A deactivated device or cached write means this is not verified hardware restoration.
+- Keep the distribution library intact. Do not restore custom `.so` selection, experiment profiles or activation-marker files. Real NFC reader configuration and optional feature installation remain valid, separate concerns.
+- Relevant regressions: `tests/test_nfc_system_modedet.py`, `tests/test_nfc_type4_dispatch.py` and `tests/test_libnfc_api.py`. Automated tests cannot establish RF compatibility; validate technology detection and Android URL opening physically after changing this path.

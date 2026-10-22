@@ -1,4 +1,4 @@
-"""Direct public libnfc ABI. Packed layouts mirror nfc/nfc-types.h (1.8)."""
+"""libnfc ABI plus a PN532 target workaround; layouts mirror nfc-types.h (1.8)."""
 import ctypes as C
 import ctypes.util
 from functools import lru_cache
@@ -69,8 +69,15 @@ def decode_target(target):
     return card
 
 
-# The PN532 target parameters and ModeDetOff are part of Petrel's driver,
-# not runtime profiles or an opt-in experiment.
+# PN532 Type 4 workaround: Android sometimes identified the emulated tag as
+# Unknown FeliCa / NfcF instead of ISO14443A NDEF. Keep upstream target Mode
+# 0x05 and ATQA 00 04, but set CIU_Mode.ModeDetOff (bit 2) before activation.
+# This affects AutoColl mode detection; it is not a public "disable FeliCa" API.
+# Use the distro libnfc's exported, private pn53x_write_register symbol rather
+# than shipping patched .so files or runtime experiment profiles. Scope this
+# to PN532 targets; ordinary scanning and other readers must remain unaffected.
+# Android URL dispatch separately requires the post-NDEF APDU lifetime below.
+# Rationale, physical evidence and ABI limits: CONTRIBUTING.md#pn532-type-4-target-workaround
 PN532_TARGET_ATQA = (0x00, 0x04)
 PN532_MODEDET_ADDRESS = 0x6301
 PN532_MODEDET_MASK = 0x04
@@ -82,7 +89,11 @@ def library_path():
 
 
 def bind_pn532_register(lib):
-    """Bind the upstream-exported PN53x register symbol for PN532 targets only."""
+    """Bind a private exported symbol, not a stable public libnfc API.
+
+    Require it only for PN532 targets; never silently omit the workaround.
+    See CONTRIBUTING.md#pn532-type-4-target-workaround for compatibility notes.
+    """
     try:
         write = lib.pn53x_write_register
     except AttributeError as error:
@@ -379,8 +390,10 @@ class NFCTargetSession:
         post_transfer_timeout_ms = 2000
         while not cancelled():
             if self._pn532_target:
-                # An upstream PN53x masked write is cached and flushed on
-                # the next native PN532 command during target activation.
+                # Reapply ModeDetOff before every activation attempt. The masked
+                # write preserves other CIU_Mode bits and queues libnfc's cache;
+                # rc=0 is acceptance, not register readback or RF proof. The
+                # next native PN532 command flushes the pending write.
                 rc = self.lib.pn53x_write_register(
                     self.device, PN532_MODEDET_ADDRESS,
                     PN532_MODEDET_MASK, PN532_MODEDET_MASK)
@@ -441,8 +454,9 @@ class NFCTargetSession:
     def close(self):
         if self.device:
             if self._pn532_target:
-                # Queue masked clear before closing this exclusive session;
-                # the chip may already be deactivated. Do not hide close errors.
+                # Best-effort masked clear before closing the exclusive session.
+                # The chip may already be deactivated and this cached write is
+                # not verified hardware restoration; report errors explicitly.
                 try:
                     rc = self.lib.pn53x_write_register(
                         self.device, PN532_MODEDET_ADDRESS,
