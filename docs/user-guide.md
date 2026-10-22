@@ -480,304 +480,47 @@ successfully served**. It does not mean the phone opened a browser. Cancel,
 failure and successful transfer relinquish target mode and resume normal
 scanning. While sharing, global RFID-card actions are suspended.
 
-**Experimental PN532 / Android Type 4 fix:** The stock libnfc 1.8.0 PN532
-target implementation constructs `TgInitAsTarget` mode `0x05` (passive +
-PICC). Some Android phones instead see a zero-filled FeliCa/NfcF target,
-even while the backend reports a complete NDEF transfer. Petrel provides an
-opt-in, reversible build of **the pinned libnfc 1.8.0 source** that changes
-only the PN532 ISO14443-4 PICC activation to mode `0x04`. It does not
-replace the operating system's libnfc package or change the Core architecture.
-On the Pi, as the Petrel service user (not root), install the build prerequisites
-once and build the isolated library:
+### PN532 Type 4 NDEF emulation
 
-```bash
-sudo apt-get install -y build-essential git python3 autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh
-sudo systemctl restart Petrel.service
-```
+Petrel uses the distribution's unmodified `libnfc.so.6` package. PN532
+Type 4 target emulation uses upstream `TgInitAsTarget` Mode `0x05`
+and fixed ATQA `00 04`; these are not user-selected profiles.
 
-The patched library is used on the next Petrel start only after a successful
-build. Reader scanning continues to use libnfc and the same NFC Backend worker.
-For an immediate rollback, run as the same Petrel service user:
+Before each PN532 target activation, Petrel uses libnfc's exported
+`pn53x_write_register` helper to request a masked
+`CIU_Mode (0x6301)` `ModeDetOff` bit-2 write. The library applies its
+write-back cache when sending the next PN532 command. The symbol is
+checked when opening a PN532 target session; if the distro libnfc does
+not expose it, the target session fails explicitly instead of silently
+using a different RF behavior. Other NFC reader types never receive this
+PN532-specific register command. No special `.so`, source patch,
+compiler, profile selection, or `.enabled` file is required. The
+standard NFC installer still controls whether NFC support is installed.
 
-```bash
-rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
-sudo systemctl restart Petrel.service
-```
+A completed NDEF transfer remains available to the phone for further
+Type 4 SELECT/READ commands until an RF inactivity interval of up to
+2 seconds; the success event is emitted only once. This allows Android
+system URL handling to complete. Physical tests of PN532 + Android with
+the distro libnfc found zero FeliCa misclassifications in twenty phone
+presentations, although one intermittent target activation `-1` occurred.
+The cause of that remaining activation failure has not yet been established.
 
-This PN532 firmware-compatibility change has now produced valid Type 4
-NDEF on a physical PN532 and Android phone. The separate effects of
-`TgInitAsTarget` Mode and ATQA are **not yet established**. Use this
-reproducible four-profile experiment to isolate the two variables, rather
-than assuming upstream libnfc's `0x05` is invalid.
-
-The two build variants come from the **same pinned libnfc 1.8.0 revision**.
-Build both as the Petrel service user (not root); this does not modify apt's
-`libnfc6` installation:
+To remove obsolete locally built experiment libraries and test flags
+*after upgrading Petrel* (run as the Petrel service user, without sudo):
 
 ```bash
 cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh 04  # PICC-only library
-bash tools/build_pn532_picc_libnfc.sh 05  # unmodified upstream mode library
-```
-
-Choose each profile with `python3 tools/nfc_target_ab.py select A` (substitute
-B/C/D), restart with `sudo systemctl restart Petrel.service`, open
-**Info → Share via NFC**, and read it using NFC Tools on both test phones.
-The profile selection is an explicit, private, atomic configuration file;
-it never rewrites application source or reloads a library mid-session:
-
-| Profile | Mode | ATQA sent to libnfc | Role |
-| --- | --- | --- | --- |
-| A | `0x05` | `00 04` | Original unmodified libnfc / original ATQA |
-| B | `0x05` | `00 08` | Original libnfc / updated ATQA |
-| C | `0x04` | `00 04` | PICC-only libnfc / original ATQA |
-| D | `0x04` | `00 08` | Previously working combination |
-
-Record for **each phone and profile** whether the tag is detected as NfcF,
-NfcA/IsoDep/Ndef, the UID, the ATQA shown by the phone, whether
-`https://github.com/sezgynus/Petrel` is decoded, and whether the popup
-closes. Check the configured experiment in service logs:
-
-```bash
-python3 tools/nfc_target_ab.py status
-journalctl -u Petrel.service --since "5 minutes ago" --no-pager | grep 'NFC Type4 test'
-```
-
-After all measurements, restore the proven configuration:
-
-```bash
-python3 tools/nfc_target_ab.py reset
+python3 tools/cleanup_nfc_experiments.py
+python3 tools/cleanup_nfc_experiments.py --apply
 sudo systemctl restart Petrel.service
 ```
 
-This is still a physical **causality experiment**; a successful popup close
-proves NDEF response transmission, not Android opening the browser.
-
-### PN532 native target diagnostics (observation only)
-
-The first Mode/ATQA trials showed that the same settings may yield FeliCa
-or Type 4 on different phone presentations. **Do not assume that the upstream
-Mode 0x05 is faulty.** Use a separately built libnfc 1.8.0 diagnostic
-variant that retains the exact upstream `ptm |= ...` mode decision and only
-adds journal tracing in `pn53x.c`. It does not change the system libnfc or
-the previously installed 04/05 builds.
-
-Build from the pinned upstream source using the Petrel service account.
-Select **A** (`0x05` / ATQA `00 04`) for the first comparison:
-
-```bash
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh diag
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_diag.py enable
-sudo systemctl restart Petrel.service
-```
-
-Open **Info → Share via NFC**, move the phone completely away after each
-presentation, and observe successive FeliCa/NfcA/Type 4 results in NFC Tools.
-The native `PETREL_NFC_DIAG` lines show the *actual PN532 command payload*:
-`tx cmd=8C` Mode, six MIFARE bytes (ATQA, UID suffix, SAK), the 18 FeliCa
-bytes, timeout, returned activated mode and whether libnfc accepted it.
-The Python lines show APDU command headers, lengths, response status,
-and whether NDEF transferred; **they never print NDEF content or URL**.
-An activated-mode reply is **not** an RF air-interface capture: to verify
-actual over-the-air ATQA independently, a dedicated NFC sniffer is required.
-
-To inspect logs:
-
-```bash
-python3 tools/nfc_target_diag.py status
-journalctl -u Petrel.service --since "10 minutes ago" --no-pager | grep -E 'PETREL_NFC_DIAG|NFC Type4 test'
-```
-
-After the diagnostic test, **disable logging**. This restores the ordinary
-selected 05 library on the next service restart; the A/B configuration and
-other private builds remain untouched:
-
-```bash
-python3 tools/nfc_target_diag.py disable
-sudo systemctl restart Petrel.service
-```
-
-The diagnostics selector refuses missing/mismatched builds and refuses
-profiles C/D while active. It is opt-in and has no automatic NFC hardware
-tests, polling or persistent diagnostic files.
-
-### PN532 CIU_Mode ModeDetOff register experiment
-
-NXP's PN532/C1 datasheet identifies bit 2 of `CIU_Mode` (register `0x6301`)
-as `ModeDetOff`: setting it disables the AutoColl data-mode detector. It
-**does not document a dedicated FeliCa-disable function**, and it could also
-prevent ISO14443A activation. This is an experimental physical test, **not a
-verified fix**. Keep the RF experiments restricted to idle printers.
-
-The separate `modedet` libnfc build uses the same pinned upstream 1.8.0
-source and the existing **Mode 0x04** patch. Its only added behavioral
-register change is a masked write of `CIU_Mode` bit 2. It reads back and
-logs `CIU_Mode`, `CIU_TxMode` and `CIU_RxMode`, and clears ModeDetOff when
-leaving target mode. Other bit positions and target parameters are untouched.
-The existing 04/05/diag builds and system libnfc remain installed unchanged.
-
-First establish a profile C baseline with the ordinary build, recording
-Type 4 NDEF successes and Unknown FeliCa outcomes across ten presentations.
-Then enable the new register experiment:
-
-```bash
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh modedet
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select C
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-Repeat ten phone presentations with unchanged hardware and ATQA. Observe
-NFC Tools and examine the native register logs:
-
-```bash
-python3 tools/nfc_target_modedet.py status
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager | grep -E 'PETREL_NFC_MODEDET|NFC Type4|NFC URI'
-```
-
-`PETREL_NFC_MODEDET set` must show the bit in `after` (`after & 0x04`);
-`restore` must show it cleared. Register readback checks that the write
-took effect at that instant, but PN532 firmware may reconfigure registers
-later. The native logs cannot alone prove what was transmitted over RF.
-
-Rollback immediately if Type 4 stops working or testing is complete:
-
-```bash
-python3 tools/nfc_target_modedet.py disable
-sudo systemctl restart Petrel.service
-```
-
-This returns to the ordinary C library. The selector refuses incompatible
-profiles, missing libraries and simultaneous native diagnostic selection.
-
-### PN532 upstream A comparison and failure-phase tracing
-
-The C + ModeDetOff experiment measured 9/10 Type 4 NDEF, 0 Unknown FeliCa,
-and one `NFC_EIO (-1)`. Its CIU_Mode logs showed `3B -> 3F`, generally
-restoring `3B`, with occasional `85`, `00` or `3F` readbacks. These are
-not explained yet and are not proof of a permanent hardware fix.
-
-The next isolated experiment **keeps A** (`TgInitAsTarget Mode=0x05`,
-`ATQA=00 04`) and adds precisely the *same* `CIU_Mode.ModeDetOff` bit-2
-write/restore used in C. The `modedet05` build is separate; it does not
-overwrite the system libnfc, ordinary A, or the C test build. Native log
-lines add phase-specific failure codes (`set_read_before`, `set_write`,
-`set_read_after`, `set_txmode`, `set_rxmode`, `set_verify`,
-`restore_write`, `restore_read`, `restore_verify`,
-`idle_inrelease`, `idle_powerdown`, `timeout_idle`, `tg_init`) and
-successful activated modes. There is no additional RF command on the target
-activation path compared with the C experiment.
-
-**After the new commit and successful CI**, using the Petrel service account:
-
-```bash
-cd ~/Petrel
-git pull --ff-only
-bash tools/build_pn532_picc_libnfc.sh modedet05
-python3 tools/nfc_target_modedet.py disable
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-Perform ten separate phone presentations. Record **Type 4 NDEF, Unknown
-FeliCa and Petrel error** individually. Also record whether cold start is
-involved, and preserve the full native trace:
-
-```bash
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
-  grep -E 'PETREL_NFC_MODEDET|PETREL_NFC_DIAG|NFC Type4|NFC URI'
-```
-
-Rollback without rebuilding anything:
-
-```bash
-python3 tools/nfc_target_modedet.py disable
-sudo systemctl restart Petrel.service
-```
-
-**Final production goal:** Once a stable cause and fix are physically
-verified, do not ship diagnostics, A/B/C/D selection, repeated register
-logging or multiple experimental libnfc builds. Minimize the upstream
-`pn53x.c` patch to only the demonstrated register operation and any
-essential cleanup, PN532/ISO14443A-target-scoped, then measure the minimal
-build against the unmodified libnfc using the same test. A system libnfc
-replacement is not required for this experiment.
-
-### Android system URL dispatch during Type 4 sharing
-
-NFC Tools reading a URI confirms that a reader can obtain the NDEF bytes; it
-does not independently confirm Android system tag dispatch or browser launch.
-Android's Type 4 stack has separate NDEF-detection and NDEF-read phases, so
-a reader can issue additional APDUs after the first complete NDEF read.
-
-For physical comparison, Petrel now **emits the transfer event once**, but
-keeps answering valid Type 4 APDUs for up to 2 seconds of reader inactivity
-after the first full NDEF file transfer. This is an inactivity grace period
-starting after the most recent APDU response, not an added pre-activation
-delay. It preserves the original immediate failure handling before a full
-read and preserves cancellation. A second READ does not emit a second
-success. This change is Python-side; it requires **no new libnfc build**.
-
-Test the result with the phone unlocked and NFC Tools closed. A physical
-NDEF URI tag on that same phone is a useful control; report both the
-browser notification behavior and whether NFC Tools continues to read the
-Petrel tag. Android notification behavior remains dependent on the phone
-OS and browser handlers. This experiment does not prove the issue is fixed.
-
-### Unmodified system libnfc register experiment (no custom build)
-
-An **opt-in** physical PN532 test can use the distribution's unmodified
-`libnfc.so.6` rather than the patched ModeDetOff variants. Upstream
-libnfc 1.8.0 exports `pn53x_write_register`; Petrel binds that
-non-public symbol using `ctypes`, checks its presence, and queues a masked
-`CIU_Mode 0x6301` bit-2 write **before each** Type 4 target-init attempt.
-The next PN532 command flushes the library's write-back cache. This is a
-hypothesis to validate with the actual system package, not a proven RF fix.
-At target-session close it requests a masked clear, but this is best effort
-because the device can already be deactivated.
-
-With **profile A** (mode `0x05`, ATQA `00 04`) selected, use:
-
-```bash
-cd ~/Petrel
-python3 tools/nfc_target_system_modedet.py probe
-python3 tools/nfc_target_modedet.py disable
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_system_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-The probe requires the system `libnfc6` package with an exported
-`pn53x_write_register` symbol and does not touch the reader. Never
-replace the distro library. Run at least ten phone presentations and
-record Type 4 NDEF / Unknown FeliCa / activation-error results. Logs:
-
-```bash
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
-  grep -E 'PETREL_NFC_SYSTEM_MODEDET|NFC Type4|NFC URI'
-```
-
-The `queued` line means the library accepted a write into its cache;
-it **does not prove** that a hardware write occurred. If it fails or the
-system library omits the private symbol, it fails explicitly rather than
-silently reverting to incompatible behavior.
-
-Rollback to the known A + patched-lib experiment **without recompiling**:
-
-```bash
-python3 tools/nfc_target_system_modedet.py disable
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
+The cleanup only targets the known experimental PN532 library folders,
+temporary build folders and experiment activation/profile files in the
+current user's XDG config/data homes. It does not remove the distro
+`libnfc6` package, saved NFC hardware settings, or general Petrel data.
+The first command is a dry run; both commands refuse to proceed unless
+the production system-libnfc driver configuration is available.
 
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/

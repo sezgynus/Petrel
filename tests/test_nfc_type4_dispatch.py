@@ -24,7 +24,9 @@ class Type4AndroidDispatchTests(unittest.TestCase):
     def session(frames, *, receive_codes=()):
         session = NFCTargetSession.__new__(NFCTargetSession)
         session.device = 100
+        session._pn532_target = True
         session.lib = Mock()
+        session.lib.pn53x_write_register.return_value = 0
         session.lib.nfc_target_init.return_value = 0
         session.lib.nfc_target_send_bytes.return_value = 0
         received = []

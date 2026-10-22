@@ -481,303 +481,46 @@ taklit edilir; ancak **NDEF dosyasının tüm baytları başarıyla gönderildi�
 anlamına gelmez. İptal, hata veya başarılı aktarım sonunda normal taramaya
 dönülür. Paylaşım sırasında global RFID kart işlevleri duraklar.
 
-**Deneysel PN532 / Android Type 4 düzeltmesi:** Stok libnfc 1.8.0,
-PN532 için `TgInitAsTarget` modunu `0x05` (passive + PICC) olarak üretir.
-Bazı Android telefonlarda tam NDEF aktarım olayı oluşsa da etiket sıfır
-kimlikli FeliCa/NfcF olarak görünebilir. Petrel, yalnız PN532 ISO14443-4
-etiket taklit modunu `0x04` yapan, **libnfc 1.8.0'ın sabitlenmiş kaynak
-sürümünü** kullanan isteğe bağlı ve geri alınabilir bir derleme aracı içerir.
-Sistemdeki apt/libnfc paketine dokunulmaz; NFC Core/Backend mimarisi
-değişmez. Raspberry Pi'de Petrel servis kullanıcısıyla (root değil):
+### PN532 Type 4 NDEF emülasyonu
 
-```bash
-sudo apt-get install -y build-essential git python3 autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh
-sudo systemctl restart Petrel.service
-```
+Petrel, dağıtımın değiştirilmemiş `libnfc.so.6` paketini kullanır.
+PN532 Type 4 hedef emülasyonu, upstream `TgInitAsTarget` Mode `0x05`
+ve sabit ATQA `00 04` ile çalışır; bunlar kullanıcı tarafından
+seçilen profiller değildir.
 
-Derleme eksiksiz tamamlanırsa sonraki Petrel başlangıcında özel libnfc
-kullanılır; normal RFID taraması aynı Backend worker'ında sürer.
-Geri dönüş için aynı kullanıcıyla:
+Petrel, her PN532 target aktivasyonundan önce libnfc'nin dışarı aktardığı
+`pn53x_write_register` fonksiyonuyla `CIU_Mode (0x6301)` register'ının
+`ModeDetOff` bit 2'sine maskeli yazma isteği ekler. libnfc, sonraki
+PN532 komutunu gönderirken write-back cache'ini uygular. Sistem
+libnfc'de ilgili sembol yoksa PN532 target oturumu açıkça hata verir;
+sessizce farklı RF davranışına geçmez. Diğer NFC okuyucularına
+bu PN532'ye özel register komutu uygulanmaz. Özel `.so`, kaynak kod
+yaması, derleyici, profil seçimi veya `.enabled` dosyası gerekmez.
+Kurulumda NFC desteğinin etkin olup olmadığına dair mevcut seçenek korunur.
 
-```bash
-rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
-sudo systemctl restart Petrel.service
-```
+NDEF tamamlandıktan sonra telefonun ek Type 4 SELECT/READ işlemleri
+için bağlantı, son APDU'dan itibaren en fazla 2 saniyelik sessizlik
+süresine kadar açık tutulur. Başarı olayı yalnızca bir kez üretilir;
+Android sisteminin URL açma akışı tamamlanabilir. Sistem libnfc ile
+gerçek PN532 + Android testinde yirmi okutmanın hiçbirinde yanlış
+FeliCa algılaması görülmedi; bir kez aralıklı target aktivasyon `-1`
+hatası oluştu. Bunun kök nedeni henüz belirlenmedi.
 
-Bu PN532 uyumluluk düzeltmesi fiziksel PN532 ve Android telefonla
-geçerli Type 4 NDEF olarak doğrulandı. Ancak `TgInitAsTarget` Mode ve ATQA
-değişikliklerinin **hangisinin gerekli olduğu henüz kanıtlanmadı**.
-Bunu anlamak için aynı libnfc 1.8.0 sabit kaynak sürümünden iki varyant
-derleyip yalnız iki parametreyi değiştiren dört profili test ediyoruz.
-Her iki varyant da Petrel servis kullanıcısıyla (root değil) derlenir;
-sistemin `libnfc6` paketi değiştirilmez:
+Eski deneysel derlemeleri ve işaretleri *Petrel güncellendikten sonra*
+Petrel servis kullanıcısıyla temizlemek için (komutlara sudo eklemeyin):
 
 ```bash
 cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh 04  # PICC-only library
-bash tools/build_pn532_picc_libnfc.sh 05  # unmodified upstream mode library
-```
-
-`python3 tools/nfc_target_ab.py select A` komutuyla bir profil seçin
-(B/C/D için harfi değiştirin) ve
-`sudo systemctl restart Petrel.service` çalıştırın. Ardından
-**Info → Share via NFC** ile her iki telefonda NFC Tools kullanarak okuyun.
-Profil, atomik yazılan özel bir yapılandırma dosyasında tutulur; çalışma
-sırasında kütüphane değiştirilmez.
-
-| Profil | Mode | libnfc'ye gönderilen ATQA | Amaç |
-| --- | --- | --- | --- |
-| A | `0x05` | `00 04` | Orijinal libnfc + orijinal ATQA |
-| B | `0x05` | `00 08` | Orijinal libnfc + yeni ATQA |
-| C | `0x04` | `00 04` | PICC-only libnfc + orijinal ATQA |
-| D | `0x04` | `00 08` | Daha önce çalışan birleşim |
-
-**Her profil ve telefon için** algılanan NfcF/NfcA/IsoDep/Ndef
-teknolojisini, UID'yi, NFC Tools'ta görülen ATQA'yı, Petrel URL'sinin
-çözülüp çözülmediğini ve popup'ın kapanmasını kaydedin. Servis logunda
-seçilen parametreleri kontrol edin:
-
-```bash
-python3 tools/nfc_target_ab.py status
-journalctl -u Petrel.service --since "5 minutes ago" --no-pager | grep 'NFC Type4 test'
-```
-
-Deney sonunda daha önce çalışan yapıya dönün:
-
-```bash
-python3 tools/nfc_target_ab.py reset
+python3 tools/cleanup_nfc_experiments.py
+python3 tools/cleanup_nfc_experiments.py --apply
 sudo systemctl restart Petrel.service
 ```
 
-Bu çalışma **nedensellik testidir**: popup'ın kapanması NDEF verisinin
-gönderildiğini gösterir, telefonun tarayıcı açtığını değil.
-
-### PN532 yerel hedef teşhisi (yalnız gözlem)
-
-İlk Mode/ATQA deneyleri, aynı yapılandırmanın farklı okutmalarda FeliCa
-veya Type 4 olarak algılanabildiğini gösterdi. **Bu, upstream Mode 0x05
-değerinin hatalı olduğunu kanıtlamaz.** Ayrı derlenen libnfc 1.8.0 teşhis
-sürümü, upstream `ptm |= ...` Mode kararını değiştirmez; yalnızca
-`pn53x.c` içine günlük kayıtları ekler. Sistem libnfc paketine veya
-önceki 04/05 derlemelerine dokunulmaz.
-
-Sabitlenmiş upstream kaynakla Petrel servis kullanıcısı altında derleyin.
-İlk karşılaştırma için **A** profilini (`0x05` / ATQA `00 04`) seçin:
-
-```bash
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh diag
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_diag.py enable
-sudo systemctl restart Petrel.service
-```
-
-**Info → Share via NFC** sayfasını açın. Her okutma arasında telefonu
-tamamen uzaklaştırıp NFC Tools'ta FeliCa/NfcA/Type 4 sonuçlarını izleyin.
-Yerel `PETREL_NFC_DIAG` günlükleri PN532'ye *gerçekten gönderilen komut
-yükünü* kaydeder: `tx cmd=8C` Mode, altı MIFARE baytı (ATQA, UID sonu,
-SAK), 18 FeliCa baytı, timeout, gelen aktivasyon modu ve libnfc'nin kabul
-kararı. Python günlükleri APDU komut başlığını, uzunluğu, yanıt durumunu
-ve NDEF aktarımını kaydeder; **NDEF içeriğini veya URL'yi yazmaz**.
-Aktivasyon cevabı bağımsız RF ölçümü değildir: gerçek radyo ATQA baytlarını
-doğrulamak için ayrı bir NFC sniffer gerekir.
-
-Logları incelemek için:
-
-```bash
-python3 tools/nfc_target_diag.py status
-journalctl -u Petrel.service --since "10 minutes ago" --no-pager | grep -E 'PETREL_NFC_DIAG|NFC Type4 test'
-```
-
-Deneyden sonra **teşhisi kapatın**. Bir sonraki servis başlangıcında normal
-05 kütüphanesine geri dönülür; A/B profili ve diğer özel derlemeler değişmez:
-
-```bash
-python3 tools/nfc_target_diag.py disable
-sudo systemctl restart Petrel.service
-```
-
-Eksik/uyumsuz derlemelerde ve teşhis etkinken C/D profillerinde sistem
-hata verir; sessizce başka kütüphaneye geçmez. Özellik isteğe bağlıdır,
-ayrıca NFC donanımı taramaz ve kalıcı teşhis dosyaları üretmez.
-
-### PN532 CIU_Mode ModeDetOff register deneyi
-
-NXP PN532/C1 veri sayfasında `CIU_Mode` (`0x6301`) register'ının 2. biti
-`ModeDetOff` olarak tanımlanmıştır: bit 1 yapıldığında AutoColl veri modu
-algılayıcısı kapanır. Bu, belgelenmiş özel bir **FeliCa devre dışı bırakma
-işlevi değildir**; ISO14443A aktivasyonunu da engelleyebilir. Bu nedenle
-işlem kanıtlanmış bir düzeltme değil, fiziksel bir donanım deneyidir.
-Deneyi yazıcı baskı yapmıyorken uygulayın.
-
-Ayrı `modedet` libnfc derlemesi, aynı sabitlenmiş 1.8.0 kaynak sürümünü ve
-mevcut **Mode 0x04** yamasını kullanır. Eklediği tek davranışsal register
-değişikliği `CIU_Mode` bit 2'ye maskeli yazmadır. `CIU_Mode`,
-`CIU_TxMode` ve `CIU_RxMode` değerlerini okuyup loglar; hedef modundan
-çıkarken ModeDetOff bitini temizler. Diğer bitlere ve hedef parametrelerine
-dokunulmaz. Sistem libnfc ve eski 04/05/diag derlemeleri korunur.
-
-Önce normal C profilinde on okutmalık bir başlangıç sonucu kaydedin:
-Type 4 NDEF / Unknown FeliCa sayıları. Ardından deneyi açın:
-
-```bash
-cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh modedet
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select C
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-Aynı telefon, anten ve ATQA ile on kez daha okutun; NFC Tools sonuçlarını
-ve register günlüklerini karşılaştırın:
-
-```bash
-python3 tools/nfc_target_modedet.py status
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager | grep -E 'PETREL_NFC_MODEDET|NFC Type4|NFC URI'
-```
-
-`PETREL_NFC_MODEDET set` satırında `after` değerinin 2. biti 1
-(`after & 0x04`) olmalıdır. `restore` satırı bitin temizlendiğini
-göstermelidir. Bu kontrol yazmanın o anda gerçekleştiğini doğrular;
-PN532 firmware'i register'ı daha sonra yeniden değiştirebilir.
-Bu loglar doğrudan RF üzerinde gönderilen veri ölçümü değildir.
-
-Type 4 okunamaz hâle gelirse veya test biterse hemen geri alın:
-
-```bash
-python3 tools/nfc_target_modedet.py disable
-sudo systemctl restart Petrel.service
-```
-
-Bu işlem normal C kütüphanesine döndürür. Eksik derleme, uygunsuz
-profil ve aynı anda başka teşhis seçimi reddedilir.
-
-### PN532 upstream A karşılaştırması ve hata aşaması teşhisi
-
-C + ModeDetOff deneyinde 10 okutmanın 9'unda Type 4 NDEF, 0'ında Unknown
-FeliCa, 1'inde `NFC_EIO (-1)` kaydedildi. `CIU_Mode` çoğunlukla
-`3B -> 3F -> 3B` oldu; zaman zaman geri okumada `85`, `00`
-veya `3F` görüldü. Bu anomalilerin nedeni henüz doğrulanmadı.
-
-Yeni, ayrı derlenen deneyde **A profili** (`TgInitAsTarget Mode=0x05`,
-`ATQA=00 04`) korunur. C deneyindekiyle tamamen aynı
-`CIU_Mode.ModeDetOff` bit 2 maskeli yazma ve geri alma işlemleri uygulanır.
-`modedet05` derlemesi sistem libnfc'yi, normal A veya C deney
-kütüphanesini değiştirmez. Native loglarda `set_read_before`,
-`set_write`, `set_read_after`, `set_txmode`, `set_rxmode`,
-`set_verify`, `restore_write`, `restore_read`, `restore_verify`,
-`idle_inrelease`, `idle_powerdown`, `timeout_idle`, `tg_init`
-aşamalarının hata kodu ve başarılı aktivasyon modu ayrıca kaydedilir.
-C deneyine göre hedef aktivasyon yoluna ek RF komutu konulmaz.
-
-**Yeni commit ve CI başarılı olduktan sonra**, Petrel servis kullanıcısıyla:
-
-```bash
-cd ~/Petrel
-git pull --ff-only
-bash tools/build_pn532_picc_libnfc.sh modedet05
-python3 tools/nfc_target_modedet.py disable
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-Telefonu tamamen uzaklaştırıp 10 kez okutun. **Type 4 NDEF, Unknown
-FeliCa ve Petrel hatası** sonuçlarını ayrı ayrı sayın. Cold start varsa
-bunu belirtin. Bütün native logu alın:
-
-```bash
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
-  grep -E 'PETREL_NFC_MODEDET|PETREL_NFC_DIAG|NFC Type4|NFC URI'
-```
-
-Yeni derleme yapmadan geri dönüş:
-
-```bash
-python3 tools/nfc_target_modedet.py disable
-sudo systemctl restart Petrel.service
-```
-
-**Final üretim hedefi:** Sebep ve çözüm fiziksel olarak doğrulandıktan sonra
-teşhis logları, A/B/C/D profilleri ve deneysel kütüphane varyantları
-dağıtıma alınmayacak. Upstream `pn53x.c` yamasında yalnız doğrulanmış
-register müdahalesi ve zorunlu temizleme kalacak; müdahale yalnız PN532
-ISO14443A hedef kipine uygulanacak. Daha sonra bu minimal derleme ile
-orijinal libnfc aynı fiziksel deneyde karşılaştırılacak. Bu deney sistem
-libnfc paketini değiştirmiyor.
-
-### Android sisteminde Type 4 NFC URL yönlendirmesi
-
-NFC Tools'un URL baytlarını okuması, Android'in sistem düzeyinde NDEF
-keşfinin tamamlandığını veya tarayıcıyı açtıracağını tek başına kanıtlamaz.
-Android Type 4 yığınında NDEF tanıma ve NDEF okuma ayrı aşamalardır;
-ilk tam NDEF okumasından sonra ek APDU'lar gelebilir.
-
-Fiziksel karşılaştırma için Petrel artık **başarılı aktarımı yalnızca
-bir kez bildirir** ve ilk tam NDEF aktarımından sonra okuyucudan en fazla
-2 saniye boyunca yeni komut gelmezse oturumu sonlandırır. Süre, son APDU
-yanıtından sonra hareketsizlik için geçerlidir; aktivasyona bekleme
-eklemez. Tam okumadan önceki hata/cancel davranışı korunur; ikinci READ,
-başarı olayını tekrar üretmez. Bu değişiklik Python katmanındadır;
-**yeni libnfc derlemesi gerekmez.**
-
-Telefon kilidi açık ve NFC Tools kapalıyken deneyin. Aynı telefonda URL
-açan fiziksel bir NDEF kartını kontrol örneği olarak kullanın. Hem
-bildirimi hem NFC Tools'ta Petrel etiketinin okunmaya devam edip etmediğini
-kaydedin. Android'in URL bildirimi işletim sistemi ve uygulama
-ilişkilendirmesine de bağlıdır. Bu deney henüz kesin düzeltme değildir.
-
-### Değiştirilmemiş sistem libnfc ile register deneyi (özel derleme yok)
-
-**İsteğe bağlı** PN532 deneyinde yamalı kütüphane yerine dağıtımın orijinal
-`libnfc.so.6` kütüphanesi kullanılır. Upstream libnfc 1.8.0
-`pn53x_write_register` sembolünü dışarı aktarır. Petrel bu genel olmayan
-fonksiyonu `ctypes` ile bağlar, mevcutluğunu kontrol eder ve her Type 4
-hedef aktivasyonundan **önce** `CIU_Mode 0x6301` bit 2 için maskeli
-yazma isteğini libnfc'nin write-back cache'ine ekler. Sonraki PN532
-komutunda cache donanıma aktarılır. Sistem paketinin RF davranışında
-bu yöntemin başarılı olacağı henüz fiziksel olarak doğrulanmadı.
-Hedef oturumu kapanırken bitin temizlenmesi istenir; cihaz zaten
-kapatılmış olabileceğinden bu işlem best-effort'tur.
-
-**A profili** (mode `0x05`, ATQA `00 04`) seçiliyken:
-
-```bash
-cd ~/Petrel
-python3 tools/nfc_target_system_modedet.py probe
-python3 tools/nfc_target_modedet.py disable
-python3 tools/nfc_target_diag.py disable
-python3 tools/nfc_target_ab.py select A
-python3 tools/nfc_target_system_modedet.py enable
-sudo systemctl restart Petrel.service
-```
-
-`probe`, sistem `libnfc6` paketini ve
-`pn53x_write_register` sembolünü kontrol eder; okuyucuya erişmez.
-Sistem libnfc paketini değiştirmeyin. Telefonla en az on okutma yapıp
-Type 4 NDEF / Unknown FeliCa / aktivasyon hatalarını ayrı sayın.
-Kayıtları alın:
-
-```bash
-journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
-  grep -E 'PETREL_NFC_SYSTEM_MODEDET|NFC Type4|NFC URI'
-```
-
-`queued` kaydı yalnız libnfc cache'ine yazma isteğinin eklendiğini
-gösterir; **register'ın fiziksel olarak yazıldığını kanıtlamaz**.
-Sembol yoksa veya işlem başarısızsa sessiz fallback yapılmaz.
-
-Derleme gerektirmeden önceki çalışan A + yamalı kütüphane deneyine dönmek:
-
-```bash
-python3 tools/nfc_target_system_modedet.py disable
-python3 tools/nfc_target_modedet.py enable
-sudo systemctl restart Petrel.service
-```
+Temizlik, yalnızca mevcut kullanıcının XDG config/data dizinlerindeki
+bilinen PN532 deney kütüphanelerini, geçici derleme dizinlerini ve
+profil/etkinleştirme işaretlerini siler. Sistem `libnfc6` paketi, NFC
+cihaz ayarları ve diğer Petrel verileri korunur. İlk komut önizlemedir;
+her iki komut da üretim sistem-libnfc yapılandırması yoksa durur.
 
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global

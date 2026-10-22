@@ -21,6 +21,7 @@ class DirectLibNFCTests(unittest.TestCase):
         lib.nfc_device_set_property_bool.return_value = 0
         lib.nfc_device_set_property_int.return_value = 0
         lib.nfc_initiator_deselect_target.return_value = 0
+        lib.pn53x_write_register.return_value = 0
         kinds = (INT * 11)(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0)
         rates = {kind: (INT * 4)(*((3, 2, 1, 0) if kind == 1 else
                    (2, 3, 0, 0) if kind == 7 else (1, 2, 3, 0) if kind == 8 else (1, 0, 0, 0)))
@@ -183,26 +184,23 @@ class DirectLibNFCTests(unittest.TestCase):
             session.scan((1, 1))
         session.close()
 
-    def test_private_pn532_library_selection_is_opt_in_and_reversible(self):
+    def test_system_libnfc_always_selected_even_if_old_private_build_exists(self):
         from libnfc_api import library_path
         with tempfile.TemporaryDirectory() as tmp:
             with patch.dict(os.environ, {'XDG_DATA_HOME': tmp}), \
                     patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'):
-                self.assertEqual(library_path(), 'libnfc.so.6')
                 root = Path(tmp) / 'Petrel' / 'libnfc-pn532-picc'
                 lib = root / 'lib' / 'libnfc.so.6'
                 lib.parent.mkdir(parents=True)
-                lib.write_bytes(b'fake')
-                self.assertEqual(library_path(), 'libnfc.so.6')
+                lib.write_bytes(b'old private library')
                 (root / '.petrel-pn532-picc').write_text('ready')
-                self.assertEqual(library_path(), str(lib))
-                (root / '.petrel-pn532-picc').unlink()
                 self.assertEqual(library_path(), 'libnfc.so.6')
 
     def test_pn532_target_emulates_type_4a_without_advertising_dep(self):
         from libnfc_api import NFCTargetSession
         target = NFCTargetSession.__new__(NFCTargetSession)
         target.device = 123
+        target._pn532_target = True
         target.lib = self.fake_library()
         parameters = []
         def activate(device, target_ptr, *_):
@@ -220,38 +218,39 @@ class DirectLibNFCTests(unittest.TestCase):
         self.assertFalse(target.serve_uri('https://example.org',
                                          lambda: cancelled[0],
                                          lambda *args: None))
-        self.assertEqual(parameters, [(1, bytes((0x00, 0x08)), 0x20,
+        self.assertEqual(parameters, [(1, bytes((0x00, 0x04)), 0x20,
                                        bytes((0x08, 0x00, 0xB0, 0x0B)))])
 
-    def test_target_atqa_experiment_is_applied_to_target_structure(self):
-        from libnfc_api import NFCTargetSession
-        for atqa in ((0x00, 0x04), (0x00, 0x08)):
-            with self.subTest(atqa=atqa):
-                target = NFCTargetSession.__new__(NFCTargetSession)
-                target.device = 123
-                target.lib = self.fake_library()
-                captured = []
-                def activate(_device, target_ptr, *_):
-                    passed = C.cast(target_ptr, C.POINTER(Target)).contents
-                    captured.append((bytes(passed.info.a.atqa), passed.info.a.sak))
-                    return 0
-                target.lib.nfc_target_init.side_effect = activate
-                cancelled = [False]
-                def receive(*args):
-                    cancelled[0] = True
-                    return -6
-                target.lib.nfc_target_receive_bytes.side_effect = receive
-                with patch('libnfc_api.target_atqa', return_value=atqa):
-                    self.assertFalse(target.serve_uri(
-                        'https://github.com/sezgynus/Petrel',
-                        lambda: cancelled[0], lambda *_: None))
-                self.assertEqual(captured, [(bytes(atqa), 0x20)])
+    def test_target_atqa_is_fixed_not_selectable(self):
+        from libnfc_api import NFCTargetSession, PN532_TARGET_ATQA
+        self.assertEqual(PN532_TARGET_ATQA, (0x00, 0x04))
+        target = NFCTargetSession.__new__(NFCTargetSession)
+        target.device = 123
+        target._pn532_target = True
+        target.lib = self.fake_library()
+        target._pn532_target = True
+        captured = []
+        def activate(_device, target_ptr, *_):
+            passed = C.cast(target_ptr, C.POINTER(Target)).contents
+            captured.append((bytes(passed.info.a.atqa), passed.info.a.sak))
+            return 0
+        target.lib.nfc_target_init.side_effect = activate
+        cancelled = [False]
+        def receive(*args):
+            cancelled[0] = True
+            return -6
+        target.lib.nfc_target_receive_bytes.side_effect = receive
+        self.assertFalse(target.serve_uri(
+            'https://github.com/sezgynus/Petrel',
+            lambda: cancelled[0], lambda *_: None))
+        self.assertEqual(captured, [(bytes((0x00, 0x04)), 0x20)])
 
     def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
         from libnfc_api import NFCTargetSession
         from unittest.mock import Mock
         target = NFCTargetSession.__new__(NFCTargetSession)
         target.device = 123
+        target._pn532_target = True
         target.lib = Mock()
         target.lib.nfc_target_init.return_value = 0
         cancelled = [False]

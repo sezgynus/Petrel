@@ -7,12 +7,6 @@ from pathlib import Path
 import logging
 
 from nfc_info import parse_info
-from nfc_target_experiment import (
-    PROFILES, library_for_mode, selected_profile, target_atqa,
-    diagnostics_enabled, diagnostics_library_path,
-    modedet_enabled, modedet_library_path,
-    system_modedet_enabled,
-)
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
 PTR = C.c_void_p
@@ -75,39 +69,28 @@ def decode_target(target):
     return card
 
 
-def library_path():
-    """An explicit A/B profile selects its exact pinned libnfc build.
+# The PN532 target parameters and ModeDetOff are part of Petrel's driver,
+# not runtime profiles or an opt-in experiment.
+PN532_TARGET_ATQA = (0x00, 0x04)
+PN532_MODEDET_ADDRESS = 0x6301
+PN532_MODEDET_MASK = 0x04
 
-    Without an experiment, preserve the existing preference for the optional
-    mode-0x04 build. Never silently use another mode during a controlled test.
-    """
-    profile = selected_profile()
-    if system_modedet_enabled():
-        if profile != 'A' or modedet_enabled() or diagnostics_enabled():
-            raise ValueError('System libnfc ModeDetOff requires profile A exclusively')
-        system = C.util.find_library('nfc')
-        if not system:
-            raise OSError('System libnfc not installed (libnfc6 required)')
-        return system
-    if modedet_enabled():
-        if diagnostics_enabled():
-            raise ValueError('PN532 ModeDetOff and diagnostics cannot be combined')
-        if profile not in ('A', 'C'):
-            raise ValueError('PN532 ModeDetOff requires profile A or C')
-        return modedet_library_path(profile)
-    if diagnostics_enabled():
-        if profile not in ('A', 'B'):
-            raise ValueError('PN532 diagnostics requires upstream Mode 0x05 profile A/B')
-        return diagnostics_library_path()
-    if profile is not None:
-        return library_for_mode(PROFILES[profile][0])
-    root = Path(os.environ.get('XDG_DATA_HOME') or
-                (Path.home() / '.local' / 'share')) / 'Petrel' / 'libnfc-pn532-picc'
-    patched = root / 'lib' / 'libnfc.so.6'
-    marker = root / '.petrel-pn532-picc'
-    if marker.is_file() and patched.is_file():
-        return str(patched)
+
+def library_path():
+    """Always use the distribution's ordinary libnfc shared library."""
     return C.util.find_library('nfc')
+
+
+def bind_pn532_register(lib):
+    """Bind the upstream-exported PN53x register symbol for PN532 targets only."""
+    try:
+        write = lib.pn53x_write_register
+    except AttributeError as error:
+        raise OSError('Installed libnfc lacks pn53x_write_register; PN532 '
+                      'Type 4 target unavailable') from error
+    write.restype = INT
+    write.argtypes = [PTR, C.c_uint16, U8, U8]
+    return write
 
 
 @lru_cache(maxsize=1)
@@ -145,15 +128,6 @@ def bind_library():
     for name, (result, args) in signatures.items():
         function = getattr(lib, name)
         function.restype, function.argtypes = result, args
-    if system_modedet_enabled():
-        # Exported by upstream libnfc 1.8.0 but not part of the public NFC ABI.
-        # Fail closed instead of claiming ModeDetOff was applied without a symbol.
-        try:
-            write = lib.pn53x_write_register
-        except AttributeError as error:
-            raise OSError('Installed libnfc lacks pn53x_write_register symbol') from error
-        write.restype = INT
-        write.argtypes = [PTR, C.c_uint16, U8, U8]
     return lib
 
 
@@ -361,12 +335,13 @@ class NFCTargetSession:
 
     def __init__(self, settings):
         connection = settings.connection_string()
-        if system_modedet_enabled() and settings.model != 'PN532':
-            raise ValueError('Register experiment supports only PN532 device profiles')
         self.lib = bind_library()
         self.context = PTR()
         self.device = None
+        self._pn532_target = settings.model == 'PN532'
         try:
+            if self._pn532_target:
+                bind_pn532_register(self.lib)
             self.lib.nfc_init(C.byref(self.context))
             if not self.context:
                 raise OSError('libnfc target context unavailable')
@@ -387,17 +362,11 @@ class NFCTargetSession:
         tag = Type4UriTag(url)
         target = Target()
         target.modulation = Modulation(1, 0)  # ISO14443A / undefined bitrate
-        # One controlled ATQA variable for the physical A/B matrix.
-        # libnfc reverses these bytes for TgInitAsTarget SENS_RES.
-        profile = selected_profile()
-        system_mode = system_modedet_enabled()
-        diagnostic = diagnostics_enabled() or modedet_enabled() or system_mode
-        atqa = target_atqa()
-        target.info.a.atqa[:] = atqa
-        logging.info('NFC Type4 test profile=%s mode=%s ATQA=%02X%02X library=%s',
-                     profile or 'default-D',
-                     ('0x%02X' % PROFILES[profile][0]) if profile else 'default-0x04',
-                     *atqa, library_path())
+        # Native libnfc PN532 target mode is upstream 0x05. The Type 4
+        # ATQA is fixed, not a runtime profile.
+        target.info.a.atqa[:] = PN532_TARGET_ATQA
+        logging.info('NFC Type4 share ATQA=%02X%02X library=%s',
+                     *PN532_TARGET_ATQA, library_path())
         target.info.a.sak = 0x20  # ISO14443-4 only (do not advertise unsupported DEP)
         target.info.a.uid_len = 4
         target.info.a.uid[:4] = (0x08, 0x00, 0xB0, 0x0B)  # Random UID prefix
@@ -409,25 +378,20 @@ class NFCTargetSession:
         # is a quiet RF interval. This applies only after a confirmed read.
         post_transfer_timeout_ms = 2000
         while not cancelled():
-            if system_mode:
-                # Upstream pn53x_write_register queues a masked write in its
-                # cache. The next target-init command flushes it to the chip.
+            if self._pn532_target:
+                # An upstream PN53x masked write is cached and flushed on
+                # the next native PN532 command during target activation.
                 rc = self.lib.pn53x_write_register(
-                    self.device, 0x6301, 0x04, 0x04)
+                    self.device, PN532_MODEDET_ADDRESS,
+                    PN532_MODEDET_MASK, PN532_MODEDET_MASK)
                 if rc < 0:
                     raise OSError('PN532 ModeDetOff register write failed (%d)' % rc)
-                if diagnostic:
-                    logging.info('PETREL_NFC_SYSTEM_MODEDET queued addr=6301 mask=04 rc=%d', rc)
             n = self.lib.nfc_target_init(self.device, C.byref(target),
                                          receive, len(receive), 500)
             if n in (-6, -10, -20):
-                if diagnostic:
-                    logging.info('PETREL_NFC_DIAG python target_retry rc=%d', n)
                 continue
             if n < 0:
                 raise OSError('NFC target activation failed (%d)' % n)
-            if diagnostic:
-                logging.info('PETREL_NFC_DIAG python target_accepted initial_len=%d', n)
             on_event('share.phone_detected', {})
             transferred = False
             while not cancelled():
@@ -439,47 +403,28 @@ class NFCTargetSession:
                         post_transfer_timeout_ms if transferred else 500)
                 else:
                     packet = bytes(receive[:n])
-                    if diagnostic:
-                        logging.info('PETREL_NFC_DIAG apdu_rx len=%d cla=%s ins=%s',
-                                     n, ('%02X' % packet[0]) if len(packet) else '--',
-                                     ('%02X' % packet[1]) if len(packet) > 1 else '--')
                     answer = tag.respond(packet)
-                    if diagnostic:
-                        logging.info('PETREL_NFC_DIAG apdu_tx len=%d sw=%s',
-                                     len(answer), answer[-2:].hex().upper()
-                                     if len(answer) >= 2 else '--')
                     outgoing = (U8 * len(answer)).from_buffer_copy(answer)
                     sent = self.lib.nfc_target_send_bytes(self.device, outgoing,
                                                            len(outgoing), 500)
                     if sent < 0:
                         if transferred:
-                            if diagnostic:
-                                logging.info('PETREL_NFC_DIAG post_transfer_end send_rc=%d',
-                                             sent)
                             return True
                         if sent in (-6, -10, -20):
                             break
                         raise OSError('NFC target send failed (%d)' % sent)
                     if tag.sent() and not transferred:
                         transferred = True
-                        if diagnostic:
-                            logging.info('PETREL_NFC_DIAG ndef_transferred confirmed')
                         on_event('share.ndef_transferred', {'url': url})
                     n = self.lib.nfc_target_receive_bytes(
                         self.device, receive, len(receive),
                         post_transfer_timeout_ms if transferred else 500)
                 if n in (-6, -10, -20):
                     if transferred:
-                        if diagnostic:
-                            logging.info('PETREL_NFC_DIAG post_transfer_end receive_rc=%d',
-                                         n)
                         return True
                     break
                 if n < 0:
                     if transferred:
-                        if diagnostic:
-                            logging.info('PETREL_NFC_DIAG post_transfer_end receive_rc=%d',
-                                         n)
                         return True
                     raise OSError('NFC target receive failed (%d)' % n)
             if transferred:
@@ -495,16 +440,17 @@ class NFCTargetSession:
 
     def close(self):
         if self.device:
-            if system_modedet_enabled():
-                # Best-effort masked clear. Do not turn a transferred NDEF
-                # into failure if the field has already been deactivated.
+            if self._pn532_target:
+                # Queue masked clear before closing this exclusive session;
+                # the chip may already be deactivated. Do not hide close errors.
                 try:
                     rc = self.lib.pn53x_write_register(
-                        self.device, 0x6301, 0x04, 0x00)
+                        self.device, PN532_MODEDET_ADDRESS,
+                        PN532_MODEDET_MASK, 0x00)
                     if rc < 0:
-                        logging.warning('PETREL_NFC_SYSTEM_MODEDET clear rc=%d', rc)
+                        logging.warning('PN532 ModeDetOff clear rc=%d', rc)
                 except (AttributeError, OSError):
-                    logging.exception('PETREL_NFC_SYSTEM_MODEDET clear failed')
+                    logging.exception('PN532 ModeDetOff clear failed')
             self.lib.nfc_close(self.device)
             self.device = None
         if self.context:

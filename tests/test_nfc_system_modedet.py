@@ -1,4 +1,4 @@
-"""System libnfc ModeDetOff experiment: no custom build or local PN532 tests."""
+"""Production PN532 Type 4 register behavior; no profile or opt-in state."""
 import ctypes as C
 import os
 from pathlib import Path
@@ -7,147 +7,102 @@ import unittest
 from unittest.mock import Mock, patch
 
 import libnfc_api
-from libnfc_api import NFCTargetSession, Target
-from nfc_target_experiment import (
-    system_modedet_enabled, system_modedet_file, selected_profile,
-)
-from tools import (
-    nfc_target_ab, nfc_target_diag, nfc_target_modedet,
-    nfc_target_system_modedet,
+from libnfc_api import (
+    NFCTargetSession, Target, PN532_TARGET_ATQA,
+    PN532_MODEDET_ADDRESS, PN532_MODEDET_MASK, bind_pn532_register,
 )
 
 
-class SystemRegisterExperimentTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        env = patch.dict(os.environ, {
-            'XDG_CONFIG_HOME': self.tmp.name,
-            'XDG_DATA_HOME': self.tmp.name,
-        })
-        env.start()
-        self.addCleanup(env.stop)
-        root = Path(self.tmp.name) / 'Petrel' / 'libnfc-pn532-mode05'
-        (root / 'lib').mkdir(parents=True)
-        (root / 'lib' / 'libnfc.so.6').write_bytes(b'fake ordinary A')
-        (root / '.petrel-pn532-picc').write_text('mode=0x05\n')
-
+class PN532NativeRegisterTests(unittest.TestCase):
     @staticmethod
-    def mock_system():
-        lib = Mock()
-        lib.nfc_version.return_value = b'1.8.0'
-        return lib
+    def session(pn532=True):
+        instance = NFCTargetSession.__new__(NFCTargetSession)
+        instance.device = 123
+        instance.context = C.c_void_p()
+        instance.lib = Mock()
+        instance.lib.pn53x_write_register.return_value = 0
+        instance._pn532_target = pn532
+        return instance
 
-    def test_experiment_uses_system_library_not_experimental_build(self):
-        nfc_target_ab.select('A')
-        ordinary = libnfc_api.library_path()
-        self.assertIn('libnfc-pn532-mode05', ordinary)
-        with patch('tools.nfc_target_system_modedet.C.util.find_library',
-                   return_value='libnfc.so.6'), \
-             patch('tools.nfc_target_system_modedet.C.CDLL',
-                   return_value=self.mock_system()), \
-             patch('libnfc_api.C.util.find_library',
-                   return_value='libnfc.so.6'):
-            self.assertEqual(nfc_target_system_modedet.enable(),
-                             ('libnfc.so.6', '1.8.0'))
-            self.assertTrue(system_modedet_enabled())
+    def test_driver_always_uses_stock_system_library_without_flag(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.dict(os.environ, {'XDG_CONFIG_HOME': tmp, 'XDG_DATA_HOME': tmp}), \
+                patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'):
+            config = Path(tmp) / 'Petrel'
+            config.mkdir()
+            (config / 'nfc-target-experiment.json').write_text('{"profile":"D"}')
+            (config / 'nfc-target-system-modedet.enabled').write_text('enabled-v1\n')
             self.assertEqual(libnfc_api.library_path(), 'libnfc.so.6')
-            self.assertEqual(system_modedet_file().stat().st_mode & 0o777, 0o600)
-            with self.assertRaisesRegex(ValueError, 'Disable'):
-                nfc_target_ab.select('C')
-            with self.assertRaisesRegex(ValueError, 'Disable'):
-                nfc_target_ab.reset()
-            with self.assertRaisesRegex(ValueError, 'Disable'):
-                nfc_target_diag.enable()
-            with self.assertRaisesRegex(ValueError, 'Disable'):
-                nfc_target_modedet.enable()
-            nfc_target_system_modedet.disable()
-            self.assertFalse(system_modedet_enabled())
-        self.assertEqual(libnfc_api.library_path(), ordinary)
+            self.assertEqual(PN532_TARGET_ATQA, (0x00, 0x04))
+            self.assertEqual((PN532_MODEDET_ADDRESS, PN532_MODEDET_MASK), (0x6301, 0x04))
 
-    def test_requires_a_and_does_not_enable_if_symbol_missing(self):
-        with self.assertRaisesRegex(ValueError, 'profile A'):
-            nfc_target_system_modedet.enable()
-        nfc_target_ab.select('A')
-        with patch('tools.nfc_target_system_modedet.C.util.find_library',
-                   return_value=None):
-            with self.assertRaisesRegex(OSError, 'not installed'):
-                nfc_target_system_modedet.enable()
-
-        class WithoutPrivateSymbol:
-            def __init__(self):
-                self.nfc_version = Mock(return_value=b'1.8.0')
-
-        with patch('tools.nfc_target_system_modedet.C.util.find_library',
-                   return_value='libnfc.so.6'), \
-             patch('tools.nfc_target_system_modedet.C.CDLL',
-                   return_value=WithoutPrivateSymbol()):
-            with self.assertRaisesRegex(OSError, 'register ABI'):
-                nfc_target_system_modedet.enable()
-        self.assertFalse(system_modedet_file().exists())
-
-    def test_missing_symbol_fails_binding_not_silent_fallback(self):
-        nfc_target_ab.select('A')
-        system_modedet_file().write_text('enabled-v1\n')
-        class NoSymbol:
+    def test_private_register_symbol_is_fail_closed_for_pn532(self):
+        class Missing:
             def __getattr__(self, name):
-                if name == 'pn53x_write_register':
-                    raise AttributeError(name)
-                return Mock()
-        libnfc_api.bind_library.cache_clear()
-        try:
-            with patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'), \
-                 patch('libnfc_api.C.CDLL', return_value=NoSymbol()):
-                with self.assertRaisesRegex(OSError, 'lacks pn53x_write_register'):
-                    libnfc_api.bind_library()
-        finally:
-            libnfc_api.bind_library.cache_clear()
-
-    def test_queued_before_each_target_init_masked_and_cleared_on_close(self):
-        nfc_target_ab.select('A')
+                raise AttributeError(name)
+        with self.assertRaisesRegex(OSError, 'lacks pn53x_write_register'):
+            bind_pn532_register(Missing())
         lib = Mock()
-        device = 123
-        target = NFCTargetSession.__new__(NFCTargetSession)
-        target.device = device
-        target.lib = lib
-        target.context = C.c_void_p()
+        writer = bind_pn532_register(lib)
+        self.assertIs(writer, lib.pn53x_write_register)
+        self.assertEqual(writer.restype, C.c_int)
+        self.assertEqual(writer.argtypes, [
+            C.c_void_p, C.c_uint16, C.c_uint8, C.c_uint8])
+
+    def test_masked_write_precedes_each_pn532_activation_and_close_clears(self):
+        target = self.session()
         order = []
-        lib.pn53x_write_register.side_effect = lambda *args: (
-            order.append(('register', args)), 0)[1]
         cancelled = [False]
+        target.lib.pn53x_write_register.side_effect = lambda *args: (
+            order.append(('write', args)), 0)[1]
         def activate(*args):
-            order.append(('target_init', args[-1]))
+            order.append(('activate', args[-1]))
             cancelled[0] = True
             return -6
-        lib.nfc_target_init.side_effect = activate
-        with patch('libnfc_api.system_modedet_enabled', return_value=True), \
-             patch('libnfc_api.library_path', return_value='libnfc.so.6'):
-            self.assertFalse(target.serve_uri(
-                'https://github.com/sezgynus/Petrel',
-                lambda: cancelled[0], lambda *_: None))
-            self.assertEqual(order, [
-                ('register', (device, 0x6301, 0x04, 0x04)),
-                ('target_init', 500),
-            ])
-            target.close()
-        self.assertEqual(lib.pn53x_write_register.call_args.args,
-                         (device, 0x6301, 0x04, 0x00))
-        lib.nfc_close.assert_called_once_with(device)
+        target.lib.nfc_target_init.side_effect = activate
+        self.assertFalse(target.serve_uri('https://example.org',
+                                         lambda: cancelled[0], lambda *_: None))
+        self.assertEqual(order, [
+            ('write', (123, 0x6301, 0x04, 0x04)),
+            ('activate', 500),
+        ])
+        target.close()
+        self.assertEqual(target.lib.pn53x_write_register.call_args.args,
+                         (123, 0x6301, 0x04, 0x00))
+        target.lib.nfc_close.assert_called_once_with(123)
 
-    def test_write_failure_exposes_error_and_does_not_start_target(self):
-        target = NFCTargetSession.__new__(NFCTargetSession)
-        target.device = 123
-        target.lib = Mock()
+    def test_non_pn532_target_does_not_access_pn532_register(self):
+        target = self.session(pn532=False)
+        cancelled = [False]
+        def activate(*args):
+            cancelled[0] = True
+            return -6
+        target.lib.nfc_target_init.side_effect = activate
+        self.assertFalse(target.serve_uri('https://example.org',
+                                         lambda: cancelled[0], lambda *_: None))
+        target.close()
+        target.lib.pn53x_write_register.assert_not_called()
+
+    def test_register_failure_does_not_attempt_activation(self):
+        target = self.session()
         target.lib.pn53x_write_register.return_value = -1
-        with patch('libnfc_api.system_modedet_enabled', return_value=True), \
-             patch('libnfc_api.library_path', return_value='libnfc.so.6'):
-            with self.assertRaisesRegex(OSError, 'register write failed'):
-                target.serve_uri('https://example.org', lambda: False, lambda *_: None)
+        with self.assertRaisesRegex(OSError, 'ModeDetOff register write failed'):
+            target.serve_uri('https://example.org', lambda: False, lambda *_: None)
         target.lib.nfc_target_init.assert_not_called()
 
-    def test_invalid_activation_marker_is_rejected(self):
-        flag = system_modedet_file()
-        flag.parent.mkdir(parents=True, exist_ok=True)
-        flag.write_text('bad')
-        with self.assertRaisesRegex(ValueError, 'marker'):
-            system_modedet_enabled()
+    def test_pn532_integration_requires_export_only_for_target_session(self):
+        from nfc_settings import NFCSettings
+        lib = Mock()
+        lib.pn53x_write_register.return_value = 0
+        lib.nfc_init.side_effect = lambda out: setattr(out._obj, 'value', 1)
+        lib.nfc_open.return_value = 123
+        with patch('libnfc_api.bind_library', return_value=lib), \
+             patch('libnfc_api.bind_pn532_register') as bind:
+            target = NFCTargetSession(NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200))
+            bind.assert_called_once_with(lib)
+            target.close()
+        with patch('libnfc_api.bind_library', return_value=lib), \
+             patch('libnfc_api.bind_pn532_register') as bind:
+            target = NFCTargetSession(NFCSettings('ACR122S', 'UART', '/dev/ttyUSB0', 115200))
+            bind.assert_not_called()
+            target.close()
