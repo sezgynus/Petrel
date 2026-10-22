@@ -223,6 +223,30 @@ class DirectLibNFCTests(unittest.TestCase):
         self.assertEqual(parameters, [(1, bytes((0x00, 0x08)), 0x20,
                                        bytes((0x08, 0x00, 0xB0, 0x0B)))])
 
+    def test_target_atqa_experiment_is_applied_to_target_structure(self):
+        from libnfc_api import NFCTargetSession
+        for atqa in ((0x00, 0x04), (0x00, 0x08)):
+            with self.subTest(atqa=atqa):
+                target = NFCTargetSession.__new__(NFCTargetSession)
+                target.device = 123
+                target.lib = self.fake_library()
+                captured = []
+                def activate(_device, target_ptr, *_):
+                    passed = C.cast(target_ptr, C.POINTER(Target)).contents
+                    captured.append((bytes(passed.info.a.atqa), passed.info.a.sak))
+                    return 0
+                target.lib.nfc_target_init.side_effect = activate
+                cancelled = [False]
+                def receive(*args):
+                    cancelled[0] = True
+                    return -6
+                target.lib.nfc_target_receive_bytes.side_effect = receive
+                with patch('libnfc_api.target_atqa', return_value=atqa):
+                    self.assertFalse(target.serve_uri(
+                        'https://github.com/sezgynus/Petrel',
+                        lambda: cancelled[0], lambda *_: None))
+                self.assertEqual(captured, [(bytes(atqa), 0x20)])
+
     def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
         from libnfc_api import NFCTargetSession
         from unittest.mock import Mock

@@ -4,8 +4,10 @@ import ctypes.util
 from functools import lru_cache
 import os
 from pathlib import Path
+import logging
 
 from nfc_info import parse_info
+from nfc_target_experiment import PROFILES, library_for_mode, selected_profile, target_atqa
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
 PTR = C.c_void_p
@@ -69,11 +71,14 @@ def decode_target(target):
 
 
 def library_path():
-    """Prefer an opt-in, isolated PN532 PICC-only build; never modify apt libnfc.
+    """An explicit A/B profile selects its exact pinned libnfc build.
 
-    Only a completed build with the marker file is eligible. When absent,
-    preserve the existing system libnfc behavior for every reader family.
+    Without an experiment, preserve the existing preference for the optional
+    mode-0x04 build. Never silently use another mode during a controlled test.
     """
+    profile = selected_profile()
+    if profile is not None:
+        return library_for_mode(PROFILES[profile][0])
     root = Path(os.environ.get('XDG_DATA_HOME') or
                 (Path.home() / '.local' / 'share')) / 'Petrel' / 'libnfc-pn532-picc'
     patched = root / 'lib' / 'libnfc.so.6'
@@ -349,9 +354,15 @@ class NFCTargetSession:
         tag = Type4UriTag(url)
         target = Target()
         target.modulation = Modulation(1, 0)  # ISO14443A / undefined bitrate
-        # The validated PN532 Type 4 reference uses SENS_RES 08 00.
-        # libnfc reverses the two bytes when composing TgInitAsTarget.
-        target.info.a.atqa[:] = (0x00, 0x08)
+        # One controlled ATQA variable for the physical A/B matrix.
+        # libnfc reverses these bytes for TgInitAsTarget SENS_RES.
+        profile = selected_profile()
+        atqa = target_atqa()
+        target.info.a.atqa[:] = atqa
+        logging.info('NFC Type4 test profile=%s mode=%s ATQA=%02X%02X library=%s',
+                     profile or 'default-D',
+                     ('0x%02X' % PROFILES[profile][0]) if profile else 'default-0x04',
+                     *atqa, library_path())
         target.info.a.sak = 0x20  # ISO14443-4 only (do not advertise unsupported DEP)
         target.info.a.uid_len = 4
         target.info.a.uid[:4] = (0x08, 0x00, 0xB0, 0x0B)  # Random UID prefix

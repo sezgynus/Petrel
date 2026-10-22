@@ -506,11 +506,53 @@ rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
 sudo systemctl restart Petrel.service
 ```
 
-Bu işlem **fiziksel kabulü yapılmamış bir uyumluluk denemesidir**.
-Popup'ın kapanması Android'in bağlantıyı kabul ettiği veya açtığı anlamına
-gelmez. NFC Tools'ta **NfcA / IsoDep**, geçerli NDEF URI ve Petrel
-repo adresi doğrulanmalıdır. Telefon yalnız NfcF/FeliCa algılıyorsa
-başarılı paylaşım kabul edilmez.
+Bu PN532 uyumluluk düzeltmesi fiziksel PN532 ve Android telefonla
+geçerli Type 4 NDEF olarak doğrulandı. Ancak `TgInitAsTarget` Mode ve ATQA
+değişikliklerinin **hangisinin gerekli olduğu henüz kanıtlanmadı**.
+Bunu anlamak için aynı libnfc 1.8.0 sabit kaynak sürümünden iki varyant
+derleyip yalnız iki parametreyi değiştiren dört profili test ediyoruz.
+Her iki varyant da Petrel servis kullanıcısıyla (root değil) derlenir;
+sistemin `libnfc6` paketi değiştirilmez:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh 04  # yalnız PICC
+bash tools/build_pn532_picc_libnfc.sh 05  # upstream, değiştirilmemiş
+```
+
+`python3 tools/nfc_target_ab.py select A` komutuyla bir profil seçin
+(B/C/D için harfi değiştirin) ve
+`sudo systemctl restart Petrel.service` çalıştırın. Ardından
+**Info → Share via NFC** ile her iki telefonda NFC Tools kullanarak okuyun.
+Profil, atomik yazılan özel bir yapılandırma dosyasında tutulur; çalışma
+sırasında kütüphane değiştirilmez.
+
+| Profil | Mode | libnfc'ye gönderilen ATQA | Amaç |
+| --- | --- | --- | --- |
+| A | `0x05` | `00 04` | Orijinal libnfc + orijinal ATQA |
+| B | `0x05` | `00 08` | Orijinal libnfc + yeni ATQA |
+| C | `0x04` | `00 04` | PICC-only libnfc + orijinal ATQA |
+| D | `0x04` | `00 08` | Daha önce çalışan birleşim |
+
+**Her profil ve telefon için** algılanan NfcF/NfcA/IsoDep/Ndef
+teknolojisini, UID'yi, NFC Tools'ta görülen ATQA'yı, Petrel URL'sinin
+çözülüp çözülmediğini ve popup'ın kapanmasını kaydedin. Servis logunda
+seçilen parametreleri kontrol edin:
+
+```bash
+python3 tools/nfc_target_ab.py status
+journalctl -u Petrel.service --since "5 minutes ago" --no-pager | grep 'NFC Type4 test'
+```
+
+Deney sonunda daha önce çalışan yapıya dönün:
+
+```bash
+python3 tools/nfc_target_ab.py reset
+sudo systemctl restart Petrel.service
+```
+
+Bu çalışma **nedensellik testidir**: popup'ın kapanması NDEF verisinin
+gönderildiğini gösterir, telefonun tarayıcı açtığını değil.
 
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global

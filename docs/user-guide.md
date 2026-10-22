@@ -506,11 +506,54 @@ rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
 sudo systemctl restart Petrel.service
 ```
 
-This is a **hardware experiment**, not a verified phone compatibility fix.
-A successful popup close establishes successful NDEF response transmission,
-not that Android accepted or opened the URI. Confirm in NFC Tools that the
-phone sees **NfcA / IsoDep**, an NDEF URI and the Petrel URL. If it still reads
-only as NfcF or FeliCa, do not count it as a successful share.
+This PN532 firmware-compatibility change has now produced valid Type 4
+NDEF on a physical PN532 and Android phone. The separate effects of
+`TgInitAsTarget` Mode and ATQA are **not yet established**. Use this
+reproducible four-profile experiment to isolate the two variables, rather
+than assuming upstream libnfc's `0x05` is invalid.
+
+The two build variants come from the **same pinned libnfc 1.8.0 revision**.
+Build both as the Petrel service user (not root); this does not modify apt's
+`libnfc6` installation:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh 04  # PICC-only library
+bash tools/build_pn532_picc_libnfc.sh 05  # unmodified upstream mode library
+```
+
+Choose each profile with `python3 tools/nfc_target_ab.py select A` (substitute
+B/C/D), restart with `sudo systemctl restart Petrel.service`, open
+**Info → Share via NFC**, and read it using NFC Tools on both test phones.
+The profile selection is an explicit, private, atomic configuration file;
+it never rewrites application source or reloads a library mid-session:
+
+| Profile | Mode | ATQA sent to libnfc | Role |
+| --- | --- | --- | --- |
+| A | `0x05` | `00 04` | Original unmodified libnfc / original ATQA |
+| B | `0x05` | `00 08` | Original libnfc / updated ATQA |
+| C | `0x04` | `00 04` | PICC-only libnfc / original ATQA |
+| D | `0x04` | `00 08` | Previously working combination |
+
+Record for **each phone and profile** whether the tag is detected as NfcF,
+NfcA/IsoDep/Ndef, the UID, the ATQA shown by the phone, whether
+`https://github.com/sezgynus/Petrel` is decoded, and whether the popup
+closes. Check the configured experiment in service logs:
+
+```bash
+python3 tools/nfc_target_ab.py status
+journalctl -u Petrel.service --since "5 minutes ago" --no-pager | grep 'NFC Type4 test'
+```
+
+After all measurements, restore the proven configuration:
+
+```bash
+python3 tools/nfc_target_ab.py reset
+sudo systemctl restart Petrel.service
+```
+
+This is still a physical **causality experiment**; a successful popup close
+proves NDEF response transmission, not Android opening the browser.
 
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/

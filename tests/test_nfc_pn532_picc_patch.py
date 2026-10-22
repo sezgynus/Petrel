@@ -31,6 +31,13 @@ class PN532PICCSourcePatchTests(unittest.TestCase):
         self.assertIn('case NMT_FELICA:\n      ptm = PTM_PASSIVE_ONLY;', result)
         self.assertIn('case NMT_ISO14443A:\n      ptm = PTM_PASSIVE_ONLY;', result)
 
+    def test_mode_05_is_exact_upstream_and_mode_04_is_one_line_patch(self):
+        upstream = self.upstream_snippet()
+        self.assertEqual(patch_text(upstream, mode='05'), upstream)
+        self.assertEqual(patch_text(upstream, mode='04'), patch_text(upstream))
+        with self.assertRaises(ValueError):
+            patch_text(upstream, mode='03')
+
     def test_unrecognized_upstream_revision_is_rejected(self):
         upstream = self.upstream_snippet()
         with self.assertRaises(ValueError):
