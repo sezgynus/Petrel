@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from nfc_core import NFCCore
 from test_nfc_core import backend
 from test_capabilities import display, printer, snapshot
+from test_regressions import backend as printer_backend
 
 
 class EmergencyTagTests(unittest.TestCase):
@@ -87,7 +88,7 @@ class EmergencyTagTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             pd = printer(snapshot())
             pd.subscription.request.return_value = Future()
-            with patch('printerInterface.installed_enabled', return_value=True), \
+            with patch.object(printer_backend, 'installed_enabled', return_value=True), \
                     patch('nfc_core.settings_path', return_value=Path(tmp) / 'settings.json'):
                 core = pd.get_nfc_core()
             core.assign_global_action('emergency_stop', 'AA:BB')
