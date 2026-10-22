@@ -1,9 +1,44 @@
 name: DWIN UART Kernel
 on:
+  workflow_dispatch:
   push:
     branches: ['**']
+    paths:
+      - 'native/**'
+      - 'kernel/dwin_uart/**'
+      - 'dwin_*.py'
+      - 't5uic1_driver.py'
+      - 'uart_startup.py'
+      - 'tools/dwin_uart_install.py'
+      - 'tools/ci/dwin*'
+      - 'tests/test_dwin*.py'
+      - 'tests/test_uart*.py'
+      - 'install.sh'
+      - 'configure.sh'
+      - 'Kconfig'
+      - 'tools/configure.py'
+      - 'tools/env_defaults.py'
+      - 'Petrel.env.example'
+      - '.github/workflows/dwin*.yml'
   pull_request:
     branches: [master]
+    paths:
+      - 'native/**'
+      - 'kernel/dwin_uart/**'
+      - 'dwin_*.py'
+      - 't5uic1_driver.py'
+      - 'uart_startup.py'
+      - 'tools/dwin_uart_install.py'
+      - 'tools/ci/dwin*'
+      - 'tests/test_dwin*.py'
+      - 'tests/test_uart*.py'
+      - 'install.sh'
+      - 'configure.sh'
+      - 'Kconfig'
+      - 'tools/configure.py'
+      - 'tools/env_defaults.py'
+      - 'Petrel.env.example'
+      - '.github/workflows/dwin*.yml'
 permissions:
   contents: read
 jobs:
