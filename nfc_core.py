@@ -42,8 +42,10 @@ def normalize_uid(uid):
 class NFCCore:
     """No UI thread, loop, or second hardware owner is created."""
 
-    def __init__(self, backend, *, emergency_stop=None, actions_file=None):
+    def __init__(self, backend, *, emergency_stop=None, actions_file=None,
+                 serial_devices=None):
         self.backend = backend
+        self._serial_devices = serial_devices
         self._lock = RLock()
         self._subscribers = {}
         self._serial = 0
@@ -205,6 +207,22 @@ class NFCCore:
     def get_last_card(self):
         with self._lock:
             return dict(self._last) if self._last is not None else None
+
+    def discover_devices(self, model, interface):
+        # Serial devices use the existing Moonraker read worker; libnfc
+        # enumeration remains on the backend's sole hardware worker.
+        from nfc_settings import PROFILES
+        if model not in PROFILES or interface not in PROFILES[model]['interfaces']:
+            raise ValueError('Unsupported NFC reader/transport')
+        if interface == 'UART' and self._serial_devices is not None:
+            return self._serial_devices()
+        return self.backend.discover_devices(model, interface)
+
+    def test_connection(self, settings):
+        return self.backend.test_connection(settings)
+
+    def reload_configuration(self):
+        return self.backend.reload_configuration()
 
     def share_ndef_uri(self, url):
         return self.submit('share_ndef_uri', url=url)

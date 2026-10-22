@@ -11,8 +11,7 @@ class InfoWifiRefresh(unittest.TestCase):
         v.pd.HMI_flag.home_flag=False
         v.pd.refresh_wifi_status=Mock(side_effect=[True,False])
         v.pd.refresh_system_info=Mock(return_value=False)
-        v.pd.refresh_nfc_info=Mock(return_value=False)
-        v.pd._rfid_reader=None
+        v.pd.refresh_nfc_info=Mock(side_effect=AssertionError('NFC polling is forbidden'))
         for name in ('_poll_case_light_live','_sync_case_light_tracking','_poll_case_light_state',
                      '_poll_maintenance_ui','_focus_tick_quiet','_poll_screws_tilt','_poll_bed_mesh',
                      'Draw_Info_Menu','Draw_Status_Area'):
@@ -26,3 +25,4 @@ class InfoWifiRefresh(unittest.TestCase):
         v._each_moment_update_untraced()
         v.Draw_Info_Menu.assert_called_once()
         self.assertEqual(v.pd.refresh_wifi_status.call_count,2)
+        v.pd.refresh_nfc_info.assert_not_called()

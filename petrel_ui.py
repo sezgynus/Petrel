@@ -414,7 +414,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 lambda state: self._queue_nfc_ui_event('nfc_share_failed'))
             self._nfc_share_cancel_token = core.subscribe('share.cancelled',
                 lambda state: self._queue_nfc_ui_event('nfc_share_cancelled'))
-            self.pd.sync_nfc_event()
+        self.pd.sync_nfc_event()
         self._power_monitor = PowerMonitor(self.pd.client, self.pd.power_device)
         self._relay_status = None
         self._relay_off_serial = 0
@@ -1552,11 +1552,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         if event.kind in ('nfc_card', 'nfc_status', 'nfc_capabilities'):
             if not self._closed:
+                previous_nfc = self.pd.system_info.get('nfc')
                 self.pd.sync_nfc_event()
                 if event.kind == 'nfc_card':
                     self._rfid_buzzer_feedback()
                 if self._uart_online and self.checkkey == self.RFIDMenu:
                     self.Draw_RFID_Menu(full=False)
+                    self.lcd.update()
+                elif (self._uart_online and self.checkkey == self.Info
+                      and previous_nfc != self.pd.system_info.get('nfc')):
+                    self.Draw_Info_Menu()
                     self.lcd.update()
             return
         if event.kind == 'power_on':
@@ -3373,7 +3378,6 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         return items
 
     def Draw_Info_Menu(self):
-        self.pd.refresh_nfc_info()
         self.lcd.ensure_cached_picture(SHARED_PICTURE_ID)
         self.pd.refresh_system_info()
         items = self._info_items()
@@ -3808,8 +3812,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
-            nfc_changed = self.pd.refresh_nfc_info()
-            if system_changed or wifi_changed or nfc_changed:
+            if system_changed or wifi_changed:
                 self.Draw_Info_Menu()
                 self.lcd.update()
             elif info_update:

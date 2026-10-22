@@ -437,6 +437,11 @@ yeni bir algılama olayı üretilebilir. Kimlik bağlantı başına bir kez okun
 yeniden bağlantıda yenilenir.
 Info model, firmware, libnfc sürümü ve desteklenen A/B/FeliCa protokollerini gösterir.
 PN532 modül kartının revizyonunu bildirmez; Hardware alanı **Not reported** olur.
+Info ve RFID ekranlarının NFC verileri yalnız Core önbelleğinden gelir.
+Info'daki NFC alanları UI zamanlayıcısıyla değil `reader.changed` ve
+`capabilities.changed` olaylarıyla yenilenir. Aygıt keşfi, bağlantı testi ve
+kayıtlı ayarları uygulama da Core üzerinden geçer. libnfc handle'larını yalnız
+backend yönetir; UART port seçenekleri yine Moonraker seri API'sinden gelir.
 
 RFID, okuyucunun libnfc üzerinden bildirdiği tüm initiator teknolojilerini tarar:
 ISO14443A/B, B', ST SRx, ASK CTx, iki hızda FeliCa, Jewel/Topaz, NFC Barcode,
@@ -445,8 +450,8 @@ yüksek haberleşme hızları seçimden sonra görüşülür. Her sırada tek ak
 denemesi yapılır; ek sleep, AutoPoll periyodu veya kartın kaldırılmasını bekleme
 yoktur. Başlangıçta diğer teknolojilerin arasına Type A taraması konur; kart
 bulununca bu ek sıralar son okunan kartın teknolojisine verilir. Diğer tüm
-bildirilmiş modlar sırayla ilerlemeye devam eder. RFID sayfası önbellekteki kartı
-50 ms aralıkla kontrol eder; normal yazıcı/durum işleri 500 ms aralıkta kalır.
+bildirilmiş modlar sırayla ilerlemeye devam eder. RFID ekranı yalnız NFC Core
+olaylarıyla yenilenir; normal yazıcı/durum işleri 500 ms aralıkta kalır.
 Aynı aygıt bağlantısı açık kalır. Tüm protokollerin turu gerçek RF/aktarım
 süresi gerektirir; mutlak algılama gecikmesi veya eşzamanlı tarama vaat edilmez.
 Firmware'in reddettiği bildirilmiş modlar loglanır; durum kısmi desteği belirtir.

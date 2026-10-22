@@ -339,7 +339,7 @@ class NFCSettingsTests(unittest.TestCase):
         ports = ('/dev/ttyAMA0', '/dev/ttyDWIN0')
         future = Future()
         future.set_result(ports)
-        view.pd.discover_serial_ports = Mock(return_value=future)
+        view.pd.discover_nfc_devices = Mock(return_value=future)
         fake_save = Mock()
         save_code = view.HMI_NFC_Settings_Menu.__func__.__globals__
         with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
@@ -347,7 +347,7 @@ class NFCSettingsTests(unittest.TestCase):
             view._encoder_event = view.ENCODER_DIFF_ENTER
             view.HMI_NFC_Settings_Menu()
             self.assertEqual(view.checkkey, view.NFCChoiceMenu)
-            view.pd.discover_serial_ports.assert_called_once_with()
+            view.pd.discover_nfc_devices.assert_called_once_with('PN532', 'UART')
             self.assertEqual(view._nfc_choice_options, ())
             self.assertEqual(view._draw_list_menu.call_args.args[1][-1][0], 'Loading...')
             self.assertTrue(view._nfc_poll_port_choices())
@@ -389,8 +389,7 @@ class NFCSettingsTests(unittest.TestCase):
         view._nfc_confirmed = {'model': True, 'interface': True, 'port': True}
         view._nfc_selection = 6
         view.checkkey = view.NFCSettingsMenu
-        reader = Mock()
-        view.pd._rfid_reader = reader
+        view.pd.reload_nfc_configuration = Mock()
         saved = Mock()
         code = view.HMI_NFC_Settings_Menu.__func__.__globals__
         with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
@@ -398,9 +397,7 @@ class NFCSettingsTests(unittest.TestCase):
             view._encoder_event = view.ENCODER_DIFF_ENTER
             view.HMI_NFC_Settings_Menu()
         saved.assert_called_once_with(config)
-        reader.reload_configuration.assert_called_once_with()
-        reader.close.assert_not_called()
-        self.assertIs(view.pd._rfid_reader, reader)
+        view.pd.reload_nfc_configuration.assert_called_once_with()
 
     def test_manual_connection_test_reports_success_and_failure_without_saving(self):
         view = display(snapshot())
@@ -477,7 +474,7 @@ class NFCSettingsTests(unittest.TestCase):
         view.checkkey = view.NFCSettingsMenu
         pending = Future()
         second = Future()
-        view.pd.discover_serial_ports = Mock(side_effect=[pending, second])
+        view.pd.discover_nfc_devices = Mock(side_effect=[pending, second])
         with patch.dict('os.environ', {'PETREL_NFC': '1'}):
             view._encoder_event = view.ENCODER_DIFF_ENTER
             view.HMI_NFC_Settings_Menu()

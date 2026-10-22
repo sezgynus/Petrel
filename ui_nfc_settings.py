@@ -230,7 +230,7 @@ class NFCSettingsViewMixin:
             (field == 'speed' or confirmed.get(field, False)) else 0)
         self.checkkey = self.NFCChoiceMenu
         if serial:
-            self._nfc_port_future = self.pd.discover_serial_ports()
+            self._nfc_port_future = self.pd.discover_nfc_devices(value.model, value.interface)
         self.Draw_NFC_Choice_Menu()
         return True
 
@@ -404,11 +404,8 @@ class NFCSettingsViewMixin:
                     save(self._nfc_config())
                     self._nfc_saved = self._nfc_values
                     self._nfc_save_error = False
-                    reader = getattr(self.pd, '_rfid_reader', None)
-                    if reader is not None:
-                        # Apply the new file in the backend worker after the
-                        # current scan. Never join/close the reader from UI.
-                        reader.reload_configuration()
+                    # NFC Core queues the backend reconfiguration asynchronously.
+                    self.pd.reload_nfc_configuration()
                 except (OSError, ValueError, TypeError):
                     self._nfc_save_error = True
         else:

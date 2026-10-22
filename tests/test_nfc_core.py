@@ -83,6 +83,31 @@ class CoreTests(unittest.TestCase):
             reader.cancel_share.assert_called_once()
             core.close()
 
+    def test_reader_services_are_mediated_by_core(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            serial_future = Future()
+            serial = Mock(return_value=serial_future)
+            reader = backend()
+            core = NFCCore(reader, serial_devices=serial,
+                           actions_file=Path(tmp) / 'actions.json')
+            self.assertIs(core.discover_devices('PN532', 'UART'), serial_future)
+            serial.assert_called_once_with()
+            reader.discover_devices.assert_not_called()
+            discovered = Future()
+            reader.discover_devices.return_value = discovered
+            self.assertIs(core.discover_devices('PN53x USB', 'USB'), discovered)
+            reader.discover_devices.assert_called_once_with('PN53x USB', 'USB')
+            reader.test_connection.return_value = Future()
+            settings = object()
+            self.assertIs(core.test_connection(settings), reader.test_connection.return_value)
+            reader.test_connection.assert_called_once_with(settings)
+            reader.reload_configuration.return_value = True
+            self.assertTrue(core.reload_configuration())
+            reader.reload_configuration.assert_called_once_with()
+            with self.assertRaises(ValueError):
+                core.discover_devices('PN532', 'NCI')
+            core.close()
+
     def test_actions_round_trip_and_invalid_uid(self):
         with tempfile.TemporaryDirectory() as tmp:
             core, reader = self.make(tmp)

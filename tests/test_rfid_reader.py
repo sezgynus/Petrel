@@ -248,25 +248,71 @@ class RFIDTests(unittest.TestCase):
         self.assertEqual(reader.snapshot()[2]['uid'], '01:02:03:04')
         reader.close()
 
-    def test_one_reader_owner_and_changed_card_reaches_ui(self):
+    def test_core_is_only_reader_data_and_command_source_for_ui(self):
         pd = printer(snapshot())
-        del pd._rfid_reader
-        pd.system_info['nfc'] = {'status': 'Connected'}
-        factory = Mock()
-        with patch.dict(pd.refresh_nfc_info.__func__.__globals__,
-                        {'RFIDReader': factory, 'installed_enabled': lambda: True}):
-            factory.return_value.identity.return_value = {'status': 'Connected'}
-            factory.return_value.snapshot.return_value = (1, 'Listening', {'uid': '01:02:03:04'})
-            self.assertTrue(pd.refresh_rfid())
-            self.assertFalse(pd.refresh_rfid())
-            factory.assert_called_once()
-            factory.return_value.snapshot.return_value = (2, 'Listening', {'uid': '05:06:07:08'})
-            self.assertTrue(pd.refresh_rfid())
+        core = Mock()
+        pd._nfc_core = core
+        core.get_reader_info.return_value = {'status': 'Connected', 'model': 'PN532'}
+        core.get_status.return_value = 'Listening'
+        core.get_capabilities.return_value = {'ndef_uri_emulation': True}
+        core.get_last_card.return_value = {'uid': '01:02:03:04'}
+        core.reload_configuration.return_value = True
+        settings = NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200)
+        with patch('printerInterface.installed_enabled', return_value=True):
+            self.assertTrue(pd.sync_nfc_event())
+            self.assertFalse(pd.sync_nfc_event())
+            self.assertEqual(pd.system_info['nfc']['model'], 'PN532')
+            self.assertEqual(pd.system_info['nfc']['ndef_uri'], 'Yes')
+            core.get_last_card.return_value = {'uid': '05:06:07:08'}
+            self.assertTrue(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['rfid']['card']['uid'], '05:06:07:08')
+            pd.discover_nfc_devices('PN532', 'UART')
+            core.discover_devices.assert_called_once_with('PN532', 'UART')
+            pd.test_nfc_connection(settings)
+            core.test_connection.assert_called_once_with(settings)
+            pd.reload_nfc_configuration()
+            core.reload_configuration.assert_called_once()
+        pd._rfid_reader.snapshot.assert_not_called()
+        pd._rfid_reader.identity.assert_not_called()
+
+    def test_disabled_core_does_not_create_reader_or_poll_backend(self):
+        pd = printer(snapshot())
+        with patch('printerInterface.installed_enabled', return_value=False):
+            self.assertTrue(pd.sync_nfc_event())
+            self.assertFalse(pd.sync_nfc_event())
+            self.assertEqual(pd.system_info['nfc'], {'status': 'Disabled'})
+            self.assertEqual(pd.system_info['rfid']['status'], 'Disabled')
+            with self.assertRaises(OSError):
+                pd.reload_nfc_configuration()
+        pd._rfid_reader.snapshot.assert_not_called()
+
+    def test_info_nfc_redraw_only_on_core_identity_change(self):
+        from ui_events import InputEvent
+        view = display(snapshot())
+        view.checkkey = view.Info
+        view._uart_online = True
+        view._closed = False
+        view.pd.system_info['nfc'] = {'status': 'Unavailable'}
+        view.Draw_Info_Menu = Mock()
+        view.Draw_RFID_Menu = Mock()
+        def update():
+            view.pd.system_info['nfc'] = {'status': 'Connected', 'model': 'PN532'}
+            return True
+        view.pd.sync_nfc_event = Mock(side_effect=update)
+        view._process_input_untraced(InputEvent('nfc_status', 0, 0, 0))
+        view.Draw_Info_Menu.assert_called_once_with()
+        view.Draw_RFID_Menu.assert_not_called()
+        view.lcd.update.assert_called_once()
+        view.Draw_Info_Menu.reset_mock()
+        view.lcd.update.reset_mock()
+        view._process_input_untraced(InputEvent('nfc_capabilities', 0, 0, 0))
+        view.Draw_Info_Menu.assert_not_called()
+        view.lcd.update.assert_not_called()
+        view._process_input_untraced(InputEvent('nfc_card', 0, 0, 0))
+        view.Draw_Info_Menu.assert_not_called()
 
     def test_menu_entry_return_and_incremental_full_uid(self):
         view = display(snapshot())
-        view.pd.refresh_rfid = Mock(return_value=False)
         uid = ':'.join(f'{i:02X}' for i in range(10))
         view.pd.system_info['rfid'] = {'status': 'Listening',
             'card': {'type': 'ISO14443A', 'uid': uid}}

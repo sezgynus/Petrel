@@ -353,7 +353,7 @@ class PrinterData:
             future = Future()
             future.set_exception(OSError('NFC disabled'))
             return future
-        return core.backend.discover_devices(model, interface)
+        return core.discover_devices(model, interface)
 
     def get_nfc_core(self):
         """Only one NFC Core and backend for all UI states."""
@@ -366,7 +366,8 @@ class PrinterData:
         if reader is None:
             reader = self._rfid_reader = RFIDReader()
         core = NFCCore(reader, emergency_stop=lambda:
-                       self.subscription.request('printer.emergency_stop'))
+                       self.subscription.request('printer.emergency_stop'),
+                       serial_devices=self.discover_serial_ports)
         self._nfc_core = core
         return core
 
@@ -378,7 +379,11 @@ class PrinterData:
         """Called by an NFC event on the LCD owner, never on a timer."""
         core = self.get_nfc_core()
         if core is None:
-            return False
+            identity = {'status': 'Disabled'}
+            values = {'status': 'Disabled', 'card': {}}
+            old = (self.system_info.get('nfc'), self.system_info.get('rfid'))
+            self.system_info['nfc'], self.system_info['rfid'] = identity, values
+            return old != (identity, values)
         identity = core.get_reader_info()
         identity['ndef_uri'] = self._nfc_capability_label(
             core.get_capabilities().get('ndef_uri_emulation'))
@@ -389,46 +394,18 @@ class PrinterData:
         return old != (identity, values)
 
     def test_nfc_connection(self, settings):
-        """Queue a draft-configuration test on the single libnfc worker."""
-        if not installed_enabled():
+        """Queue a draft configuration probe through NFC Core."""
+        core = self.get_nfc_core()
+        if core is None:
             raise OSError('NFC feature disabled')
         settings.validate()
-        reader = getattr(self, '_rfid_reader', None)
-        if reader is None:
-            reader = self._rfid_reader = RFIDReader()
-            self._rfid_token = None
-        return reader.test_connection(settings)
+        return core.test_connection(settings)
 
-    def refresh_nfc_info(self):
-        """Read backend snapshots; disabled NFC must not spawn a worker."""
-        if not installed_enabled():
-            summary = {'status': 'Disabled'}
-            if (self.system_info.get('nfc') == summary
-                    and self.system_info.get('rfid') == {'status': 'Disabled', 'card': {}}):
-                return False
-            self.system_info['nfc'] = summary
-            self.system_info['rfid'] = {'status': 'Disabled', 'card': {}}
-            return True
-        reader = getattr(self, '_rfid_reader', None)
-        if reader is None:
-            reader = self._rfid_reader = RFIDReader()
-        revision, status, card = reader.snapshot()
-        identity = reader.identity()
-        capabilities = reader.capabilities() if callable(
-            getattr(reader, 'capabilities', None)) else None
-        if isinstance(capabilities, dict):
-            identity['ndef_uri'] = self._nfc_capability_label(
-                capabilities.get('ndef_uri_emulation'))
-        token = (revision, status, card, identity)
-        if token == getattr(self, '_rfid_token', None):
-            return False
-        self._rfid_token = token
-        self.system_info['nfc'] = identity
-        self.system_info['rfid'] = {'status': status, 'card': card}
-        return True
-
-    def refresh_rfid(self):
-        return self.refresh_nfc_info()
+    def reload_nfc_configuration(self):
+        """Apply saved settings through the Core, never the LCD thread."""
+        core = self.get_nfc_core()
+        if core is None or not core.reload_configuration():
+            raise OSError('NFC reader unavailable')
 
     def refresh_wifi_status(self):
         """Keep header RSSI fresh on the existing read worker, without blocking UI."""
