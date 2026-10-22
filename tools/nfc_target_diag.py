@@ -13,11 +13,13 @@ import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from nfc_target_experiment import (
     diagnostics_file, diagnostics_enabled, diagnostics_library_path,
-    selected_profile,
+    selected_profile, modedet_enabled,
 )
 
 
 def enable():
+    if modedet_enabled():
+        raise ValueError('Disable PN532 ModeDetOff before enabling diagnostics')
     profile = selected_profile()
     if profile not in ('A', 'B'):
         raise ValueError('Select upstream libnfc Mode 0x05 profile A or B first')

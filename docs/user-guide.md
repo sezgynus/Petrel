@@ -605,6 +605,57 @@ The diagnostics selector refuses missing/mismatched builds and refuses
 profiles C/D while active. It is opt-in and has no automatic NFC hardware
 tests, polling or persistent diagnostic files.
 
+### PN532 CIU_Mode ModeDetOff register experiment
+
+NXP's PN532/C1 datasheet identifies bit 2 of `CIU_Mode` (register `0x6301`)
+as `ModeDetOff`: setting it disables the AutoColl data-mode detector. It
+**does not document a dedicated FeliCa-disable function**, and it could also
+prevent ISO14443A activation. This is an experimental physical test, **not a
+verified fix**. Keep the RF experiments restricted to idle printers.
+
+The separate `modedet` libnfc build uses the same pinned upstream 1.8.0
+source and the existing **Mode 0x04** patch. Its only added behavioral
+register change is a masked write of `CIU_Mode` bit 2. It reads back and
+logs `CIU_Mode`, `CIU_TxMode` and `CIU_RxMode`, and clears ModeDetOff when
+leaving target mode. Other bit positions and target parameters are untouched.
+The existing 04/05/diag builds and system libnfc remain installed unchanged.
+
+First establish a profile C baseline with the ordinary build, recording
+Type 4 NDEF successes and Unknown FeliCa outcomes across ten presentations.
+Then enable the new register experiment:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh modedet
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select C
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+Repeat ten phone presentations with unchanged hardware and ATQA. Observe
+NFC Tools and examine the native register logs:
+
+```bash
+python3 tools/nfc_target_modedet.py status
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager | grep -E 'PETREL_NFC_MODEDET|NFC Type4|NFC URI'
+```
+
+`PETREL_NFC_MODEDET set` must show the bit in `after` (`after & 0x04`);
+`restore` must show it cleared. Register readback checks that the write
+took effect at that instant, but PN532 firmware may reconfigure registers
+later. The native logs cannot alone prove what was transmitted over RF.
+
+Rollback immediately if Type 4 stops working or testing is complete:
+
+```bash
+python3 tools/nfc_target_modedet.py disable
+sudo systemctl restart Petrel.service
+```
+
+This returns to the ordinary C library. The selector refuses incompatible
+profiles, missing libraries and simultaneous native diagnostic selection.
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped

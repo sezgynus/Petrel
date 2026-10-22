@@ -16,11 +16,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from nfc_target_experiment import (
     PROFILES, config_file, library_for_mode, selected_profile, diagnostics_enabled,
+    modedet_enabled,
 )
 
 
 def select(profile):
     mode, atqa = PROFILES[profile]
+    if modedet_enabled() and profile != 'C':
+        raise ValueError('Disable PN532 ModeDetOff before selecting a different profile')
     if diagnostics_enabled() and mode != 0x05:
         raise ValueError('Disable PN532 diagnostics before selecting mode 0x04')
     library_for_mode(mode)  # Do not allow a silent fallback to system libnfc.
@@ -42,6 +45,8 @@ def select(profile):
 
 
 def reset():
+    if modedet_enabled():
+        raise ValueError('Disable PN532 ModeDetOff before resetting the profile')
     config_file().unlink(missing_ok=True)
 
 

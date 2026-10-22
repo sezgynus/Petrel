@@ -70,3 +70,23 @@ jobs:
           grep -Fx 'libnfc-1.8.0 PN532 target diagnostics mode=0x05 v1' "$root/.petrel-nfc-diagnostics"
           grep -a -q PETREL_NFC_DIAG "$root/lib/libnfc.so.6"
           ldd "$root/lib/libnfc.so.6"
+
+  pn532-native-modedet:
+    name: Compile isolated PN532 ModeDetOff register experiment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned libnfc build dependencies
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
+      - name: Compile PN532 PICC 0x04 plus CIU_Mode masked bit-2 experiment
+        run: bash tools/build_pn532_picc_libnfc.sh modedet
+      - name: Verify isolated library, marker, and register diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${HOME}/.local/share/Petrel/libnfc-pn532-modedet"
+          test -s "$root/lib/libnfc.so.6"
+          grep -Fx 'libnfc-1.8.0 PN532 ModeDetOff mode=0x04 bit=0x04 v1' "$root/.petrel-nfc-modedet"
+          grep -a -q 'PETREL_NFC_MODEDET set' "$root/lib/libnfc.so.6"
+          grep -a -q 'PETREL_NFC_MODEDET restore' "$root/lib/libnfc.so.6"
+          ldd "$root/lib/libnfc.so.6"

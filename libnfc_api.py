@@ -10,6 +10,7 @@ from nfc_info import parse_info
 from nfc_target_experiment import (
     PROFILES, library_for_mode, selected_profile, target_atqa,
     diagnostics_enabled, diagnostics_library_path,
+    modedet_enabled, modedet_library_path,
 )
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
@@ -80,6 +81,12 @@ def library_path():
     mode-0x04 build. Never silently use another mode during a controlled test.
     """
     profile = selected_profile()
+    if modedet_enabled():
+        if diagnostics_enabled():
+            raise ValueError('PN532 ModeDetOff and diagnostics cannot be combined')
+        if profile != 'C':
+            raise ValueError('PN532 ModeDetOff requires profile C')
+        return modedet_library_path()
     if diagnostics_enabled():
         if profile not in ('A', 'B'):
             raise ValueError('PN532 diagnostics requires upstream Mode 0x05 profile A/B')

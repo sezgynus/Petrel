@@ -603,6 +603,58 @@ Eksik/uyumsuz derlemelerde ve teşhis etkinken C/D profillerinde sistem
 hata verir; sessizce başka kütüphaneye geçmez. Özellik isteğe bağlıdır,
 ayrıca NFC donanımı taramaz ve kalıcı teşhis dosyaları üretmez.
 
+### PN532 CIU_Mode ModeDetOff register deneyi
+
+NXP PN532/C1 veri sayfasında `CIU_Mode` (`0x6301`) register'ının 2. biti
+`ModeDetOff` olarak tanımlanmıştır: bit 1 yapıldığında AutoColl veri modu
+algılayıcısı kapanır. Bu, belgelenmiş özel bir **FeliCa devre dışı bırakma
+işlevi değildir**; ISO14443A aktivasyonunu da engelleyebilir. Bu nedenle
+işlem kanıtlanmış bir düzeltme değil, fiziksel bir donanım deneyidir.
+Deneyi yazıcı baskı yapmıyorken uygulayın.
+
+Ayrı `modedet` libnfc derlemesi, aynı sabitlenmiş 1.8.0 kaynak sürümünü ve
+mevcut **Mode 0x04** yamasını kullanır. Eklediği tek davranışsal register
+değişikliği `CIU_Mode` bit 2'ye maskeli yazmadır. `CIU_Mode`,
+`CIU_TxMode` ve `CIU_RxMode` değerlerini okuyup loglar; hedef modundan
+çıkarken ModeDetOff bitini temizler. Diğer bitlere ve hedef parametrelerine
+dokunulmaz. Sistem libnfc ve eski 04/05/diag derlemeleri korunur.
+
+Önce normal C profilinde on okutmalık bir başlangıç sonucu kaydedin:
+Type 4 NDEF / Unknown FeliCa sayıları. Ardından deneyi açın:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh modedet
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select C
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+Aynı telefon, anten ve ATQA ile on kez daha okutun; NFC Tools sonuçlarını
+ve register günlüklerini karşılaştırın:
+
+```bash
+python3 tools/nfc_target_modedet.py status
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager | grep -E 'PETREL_NFC_MODEDET|NFC Type4|NFC URI'
+```
+
+`PETREL_NFC_MODEDET set` satırında `after` değerinin 2. biti 1
+(`after & 0x04`) olmalıdır. `restore` satırı bitin temizlendiğini
+göstermelidir. Bu kontrol yazmanın o anda gerçekleştiğini doğrular;
+PN532 firmware'i register'ı daha sonra yeniden değiştirebilir.
+Bu loglar doğrudan RF üzerinde gönderilen veri ölçümü değildir.
+
+Type 4 okunamaz hâle gelirse veya test biterse hemen geri alın:
+
+```bash
+python3 tools/nfc_target_modedet.py disable
+sudo systemctl restart Petrel.service
+```
+
+Bu işlem normal C kütüphanesine döndürür. Eksik derleme, uygunsuz
+profil ve aynı anda başka teşhis seçimi reddedilir.
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın

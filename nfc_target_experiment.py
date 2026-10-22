@@ -92,3 +92,28 @@ def diagnostics_library_path():
             'libnfc-1.8.0 PN532 target diagnostics mode=0x05 v1\n'):
         raise OSError('PN532 diagnostic build marker is incorrect')
     return str(library)
+
+
+# One-register PN532 AutoColl experiment, independent of diagnostics and profiles.
+def modedet_file():
+    return config_file().with_name('nfc-target-modedet.enabled')
+
+
+def modedet_enabled():
+    flag = modedet_file()
+    if not flag.exists():
+        return False
+    if flag.read_text(encoding='utf-8') != 'enabled-v1\n':
+        raise ValueError('Unrecognized PN532 ModeDetOff activation marker')
+    return True
+
+
+def modedet_library_path():
+    root = data_home() / 'libnfc-pn532-modedet'
+    library, marker = root / 'lib' / 'libnfc.so.6', root / '.petrel-nfc-modedet'
+    if not library.is_file() or not marker.is_file():
+        raise OSError('PN532 ModeDetOff library not installed; build modedet variant')
+    if marker.read_text(encoding='utf-8') != (
+            'libnfc-1.8.0 PN532 ModeDetOff mode=0x04 bit=0x04 v1\n'):
+        raise OSError('PN532 ModeDetOff build marker is incorrect')
+    return str(library)
