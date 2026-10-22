@@ -90,3 +90,27 @@ jobs:
           grep -a -q 'PETREL_NFC_MODEDET set' "$root/lib/libnfc.so.6"
           grep -a -q 'PETREL_NFC_MODEDET restore' "$root/lib/libnfc.so.6"
           ldd "$root/lib/libnfc.so.6"
+
+  pn532-native-modedet05:
+    name: Build isolated PN532 upstream 0x05 ModeDetOff experiment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned libnfc build dependencies
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
+      - name: Compile unmodified 0x05 Mode with CIU_Mode bit-2 experiment
+        run: bash tools/build_pn532_picc_libnfc.sh modedet05
+      - name: Verify native build and phase-specific failure tracing
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${HOME}/.local/share/Petrel/libnfc-pn532-modedet05"
+          test -s "$root/lib/libnfc.so.6"
+          grep -Fx 'libnfc-1.8.0 PN532 ModeDetOff mode=0x05 bit=0x04 v2' "$root/.petrel-nfc-modedet"
+          grep -a -q 'PETREL_NFC_MODEDET set' "$root/lib/libnfc.so.6"
+          grep -a -q 'PETREL_NFC_MODEDET restore' "$root/lib/libnfc.so.6"
+          grep -a -q 'phase=restore_verify' "$root/lib/libnfc.so.6"
+          grep -a -q 'phase=timeout_idle' "$root/lib/libnfc.so.6"
+          grep -a -q 'phase=tg_init' "$root/lib/libnfc.so.6"
+          grep -a -q 'target_activated mode=' "$root/lib/libnfc.so.6"
+          ldd "$root/lib/libnfc.so.6"

@@ -84,9 +84,9 @@ def library_path():
     if modedet_enabled():
         if diagnostics_enabled():
             raise ValueError('PN532 ModeDetOff and diagnostics cannot be combined')
-        if profile != 'C':
-            raise ValueError('PN532 ModeDetOff requires profile C')
-        return modedet_library_path()
+        if profile not in ('A', 'C'):
+            raise ValueError('PN532 ModeDetOff requires profile A or C')
+        return modedet_library_path(profile)
     if diagnostics_enabled():
         if profile not in ('A', 'B'):
             raise ValueError('PN532 diagnostics requires upstream Mode 0x05 profile A/B')
@@ -371,7 +371,7 @@ class NFCTargetSession:
         # One controlled ATQA variable for the physical A/B matrix.
         # libnfc reverses these bytes for TgInitAsTarget SENS_RES.
         profile = selected_profile()
-        diagnostic = diagnostics_enabled()
+        diagnostic = diagnostics_enabled() or modedet_enabled()
         atqa = target_atqa()
         target.info.a.atqa[:] = atqa
         logging.info('NFC Type4 test profile=%s mode=%s ATQA=%02X%02X library=%s',

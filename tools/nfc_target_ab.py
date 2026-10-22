@@ -22,7 +22,7 @@ from nfc_target_experiment import (
 
 def select(profile):
     mode, atqa = PROFILES[profile]
-    if modedet_enabled() and profile != 'C':
+    if modedet_enabled() and profile != selected_profile():
         raise ValueError('Disable PN532 ModeDetOff before selecting a different profile')
     if diagnostics_enabled() and mode != 0x05:
         raise ValueError('Disable PN532 diagnostics before selecting mode 0x04')

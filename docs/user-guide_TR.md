@@ -655,6 +655,61 @@ sudo systemctl restart Petrel.service
 Bu işlem normal C kütüphanesine döndürür. Eksik derleme, uygunsuz
 profil ve aynı anda başka teşhis seçimi reddedilir.
 
+### PN532 upstream A karşılaştırması ve hata aşaması teşhisi
+
+C + ModeDetOff deneyinde 10 okutmanın 9'unda Type 4 NDEF, 0'ında Unknown
+FeliCa, 1'inde `NFC_EIO (-1)` kaydedildi. `CIU_Mode` çoğunlukla
+`3B -> 3F -> 3B` oldu; zaman zaman geri okumada `85`, `00`
+veya `3F` görüldü. Bu anomalilerin nedeni henüz doğrulanmadı.
+
+Yeni, ayrı derlenen deneyde **A profili** (`TgInitAsTarget Mode=0x05`,
+`ATQA=00 04`) korunur. C deneyindekiyle tamamen aynı
+`CIU_Mode.ModeDetOff` bit 2 maskeli yazma ve geri alma işlemleri uygulanır.
+`modedet05` derlemesi sistem libnfc'yi, normal A veya C deney
+kütüphanesini değiştirmez. Native loglarda `set_read_before`,
+`set_write`, `set_read_after`, `set_txmode`, `set_rxmode`,
+`set_verify`, `restore_write`, `restore_read`, `restore_verify`,
+`idle_inrelease`, `idle_powerdown`, `timeout_idle`, `tg_init`
+aşamalarının hata kodu ve başarılı aktivasyon modu ayrıca kaydedilir.
+C deneyine göre hedef aktivasyon yoluna ek RF komutu konulmaz.
+
+**Yeni commit ve CI başarılı olduktan sonra**, Petrel servis kullanıcısıyla:
+
+```bash
+cd ~/Petrel
+git pull --ff-only
+bash tools/build_pn532_picc_libnfc.sh modedet05
+python3 tools/nfc_target_modedet.py disable
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+Telefonu tamamen uzaklaştırıp 10 kez okutun. **Type 4 NDEF, Unknown
+FeliCa ve Petrel hatası** sonuçlarını ayrı ayrı sayın. Cold start varsa
+bunu belirtin. Bütün native logu alın:
+
+```bash
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
+  grep -E 'PETREL_NFC_MODEDET|PETREL_NFC_DIAG|NFC Type4|NFC URI'
+```
+
+Yeni derleme yapmadan geri dönüş:
+
+```bash
+python3 tools/nfc_target_modedet.py disable
+sudo systemctl restart Petrel.service
+```
+
+**Final üretim hedefi:** Sebep ve çözüm fiziksel olarak doğrulandıktan sonra
+teşhis logları, A/B/C/D profilleri ve deneysel kütüphane varyantları
+dağıtıma alınmayacak. Upstream `pn53x.c` yamasında yalnız doğrulanmış
+register müdahalesi ve zorunlu temizleme kalacak; müdahale yalnız PN532
+ISO14443A hedef kipine uygulanacak. Daha sonra bu minimal derleme ile
+orijinal libnfc aynı fiziksel deneyde karşılaştırılacak. Bu deney sistem
+libnfc paketini değiştirmiyor.
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın

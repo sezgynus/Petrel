@@ -656,6 +656,61 @@ sudo systemctl restart Petrel.service
 This returns to the ordinary C library. The selector refuses incompatible
 profiles, missing libraries and simultaneous native diagnostic selection.
 
+### PN532 upstream A comparison and failure-phase tracing
+
+The C + ModeDetOff experiment measured 9/10 Type 4 NDEF, 0 Unknown FeliCa,
+and one `NFC_EIO (-1)`. Its CIU_Mode logs showed `3B -> 3F`, generally
+restoring `3B`, with occasional `85`, `00` or `3F` readbacks. These are
+not explained yet and are not proof of a permanent hardware fix.
+
+The next isolated experiment **keeps A** (`TgInitAsTarget Mode=0x05`,
+`ATQA=00 04`) and adds precisely the *same* `CIU_Mode.ModeDetOff` bit-2
+write/restore used in C. The `modedet05` build is separate; it does not
+overwrite the system libnfc, ordinary A, or the C test build. Native log
+lines add phase-specific failure codes (`set_read_before`, `set_write`,
+`set_read_after`, `set_txmode`, `set_rxmode`, `set_verify`,
+`restore_write`, `restore_read`, `restore_verify`,
+`idle_inrelease`, `idle_powerdown`, `timeout_idle`, `tg_init`) and
+successful activated modes. There is no additional RF command on the target
+activation path compared with the C experiment.
+
+**After the new commit and successful CI**, using the Petrel service account:
+
+```bash
+cd ~/Petrel
+git pull --ff-only
+bash tools/build_pn532_picc_libnfc.sh modedet05
+python3 tools/nfc_target_modedet.py disable
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+Perform ten separate phone presentations. Record **Type 4 NDEF, Unknown
+FeliCa and Petrel error** individually. Also record whether cold start is
+involved, and preserve the full native trace:
+
+```bash
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
+  grep -E 'PETREL_NFC_MODEDET|PETREL_NFC_DIAG|NFC Type4|NFC URI'
+```
+
+Rollback without rebuilding anything:
+
+```bash
+python3 tools/nfc_target_modedet.py disable
+sudo systemctl restart Petrel.service
+```
+
+**Final production goal:** Once a stable cause and fix are physically
+verified, do not ship diagnostics, A/B/C/D selection, repeated register
+logging or multiple experimental libnfc builds. Minimize the upstream
+`pn53x.c` patch to only the demonstrated register operation and any
+essential cleanup, PN532/ISO14443A-target-scoped, then measure the minimal
+build against the unmodified libnfc using the same test. A system libnfc
+replacement is not required for this experiment.
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped

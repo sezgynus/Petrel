@@ -108,12 +108,22 @@ def modedet_enabled():
     return True
 
 
-def modedet_library_path():
-    root = data_home() / 'libnfc-pn532-modedet'
+def modedet_library_path(profile=None):
+    """Select the isolated bit-2 experiment corresponding to A or C."""
+    profile = selected_profile() if profile is None else profile
+    if profile == 'A':
+        directory, mode, version = 'libnfc-pn532-modedet05', '05', 'v2'
+    elif profile == 'C':
+        directory, mode, version = 'libnfc-pn532-modedet', '04', 'v1'
+    else:
+        raise ValueError('PN532 ModeDetOff requires profile A or C')
+    root = data_home() / directory
     library, marker = root / 'lib' / 'libnfc.so.6', root / '.petrel-nfc-modedet'
     if not library.is_file() or not marker.is_file():
-        raise OSError('PN532 ModeDetOff library not installed; build modedet variant')
+        raise OSError('PN532 ModeDetOff library not installed; build ' +
+                      ('modedet05' if profile == 'A' else 'modedet') + ' variant')
     if marker.read_text(encoding='utf-8') != (
-            'libnfc-1.8.0 PN532 ModeDetOff mode=0x04 bit=0x04 v1\n'):
+            'libnfc-1.8.0 PN532 ModeDetOff mode=0x%s bit=0x04 %s\n'
+            % (mode, version)):
         raise OSError('PN532 ModeDetOff build marker is incorrect')
     return str(library)

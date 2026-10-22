@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Switch isolated PN532 CIU_Mode.ModeDetOff experiment on/off.
 
-Test only with profile C (Mode=0x04 and ATQA=00 04). The ordinary C build
+Test with profile A (Mode=0x05) or C (Mode=0x04), both ATQA=00 04. The ordinary A/C build
 and system libnfc are never overwritten. Restart Petrel.service after each
 change because the native CDLL is process-cached.
 """
@@ -21,8 +21,8 @@ from nfc_target_experiment import (
 def enable():
     if diagnostics_enabled():
         raise ValueError('Disable PN532 diagnostics before enabling ModeDetOff')
-    if selected_profile() != 'C':
-        raise ValueError('Select profile C before enabling PN532 ModeDetOff')
+    if selected_profile() not in ('A', 'C'):
+        raise ValueError('Select profile A or C before enabling PN532 ModeDetOff')
     library = modedet_library_path()
     target = modedet_file()
     target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -53,7 +53,7 @@ def main():
             print('PN532 ModeDetOff enabled: ' + enable())
         elif args.command == 'disable':
             disable()
-            print('PN532 ModeDetOff disabled; ordinary C library resumes on restart.')
+            print('PN532 ModeDetOff disabled; ordinary selected A/C library resumes on restart.')
         else:
             active = modedet_enabled()
             print('PN532 ModeDetOff: %s' % ('enabled' if active else 'disabled'))

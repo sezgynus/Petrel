@@ -37,7 +37,7 @@ class PN532ModeDetSelectionTests(unittest.TestCase):
         base = str(self.base / 'libnfc-pn532-picc/lib/libnfc.so.6')
         native = self.install('libnfc-pn532-modedet', '.petrel-nfc-modedet',
             'libnfc-1.8.0 PN532 ModeDetOff mode=0x04 bit=0x04 v1\n')
-        with self.assertRaisesRegex(ValueError, 'profile C'):
+        with self.assertRaisesRegex(ValueError, 'profile A or C'):
             nfc_target_modedet.enable()
         nfc_target_ab.select('C')
         self.assertEqual(library_path(), base)
@@ -79,3 +79,31 @@ class PN532ModeDetSelectionTests(unittest.TestCase):
         flag.write_text('invalid')
         with self.assertRaisesRegex(ValueError, 'marker'):
             modedet_enabled()
+
+    def test_upstream_a_mode_selection_isolated_from_c(self):
+        self.install('libnfc-pn532-mode05', '.petrel-pn532-picc', 'mode=0x05\n')
+        native_a = self.install('libnfc-pn532-modedet05', '.petrel-nfc-modedet',
+            'libnfc-1.8.0 PN532 ModeDetOff mode=0x05 bit=0x04 v2\n')
+        # Ordinary A is unchanged when the opt-in marker is absent.
+        nfc_target_ab.select('A')
+        self.assertEqual(library_path(), str(
+            self.base / 'libnfc-pn532-mode05/lib/libnfc.so.6'))
+        self.assertEqual(nfc_target_modedet.enable(), native_a)
+        self.assertEqual(library_path(), native_a)
+        with self.assertRaisesRegex(ValueError, 'Disable'):
+            nfc_target_ab.select('C')
+        nfc_target_modedet.disable()
+        self.assertEqual(library_path(), str(
+            self.base / 'libnfc-pn532-mode05/lib/libnfc.so.6'))
+        nfc_target_ab.select('C')
+        self.assertEqual(library_path(), str(
+            self.base / 'libnfc-pn532-picc/lib/libnfc.so.6'))
+
+    def test_upstream_a_mismatched_marker_fails_closed(self):
+        self.install('libnfc-pn532-mode05', '.petrel-pn532-picc', 'mode=0x05\n')
+        nfc_target_ab.select('A')
+        self.install('libnfc-pn532-modedet05', '.petrel-nfc-modedet',
+            'libnfc-1.8.0 PN532 ModeDetOff mode=0x04 bit=0x04 v1\n')
+        with self.assertRaisesRegex(OSError, 'marker'):
+            nfc_target_modedet.enable()
+        self.assertFalse(modedet_file().exists())
