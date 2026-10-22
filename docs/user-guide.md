@@ -366,7 +366,17 @@ Open **Home → Info** or **Control → Info**, then rotate to scroll through Ma
   <img src="assets/screens/framed/info-update-current.png" width="360" alt="Up to date">
 </p>
 
-Scan the project QR to open the repository. To update from the LCD:
+Scan the project QR to open the repository. If the connected NFC reader
+advertises confirmed Type 4 NDEF URI tag emulation, **Share via NFC** is shown
+immediately beneath the QR. Press it to open the waiting popup, then touch a
+compatible phone to the reader to receive the same Petrel repository URL
+(`https://github.com/sezgynus/Petrel`). The popup closes automatically only
+after the full NDEF URI has been transferred; it does not assert that the
+phone opened its browser. Press the encoder to cancel. Unsupported, disconnected
+or not-yet-discovered reader capability hides the action entirely. A failed
+share is reported in the popup; press to close. This visibility and sharing
+logic belongs to a reusable NFC Core-backed UI component, not to each screen.
+To update from the LCD:
 
 1. Leave the printer idle and scroll to **Check for updates**. Press the encoder.
 2. Wait for **Checking…**. Green **Up to date** means no update is needed; an available update changes the button to **Update**.

@@ -366,7 +366,18 @@ Tam bir ısıtma sonucunda **Heating speed reference** sunulabilir. Yalnız sağ
   <img src="assets/screens/framed/info-update-current.png" width="360" alt="Güncel">
 </p>
 
-Repoyu açmak için proje QR kodunu tarayın. LCD'den güncellemek için:
+Repoyu açmak için proje QR kodunu tarayın. Bağlı NFC okuyucu Type 4 NDEF
+URI etiket taklit desteğini doğrulamışsa QR kodunun hemen altında
+**Share via NFC** düğmesi otomatik görünür. Basınca bekleme popup'ı açılır;
+telefonu okuyucuya yaklaştırınca aynı Petrel repo bağlantısı
+(`https://github.com/sezgynus/Petrel`) NDEF URI olarak sunulur.
+NDEF verisinin tamamı başarıyla iletildiğinde popup kendiliğinden kapanır;
+bu, telefonun tarayıcıyı açtığı anlamına gelmez. Enkodere basmak işlemi iptal
+eder. Desteklenmeyen, bağlantısı kopmuş veya yeteneği henüz keşfedilmemiş
+okuyucuda düğme tamamen gizlenir. Hata popup'ta gösterilir; basarak kapatılır.
+Bu görünürlük ve paylaşım denetimi bütün ekranlarda tekrar kullanılabilecek,
+yalnız NFC Core'a bağlı ortak UI bileşenindedir.
+LCD'den güncellemek için:
 
 1. Yazıcıyı boşta bırakın ve **Check for updates** düğmesine kaydırın. Encodere basın.
 2. **Checking…** aşamasını bekleyin. Yeşil **Up to date** güncelleme gerekmediğini gösterir; güncelleme varsa düğme **Update** olur.

@@ -14,6 +14,7 @@ import textwrap
 from collections.abc import Mapping
 from software_update import SoftwareUpdate
 from info_qr import PROJECT_URL, draw_project_qr, extra_info_rows
+from ui_nfc_share import NFCURIShareComponent
 from shared_artwork import PICTURE_ID as SHARED_PICTURE_ID
 from system_info import wifi_signal_text, wifi_signal_level
 import time
@@ -369,6 +370,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._live_jog_future = None
         self._live_jog_pending = None
         self._info_scroll = 0
+        self._nfc_share_popup = None
         self._power_focus = False
         self._power_origin = None
         self._power_confirm_yes = True
@@ -415,6 +417,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._nfc_share_cancel_token = core.subscribe('share.cancelled',
                 lambda state: self._queue_nfc_ui_event('nfc_share_cancelled'))
         self.pd.sync_nfc_event()
+        self._nfc_uri_share = NFCURIShareComponent(core)
         self._power_monitor = PowerMonitor(self.pd.client, self.pd.power_device)
         self._relay_status = None
         self._relay_off_serial = 0
@@ -486,6 +489,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._power_focus = False
         self._power_origin = None
         self._info_scroll = 0
+        if getattr(self, '_nfc_share_popup', None):
+            self._cancel_nfc_share_popup(redraw=False)
         self._case_light_live_pending = None
         self._case_light_live_refresh = False
         self._case_light_live_epoch = None
@@ -1543,24 +1548,29 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def _process_input_untraced(self, event):
         if event.kind in ('nfc_share_done', 'nfc_share_failed', 'nfc_share_cancelled'):
-            # Share screen (when implemented) can consume these on the LCD
-            # owner, without touching backend handles from the UI thread.
-            self._nfc_share_state = event.kind
-            callback = getattr(self, '_nfc_share_event_handler', None)
-            if callable(callback):
-                callback(event.kind)
+            if getattr(self, '_nfc_share_popup', None):
+                if event.kind in ('nfc_share_done', 'nfc_share_cancelled'):
+                    self._finish_nfc_share_popup()
+                else:
+                    self._nfc_share_popup = 'failed'
+                    if self._uart_online:
+                        self._draw_nfc_share_popup()
+                        self.lcd.update()
             return
         if event.kind in ('nfc_card', 'nfc_status', 'nfc_capabilities'):
             if not self._closed:
                 previous_nfc = self.pd.system_info.get('nfc')
                 self.pd.sync_nfc_event()
+                component = self._nfc_share_component()
+                availability_changed = component.sync()
                 if event.kind == 'nfc_card':
                     self._rfid_buzzer_feedback()
                 if self._uart_online and self.checkkey == self.RFIDMenu:
                     self.Draw_RFID_Menu(full=False)
                     self.lcd.update()
                 elif (self._uart_online and self.checkkey == self.Info
-                      and previous_nfc != self.pd.system_info.get('nfc')):
+                      and not getattr(self, '_nfc_share_popup', None)
+                      and (availability_changed or previous_nfc != self.pd.system_info.get('nfc'))):
                     self.Draw_Info_Menu()
                     self.lcd.update()
             return
@@ -1592,6 +1602,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         if event.kind == 'live_jog_flush':
             self._flush_live_jog()
+            return
+        if getattr(self, '_nfc_share_popup', None) and event.kind in ('press', 'rotate'):
+            if event.kind == 'press':
+                self._cancel_nfc_share_popup()
             return
         if self._power_button_input(event):
             return
@@ -2201,6 +2215,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 return
             self.Draw_Info_Menu()
         elif event == self.ENCODER_DIFF_ENTER:
+            if (any(kind == 'nfc_share' for kind, _, _ in items)
+                    and current == max_scroll - 1):
+                if self._start_nfc_share_popup():
+                    self.lcd.update()
+                return
             if items and items[-1][0] == 'update' and current == max_scroll:
                 self._software_updater().start()
                 self.Draw_Info_Menu()
@@ -3326,6 +3345,52 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._software_update = SoftwareUpdate(self.pd)
         return self._software_update
 
+    def _nfc_share_component(self):
+        component = getattr(self, '_nfc_uri_share', None)
+        if component is None:
+            component = NFCURIShareComponent(self.pd.get_nfc_core())
+            self._nfc_uri_share = component
+        return component
+
+    def _start_nfc_share_popup(self):
+        component = self._nfc_share_component()
+        if not component.visible:
+            return False
+        # Set popup state before submission; share events may arrive immediately.
+        self._nfc_share_popup = 'waiting'
+        try:
+            future = component.start(PROJECT_URL)
+            if future.done():
+                future.result()  # Handle immediate rejection without a backend event.
+        except Exception:
+            logging.exception('Unable to begin NFC URI share')
+            self._nfc_share_popup = 'failed'
+        self._draw_nfc_share_popup()
+        return True
+
+    def _draw_nfc_share_popup(self):
+        self._nfc_share_component().draw_popup(
+            self, failed=self._nfc_share_popup == 'failed')
+
+    def _finish_nfc_share_popup(self):
+        if not getattr(self, '_nfc_share_popup', None):
+            return
+        self._nfc_share_popup = None
+        if self._uart_online and self.checkkey == self.Info:
+            self._info_render_scroll = None
+            self.Draw_Info_Menu()
+            self.lcd.update()
+
+    def _cancel_nfc_share_popup(self, redraw=True):
+        if not getattr(self, '_nfc_share_popup', None):
+            return
+        self._nfc_share_popup = None
+        self._nfc_share_component().cancel()
+        if redraw and self._uart_online and self.checkkey == self.Info:
+            self._info_render_scroll = None
+            self.Draw_Info_Menu()
+            self.lcd.update()
+
     def _info_items(self):
         info = self.pd.system_info
         cpu = info.get('host_cpu')
@@ -3373,8 +3438,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             ('row', 'Moonraker', info.get('moonraker', 'Unavailable')),
             ('row', 'Mainsail', info.get('mainsail', 'Unavailable')),
             ('qr', 'Scan for project info', PROJECT_URL),
-            ('update', '', None),
         ])
+        share = self._nfc_share_component().info_item(PROJECT_URL)
+        if share is not None:
+            items.append(share)
+        items.append(('update', '', None))
         return items
 
     def Draw_Info_Menu(self):
@@ -3386,6 +3454,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         previous = getattr(self, '_info_render_scroll', None)
         delta = self._info_scroll - previous if previous is not None else 0
         old_items = getattr(self, '_info_render_items', ())
+        share_selected = (any(kind == 'nfc_share' for kind, _, _ in items)
+                          and self._info_scroll == max_scroll - 1)
+        old_share_selected = (any(kind == 'nfc_share' for kind, _, _ in old_items)
+                              and previous == max_scroll - 1)
         same_layout = (previous is not None and
                        getattr(self, '_info_render_lcd', None) is self.lcd and
                        [(kind, label) for kind, label, _ in old_items] ==
@@ -3404,16 +3476,17 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                                distance, self.lcd.Color_Bg_Black, 0, 90, 255, 355)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 90, 255, 91)
             # Scroll indicators belong to the fixed frame, not the moving list.
-            if (previous == max_scroll) != (self._info_scroll == max_scroll):
+            if (previous == max_scroll or old_share_selected) != (
+                    self._info_scroll == max_scroll or share_selected):
                 self.Erase_Menu_Cursor(0)
-                if self._info_scroll < max_scroll:
+                if self._info_scroll < max_scroll and not share_selected:
                     self.Draw_Menu_Cursor(0)
         elif not stationary:
             self.Clear_Main_Window()
             self._info_update_render = None
             self._info_update_message = None
             self.Draw_Title('Info')
-            self.Draw_Back_First(self._info_scroll < max_scroll)
+            self.Draw_Back_First(self._info_scroll < max_scroll and not share_selected)
         for index, (kind, label, value) in enumerate(items):
             if stationary or kind != 'qr':
                 continue
@@ -3423,14 +3496,16 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                             top=max(92, band[0]) if incremental else 92,
                             bottom=min(356, band[1]) if incremental else 356)
         for index, (kind, label, value) in enumerate(items):
-            y = 92 + (index + (extra_info_rows() if kind == 'update' else 0) - self._info_scroll) * 24
+            offset = (extra_info_rows() if kind == 'update' else
+                      extra_info_rows() - 2 if kind == 'nfc_share' else 0)
+            y = 92 + (index + offset - self._info_scroll) * 24
             if not 92 <= y < 356:
-                if incremental and kind == 'update' and y == 356:
+                if incremental and kind in ('update', 'nfc_share') and y == 356:
                     self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 352, 239, 355)
                 continue
             exposed = incremental and (band[0] <= y < band[1] or
                                        (kind == 'section' and y == 92))
-            if (stationary or (incremental and not exposed)) and kind != 'update':
+            if (stationary or (incremental and not exposed)) and kind not in ('update', 'nfc_share'):
                 if (kind == 'row' and
                         T5UIC1Display._panel_text(value)[:17] !=
                         T5UIC1Display._panel_text(old_items[index][2])[:17]):
@@ -3438,6 +3513,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 continue
             if kind == 'qr':
                 self._draw_menu_text(label, 48, y)
+            elif kind == 'nfc_share':
+                self._nfc_share_component().draw_button(self, y, share_selected)
             elif kind == 'update':
                 self._draw_info_update_button(y, self._info_scroll == max_scroll)
             elif kind == 'section':
@@ -3534,6 +3611,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
 
     def Clear_Main_Window(self):
         self._info_render_scroll = None
+        component = getattr(self, '_nfc_uri_share', None)
+        if component is not None:
+            component.invalidate()
         self._screws_result_cache = None
         self.Clear_Title_Bar()
         self.Clear_Menu_Area()
@@ -3812,7 +3892,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
-            if system_changed or wifi_changed:
+            if (system_changed or wifi_changed) and not getattr(self, '_nfc_share_popup', None):
                 self.Draw_Info_Menu()
                 self.lcd.update()
             elif info_update:
