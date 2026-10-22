@@ -128,3 +128,5 @@ Sürüm öncesinde gerçek panel/Pi üzerinde doğrulanacaklar: kurulum/kaldırm
 yalnız Petrel'in yeniden başlatılması; panel enerji kesintisi ve toparlanma; kullanımda
 portun kaldırılmasının engellenmesi; sürekli trafikte CPU/RAM/gecikme. Kernel sanal
 makine testleri bu kontrollerin yerine geçmez.
+
+Ekran soketi, Picture Flash yüklemeleri sırasında Petrel'in `serial.flush()` çağrısı için taşıma katmanına özel bir aktarım tamamlama bariyeri de destekler: tek NUL isteği, önceki ekran komutları fiziksel UART'tan gönderildikten sonra onaylanır. Kontrol baytları DWIN komutu olarak aktarılmaz. İsteğe bağlı C broker, depo güncellendikten sonra Petrel servisinin açılış kancasıyla yenilenir.

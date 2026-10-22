@@ -2,6 +2,7 @@
 import os
 import select
 import socket
+import time
 
 
 class BrokerSerial:
@@ -10,6 +11,7 @@ class BrokerSerial:
         self.timeout = timeout
         self.write_timeout = write_timeout
         self._buffer = bytearray()
+        self._drain_acks = 0
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         try:
             self._socket.settimeout(max(1, write_timeout))
@@ -29,7 +31,11 @@ class BrokerSerial:
             return
         if not data:
             raise OSError('DWIN broker disconnected')
-        self._buffer.extend(data)
+        if data == b'\x00':
+            # Broker drain reply is transport control, never a DWIN packet.
+            self._drain_acks += 1
+        else:
+            self._buffer.extend(data)
 
     @property
     def in_waiting(self):
@@ -51,6 +57,26 @@ class BrokerSerial:
         if not ready:
             raise TimeoutError('DWIN broker write timeout')
         return self._socket.send(data)
+
+    def flush(self):
+        """Wait for the broker to drain preceding display packets to UART.
+
+        A socket send only enqueues the bytes at the broker. Unlike a no-op,
+        this barrier preserves pySerial's ordering guarantee before panel
+        Picture Flash is committed. It is used only during asset transfers.
+        """
+        if self.write(b'\x00') != 1:
+            raise OSError('Incomplete DWIN UART drain request')
+        deadline = time.monotonic() + 20.0
+        while not self._drain_acks:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                self.close()
+                raise TimeoutError('DWIN broker UART drain acknowledgement timed out')
+            readable, _, _ = select.select([self._socket], [], [], remaining)
+            if readable:
+                self._receive()
+        self._drain_acks -= 1
 
     def close(self):
         self._socket.close()

@@ -1,6 +1,7 @@
 import os
 import socket
 import tempfile
+import threading
 import time
 from pathlib import Path
 import unittest
@@ -102,6 +103,21 @@ class BrokerContracts(unittest.TestCase):
         self.assertEqual([call.args[0] for call in broker.uart.write.call_args_list],
                          [b'ab', b'ab', b'b', b'xy'])
 
+    def test_drain_marker_waits_for_uart_and_never_leaks_to_panel(self):
+        broker = self.broker()
+        broker.client = Mock()
+        broker.display_rx = FrameQueue()
+        broker._client_events = Mock()
+        frame = HEADER + b'\x11hi' + TAIL
+        broker.display_tx.append(frame)
+        broker.display_tx.append(b'\x00', broker._ack_drain)
+        broker.uart.write.return_value = len(frame)
+        broker._transmit()
+        broker._transmit()
+        broker.uart.write.assert_called_once_with(frame)
+        broker.uart.flush.assert_called_once_with()
+        self.assertEqual(broker.display_rx.pop()[0], b'\x00')
+
     def test_rx_routes_aux_separately_from_fragmented_display_reply(self):
         broker = self.broker()
         broker.rx = bytearray()
@@ -199,6 +215,31 @@ class SocketTransportContracts(unittest.TestCase):
         server.close()
         with self.assertRaises(OSError):
             _ = transport.in_waiting
+
+    def test_socket_flush_waits_for_drain_ack_and_keeps_display_replies(self):
+        client, server = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        self.addCleanup(server.close)
+        server.send(b'DWIN1')
+        endpoint = Mock(wraps=client)
+        endpoint.connect = Mock()
+        with patch('dwin_transport.socket.socket', return_value=endpoint):
+            transport = BrokerSerial('/unused', timeout=.05)
+        self.addCleanup(transport.close)
+        reply = HEADER + b'\x00OK' + TAIL
+        sent = []
+        def broker():
+            sent.append(server.recv(512))
+            server.send(reply)
+            time.sleep(.01)
+            server.send(b'\x00')
+        worker = threading.Thread(target=broker, daemon=True)
+        worker.start()
+        transport.flush()
+        worker.join(timeout=1)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(sent, [b'\x00'])
+        self.assertEqual(transport.in_waiting, len(reply))
+        self.assertEqual(transport.read(len(reply)), reply)
 
     def test_pyserial_scanner_discovers_the_standard_name_alias(self):
         from serial.tools import list_ports_linux

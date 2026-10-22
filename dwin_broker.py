@@ -117,6 +117,11 @@ class Broker:
                               or self.display_tx.frames or (self.aux_tx.frames
                                   and time.monotonic() >= self.aux_ready_at) else 0), 'uart')
 
+    def _ack_drain(self):
+        if self.client is not None:
+            self.display_rx.append(b'\x00')
+            self._client_events()
+
     def _transmit(self):
         if self.active is None:
             aux_ready = self.aux_tx.frames and time.monotonic() >= self.aux_ready_at
@@ -129,6 +134,13 @@ class Broker:
             self.active = queue.pop()
             self.turn = 1 - self.turn
         data, complete = self.active
+        if data == b'\x00' and complete is not None:
+            # FIFO drain marker: must never be sent to DWIN as a command.
+            self.uart.flush()
+            self.active = None
+            complete()
+            self._uart_events()
+            return
         count = self.uart.write(data)
         if count == len(data):
             self.active = None
@@ -199,7 +211,10 @@ class Broker:
                         if not data:
                             self._drop_client()
                             continue
-                        self.display_tx.append(display_frame(data))
+                        if data == b'\x00':
+                            self.display_tx.append(data, self._ack_drain)
+                        else:
+                            self.display_tx.append(display_frame(data))
                         if self.uart is not None:
                             self._uart_events()
                     if events & selectors.EVENT_WRITE and self.client is not None:

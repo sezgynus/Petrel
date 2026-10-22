@@ -124,3 +124,5 @@ auxiliary TX/RX loopback with binary bytes including `CC 33 C3 3C`; 19200/115200
 on a logic analyzer; pySerial/minicom access and enumeration; simultaneous screen
 navigation; Petrel-only restart; panel power loss/recovery; busy-port removal refusal;
 and CPU/RAM/latency under sustained traffic. Kernel VM tests do not replace these checks.
+
+The display socket also supports a transport-only drain barrier used by Petrel's `serial.flush()` during Picture Flash uploads: a single NUL request is acknowledged only after preceding display commands have drained from the physical UART. Neither control byte is forwarded as a DWIN command. The optional C broker is refreshed by the installed Petrel service's startup hook after updating the repository.

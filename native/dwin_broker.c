@@ -26,7 +26,7 @@
 #define RECORD 7U
 #define CLOCK_HZ 15667200U
 static const uint8_t tail[] = {0xcc, 0x33, 0xc3, 0x3c};
-enum kind { DISPLAY, PROBE, BAUD, AUX };
+enum kind { DISPLAY, PROBE, BAUD, AUX, DRAIN };
 struct frame {
     struct frame *next;
     size_t size, offset;
@@ -103,7 +103,12 @@ static void drop_client(struct broker *b)
     close_fd(&b->client);
     clear(&b->display_tx);
     clear(&b->display_rx);
-    /* An active partial display command must still finish without interleaving. */
+    /* An active partial display command must still finish without interleaving.
+     * An unsent drain barrier must not leak an ACK to a subsequent client. */
+    if (b->active && b->active->kind == DRAIN) {
+        free(b->active);
+        b->active = NULL;
+    }
 }
 static void disconnect_transport(struct broker *b, const char *reason)
 {
@@ -255,6 +260,17 @@ static bool transmit(struct broker *b)
         b->turn = 1 - b->turn;
     }
     struct frame *f = b->active;
+    if (f->kind == DRAIN) {
+        /* FIFO barrier for the UI: all earlier display packets were handed
+         * to this physical UART. Wait for kernel TX completion before ACK. */
+        bool ok = tcdrain(b->uart) == 0;
+        const uint8_t ack = 0;
+        if (ok && b->client >= 0)
+            ok = append(&b->display_rx, &ack, 1, DRAIN, false);
+        b->active = NULL;
+        free(f);
+        return ok;
+    }
     ssize_t n = write(b->uart, f->data + f->offset, f->size - f->offset);
     if (n < 0) return again();
     f->offset += (size_t)n;
@@ -339,8 +355,14 @@ static void client_events(struct broker *b, short events)
         uint8_t data[PAYLOAD + 7];
         ssize_t n = recv(b->client, data, sizeof(data), MSG_TRUNC);
         if (n <= 0) { if (!n || !again()) drop_client(b); return; }
-        if (n < 6 || n > (ssize_t)(PAYLOAD + 6) || data[0] != 0xaa || data[1] == 0x38 || data[1] == 0x39 ||
-            memcmp(data + n - 4, tail, sizeof(tail)) || !append(&b->display_tx, data, (size_t)n, DISPLAY, false)) {
+        if (n == 1 && data[0] == 0) {
+            /* Transport-only drain request; never forward to the panel. */
+            if (!append(&b->display_tx, data, 1, DRAIN, false))
+                drop_client(b);
+        } else if (n < 6 || n > (ssize_t)(PAYLOAD + 6) || data[0] != 0xaa ||
+                   data[1] == 0x38 || data[1] == 0x39 ||
+                   memcmp(data + n - 4, tail, sizeof(tail)) ||
+                   !append(&b->display_tx, data, (size_t)n, DISPLAY, false)) {
             drop_client(b); return;
         }
     }

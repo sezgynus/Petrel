@@ -161,6 +161,25 @@ class NativeBrokerTests(unittest.TestCase):
         print('Native broker memory:', '; '.join(line for line in rollup.splitlines()
               if line.startswith(('Pss:', 'Private_Clean:', 'Private_Dirty:', 'SwapPss:'))))
 
+    def test_ui_flush_barrier_waits_for_physical_uart_and_does_not_leak(self):
+        self.ready()
+        client = self.connect_ui()
+        first = b'\xaa\x11first' + TAIL
+        second = b'\xaa\x11second' + TAIL
+        self.assertEqual(client.send(first), len(first))
+        self.assertEqual(client.send(second), len(second))
+        self.assertEqual(client.send(b'\x00'), 1)
+        self.pump(lambda: bool(select.select([client], [], [], 0)[0]))
+        # The drain ACK cannot precede either packet reaching physical UART.
+        self.assertIn(first, self.commands)
+        self.assertIn(second, self.commands)
+        self.assertLess(self.commands.index(first), self.commands.index(second))
+        self.assertEqual(client.recv(512), b'\x00')
+        self.assertNotIn(b'\x00', self.commands)
+        followup = b'\xaa\x11after' + TAIL
+        client.send(followup)
+        self.pump(lambda: followup in self.commands)
+
     def test_ui_fragmented_length_replies_and_auxiliary_isolation(self):
         self.ready()
         client = self.connect_ui()
