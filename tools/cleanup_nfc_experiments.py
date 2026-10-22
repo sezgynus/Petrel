@@ -10,6 +10,11 @@ import ctypes.util
 import os
 from pathlib import Path
 import shutil
+import sys
+
+# Direct invocation (python3 tools/cleanup_nfc_experiments.py) places only the
+# tools directory on sys.path. Resolve the Petrel root for libnfc_api imports.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 PRIVATE_BUILD_DIRS = (
     'libnfc-pn532-picc',

@@ -1,5 +1,8 @@
 """Safe cleanup of only obsolete PN532 libraries and experiment markers."""
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -51,6 +54,28 @@ class CleanupPN532ExperimentsTests(unittest.TestCase):
                 cleanup(data_link, self.config, apply=False)
             with self.assertRaisesRegex(RuntimeError, 'symlinked'):
                 cleanup(data_link, self.config, apply=True)
+
+    def test_script_direct_invocation_resolves_project_imports(self):
+        # Test the exact command documented for Raspberry Pi, not imports
+        # from the unittest runner's project-root sys.path.
+        script = Path(__file__).resolve().parents[1] / 'tools' / 'cleanup_nfc_experiments.py'
+        marker = self.config / 'nfc-target-system-modedet.enabled'
+        marker.write_text('experimental')
+        env = os.environ.copy()
+        env['XDG_DATA_HOME'] = str(self.data.parent)
+        env['XDG_CONFIG_HOME'] = str(self.config.parent)
+        env.pop('PYTHONPATH', None)
+        result = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=self.root,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Would remove:', result.stdout)
+        self.assertTrue(marker.exists(), 'Dry run must not delete marker')
 
     def test_guard_prevents_removing_any_files(self):
         marker = self.config / 'nfc-target-modedet.enabled'
