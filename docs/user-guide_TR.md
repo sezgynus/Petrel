@@ -516,8 +516,8 @@ sistemin `libnfc6` paketi değiştirilmez:
 
 ```bash
 cd ~/Petrel
-bash tools/build_pn532_picc_libnfc.sh 04  # yalnız PICC
-bash tools/build_pn532_picc_libnfc.sh 05  # upstream, değiştirilmemiş
+bash tools/build_pn532_picc_libnfc.sh 04  # PICC-only library
+bash tools/build_pn532_picc_libnfc.sh 05  # unmodified upstream mode library
 ```
 
 `python3 tools/nfc_target_ab.py select A` komutuyla bir profil seçin
