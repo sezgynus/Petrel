@@ -52,4 +52,6 @@ Maintenance reuses the existing small Graphite menu icons. Its former large tile
 
 Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 10×32 KiB.
 
-The NFC settings entry uses ID **171** (`ICON_NFC`), a dedicated 20×20 Graphite contactless-card symbol with radio waves. The read-only NFC feature status follows the Info layout and does not use an action icon. The icon's editable source is `assets/icon-source/171.svg`.
+The NFC settings entry uses ID **171** (`ICON_NFC`), the familiar NFC N silhouette in the shared 20×20 Graphite cyan style. The read-only NFC feature status follows the Info layout and does not use an action icon. The icon's editable source is `assets/icon-source/171.svg`.
+
+The NFC silhouette is adapted from [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg); its proportions are preserved, with only uniform scaling and Graphite coloring. Source attribution and license are in [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt).
