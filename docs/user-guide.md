@@ -711,6 +711,27 @@ essential cleanup, PN532/ISO14443A-target-scoped, then measure the minimal
 build against the unmodified libnfc using the same test. A system libnfc
 replacement is not required for this experiment.
 
+### Android system URL dispatch during Type 4 sharing
+
+NFC Tools reading a URI confirms that a reader can obtain the NDEF bytes; it
+does not independently confirm Android system tag dispatch or browser launch.
+Android's Type 4 stack has separate NDEF-detection and NDEF-read phases, so
+a reader can issue additional APDUs after the first complete NDEF read.
+
+For physical comparison, Petrel now **emits the transfer event once**, but
+keeps answering valid Type 4 APDUs for up to 2 seconds of reader inactivity
+after the first full NDEF file transfer. This is an inactivity grace period
+starting after the most recent APDU response, not an added pre-activation
+delay. It preserves the original immediate failure handling before a full
+read and preserves cancellation. A second READ does not emit a second
+success. This change is Python-side; it requires **no new libnfc build**.
+
+Test the result with the phone unlocked and NFC Tools closed. A physical
+NDEF URI tag on that same phone is a useful control; report both the
+browser notification behavior and whether NFC Tools continues to read the
+Petrel tag. Android notification behavior remains dependent on the phone
+OS and browser handlers. This experiment does not prove the issue is fixed.
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped

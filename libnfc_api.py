@@ -384,6 +384,10 @@ class NFCTargetSession:
         target.info.a.ats_len = 4
         target.info.a.ats[:4] = (0x75, 0x33, 0x92, 0x03)
         receive = (U8 * 264)()
+        # Android may read the NDEF again after tag detection. Keep the
+        # emulated tag accessible after sending the full file, until there
+        # is a quiet RF interval. This applies only after a confirmed read.
+        post_transfer_timeout_ms = 2000
         while not cancelled():
             n = self.lib.nfc_target_init(self.device, C.byref(target),
                                          receive, len(receive), 500)
@@ -396,45 +400,63 @@ class NFCTargetSession:
             if diagnostic:
                 logging.info('PETREL_NFC_DIAG python target_accepted initial_len=%d', n)
             on_event('share.phone_detected', {})
+            transferred = False
             while not cancelled():
                 # libnfc can activate a target without delivering an APDU yet.
                 # Do not reply with an error frame to an empty activation.
                 if n == 0:
-                    n = self.lib.nfc_target_receive_bytes(self.device, receive,
-                                                           len(receive), 500)
-                    if n in (-6, -10, -20):
-                        break
-                    if n < 0:
-                        raise OSError('NFC target receive failed (%d)' % n)
-                    continue
-                packet = bytes(receive[:n])
-                if diagnostic:
-                    logging.info('PETREL_NFC_DIAG apdu_rx len=%d cla=%s ins=%s',
-                                 n, ('%02X' % packet[0]) if len(packet) else '--',
-                                 ('%02X' % packet[1]) if len(packet) > 1 else '--')
-                answer = tag.respond(packet)
-                if diagnostic:
-                    logging.info('PETREL_NFC_DIAG apdu_tx len=%d sw=%s',
-                                 len(answer), answer[-2:].hex().upper()
-                                 if len(answer) >= 2 else '--')
-                outgoing = (U8 * len(answer)).from_buffer_copy(answer)
-                sent = self.lib.nfc_target_send_bytes(self.device, outgoing,
-                                                       len(outgoing), 500)
-                if sent < 0:
-                    if sent in (-6, -10, -20):
-                        break
-                    raise OSError('NFC target send failed (%d)' % sent)
-                if tag.sent():
+                    n = self.lib.nfc_target_receive_bytes(
+                        self.device, receive, len(receive),
+                        post_transfer_timeout_ms if transferred else 500)
+                else:
+                    packet = bytes(receive[:n])
                     if diagnostic:
-                        logging.info('PETREL_NFC_DIAG ndef_transferred confirmed')
-                    on_event('share.ndef_transferred', {'url': url})
-                    return True
-                n = self.lib.nfc_target_receive_bytes(self.device, receive,
-                                                       len(receive), 500)
+                        logging.info('PETREL_NFC_DIAG apdu_rx len=%d cla=%s ins=%s',
+                                     n, ('%02X' % packet[0]) if len(packet) else '--',
+                                     ('%02X' % packet[1]) if len(packet) > 1 else '--')
+                    answer = tag.respond(packet)
+                    if diagnostic:
+                        logging.info('PETREL_NFC_DIAG apdu_tx len=%d sw=%s',
+                                     len(answer), answer[-2:].hex().upper()
+                                     if len(answer) >= 2 else '--')
+                    outgoing = (U8 * len(answer)).from_buffer_copy(answer)
+                    sent = self.lib.nfc_target_send_bytes(self.device, outgoing,
+                                                           len(outgoing), 500)
+                    if sent < 0:
+                        if transferred:
+                            if diagnostic:
+                                logging.info('PETREL_NFC_DIAG post_transfer_end send_rc=%d',
+                                             sent)
+                            return True
+                        if sent in (-6, -10, -20):
+                            break
+                        raise OSError('NFC target send failed (%d)' % sent)
+                    if tag.sent() and not transferred:
+                        transferred = True
+                        if diagnostic:
+                            logging.info('PETREL_NFC_DIAG ndef_transferred confirmed')
+                        on_event('share.ndef_transferred', {'url': url})
+                    n = self.lib.nfc_target_receive_bytes(
+                        self.device, receive, len(receive),
+                        post_transfer_timeout_ms if transferred else 500)
                 if n in (-6, -10, -20):
+                    if transferred:
+                        if diagnostic:
+                            logging.info('PETREL_NFC_DIAG post_transfer_end receive_rc=%d',
+                                         n)
+                        return True
                     break
                 if n < 0:
+                    if transferred:
+                        if diagnostic:
+                            logging.info('PETREL_NFC_DIAG post_transfer_end receive_rc=%d',
+                                         n)
+                        return True
                     raise OSError('NFC target receive failed (%d)' % n)
+            if transferred:
+                # Explicit cancellation after successful delivery is still
+                # a successful transfer, not a failed RF session.
+                return True
             tag = Type4UriTag(url)  # Never mix coverage across phone sessions.
         return False
 

@@ -710,6 +710,27 @@ ISO14443A hedef kipine uygulanacak. Daha sonra bu minimal derleme ile
 orijinal libnfc aynı fiziksel deneyde karşılaştırılacak. Bu deney sistem
 libnfc paketini değiştirmiyor.
 
+### Android sisteminde Type 4 NFC URL yönlendirmesi
+
+NFC Tools'un URL baytlarını okuması, Android'in sistem düzeyinde NDEF
+keşfinin tamamlandığını veya tarayıcıyı açtıracağını tek başına kanıtlamaz.
+Android Type 4 yığınında NDEF tanıma ve NDEF okuma ayrı aşamalardır;
+ilk tam NDEF okumasından sonra ek APDU'lar gelebilir.
+
+Fiziksel karşılaştırma için Petrel artık **başarılı aktarımı yalnızca
+bir kez bildirir** ve ilk tam NDEF aktarımından sonra okuyucudan en fazla
+2 saniye boyunca yeni komut gelmezse oturumu sonlandırır. Süre, son APDU
+yanıtından sonra hareketsizlik için geçerlidir; aktivasyona bekleme
+eklemez. Tam okumadan önceki hata/cancel davranışı korunur; ikinci READ,
+başarı olayını tekrar üretmez. Bu değişiklik Python katmanındadır;
+**yeni libnfc derlemesi gerekmez.**
+
+Telefon kilidi açık ve NFC Tools kapalıyken deneyin. Aynı telefonda URL
+açan fiziksel bir NDEF kartını kontrol örneği olarak kullanın. Hem
+bildirimi hem NFC Tools'ta Petrel etiketinin okunmaya devam edip etmediğini
+kaydedin. Android'in URL bildirimi işletim sistemi ve uygulama
+ilişkilendirmesine de bağlıdır. Bu deney henüz kesin düzeltme değildir.
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın
