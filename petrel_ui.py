@@ -5,7 +5,7 @@ from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
-from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_NFC
 import display_settings
 from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
@@ -1993,7 +1993,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
                 max(172, 260 - len(text) * 8), self.MBASE(row) - 1, text)
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
-        entries.append(('NFC settings', self.ICON_Info, None, None))
+        entries.append(('NFC settings', ICON_NFC, None, None))
         self._display_selection = min(selection, len(entries) - 1)
         title = 'Display - not saved' if getattr(self, '_display_save_message', '') else 'Display'
         self._draw_list_menu(title, entries, self._display_selection)

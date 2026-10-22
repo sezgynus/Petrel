@@ -42,7 +42,7 @@ Fan frames **235–242** use a neutral fan symbol on the dashboard's **RGB565 `0
 
 ## Package size and reserved space
 
-The current reference pack occupies **9×32 KiB = 288 KiB**, slots **3–11**. The reserved maximum is **13×32 KiB = 416 KiB**, slots **3–15**, leaving slots **12–15** available for growth. This is allocated block space, not an exact JPEG payload budget: the directory, placement gaps and reserved final bytes also consume space. Picture Flash is separate from the **512-byte Data Flash metadata record at 0x0200–0x03FF**. Pass `--library 3` to export; the export tool's legacy default is 7, with a different available slot count.
+The current reference pack occupies **10×32 KiB = 320 KiB**, slots **3–12**. The reserved maximum is **13×32 KiB = 416 KiB**, slots **3–15**, leaving slots **13–15** available for growth. This is allocated block space, not an exact JPEG payload budget: the directory, placement gaps and reserved final bytes also consume space. Picture Flash is separate from the **512-byte Data Flash metadata record at 0x0200–0x03FF**. Pass `--library 3` to export; the export tool's legacy default is 7, with a different available slot count.
 
 ## JPEG compatibility rule
 
@@ -50,4 +50,6 @@ All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: 
 
 Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 156–163 are retired; they are not shipped or referenced by the UI.
 
-Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack remains 9×32 KiB.
+Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 10×32 KiB.
+
+The NFC settings entry and NFC feature status use ID **171** (`ICON_NFC`), a dedicated 20×20 Graphite contactless-card symbol with radio waves. Its editable source is `assets/icon-source/171.svg`.

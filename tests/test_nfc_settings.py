@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from nfc_settings import (NFCSettings, PROFILES, available_ports, installed_enabled,
                           load, save)
 from test_capabilities import display, snapshot
+from lcd_resources import ICON_NFC
 from test_regressions import ui
 
 # The GPIO-isolated UI import retains its own module references.
@@ -76,6 +77,21 @@ class NFCSettingsTests(unittest.TestCase):
                 'pn53x_usb:001:003', 'acr122_usb:001:005', 'pn532_uart:/dev/ttyUSB0:115200')):
             self.assertEqual(available_ports('USB', 'PN53x USB'), ('pn53x_usb:001:003',))
             self.assertEqual(available_ports('USB', 'ACR122U'), ('acr122_usb:001:005',))
+
+    def test_dedicated_nfc_icon_on_display_and_nfc_feature_rows(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view.Draw_Display_Menu()
+        rows = view._draw_list_menu.call_args.args[1]
+        self.assertEqual(rows[-1][0], 'NFC settings')
+        self.assertEqual(rows[-1][1], ICON_NFC)
+        self.assertNotEqual(ICON_NFC, view.ICON_Info)
+
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            view.Draw_NFC_Settings_Menu()
+        rows = view._draw_list_menu.call_args.args[1]
+        self.assertEqual(rows[1][0], 'NFC feature')
+        self.assertEqual(rows[1][1], ICON_NFC)
 
     def test_disabled_installation_shows_rows_without_moving_focus(self):
         view = display(snapshot())

@@ -1,6 +1,8 @@
 """Display menu NFC reader configuration."""
 from dataclasses import replace
 
+from lcd_resources import ICON_NFC
+
 from nfc_settings import (BAUD_RATES, NFCSettings, PROFILES,
                           available_ports, installed_enabled, load, save)
 
@@ -72,7 +74,7 @@ class NFCSettingsViewMixin:
         value = self._nfc_config()
         status = 'Enabled' if enabled else 'Disabled in setup'
         rows = [('Back', self.ICON_Back, None, None),
-                ('NFC feature', self.ICON_Info, status, lambda row: self.lcd.draw_text(
+                ('NFC feature', ICON_NFC, status, lambda row: self.lcd.draw_text(
                     True, False, self.lcd.font8x16, self.lcd.Color_White,
                     self.lcd.Color_Bg_Black, 120, self.MBASE(row) + 17, status))]
         for field, label in (('model', 'RFID module'), ('interface', 'Interface'),

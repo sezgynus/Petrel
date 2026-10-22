@@ -42,7 +42,7 @@ Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan
 
 ## Paket boyutu ve ayrılan alan
 
-Mevcut referans paket **9×32 KiB = 288 KiB**, yani **3–11** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; **12–15** büyüme için kullanılabilir. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
+Mevcut referans paket **10×32 KiB = 320 KiB**, yani **3–12** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; **13–15** büyüme için kullanılabilir. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
 
 ## JPEG uyumluluk kuralı
 
@@ -50,4 +50,6 @@ Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanma
 
 Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
-Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket 9×32 KiB olarak kalır.
+Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 10×32 KiB yer kaplar.
+
+NFC ayarları menü satırı ve NFC özellik durumu, temassız kart ve radyo dalgalarını gösteren 20×20 Graphite ikonu **171** (`ICON_NFC`) kullanır. Düzenlenebilir kaynak `assets/icon-source/171.svg` dosyasındadır.
