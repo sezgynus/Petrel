@@ -1,0 +1,237 @@
+"""NFC backend: the sole libnfc hardware owner inside Petrel.
+
+The backend runs in one worker thread. It owns every libnfc context/device,
+serializes connection probes with scans, and applies saved configuration only
+between fully closed sessions. The UI and future NFC Core never touch libnfc.
+"""
+import logging
+from concurrent.futures import Future
+from threading import Event, Lock, Thread
+
+from libnfc_api import NFCSession, check_connection
+from nfc_settings import installed_enabled, load
+
+
+class NFCBackend:
+    def __init__(self, *, feature_enabled=None, config_loader=None,
+                 session_factory=None, probe_factory=None, retry_seconds=2):
+        # Inject factories for CI without opening physical devices.
+        self._feature_enabled = feature_enabled or installed_enabled
+        self._config_loader = config_loader or load
+        self._session_factory = session_factory
+        self._probe_factory = probe_factory
+        self._retry_seconds = retry_seconds
+        self._settings = None
+        self._change = Event()
+        self._change.set()  # Read disk once on backend startup.
+        self._wake = Event()
+        self._stop = Event()
+        self._lock = Lock()
+        self._probe_event = Event()
+        self._probe = None
+        self._probe_active = False
+        self._session = None
+        self._card = {}
+        self._present_card = None
+        self._present_modulation = None
+        self._missing_reads = 0
+        self._card_event = False
+        self._identity = {'status': 'Unavailable'}
+        self._status = 'Starting...'
+        self._revision = 0
+        self._thread = Thread(target=self._run, name='petrel-nfc-backend', daemon=True)
+        self._thread.start()
+
+    def snapshot(self):
+        with self._lock:
+            return self._revision, self._status, dict(self._card)
+
+    def identity(self):
+        with self._lock:
+            return dict(self._identity)
+
+    def take_card_event(self):
+        """Consume a bounded arrival notification without changing the last card."""
+        with self._lock:
+            event, self._card_event = self._card_event, False
+            return event
+
+    def _observe_card(self, modulation, card):
+        with self._lock:
+            if card:
+                key = (card.get('type'), card['uid'])
+                if key != self._present_card:
+                    self._card_event = True
+                self._present_card = key
+                self._present_modulation = modulation
+                self._missing_reads = 0
+            elif modulation == self._present_modulation:
+                # Other technologies missing this card do not mean removal.
+                self._missing_reads += 1
+                if self._missing_reads >= 2:
+                    self._present_card = None
+                    self._present_modulation = None
+
+    def _publish(self, status, card=None, identity=None):
+        with self._lock:
+            latest = card if card and card.get('uid') else self._card
+            info = identity if identity is not None else self._identity
+            if status != self._status or latest != self._card or info != self._identity:
+                self._status, self._card, self._identity = status, dict(latest), dict(info)
+                self._revision += 1
+
+    def test_connection(self, settings):
+        """Test the unsaved draft on the hardware owner, never the UI thread."""
+        settings.validate()
+        future = Future()
+        with self._lock:
+            if not self._feature_enabled():
+                future.set_exception(OSError('NFC feature disabled'))
+            elif self._stop.is_set():
+                future.set_exception(OSError('NFC reader stopped'))
+            elif self._probe_active:
+                future.set_exception(OSError('NFC test already in progress'))
+            else:
+                self._probe_active = True
+                self._probe = (settings, future)
+                self._probe_event.set()
+                self._wake.set()
+        return future
+
+    def reload_configuration(self):
+        """Apply a newly saved file after the active scan session closes."""
+        with self._lock:
+            if self._stop.is_set():
+                return False
+            self._change.set()
+            self._wake.set()
+        return True
+
+    def _read_configuration(self):
+        """Resolve only the saved, validated configuration; never a UART fallback."""
+        if not self._feature_enabled():
+            self._reset_for_configuration('Disabled')
+            return None
+        try:
+            settings = self._config_loader().validate()
+        except (OSError, ValueError, TypeError) as error:
+            logging.info('NFC reader not configured: %s', error)
+            self._reset_for_configuration('Not configured')
+            return None
+        self._reset_for_configuration('Starting...')
+        return settings
+
+    def _reset_for_configuration(self, status):
+        with self._lock:
+            self._card = {}
+            self._present_card = None
+            self._present_modulation = None
+            self._missing_reads = 0
+            self._card_event = False
+            self._identity = {'status': 'Unavailable'}
+            self._status = status
+            self._revision += 1
+
+    def _run_probe(self):
+        with self._lock:
+            pending, self._probe = self._probe, None
+            self._probe_event.clear()
+        if pending is None:
+            return False
+        settings, future = pending
+        try:
+            if future.set_running_or_notify_cancel():
+                try:
+                    tester = self._probe_factory or check_connection
+                    future.set_result(tester(settings))
+                except Exception as error:
+                    future.set_exception(error)
+        finally:
+            with self._lock:
+                self._probe_active = False
+        return True
+
+    def _run(self):
+        while not self._stop.is_set():
+            # Commands have priority; a probe must never overlap scanning.
+            if self._probe_event.is_set():
+                self._run_probe()
+                continue
+            if self._change.is_set():
+                self._change.clear()
+                self._settings = self._read_configuration()
+            if self._settings is None:
+                # No busy polling, no attempt to occupy DWIN's default port.
+                self._wake.wait()
+                self._wake.clear()
+                continue
+            session = None
+            try:
+                factory = self._session_factory or NFCSession
+                session = factory(self._settings)
+                with self._lock:
+                    if self._stop.is_set():
+                        break
+                    self._session = session
+                self._publish('Listening', identity=session.identity())
+                unsupported = set()
+                # Start with Type A when available, then follow the most recent
+                # successful technology. Revisit it between every other scan,
+                # while advancing all advertised technologies fairly in order.
+                preferred = (1, 1) if (1, 1) in session.modulations else None
+                while (not self._stop.is_set() and not self._probe_event.is_set()
+                       and not self._change.is_set()):
+                    for modulation in session.modulations:
+                        if self._probe_event.is_set() or self._change.is_set():
+                            break
+                        candidates = ((preferred, modulation)
+                                      if preferred and preferred != modulation
+                                      else (modulation,))
+                        for candidate in candidates:
+                            if (self._stop.is_set() or self._probe_event.is_set()
+                                    or self._change.is_set()):
+                                break
+                            if candidate in unsupported:
+                                continue
+                            card = session.scan(candidate)
+                            if card != 'unsupported':
+                                self._observe_card(candidate, card)
+                            if card == 'unsupported':
+                                unsupported.add(candidate)
+                                logging.warning('NFC reader rejected advertised modulation %s', candidate)
+                                self._publish('Partial support')
+                            elif card:
+                                preferred = candidate
+                                self._publish('Partial support' if unsupported else 'Listening', card)
+                        if self._stop.is_set():
+                            break
+                    if len(unsupported) == len(session.modulations):
+                        raise OSError('No usable NFC modulation')
+            except (OSError, ValueError) as error:
+                if not self._stop.is_set():
+                    logging.warning('NFC reader unavailable: %s', error)
+                    self._publish('Reader unavailable', identity={'status': 'Unavailable'})
+            finally:
+                with self._lock:
+                    self._session = None
+                if session is not None:
+                    session.close()
+            # Saved configuration and explicit probes take precedence over
+            # failure backoff. Idle devices have a bounded reconnect interval.
+            if not self._stop.is_set() and not self._change.is_set() and not self._probe_event.is_set():
+                self._wake.wait(self._retry_seconds)
+                self._wake.clear()
+
+    def close(self):
+        self._stop.set()
+        self._wake.set()
+        with self._lock:
+            pending, self._probe = self._probe, None
+            if pending is not None:
+                pending[1].cancel()
+        with self._lock:
+            if self._session is not None:
+                self._session.abort()
+        self._thread.join(timeout=3)
+        # No second backend may claim this reader while close is unfinished.
+        return not self._thread.is_alive()

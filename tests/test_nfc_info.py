@@ -32,10 +32,30 @@ class NFCInfoTests(unittest.TestCase):
         pd = printer(snapshot())
         reader = pd._rfid_reader
         reader.identity.return_value = parse_info(OUTPUT)
-        self.assertTrue(pd.refresh_nfc_info())
-        self.assertEqual(pd.system_info['nfc']['firmware'], '1.6')
-        self.assertFalse(pd.refresh_rfid())
+        globals_ = pd.refresh_nfc_info.__func__.__globals__
+        with patch.dict(globals_, {'installed_enabled': lambda: True}):
+            self.assertTrue(pd.refresh_nfc_info())
+            self.assertEqual(pd.system_info['nfc']['firmware'], '1.6')
+            self.assertFalse(pd.refresh_rfid())
         reader.identity.assert_called()
+
+    def test_disabled_feature_reports_status_without_spawning_reader(self):
+        pd = printer(snapshot())
+        pd._rfid_reader = None
+        globals_ = pd.refresh_nfc_info.__func__.__globals__
+        factory = Mock()
+        with patch.dict(globals_, {'installed_enabled': lambda: False,
+                                   'RFIDReader': factory}):
+            self.assertTrue(pd.refresh_nfc_info())
+            self.assertEqual(pd.system_info['nfc'], {'status': 'Disabled'})
+            self.assertEqual(pd.system_info['rfid'], {'status': 'Disabled', 'card': {}})
+            self.assertFalse(pd.refresh_nfc_info())
+            factory.assert_not_called()
+            from nfc_settings import NFCSettings
+            with self.assertRaisesRegex(OSError, 'disabled'):
+                pd.test_nfc_connection(NFCSettings('PN532', 'UART',
+                                                   '/dev/ttyAMA0', 115200))
+            factory.assert_not_called()
 
     def test_info_section_and_rows_use_actual_device_values(self):
         view = display(snapshot())

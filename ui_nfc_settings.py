@@ -393,9 +393,9 @@ class NFCSettingsViewMixin:
                     self._nfc_save_error = False
                     reader = getattr(self.pd, '_rfid_reader', None)
                     if reader is not None:
-                        reader.close()
-                        self.pd._rfid_reader = None
-                        self.pd._rfid_token = None
+                        # Apply the new file in the backend worker after the
+                        # current scan. Never join/close the reader from UI.
+                        reader.reload_configuration()
                 except (OSError, ValueError, TypeError):
                     self._nfc_save_error = True
         else:

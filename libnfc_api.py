@@ -1,10 +1,8 @@
 """Direct public libnfc ABI. Packed layouts mirror nfc/nfc-types.h (1.8)."""
 import ctypes as C
 import ctypes.util
-import os
 
-from nfc_info import DEFAULT_DEVICE, parse_info
-from nfc_settings import load as load_nfc_settings
+from nfc_info import parse_info
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
 PTR = C.c_void_p
@@ -147,21 +145,20 @@ def check_connection(settings):
 
 
 class NFCSession:
-    """One device handle, all supported passive card technologies, no CLI tools."""
-    def __init__(self):
+    """One libnfc initiator handle bound to an explicit, validated device.
+
+    The backend owns this session. No environment defaults, discovery, or
+    configuration-file I/O are permitted inside the driver session.
+    """
+    def __init__(self, settings):
+        connection = settings.connection_string()
         self.lib = bind_library()
         self.context, self.device = PTR(), None
         try:
             self.lib.nfc_init(C.byref(self.context))
             if not self.context:
                 raise OSError('libnfc context unavailable')
-            connection = os.environ.get('PETREL_NFC_DEVICE')
-            if not connection:
-                try:
-                    connection = load_nfc_settings().connection_string()
-                except ValueError:
-                    connection = DEFAULT_DEVICE
-            self.device = self.lib.nfc_open(self.context, connection.encode())
+            self.device = self.lib.nfc_open(self.context, connection.encode('utf-8'))
             if not self.device:
                 raise OSError('NFC reader unavailable')
             self._check(self.lib.nfc_initiator_init(self.device))

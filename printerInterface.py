@@ -41,6 +41,7 @@ from maintenance_system import travel_profile
 from maintenance_physical import MaintenancePulseController
 from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
 from rfid_reader import RFIDReader
+from nfc_settings import installed_enabled
 from system_info import host_memory_usage, host_metrics, network_info, updater_version, wifi_info
 
 class xyze_t:
@@ -345,7 +346,9 @@ class PrinterData:
             self.client.get('/machine/peripherals/serial')))
 
     def test_nfc_connection(self, settings):
-        """Run an explicit libnfc connection probe on the single RFID owner."""
+        """Queue a draft-configuration test on the single libnfc worker."""
+        if not installed_enabled():
+            raise OSError('NFC feature disabled')
         settings.validate()
         reader = getattr(self, '_rfid_reader', None)
         if reader is None:
@@ -354,7 +357,15 @@ class PrinterData:
         return reader.test_connection(settings)
 
     def refresh_nfc_info(self):
-        """Read one shared background owner's snapshots, never touch UART here."""
+        """Read backend snapshots; disabled NFC must not spawn a worker."""
+        if not installed_enabled():
+            summary = {'status': 'Disabled'}
+            if (self.system_info.get('nfc') == summary
+                    and self.system_info.get('rfid') == {'status': 'Disabled', 'card': {}}):
+                return False
+            self.system_info['nfc'] = summary
+            self.system_info['rfid'] = {'status': 'Disabled', 'card': {}}
+            return True
         reader = getattr(self, '_rfid_reader', None)
         if reader is None:
             reader = self._rfid_reader = RFIDReader()

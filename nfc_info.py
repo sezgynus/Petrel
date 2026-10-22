@@ -1,8 +1,6 @@
 """Parse reader identification returned by the direct libnfc API."""
 import re
 
-DEFAULT_DEVICE = 'pn532_uart:/dev/ttyDWIN0:115200'
-
 
 def parse_info(output):
     chip = re.search(r'^chip:\s*(\S+)\s+v([\d.]+)\s*$', output, re.MULTILINE)

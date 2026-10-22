@@ -353,6 +353,28 @@ class NFCSettingsTests(unittest.TestCase):
             fake_save.assert_called_once_with(view._nfc_values)
             self.assertEqual(view._nfc_saved, view._nfc_values)
 
+    def test_save_notifies_backend_without_closing_worker_on_ui_thread(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        config = ViewSettings('PN532', 'UART', '/dev/ttyAMA0', 115200)
+        view._nfc_values = config
+        view._nfc_saved = ViewSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': True}
+        view._nfc_selection = 6
+        view.checkkey = view.NFCSettingsMenu
+        reader = Mock()
+        view.pd._rfid_reader = reader
+        saved = Mock()
+        code = view.HMI_NFC_Settings_Menu.__func__.__globals__
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
+                patch.dict(code, {'save': saved}):
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+        saved.assert_called_once_with(config)
+        reader.reload_configuration.assert_called_once_with()
+        reader.close.assert_not_called()
+        self.assertIs(view.pd._rfid_reader, reader)
+
     def test_manual_connection_test_reports_success_and_failure_without_saving(self):
         view = display(snapshot())
         view._draw_list_menu = Mock()

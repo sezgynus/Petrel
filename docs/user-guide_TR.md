@@ -420,9 +420,14 @@ kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-devic
 shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
 olmalıdır. Sistem libnfc paylaşımlı kütüphanesi gerekir; Pi'de derleyici veya
 geliştirme başlıkları gerekmez. Okuyucu **Display → NFC settings** içinden
-seçilir; `PETREL_NFC_DEVICE` gelişmiş kullanım için geçersiz kılma seçeneği
-olarak kalır. Okuyucu doğrudan açılır ve iki menü arasında açık kalır. Kimlik
-bağlantı başına bir kez okunur, yeniden bağlantıda yenilenir.
+seçilir. NFC Backend yalnızca kayıtlı ve doğrulanmış
+`nfc-settings.json` ayarlarını kullanır; `PETREL_NFC_DEVICE` değişkeni veya
+sabit bir UART adresine geri dönüş yoktur. NFC devre dışıysa ya da geçerli
+okuyucu kaydı yoksa libnfc aygıtı açılmaz. Backend mevcut Petrel sürecinde tek
+worker ve tek donanım sahibi olarak iki ekran tarafından paylaşılır.
+**Save** seçimi UI thread'ini bloke etmeden yeniden yapılandırma bildirimi
+gönderir. Önceki oturum kapatılmadan yeni aygıt açılmaz. Kimlik bağlantı
+başına bir kez okunur, yeniden bağlantıda yenilenir.
 Info model, firmware, libnfc sürümü ve desteklenen A/B/FeliCa protokollerini gösterir.
 PN532 modül kartının revizyonunu bildirmez; Hardware alanı **Not reported** olur.
 

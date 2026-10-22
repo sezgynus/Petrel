@@ -2,14 +2,17 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rfid_reader import RFIDReader
+from nfc_settings import NFCSettings
 from libnfc_api import Target, decode_target
 from test_capabilities import display, printer, snapshot
 
 
 class RFIDTests(unittest.TestCase):
     def test_worker_keeps_one_session_and_scans_every_advertised_type(self):
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         session = Mock()
         session.identity.return_value = {'status': 'Connected', 'model': 'PN532'}
         session.modulations = [(kind, 1) for kind in range(1, 11)]
@@ -20,7 +23,7 @@ class RFIDTests(unittest.TestCase):
                 reader._stop.set()
             return {'uid': '01:02:03:04', 'type': 'ISO14443A'} if modulation[0] == 1 else None
         session.scan.side_effect = scan
-        with patch('rfid_reader.NFCSession', return_value=session) as factory:
+        with patch('nfc_backend.NFCSession', return_value=session) as factory:
             reader._run()
             factory.assert_called_once()
         expected = [(1, 1)]
@@ -34,8 +37,10 @@ class RFIDTests(unittest.TestCase):
     def test_connection_probe_serializes_with_active_scan_and_restores_owner(self):
         from nfc_settings import NFCSettings
         config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         session = Mock()
         session.modulations = [(1, 1), (3, 1)]
         session.identity.return_value = {'status': 'Connected'}
@@ -53,8 +58,8 @@ class RFIDTests(unittest.TestCase):
             return True
         session.scan.side_effect = scan
         session.close.side_effect = lambda: order.append('close')
-        with patch('rfid_reader.NFCSession', return_value=session) as factory, \
-                patch('rfid_reader.check_connection', side_effect=end_probe):
+        with patch('nfc_backend.NFCSession', return_value=session) as factory, \
+                patch('nfc_backend.check_connection', side_effect=end_probe):
             reader._run()
         factory.assert_called_once()
         self.assertEqual(order, ['scan', 'close', 'probe'])
@@ -64,22 +69,26 @@ class RFIDTests(unittest.TestCase):
     def test_connection_probe_is_single_flight_and_cancellable_before_start(self):
         from nfc_settings import NFCSettings
         config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         first = reader.test_connection(config)
         second = reader.test_connection(config)
         with self.assertRaisesRegex(OSError, 'already in progress'):
             second.result()
         first.cancel()
-        with patch('rfid_reader.check_connection') as check:
+        with patch('nfc_backend.check_connection') as check:
             reader._run_probe()
         check.assert_not_called()
         self.assertFalse(reader._probe_active)
         reader.close()
 
     def test_fast_revisit_follows_last_successful_non_type_a_card(self):
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         session = Mock()
         session.identity.return_value = {'status': 'Connected'}
         session.modulations = [(1, 1), (3, 1), (7, 2), (8, 1)]
@@ -92,7 +101,7 @@ class RFIDTests(unittest.TestCase):
                 return {'uid': '01:02', 'type': 'FeliCa'}
             return None
         session.scan.side_effect = scan
-        with patch('rfid_reader.NFCSession', return_value=session):
+        with patch('nfc_backend.NFCSession', return_value=session):
             reader._run()
         first = seen.index((7, 2))
         self.assertIn((8, 1), seen[first:])
@@ -122,8 +131,10 @@ class RFIDTests(unittest.TestCase):
         view.EachMomentUpdate.assert_not_called()
 
     def test_arrival_event_once_per_presentation_and_removal_uses_matching_mode(self):
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         card = {'type': 'ISO14443A', 'uid': '01:02'}
         reader._observe_card((1, 1), card)
         self.assertTrue(reader.take_card_event())
@@ -211,8 +222,10 @@ class RFIDTests(unittest.TestCase):
             decode_target(target)
 
     def test_reader_retains_last_card_and_caches_unchanged_values(self):
-        with patch('rfid_reader.Thread'):
-            reader = RFIDReader()
+        with patch('nfc_backend.Thread'):
+            reader = RFIDReader(feature_enabled=lambda: True,
+                                config_loader=lambda: NFCSettings(
+                                    'PN532', 'UART', '/dev/test', 115200))
         reader._publish('Listening', {'uid': '01:02:03:04', 'type': 'ISO14443A'})
         first = reader.snapshot()
         reader._publish('Listening')
@@ -229,7 +242,8 @@ class RFIDTests(unittest.TestCase):
         del pd._rfid_reader
         pd.system_info['nfc'] = {'status': 'Connected'}
         factory = Mock()
-        with patch.dict(pd.refresh_nfc_info.__func__.__globals__, RFIDReader=factory):
+        with patch.dict(pd.refresh_nfc_info.__func__.__globals__,
+                        {'RFIDReader': factory, 'installed_enabled': lambda: True}):
             factory.return_value.identity.return_value = {'status': 'Connected'}
             factory.return_value.snapshot.return_value = (1, 'Listening', {'uid': '01:02:03:04'})
             self.assertTrue(pd.refresh_rfid())

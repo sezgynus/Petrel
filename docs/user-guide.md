@@ -419,10 +419,15 @@ Real UI emulator output with example data. [Original panel PNGs](screenshots.md)
 libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
 library is required; no compiler or development headers are needed on the Pi.
-The reader configuration is selected under **Display → NFC settings**;
-`PETREL_NFC_DEVICE` remains an advanced override. The reader is opened explicitly
-and remains open across both menus. Identity is read once per connection and
-refreshed after reconnect.
+The reader configuration is selected under **Display → NFC settings**.
+The NFC Backend loads the saved, validated `nfc-settings.json` and opens
+**only** its selected device; `PETREL_NFC_DEVICE` and hard-coded UART fallbacks
+are not used. With NFC disabled or no valid saved device, no libnfc reader
+handle is opened. The backend runs in the existing Petrel process, with one
+worker and one device owner across both screens. **Save** signals asynchronous
+reconfiguration; it does not close or join the worker on the LCD thread.
+An active session closes before the new settings are applied. Identity is
+read once per connection and refreshed after reconnect.
 Info shows model, firmware, libnfc version and supported A/B/FeliCa protocols;
 PN532 does not expose its module board revision, so Hardware is **Not reported**.
 

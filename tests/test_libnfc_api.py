@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from libnfc_api import NFCSession, Target, TargetInfo, Modulation, ISOA, decode_target, INT
+from nfc_settings import NFCSettings
 
 
 class DirectLibNFCTests(unittest.TestCase):
@@ -83,11 +84,24 @@ class DirectLibNFCTests(unittest.TestCase):
                 lib.nfc_exit.assert_called_once()
                 self.assertEqual(lib.nfc_exit.call_args.args[0].value, 1)
 
+    def test_session_requires_explicit_validated_settings_and_never_falls_back(self):
+        lib = self.fake_library()
+        with patch('libnfc_api.bind_library', return_value=lib), \
+                patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'wrong'}):
+            with self.assertRaises(ValueError):
+                NFCSession(NFCSettings())
+            lib.nfc_open.assert_not_called()
+            valid = NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200)
+            session = NFCSession(valid)
+        self.assertEqual(lib.nfc_open.call_args.args[1],
+                         b'pn532_uart:/dev/ttyAMA0:115200')
+        session.close()
+
     def test_persistent_explicit_handle_and_all_advertised_card_types(self):
         lib = self.fake_library()
         with patch('libnfc_api.bind_library', return_value=lib), \
              patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'pn532_uart:/dev/ttyDWIN0:115200'}):
-            session = NFCSession()
+            session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         self.assertEqual({kind for kind, _ in session.modulations}, set(range(1, 11)))
         self.assertEqual([rate for kind, rate in session.modulations if kind == 1], [1])
         self.assertEqual([rate for kind, rate in session.modulations if kind == 7], [2, 3])
@@ -110,7 +124,7 @@ class DirectLibNFCTests(unittest.TestCase):
     def test_unsupported_is_reported_and_transport_failure_is_not_a_missing_card(self):
         lib = self.fake_library()
         with patch('libnfc_api.bind_library', return_value=lib):
-            session = NFCSession()
+            session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         try:
             lib.nfc_initiator_select_passive_target.return_value = -3
             self.assertEqual(session.scan((3, 1)), 'unsupported')
@@ -134,7 +148,7 @@ class DirectLibNFCTests(unittest.TestCase):
             return 1
         lib.nfc_initiator_select_passive_target.side_effect = select
         with patch('libnfc_api.bind_library', return_value=lib):
-            session = NFCSession()
+            session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         for _ in range(3):
             self.assertEqual(session.scan((1, 1))['uid'], '6B:B3:9D:14')
         self.assertEqual(lib.nfc_initiator_init.call_count, 4)
@@ -147,7 +161,7 @@ class DirectLibNFCTests(unittest.TestCase):
         lib.nfc_strerror.return_value = b'Input/output error'
         lib.nfc_initiator_select_dep_target.return_value = 0
         with patch('libnfc_api.bind_library', return_value=lib):
-            session = NFCSession()
+            session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         self.assertIsNone(session.scan((8, 1)))
         self.assertEqual(lib.nfc_initiator_select_dep_target.call_args.args[-1], 1000)
         lib.nfc_initiator_select_passive_target.return_value = -1
