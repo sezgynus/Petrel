@@ -71,7 +71,7 @@ def patch_text(source):
     a = source.index(IDLE)
     b = source.index(IDLE_END, a)
     source = source[:a] + single(
-        source[a:b], IDLE_POINT, IDLE_INSERT + IDLE_POINT) + source[b:]
+        source[a:b], IDLE_POINT, IDLE_POINT + IDLE_INSERT) + source[b:]
     return source
 
 

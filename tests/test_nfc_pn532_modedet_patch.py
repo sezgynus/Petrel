@@ -26,6 +26,13 @@ class PN532ModeDetOffPatchTests(unittest.TestCase):
         self.assertIn('PN53X_REG_CIU_Mode, 0x04, 0x00', patched)
         self.assertIn('PETREL_NFC_MODEDET set addr=6301', patched)
         self.assertIn('PETREL_NFC_MODEDET restore addr=6301', patched)
+        # The restore statements must execute IN the case, not before it.
+        self.assertGreater(patched.index('PETREL_NFC_MODEDET restore'),
+                           patched.index('case TARGET:'))
+        self.assertLess(patched.index('PETREL_NFC_MODEDET restore'),
+                        patched.index('pn53x_current_target_free') if
+                        'pn53x_current_target_free' in patched else len(patched))
+
         self.assertIn('PN53X_REG_CIU_TxMode, &tx', patched)
         self.assertIn('PN53X_REG_CIU_RxMode, &rx', patched)
         self.assertNotIn('pn53x_WriteRegister(pnd, PN53X_REG_CIU_TxMode', patched)
