@@ -130,11 +130,17 @@ class NFCSettingsTests(unittest.TestCase):
             self.assertEqual(view._nfc_options('port'), ('pn53x_usb:001:003',))
             self.assertIn(4, view._nfc_focusable())
 
-    def test_usb_devices_are_filtered_by_selected_libnfc_driver(self):
-        with patch('libnfc_api.list_devices', return_value=(
-                'pn53x_usb:001:003', 'acr122_usb:001:005', 'pn532_uart:/dev/ttyUSB0:115200')):
-            self.assertEqual(available_ports('USB', 'PN53x USB'), ('pn53x_usb:001:003',))
-            self.assertEqual(available_ports('USB', 'ACR122U'), ('acr122_usb:001:005',))
+    def test_settings_helpers_never_open_an_independent_libnfc_context(self):
+        # USB/PCSC/NCI enumeration is serialized by NFCBackend.discover_devices;
+        # nfc_settings must remain safe to call from any UI/settings context.
+        with patch('libnfc_api.list_devices', side_effect=AssertionError(
+                'libnfc accessed outside the backend')):
+            for model, interface in (('PN53x USB', 'USB'),
+                                     ('ACR122U', 'USB'),
+                                     ('ACR122U', 'PC/SC'),
+                                     ('PN71xx', 'NCI')):
+                with self.subTest(model=model, interface=interface):
+                    self.assertEqual(available_ports(interface, model), ())
 
     def test_nfc_entry_icon_and_info_style_read_only_status(self):
         view = display(snapshot())

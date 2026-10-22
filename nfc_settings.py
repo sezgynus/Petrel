@@ -133,8 +133,8 @@ def available_ports(interface, profile, dev='/dev'):
     elif interface == 'SPI':
         paths = list(root.glob('spidev*'))
     elif interface in ('USB', 'PC/SC', 'NCI'):
-        # USB readers are discovered by libnfc; do not list arbitrary USB serial
-        # adapters as NFC devices.
+        # Pure settings helper: only NFCBackend may call libnfc enumeration.
+        # Never open a competing libnfc context from a settings/UI caller.
         paths = []
     else:
         paths = []
@@ -145,11 +145,4 @@ def available_ports(interface, profile, dev='/dev'):
                 result.append(path)
         except OSError:
             continue
-    if interface in ('USB', 'PC/SC', 'NCI'):
-        try:
-            from libnfc_api import list_devices
-            prefix = PROFILES[profile]['drivers'][interface]
-            result = [Path(device) for device in list_devices() if device.startswith(prefix + ':')]
-        except (AttributeError, ImportError, OSError, ValueError):
-            result = []
     return tuple(str(path) for path in result)

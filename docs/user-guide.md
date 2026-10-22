@@ -420,6 +420,10 @@ libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
 library is required; no compiler or development headers are needed on the Pi.
 The reader configuration is selected under **Display → NFC settings**.
+The libnfc symbol bindings are cached once in the Petrel process; individual
+reader contexts and handles still have explicit session ownership and teardown.
+The settings module never performs USB/PCSC/NCI libnfc enumeration: it is queued
+exclusively through the NFC Backend worker.
 The NFC Backend loads the saved, validated `nfc-settings.json` and opens
 **only** its selected device; `PETREL_NFC_DEVICE` and hard-coded UART fallbacks
 are not used. With NFC disabled or no valid saved device, no libnfc reader

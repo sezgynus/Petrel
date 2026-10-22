@@ -1,6 +1,7 @@
 """Direct public libnfc ABI. Packed layouts mirror nfc/nfc-types.h (1.8)."""
 import ctypes as C
 import ctypes.util
+from functools import lru_cache
 
 from nfc_info import parse_info
 
@@ -65,7 +66,13 @@ def decode_target(target):
     return card
 
 
+@lru_cache(maxsize=1)
 def bind_library():
+    """Resolve and bind the libnfc ABI once per Petrel process.
+
+    Context and device handles are still owned and closed per worker session.
+    Only the immutable CDLL binding is shared to avoid repeated linker lookups.
+    """
     path = C.util.find_library('nfc')
     if not path:
         raise OSError('libnfc missing')

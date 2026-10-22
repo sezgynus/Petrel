@@ -35,6 +35,20 @@ class DirectLibNFCTests(unittest.TestCase):
         lib.nfc_device_get_supported_baud_rate.side_effect = bauds
         return lib
 
+    def test_library_abi_is_resolved_once_and_reused_across_sessions(self):
+        from libnfc_api import bind_library
+        bind_library.cache_clear()
+        try:
+            with patch('libnfc_api.C.util.find_library', return_value='libnfc.so'), \
+                    patch('libnfc_api.C.CDLL') as load_lib:
+                first = bind_library()
+                second = bind_library()
+                self.assertIs(first, second)
+                load_lib.assert_called_once_with('libnfc.so')
+                self.assertEqual(first.nfc_open.restype, C.c_void_p)
+        finally:
+            bind_library.cache_clear()
+
     def test_connection_probe_uses_exact_draft_for_each_libnfc_driver(self):
         from libnfc_api import check_connection
         from nfc_settings import NFCSettings, PROFILES

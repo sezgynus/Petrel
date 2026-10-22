@@ -420,7 +420,10 @@ kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-devic
 shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
 olmalıdır. Sistem libnfc paylaşımlı kütüphanesi gerekir; Pi'de derleyici veya
 geliştirme başlıkları gerekmez. Okuyucu **Display → NFC settings** içinden
-seçilir. NFC Backend yalnızca kayıtlı ve doğrulanmış
+seçilir. libnfc sembol bağlamaları Petrel sürecinde yalnız bir kez oluşturulup
+tekrar kullanılır; okuyucu context ve handle'ları ise oturum bazında açılıp
+kapatılır. Ayar modülü USB/PCSC/NCI için doğrudan libnfc keşfi başlatmaz;
+keşif yalnız NFC Backend worker üzerinden sıraya alınır. NFC Backend yalnızca kayıtlı ve doğrulanmış
 `nfc-settings.json` ayarlarını kullanır; `PETREL_NFC_DEVICE` değişkeni veya
 sabit bir UART adresine geri dönüş yoktur. NFC devre dışıysa ya da geçerli
 okuyucu kaydı yoksa libnfc aygıtı açılmaz. Backend mevcut Petrel sürecinde tek
