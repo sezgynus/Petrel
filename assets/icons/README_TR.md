@@ -56,4 +56,4 @@ NFC ayarları menü satırı, tanınan NFC N siluetini ortak 20×20 Graphite tur
 
 NFC silueti [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg) kaynağından uyarlanmıştır; oranları korunmuş, yalnız eşit ölçekleme ve Graphite renklendirmesi uygulanmıştır. Kaynak atfı ve lisans [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) dosyasındadır.
 
-RFID ana menüsü, özel temassız kart/dalga çizimli **172/173** normal/seçili ikonlarını (110×100) kullanır. Graphite kart yüzeyleri, seçim çerçevesi ve native etiket alanı diğer ana menü ikonlarıyla aynıdır; Info ikonunu paylaşmaz.
+RFID ana menüsü, NFC N sembollü **172/173** normal/seçili ikonlarını (110×100) kullanır. Graphite kart yüzeyleri, seçim çerçevesi ve native etiket alanı diğer ana menü ikonlarıyla aynıdır; Info ikonunu paylaşmaz.
