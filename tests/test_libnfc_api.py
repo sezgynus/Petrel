@@ -252,6 +252,7 @@ class DirectLibNFCTests(unittest.TestCase):
         target.device = 123
         target._pn532_target = True
         target.lib = Mock()
+        target.lib.pn53x_write_register.return_value = 0
         target.lib.nfc_target_init.return_value = 0
         cancelled = [False]
         def receive(*args):
