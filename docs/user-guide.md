@@ -210,6 +210,10 @@ the selection list. The **NFC feature** indication is rendered as an Info-style 
 status (green **Enabled**, muted **Disabled** when off in setup), with the label
 aligned to the standard menu column and the value right-aligned, without a menu icon,
 action separator or encoder focus.
+Rotating through an unavailable NFC setting still advances the scroll
+position one row at a time so **Save** and **Test connection** remain visible;
+unavailable rows have no selection cursor and cannot be activated. A cursor
+returns when navigation reaches the next available action.
 Changing the reader or interface clears dependent selections. UART ports come
 from Moonraker's `/machine/peripherals/serial` endpoint: exactly one primary
 `device_path` per device, rather than extra `/dev/serial/by-id`,

@@ -182,11 +182,18 @@ class NFCSettingsViewMixin:
                      self._nfc_value_painter('Test connection',
                                              status, test_enabled, cells,
                                              color=result_color)))
-        self._nfc_selection = min(getattr(self, '_nfc_selection', 0), len(rows) - 1)
-        if not enabled or self._nfc_selection not in self._nfc_focusable():
-            self._nfc_selection = 0
+        # Encoder navigation follows every logical row, including unavailable
+        # ones. Only enabled actions get a cursor and respond to Enter.
+        self._nfc_selection = max(0, min(getattr(self, '_nfc_selection', 0),
+                                          len(rows) - 1))
+        active = self._nfc_enabled() and self._nfc_selection in self._nfc_focusable()
+        focused = self._nfc_selection if (active or self._nfc_selection == 0) else None
+        start = getattr(self, '_nfc_scroll_start', 0)
+        start = max(0, min(start, self._nfc_selection),
+                    self._nfc_selection - self.MROWS)
+        self._nfc_scroll_start = start
         title = 'NFC Settings - not saved' if getattr(self, '_nfc_save_error', False) else 'NFC Settings'
-        self._draw_list_menu(title, rows, self._nfc_selection)
+        self._draw_list_menu(title, rows, focused, start=start)
 
     @staticmethod
     def _nfc_choice_label(value):
@@ -343,28 +350,20 @@ class NFCSettingsViewMixin:
         event = self.get_encoder_state()
         if event == self.ENCODER_DIFF_NO:
             return
-        if not self._nfc_enabled():
-            self._nfc_selection = 0
-            if event == self.ENCODER_DIFF_ENTER:
-                self.checkkey = self.DisplayMenu
-                self._display_selection = 4 + len(self._buzzer_rows())
-                self.Draw_Display_Menu()
-                self.lcd.update()
-            return
         selection = getattr(self, '_nfc_selection', 0)
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             direction = 1 if event == self.ENCODER_DIFF_CW else -1
-            focusable = self._nfc_focusable()
-            position = focusable.index(selection) if selection in focusable else 0
-            position = max(0, min(len(focusable) - 1, position + direction * max(
-                1, int(getattr(self, '_rotation_steps', 1)))))
-            self._nfc_selection = focusable[position]
+            delta = direction * max(1, int(getattr(self, '_rotation_steps', 1)))
+            self._nfc_selection = max(0, min(7, selection + delta))
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
                 self.checkkey = self.DisplayMenu
                 self._display_selection = 4 + len(self._buzzer_rows())
                 self.Draw_Display_Menu()
                 self.lcd.update()
+                return
+            if not self._nfc_enabled() or selection not in self._nfc_focusable():
+                # Read-only status and disabled settings are never activated.
                 return
             field = next((field for row, field, _ in NFC_FIELDS if row == selection), None)
             if field:

@@ -164,10 +164,27 @@ class NFCSettingsTests(unittest.TestCase):
             view.MENU_VALUE_RIGHT - 8 * view.MENU_CHR_W,
             view.MBASE(1) - 1, 'Disabled')
         view._nfc_selection = 0
+        view.checkkey = view.NFCSettingsMenu
         view._encoder_event = view.ENCODER_DIFF_CW
         with patch.dict('os.environ', {'PETREL_NFC': '0'}):
             view.HMI_NFC_Settings_Menu()
-        self.assertEqual(view._nfc_selection, 0)
+            self.assertEqual(view._nfc_selection, 1)
+            self.assertIsNone(view._draw_list_menu.call_args.args[2])
+            for _ in range(6):
+                view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 7)
+            self.assertIsNone(view._draw_list_menu.call_args.args[2])
+            self.assertEqual(view._draw_list_menu.call_args.kwargs['start'], 2)
+            self.assertEqual(view._draw_list_menu.call_args.args[1][-1][0],
+                             'Test connection')
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view.checkkey, view.NFCSettingsMenu)
+            view._encoder_event = view.ENCODER_DIFF_CCW
+            for _ in range(7):
+                view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 0)
+            self.assertEqual(view._draw_list_menu.call_args.args[2], 0)
 
     def test_child_fields_become_focusable_only_after_parent_confirmation(self):
         view = display(snapshot())
@@ -176,6 +193,76 @@ class NFCSettingsTests(unittest.TestCase):
         self.assertEqual(view._nfc_focusable(), [0, 2])
         view._nfc_confirmed['model'] = True
         self.assertEqual(view._nfc_focusable(), [0, 2, 3])
+
+    def test_disabled_rows_scroll_one_step_without_focus_until_active_action(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        port = 'pn53x_usb:001:003'
+        view._nfc_values = ViewSettings('PN53x USB', 'USB', port, 0)
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': True}
+        view._nfc_port_choices = (('PN53x USB', 'USB'), (port,))
+        view._nfc_selection = 4
+        view.checkkey = view.NFCSettingsMenu
+        view._encoder_event = view.ENCODER_DIFF_CW
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            self.assertEqual(view._nfc_focusable(), [0, 2, 3, 4, 6, 7])
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 5)
+            self.assertIsNone(view._draw_list_menu.call_args.args[2])
+            # Inactive link speed must not start a selection operation.
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view.checkkey, view.NFCSettingsMenu)
+            view._encoder_event = view.ENCODER_DIFF_CW
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 6)
+            self.assertEqual(view._draw_list_menu.call_args.args[2], 6)
+            self.assertEqual(view._draw_list_menu.call_args.kwargs['start'], 1)
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 7)
+            self.assertEqual(view._draw_list_menu.call_args.args[2], 7)
+            self.assertEqual(view._draw_list_menu.call_args.kwargs['start'], 2)
+            view._encoder_event = view.ENCODER_DIFF_CCW
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 6)
+            self.assertEqual(view._draw_list_menu.call_args.args[2], 6)
+            view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 5)
+            self.assertIsNone(view._draw_list_menu.call_args.args[2])
+
+    def test_list_renderer_keeps_disabled_rows_cursorless_while_scrolling(self):
+        view = display(snapshot())
+        view.checkkey = view.NFCSettingsMenu
+        view.Draw_Menu_Cursor = Mock()
+        view.Erase_Menu_Cursor = Mock()
+        view._nfc_values = ViewSettings()
+        view._nfc_confirmed = {'model': False, 'interface': False, 'port': False}
+        view._nfc_selection = 0
+        view._encoder_event = view.ENCODER_DIFF_CW
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            view.Draw_NFC_Settings_Menu()
+            view.Draw_Menu_Cursor.assert_called_once_with(0)
+            view.Draw_Menu_Cursor.reset_mock()
+            # Skip the read-only feature status and focus the RFID model.
+            view.HMI_NFC_Settings_Menu()
+            view.Draw_Menu_Cursor.assert_not_called()
+            view.HMI_NFC_Settings_Menu()
+            view.Draw_Menu_Cursor.assert_called_once_with(2)
+            view.Draw_Menu_Cursor.reset_mock()
+            # All following settings are disabled; scrolling still reveals
+            # the final test row, without drawing a cursor offscreen.
+            for _ in range(5):
+                view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 7)
+            self.assertEqual(view._list_render['start'], 2)
+            self.assertIsNone(view._list_render['selection'])
+            view.Draw_Menu_Cursor.assert_not_called()
+            view._encoder_event = view.ENCODER_DIFF_CCW
+            for _ in range(5):
+                view.HMI_NFC_Settings_Menu()
+            self.assertEqual(view._nfc_selection, 2)
+            self.assertEqual(view._list_render['selection'], 2)
+            view.Draw_Menu_Cursor.assert_called_with(0)
 
     def test_model_choice_submenu_and_cancel_semantics(self):
         view = display(snapshot())

@@ -208,8 +208,11 @@ kısaltılır, seçim listesinde ayırt edilebilir biçimde görünür.
 **NFC feature** bilgisi, Info ekranındaki gibi salt okunur durum
 göstergesidir (yeşil **Enabled**, kurulumda kapalıysa soluk **Disabled**).
 Etiket standart menü sütununda, değer sağa hizalıdır; menü ikonu,
-işlem satırı ayracı veya enkoder odağı bulunmaz. Okuyucu veya
-arayüz değişince alt seçimler sıfırlanır. UART listesi Moonraker'ın
+işlem satırı ayracı veya enkoder odağı bulunmaz. Pasif NFC
+ayarlarında da enkoder her çevrildiğinde liste bir satır kayar; böylece
+**Save** ve **Test connection** satırlarına kadar ulaşılır. Pasif satırlar
+odaklanamaz ve çalıştırılamaz; sıradaki etkin satıra gelince odak geri gelir.
+Okuyucu veya arayüz değişince alt seçimler sıfırlanır. UART listesi Moonraker'ın
 `/machine/peripherals/serial` API'sinden gelir: her cihazın yalnızca ana
 `device_path` yolu görünür; `/dev/serial/by-id`, `/dev/serial/by-path`
 ve `/dev/serial0` takma adları ayrı seçenekler olmaz. Liste yalnızca

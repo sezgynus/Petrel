@@ -1162,7 +1162,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         valid = old is not None and old['frame'] == frame
         if start is None:
             start = old['start'] if valid else 0
-            start = max(0, min(start, selection), selection - self.MROWS)
+            if selection is not None:
+                start = max(0, min(start, selection), selection - self.MROWS)
         visible = range(start, min(len(entries), start + self.TROWS))
         previous_values = old['values'] if valid else {}
         delta = start - old['start'] if valid else 0
@@ -1171,7 +1172,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self.Draw_Title(title)
             previous_values = {}
         elif old['selection'] != selection or delta:
-            self.Erase_Menu_Cursor(old['selection'] - old['start'])
+            if old['selection'] is not None:
+                self.Erase_Menu_Cursor(old['selection'] - old['start'])
             if delta:
                 self.lcd.move_area(1,
                     self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
@@ -1194,7 +1196,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 if painter is not None:
                     painter(row)
         if not valid or delta or old['selection'] != selection:
-            self.Draw_Menu_Cursor(selection - start)
+            if selection is not None:
+                self.Draw_Menu_Cursor(selection - start)
         self._list_render = dict(frame=frame, start=start, selection=selection, values=values)
 
     def _draw_capability_menu(self, name, selection, bottom=None, profile=None):
@@ -2057,6 +2060,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 return
             if selection == 4 + len(self._buzzer_rows()):
                 self._nfc_selection = 0
+                self._nfc_scroll_start = 0
                 self._nfc_choice_field = None
                 self._nfc_choice_options = ()
                 self._nfc_port_choices = None
