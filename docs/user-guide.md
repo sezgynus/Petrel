@@ -445,6 +445,32 @@ real RF/transport time; no absolute detection latency or simultaneous scan is
 promised. Firmware-rejected advertised modes are logged and the status indicates
 partial support. Transport failures reconnect with a two-second backoff.
 
+The NFC Backend detects ISO14443A target support and target-mode baud rates
+from the connected libnfc device; it advertises `ndef_uri_emulation` as
+true/false/unknown through the Core, and Info shows **NDEF URI share**. Unknown,
+unsupported and disconnected readers must not expose a URI-sharing action.
+Device enumeration for USB/PCSC/NCI is serialized by the NFC Backend worker;
+the NFC Settings UI only consumes an asynchronous discovery result.
+`share_ndef_uri(url)` temporarily relinquishes initiator scanning, emulates
+a read-only NFC Forum Type 4 NDEF URL tag, and emits
+`share.ndef_transferred` **only after the full NDEF byte range has been
+successfully served**. It does not mean the phone opened a browser. Cancel,
+failure and successful transfer relinquish target mode and resume normal
+scanning. While sharing, global RFID-card actions are suspended.
+
+The event-driven NFC Core is the single observer of the NFC Backend and
+implements scoped, prioritized and consumable `card.detected`/
+`card.removed` events. Global emergency-stop mappings preempt ordinary scoped
+handlers and dispatch via Moonraker's priority
+`printer.emergency_stop` request. User-configurable mappings are saved in
+`~/.config/Petrel/nfc-actions.json`; they are not programmable arbitrary
+G-code and are **not a substitute for a hardwired emergency stop**.
+The existing RFID screen no longer polls at 50 ms or refreshes on a timer:
+the Core posts NFC notifications to the existing LCD event queue, and only
+the LCD owner draws changed card data. The underlying libnfc initiator still
+performs radio scans; there is no PN532 unsolicited UART event mode yet.
+
+
 The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
 live; the identity remains after removal. Each card presentation plays a short
 700 Hz beep at 100% volume on the selected available buzzer (or the first available

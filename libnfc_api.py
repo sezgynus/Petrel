@@ -85,6 +85,11 @@ def bind_library():
         'nfc_initiator_select_passive_target': (INT, [PTR, Modulation, PTR, SIZE, C.POINTER(Target)]),
         'nfc_initiator_select_dep_target': (INT, [PTR, INT, INT, PTR, C.POINTER(Target), INT]),
         'nfc_initiator_deselect_target': (INT, [PTR]),
+        'nfc_target_init': (INT, [PTR, C.POINTER(Target), PTR, SIZE, INT]),
+        'nfc_target_send_bytes': (INT, [PTR, PTR, SIZE, INT]),
+        'nfc_target_receive_bytes': (INT, [PTR, PTR, SIZE, INT]),
+        'nfc_device_get_supported_baud_rate_target_mode':
+            (INT, [PTR, INT, C.POINTER(C.POINTER(INT))]),
     }
     for name, (result, args) in signatures.items():
         function = getattr(lib, name)
@@ -202,6 +207,38 @@ class NFCSession:
                 result.append((kind, rate))
         return result
 
+    def capabilities(self):
+        """Verify Type 4 prerequisites on this actual connected reader."""
+        kinds = C.POINTER(INT)()
+        try:
+            result = self.lib.nfc_device_get_supported_modulation(
+                self.device, 0, C.byref(kinds))  # N_TARGET
+            if result < 0:
+                return {'target_mode': False, 'ndef_uri_emulation': False}
+            advertised = []
+            for index in range(16):
+                kind = kinds[index]
+                if not kind:
+                    break
+                advertised.append(kind)
+            supported = 1 in advertised
+            if not supported:
+                return {'target_mode': False, 'ndef_uri_emulation': False}
+            rates = C.POINTER(INT)()
+            result = self.lib.nfc_device_get_supported_baud_rate_target_mode(
+                self.device, 1, C.byref(rates))  # ISO14443A
+            advertised_rates = []
+            if result >= 0:
+                for index in range(8):
+                    rate = rates[index]
+                    if not rate:
+                        break
+                    advertised_rates.append(rate)
+            capable = 1 in advertised_rates
+            return {'target_mode': True, 'ndef_uri_emulation': bool(capable)}
+        except (AttributeError, ValueError, TypeError, OSError):
+            return {'target_mode': None, 'ndef_uri_emulation': None}
+
     def identity(self):
         pointer = PTR()
         self._check(self.lib.nfc_device_get_information_about(self.device, C.byref(pointer)))
@@ -246,6 +283,94 @@ class NFCSession:
         # it, including raw protocols where InDeselect is ineffective. This also
         # avoids discarding a valid read because a later cleanup command failed.
         return decode_target(target)
+
+    def abort(self):
+        if self.device:
+            self.lib.nfc_abort_command(self.device)
+
+    def close(self):
+        if self.device:
+            self.lib.nfc_close(self.device)
+            self.device = None
+        if self.context:
+            self.lib.nfc_exit(self.context)
+            self.context = PTR()
+
+class NFCTargetSession:
+    """A separate, exclusive target-mode session; only NFCBackend owns it."""
+
+    def __init__(self, settings):
+        connection = settings.connection_string()
+        self.lib = bind_library()
+        self.context = PTR()
+        self.device = None
+        try:
+            self.lib.nfc_init(C.byref(self.context))
+            if not self.context:
+                raise OSError('libnfc target context unavailable')
+            self.device = self.lib.nfc_open(self.context, connection.encode('utf-8'))
+            if not self.device:
+                raise OSError('NFC target device unavailable')
+        except BaseException:
+            self.close()
+            raise
+
+    def serve_uri(self, url, cancelled, on_event):
+        """Emulate a read-only Type 4 tag until complete/cancelled.
+
+        Incomplete reads, timeouts and failed sends never emit transferred.
+        libnfc target operations run solely on the backend worker.
+        """
+        from nfc_ndef import Type4UriTag
+        tag = Type4UriTag(url)
+        target = Target()
+        target.modulation = Modulation(1, 0)  # ISO14443A / undefined bitrate
+        target.info.a.atqa[:] = (0x00, 0x04)
+        target.info.a.sak = 0x20  # ISO14443-4 compliant Type A
+        target.info.a.uid_len = 4
+        target.info.a.uid[:4] = (0x08, 0x00, 0xB0, 0x0B)  # Random UID prefix
+        target.info.a.ats_len = 4
+        target.info.a.ats[:4] = (0x75, 0x33, 0x92, 0x03)
+        receive = (U8 * 264)()
+        while not cancelled():
+            n = self.lib.nfc_target_init(self.device, C.byref(target),
+                                         receive, len(receive), 500)
+            if n in (-6, -10, -20):
+                continue
+            if n < 0:
+                raise OSError('NFC target activation failed (%d)' % n)
+            on_event('share.phone_detected', {})
+            while not cancelled():
+                # libnfc can activate a target without delivering an APDU yet.
+                # Do not reply with an error frame to an empty activation.
+                if n == 0:
+                    n = self.lib.nfc_target_receive_bytes(self.device, receive,
+                                                           len(receive), 500)
+                    if n in (-6, -10, -20):
+                        break
+                    if n < 0:
+                        raise OSError('NFC target receive failed (%d)' % n)
+                    continue
+                packet = bytes(receive[:n])
+                answer = tag.respond(packet)
+                outgoing = (U8 * len(answer)).from_buffer_copy(answer)
+                sent = self.lib.nfc_target_send_bytes(self.device, outgoing,
+                                                       len(outgoing), 500)
+                if sent < 0:
+                    if sent in (-6, -10, -20):
+                        break
+                    raise OSError('NFC target send failed (%d)' % sent)
+                if tag.sent():
+                    on_event('share.ndef_transferred', {'url': url})
+                    return True
+                n = self.lib.nfc_target_receive_bytes(self.device, receive,
+                                                       len(receive), 500)
+                if n in (-6, -10, -20):
+                    break
+                if n < 0:
+                    raise OSError('NFC target receive failed (%d)' % n)
+            tag = Type4UriTag(url)  # Never mix coverage across phone sessions.
+        return False
 
     def abort(self):
         if self.device:

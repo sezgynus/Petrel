@@ -41,6 +41,7 @@ from maintenance_system import travel_profile
 from maintenance_physical import MaintenancePulseController
 from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
 from rfid_reader import RFIDReader
+from nfc_core import NFCCore
 from nfc_settings import installed_enabled
 from system_info import host_memory_usage, host_metrics, network_info, updater_version, wifi_info
 
@@ -345,6 +346,48 @@ class PrinterData:
         return self._read_worker.submit(lambda: serial_ports_from_moonraker(
             self.client.get('/machine/peripherals/serial')))
 
+    def discover_nfc_devices(self, model, interface):
+        """Serialized hardware discovery; nonblocking for the LCD thread."""
+        core = self.get_nfc_core()
+        if core is None:
+            future = Future()
+            future.set_exception(OSError('NFC disabled'))
+            return future
+        return core.backend.discover_devices(model, interface)
+
+    def get_nfc_core(self):
+        """Only one NFC Core and backend for all UI states."""
+        if not installed_enabled():
+            return None
+        core = getattr(self, '_nfc_core', None)
+        if core is not None:
+            return core
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is None:
+            reader = self._rfid_reader = RFIDReader()
+        core = NFCCore(reader, emergency_stop=lambda:
+                       self.subscription.request('printer.emergency_stop'))
+        self._nfc_core = core
+        return core
+
+    @staticmethod
+    def _nfc_capability_label(value):
+        return 'Yes' if value is True else 'No' if value is False else 'Unknown'
+
+    def sync_nfc_event(self):
+        """Called by an NFC event on the LCD owner, never on a timer."""
+        core = self.get_nfc_core()
+        if core is None:
+            return False
+        identity = core.get_reader_info()
+        identity['ndef_uri'] = self._nfc_capability_label(
+            core.get_capabilities().get('ndef_uri_emulation'))
+        values = {'status': core.get_status(),
+                  'card': core.get_last_card() or {}}
+        old = (self.system_info.get('nfc'), self.system_info.get('rfid'))
+        self.system_info['nfc'], self.system_info['rfid'] = identity, values
+        return old != (identity, values)
+
     def test_nfc_connection(self, settings):
         """Queue a draft-configuration test on the single libnfc worker."""
         if not installed_enabled():
@@ -371,6 +414,11 @@ class PrinterData:
             reader = self._rfid_reader = RFIDReader()
         revision, status, card = reader.snapshot()
         identity = reader.identity()
+        capabilities = reader.capabilities() if callable(
+            getattr(reader, 'capabilities', None)) else None
+        if isinstance(capabilities, dict):
+            identity['ndef_uri'] = self._nfc_capability_label(
+                capabilities.get('ndef_uri_emulation'))
         token = (revision, status, card, identity)
         if token == getattr(self, '_rfid_token', None):
             return False
@@ -559,6 +607,9 @@ class PrinterData:
         self.MACHINE_SIZE = 'x'.join('{:g}'.format(value) for value in caps.build_size)
 
     def close(self):
+        core = getattr(self, '_nfc_core', None)
+        if core is not None:
+            core.close()
         reader = getattr(self, '_rfid_reader', None)
         if reader is not None:
             reader.close()

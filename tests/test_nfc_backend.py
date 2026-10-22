@@ -77,6 +77,54 @@ class NFCBackendTests(unittest.TestCase):
         backend._session_factory.assert_not_called()
         backend.close()
 
+    def test_usb_discovery_runs_serialized_on_owner_without_unrelated_devices(self):
+        reader = self.backend(feature_enabled=lambda: True,
+                              config_loader=lambda: SERIAL)
+        with patch('libnfc_api.list_devices', return_value=(
+                'pn53x_usb:001:003', 'acr122_usb:001:005',
+                'pn532_uart:/dev/ttyUSB0:115200')):
+            future = reader.discover_devices('PN53x USB', 'USB')
+            self.assertTrue(reader._run_discovery() is None)
+            self.assertEqual(future.result(), ('pn53x_usb:001:003',))
+        reader.close()
+
+    def test_backend_events_and_target_share_stay_single_owner(self):
+        changes = []
+        session = Mock()
+        session.identity.return_value = {'status': 'Connected'}
+        session.capabilities.return_value = {
+            'target_mode': True, 'ndef_uri_emulation': True}
+        session.modulations = [(1, 1)]
+        reader = None
+        attempts = []
+        def scan(modulation):
+            attempts.append('scan')
+            if attempts.count('scan') == 1:
+                reader.share_ndef_uri('https://example.org/guide')
+            else:
+                reader._stop.set()
+            return None
+        session.scan.side_effect = scan
+        target = Mock()
+        target.serve_uri.side_effect = lambda url, cancel, emit: (
+            emit('share.ndef_transferred', {'url': url}) or True)
+        def open_session(settings):
+            attempts.append('open')
+            return session
+        session.close.side_effect = lambda: attempts.append('close')
+        target.close.side_effect = lambda: attempts.append('target_close')
+        reader = self.backend(feature_enabled=lambda: True,
+                              config_loader=lambda: SERIAL,
+                              session_factory=open_session,
+                              target_factory=lambda settings: target)
+        reader.set_event_sink(lambda event, data: changes.append(event))
+        reader._run()
+        self.assertIn('share.ndef_transferred', changes)
+        self.assertIn('capabilities.changed', changes)
+        self.assertLess(attempts.index('close'), attempts.index('target_close'))
+        self.assertEqual(reader.capabilities()['ndef_uri_emulation'], True)
+        reader.close()
+
     def test_reconfigure_resets_last_card_and_pending_arrival(self):
         backend = self.backend(feature_enabled=lambda: True,
                                config_loader=lambda: SERIAL)

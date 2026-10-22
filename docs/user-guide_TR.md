@@ -445,6 +445,31 @@ süresi gerektirir; mutlak algılama gecikmesi veya eşzamanlı tarama vaat edil
 Firmware'in reddettiği bildirilmiş modlar loglanır; durum kısmi desteği belirtir.
 Bağlantı hatasında iki saniye beklenip yeniden bağlanılır.
 
+NFC Backend bağlı libnfc aygıtının ISO14443A Target Mode ve desteklenen
+target bit hızlarını sorgular; `ndef_uri_emulation` özelliğini Core üzerinden
+evet/hayır/bilinmiyor olarak sunar. Info bölümünde **NDEF URI share** görünür.
+Desteklenmeyen, durumu bilinmeyen veya bağlantısı olmayan donanımda URI
+paylaşım eylemi gösterilmemelidir. USB/PCSC/NCI cihaz keşfi NFC Backend'in
+tek donanım worker'ında sıralanır; NFC Settings arayüzü yalnız asenkron keşif
+sonucunu kullanır. `share_ndef_uri(url)` başlatılınca normal
+kart taraması geçici durur, salt okunur NFC Forum Type 4 NDEF URL etiketi
+taklit edilir; ancak **NDEF dosyasının tüm baytları başarıyla gönderildiğinde**
+`share.ndef_transferred` olayı oluşur. Bu, telefonda tarayıcının açıldığı
+anlamına gelmez. İptal, hata veya başarılı aktarım sonunda normal taramaya
+dönülür. Paylaşım sırasında global RFID kart işlevleri duraklar.
+
+NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
+tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
+emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın
+öncelikli `printer.emergency_stop` isteğini kullanır. Kullanıcının atayabileceği
+eşleşmeler `~/.config/Petrel/nfc-actions.json` dosyasına yazılır; özel G-code
+çalıştırılamaz ve **fiziksel acil durdurmanın yerine geçmez**.
+RFID ekranı artık 50 ms aralıklarla kart sorgulamaz ve periyodik çizilmez:
+Core mevcut LCD olay kuyruğuna bildirim gönderir, yalnız LCD iş parçacığı
+değişen kart verisini çizer. libnfc'nin alttaki RF taraması hâlen sürmektedir;
+PN532'den kendiliğinden UART olayı yöntemi henüz uygulanmadı.
+
+
 Son kartın protokolü, tam UID/ID'si (32 bayta kadar), ATQA ve SAK canlı güncellenir;
 kart uzaklaşınca kimlik kalır. Her kart sunumunda seçili kullanılabilir buzzer
 (Disabled ise ilk kullanılabilir çıkış), Display ses tercihlerinden bağımsız

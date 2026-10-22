@@ -110,25 +110,36 @@ class RFIDTests(unittest.TestCase):
         positions = [i for i, m in enumerate(seen) if m == (7, 2)]
         self.assertTrue(all(b - a <= 2 for a, b in zip(positions, positions[1:])))
 
-    def test_fast_rfid_tick_updates_card_without_running_full_status_cycle(self):
+    def test_rfid_tick_has_no_card_poll_and_core_event_updates_ui(self):
         import time
+        from ui_events import InputEvent
         view = display(snapshot())
         view._loop = Mock()
+        view._closed = False
         view._uart_online = True
         view._power_hold_tick = Mock(return_value=False)
         view._power_popup_tick = Mock(return_value=False)
         view._boot_active = False
         view._next_uart_probe = time.monotonic() + 100
-        view._rfid_status_at = time.monotonic() + 100
         view._poll_panel_power = Mock()
         view._sync_case_light_tracking = Mock()
-        view._poll_rfid_ui = Mock()
+        view.pd.refresh_rfid = Mock()
         view.EachMomentUpdate = Mock()
         view.checkkey = view.RFIDMenu
         view._ui_tick_body()
-        view._loop.set_interval.assert_called_with(.05)
-        view._poll_rfid_ui.assert_called_once()
-        view.EachMomentUpdate.assert_not_called()
+        view._loop.set_interval.assert_called_with(.5)
+        view.pd.refresh_rfid.assert_not_called()
+        view._queue_nfc_ui_event('nfc_card')
+        posted = view._loop.post.call_args.args[0]
+        self.assertEqual(posted.kind, 'nfc_card')
+        view.pd.sync_nfc_event = Mock(return_value=True)
+        view._rfid_buzzer_feedback = Mock()
+        view.Draw_RFID_Menu = Mock()
+        view._process_input_untraced(InputEvent('nfc_card', 0, 0, 0))
+        view.pd.sync_nfc_event.assert_called_once_with()
+        view._rfid_buzzer_feedback.assert_called_once_with()
+        view.Draw_RFID_Menu.assert_called_once_with(full=False)
+        view.lcd.update.assert_called()
 
     def test_arrival_event_once_per_presentation_and_removal_uses_matching_mode(self):
         with patch('nfc_backend.Thread'):

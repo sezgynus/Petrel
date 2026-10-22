@@ -399,6 +399,22 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._maintenance_button_presses = 0
         self.pd._maintenance_panel_api = self._maintenance_panel_api
         self.pd.init_Webservices()
+        # NFC stays alive on every menu and during every printer state.
+        core = self.pd.get_nfc_core()
+        if core is not None:
+            self._nfc_ui_token = core.subscribe('card.detected',
+                lambda card: self._queue_nfc_ui_event('nfc_card'))
+            self._nfc_status_token = core.subscribe('reader.changed',
+                lambda state: self._queue_nfc_ui_event('nfc_status'))
+            self._nfc_capability_token = core.subscribe('capabilities.changed',
+                lambda state: self._queue_nfc_ui_event('nfc_capabilities'))
+            self._nfc_share_done_token = core.subscribe('share.ndef_transferred',
+                lambda state: self._queue_nfc_ui_event('nfc_share_done'))
+            self._nfc_share_failed_token = core.subscribe('share.failed',
+                lambda state: self._queue_nfc_ui_event('nfc_share_failed'))
+            self._nfc_share_cancel_token = core.subscribe('share.cancelled',
+                lambda state: self._queue_nfc_ui_event('nfc_share_cancelled'))
+            self.pd.sync_nfc_event()
         self._power_monitor = PowerMonitor(self.pd.client, self.pd.power_device)
         self._relay_status = None
         self._relay_off_serial = 0
@@ -945,14 +961,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                     return
                 self._mmu_status_at = now + .5
             elif getattr(self, 'checkkey', None) == self.RFIDMenu:
+                # RFID renders only on NFC Core events; no 50ms poll or refresh.
                 if hasattr(self, '_loop'):
-                    self._loop.set_interval(.05)
-                # Read only the worker's cached snapshot on fast ticks. Keep
-                # printer/status/maintenance work at its usual 500ms cadence.
-                self._poll_rfid_ui()
-                if now < getattr(self, '_rfid_status_at', 0):
-                    return
-                self._rfid_status_at = now + .5
+                    self._loop.set_interval(.5)
             elif getattr(self, 'checkkey', None) == self.FilePreview:
                 if not getattr(self, '_pending_start', None) and not getattr(self, '_start_error_visible', False):
                     self._poll_file_preview()
@@ -975,8 +986,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 blink = bool(getattr(self, '_quiet_blinks', {}))
                 loading = self.checkkey == self.PrintProcess and hasattr(self, '_thumbnail_cache') and self._thumbnail_cache.has_work()
                 self._loop.set_interval(.1 if blink else (.05 if loading else .5))
-            if (getattr(self, 'checkkey', None) == self.NFCChoiceMenu
-                    and getattr(self, '_nfc_choice_field', None) == 'port'
+            if (getattr(self, 'checkkey', None) in (self.NFCSettingsMenu, self.NFCChoiceMenu)
+                    and (self.checkkey == self.NFCSettingsMenu
+                         or getattr(self, '_nfc_choice_field', None) == 'port')
                     and getattr(self, '_nfc_port_future', None) is not None):
                 if hasattr(self, '_loop'):
                     self._loop.cap_interval(.1)
@@ -1522,7 +1534,31 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             self._trace_maintenance_ui('tick')
     # END TEMPORARY MAINTENANCE TEST TRACE
 
+    def _queue_nfc_ui_event(self, kind):
+        # Backend/Core callbacks never draw or enter the DWIN UI thread.
+        loop = getattr(self, '_loop', None)
+        if loop is not None and not getattr(self, '_closed', False):
+            loop.post(InputEvent(kind, 0, 0, getattr(self, '_uart_epoch', 0)))
+        return False
+
     def _process_input_untraced(self, event):
+        if event.kind in ('nfc_share_done', 'nfc_share_failed', 'nfc_share_cancelled'):
+            # Share screen (when implemented) can consume these on the LCD
+            # owner, without touching backend handles from the UI thread.
+            self._nfc_share_state = event.kind
+            callback = getattr(self, '_nfc_share_event_handler', None)
+            if callable(callback):
+                callback(event.kind)
+            return
+        if event.kind in ('nfc_card', 'nfc_status', 'nfc_capabilities'):
+            if not self._closed:
+                self.pd.sync_nfc_event()
+                if event.kind == 'nfc_card':
+                    self._rfid_buzzer_feedback()
+                if self._uart_online and self.checkkey == self.RFIDMenu:
+                    self.Draw_RFID_Menu(full=False)
+                    self.lcd.update()
+            return
         if event.kind == 'power_on':
             if not self._closed:
                 self.pd.power_on_if_off()
@@ -2099,19 +2135,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self.Draw_Display_Menu()
         self.lcd.update()
 
-    def _poll_rfid_ui(self):
-        changed = self.pd.refresh_rfid()
-        reader = getattr(self.pd, '_rfid_reader', None)
-        if reader is not None and reader.take_card_event() is True:
-            self._rfid_buzzer_feedback()
-        if changed and self.checkkey == self.RFIDMenu:
-            self.Draw_RFID_Menu(full=False)
-            self.lcd.update()
-
     def Draw_RFID_Menu(self, full=True):
-        if full and hasattr(self, '_loop'):
-            self._loop.set_interval(.05)
-        self.pd.refresh_rfid()
+        # Initial render uses Core's last cached event; subsequent renders are
+        # exclusively triggered by NFC events on the LCD owner's event queue.
+        if full:
+            self.pd.sync_nfc_event()
         state = self.pd.system_info.get('rfid') or {}
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
         card = state.get('card') or {}
@@ -3331,7 +3359,7 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             for label, key in (('Model', 'model'), ('Firmware', 'firmware'),
                                ('Hardware', 'hardware'), ('libnfc', 'library'),
                                ('ISO14443A', 'iso_a'), ('ISO14443B', 'iso_b'),
-                               ('FeliCa', 'felica')):
+                               ('FeliCa', 'felica'), ('NDEF URI share', 'ndef_uri')):
                 items.append(('row', label, nfc.get(key, 'Unavailable')))
         items.extend([
             ('section', 'Software', None),
@@ -3776,8 +3804,6 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         self.pd.probe_wizard.update()
         info_update = False
-        if self.checkkey == self.RFIDMenu or getattr(self.pd, '_rfid_reader', None) is not None:
-            self._poll_rfid_ui()
         if self.checkkey == self.Info:
             info_update = self._software_updater().poll()
         if self.checkkey == self.Info:

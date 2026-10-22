@@ -34,14 +34,9 @@ class NFCSettingsViewMixin:
         if field == 'port':
             key = (value.model, value.interface)
             cached = getattr(self, '_nfc_port_choices', None)
-            if value.interface == 'UART':
-                # Read only the last completed Moonraker result. Querying in
-                # the menu painter would block input or create repeated I/O.
-                return cached[1] if cached is not None and cached[0] == key else ()
-            if cached is None or cached[0] != key:
-                cached = (key, tuple(available_ports(value.interface, value.model)))
-                self._nfc_port_choices = cached
-            return cached[1]
+            # Never discover NFC hardware while rendering (or from any
+            # menu method). Backend/Moonraker workers supply a cached result.
+            return cached[1] if cached is not None and cached[0] == key else ()
         if field == 'speed' and value.interface == 'UART':
             return BAUD_RATES
         return ()
@@ -142,7 +137,21 @@ class NFCSettingsViewMixin:
                                y, shown.rjust(cells))
         return paint
 
+    def _nfc_schedule_port_discovery(self):
+        value = self._nfc_config()
+        confirmed = getattr(self, '_nfc_confirmed', {})
+        if (not self._nfc_enabled() or not confirmed.get('interface', False)
+                or value.interface == 'UART'
+                or getattr(self, '_nfc_port_future', None) is not None):
+            return
+        key = (value.model, value.interface)
+        if getattr(self, '_nfc_port_choices', None) is not None:
+            if self._nfc_port_choices[0] == key:
+                return
+        self._nfc_port_future = self.pd.discover_nfc_devices(*key)
+
     def Draw_NFC_Settings_Menu(self):
+        self._nfc_schedule_port_discovery()
         enabled = self._nfc_enabled()
         value = self._nfc_config()
         status = 'Enabled' if enabled else 'Disabled in setup'
@@ -207,8 +216,7 @@ class NFCSettingsViewMixin:
         value = self._nfc_config()
         serial = field == 'port' and value.interface == 'UART'
         if field == 'port':
-            # Refresh discovery once per entry, never on encoder movement.
-            self._nfc_port_choices = None
+            # Discovery has already completed asynchronously before entry.
             self._nfc_port_error = False
         options = () if serial else self._nfc_options(field)
         if not options and not serial:
@@ -232,8 +240,9 @@ class NFCSettingsViewMixin:
         if future is None or not future.done():
             return False
         self._nfc_port_future = None
-        if (getattr(self, '_nfc_choice_field', None) != 'port'
-                or self.checkkey != self.NFCChoiceMenu):
+        in_choice = (self.checkkey == self.NFCChoiceMenu
+                     and getattr(self, '_nfc_choice_field', None) == 'port')
+        if not in_choice and self.checkkey != self.NFCSettingsMenu:
             return False
         value = self._nfc_config()
         try:
@@ -245,6 +254,10 @@ class NFCSettingsViewMixin:
         else:
             self._nfc_port_error = False
         self._nfc_port_choices = ((value.model, value.interface), options)
+        if not in_choice:
+            self.Draw_NFC_Settings_Menu()
+            self.lcd.update()
+            return True
         self._nfc_choice_options = options
         self._nfc_choice_selection = (
             options.index(value.port) + 1 if

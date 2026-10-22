@@ -109,6 +109,27 @@ class NFCSettingsTests(unittest.TestCase):
         self.assertEqual(work(), ('/dev/ttyDWIN0',))
         view.pd.client.get.assert_called_once_with('/machine/peripherals/serial')
 
+    def test_non_uart_port_discovery_is_async_and_never_runs_during_paint(self):
+        from concurrent.futures import Future
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings('PN53x USB', 'USB', '', 0)
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': False}
+        view._nfc_port_choices = None
+        pending = Future()
+        view.pd.discover_nfc_devices = Mock(return_value=pending)
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
+                patch('ui_nfc_settings.available_ports',
+                      side_effect=AssertionError('hardware I/O on UI thread')):
+            view.checkkey = view.NFCSettingsMenu
+            self.assertEqual(view._nfc_options('port'), ())
+            view.Draw_NFC_Settings_Menu()
+            view.pd.discover_nfc_devices.assert_called_once_with('PN53x USB', 'USB')
+            pending.set_result(('pn53x_usb:001:003',))
+            self.assertTrue(view._nfc_poll_port_choices())
+            self.assertEqual(view._nfc_options('port'), ('pn53x_usb:001:003',))
+            self.assertIn(4, view._nfc_focusable())
+
     def test_usb_devices_are_filtered_by_selected_libnfc_driver(self):
         with patch('libnfc_api.list_devices', return_value=(
                 'pn53x_usb:001:003', 'acr122_usb:001:005', 'pn532_uart:/dev/ttyUSB0:115200')):

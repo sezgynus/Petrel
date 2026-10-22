@@ -169,6 +169,24 @@ class DirectLibNFCTests(unittest.TestCase):
             session.scan((1, 1))
         session.close()
 
+    def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
+        from libnfc_api import NFCTargetSession
+        from unittest.mock import Mock
+        target = NFCTargetSession.__new__(NFCTargetSession)
+        target.device = 123
+        target.lib = Mock()
+        target.lib.nfc_target_init.return_value = 0
+        cancelled = [False]
+        def receive(*args):
+            cancelled[0] = True
+            return -6
+        target.lib.nfc_target_receive_bytes.side_effect = receive
+        self.assertFalse(target.serve_uri('https://example.org',
+                                         lambda: cancelled[0],
+                                         lambda *args: None))
+        target.lib.nfc_target_receive_bytes.assert_called_once()
+        target.lib.nfc_target_send_bytes.assert_not_called()
+
     def test_real_header_layout_and_c_populated_target_match_ctypes(self):
         if not shutil.which('cc') or not Path('/usr/include/nfc/nfc.h').exists():
             if os.environ.get('GITHUB_ACTIONS') == 'true':

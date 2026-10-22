@@ -59,10 +59,11 @@ class NFCInfoTests(unittest.TestCase):
 
     def test_info_section_and_rows_use_actual_device_values(self):
         view = display(snapshot())
-        view.pd.system_info['nfc'] = parse_info(OUTPUT)
+        view.pd.system_info['nfc'] = dict(parse_info(OUTPUT), ndef_uri='Yes')
         items = view._info_items()
         self.assertIn(('section', 'NFC', None), items)
         self.assertIn(('row', 'Model', 'PN532'), items)
         self.assertIn(('row', 'Firmware', '1.6'), items)
+        self.assertIn(('row', 'NDEF URI share', 'Yes'), items)
         view.pd.system_info['nfc'] = {'status': 'Unavailable'}
         self.assertNotIn(('row', 'Firmware', '1.6'), view._info_items())
