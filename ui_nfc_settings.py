@@ -127,13 +127,19 @@ class NFCSettingsViewMixin:
         return paint
 
     def _nfc_status_painter(self, status, enabled):
-        """Info-style read-only status, not a selectable menu item."""
+        """Align read-only status with the shared menu label/value columns."""
         def paint(row):
             y = self.MBASE(row) - 1
-            self._draw_menu_text('NFC feature', 8, y)
-            self.lcd.draw_text(False, False, self.lcd.font8x16,
+            self._draw_menu_text('NFC feature', self.LBLX, y)
+            # Full "Disabled in setup" overlaps the label at x=LBLX;
+            # the feature origin is already clear from its read-only state.
+            shown = 'Enabled' if enabled else 'Disabled'
+            cells = 8
+            self.lcd.draw_text(False, True, self.lcd.font8x16,
                                0x07E0 if enabled else 0x9CD3,
-                               self.lcd.Color_Bg_Black, 120, y, status)
+                               self.lcd.Color_Bg_Black,
+                               self.MENU_VALUE_RIGHT - cells * self.MENU_CHR_W,
+                               y, shown.rjust(cells))
         return paint
 
     def Draw_NFC_Settings_Menu(self):

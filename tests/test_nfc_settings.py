@@ -133,10 +133,12 @@ class NFCSettingsTests(unittest.TestCase):
         view.lcd.reset_mock()
         rows[1][3](1)
         view._draw_menu_text.assert_called_once_with(
-            'NFC feature', 8, view.MBASE(1) - 1)
-        self.assertEqual(view.lcd.draw_text.call_args.args[3], 0x07E0)
-        self.assertEqual(view.lcd.draw_text.call_args.args[5:],
-                         (120, view.MBASE(1) - 1, 'Enabled'))
+            'NFC feature', view.LBLX, view.MBASE(1) - 1)
+        view.lcd.draw_text.assert_called_once_with(
+            False, True, view.lcd.font8x16, 0x07E0,
+            view.lcd.Color_Bg_Black,
+            view.MENU_VALUE_RIGHT - 8 * view.MENU_CHR_W,
+            view.MBASE(1) - 1, ' Enabled')
 
     def test_disabled_installation_shows_rows_without_moving_focus(self):
         view = display(snapshot())
@@ -155,10 +157,12 @@ class NFCSettingsTests(unittest.TestCase):
         view.lcd.reset_mock()
         entries[1][3](1)
         view._draw_menu_text.assert_called_once_with(
-            'NFC feature', 8, view.MBASE(1) - 1)
-        self.assertEqual(view.lcd.draw_text.call_args.args[3], 0x9CD3)
-        self.assertEqual(view.lcd.draw_text.call_args.args[7],
-                         'Disabled in setup')
+            'NFC feature', view.LBLX, view.MBASE(1) - 1)
+        view.lcd.draw_text.assert_called_once_with(
+            False, True, view.lcd.font8x16, 0x9CD3,
+            view.lcd.Color_Bg_Black,
+            view.MENU_VALUE_RIGHT - 8 * view.MENU_CHR_W,
+            view.MBASE(1) - 1, 'Disabled')
         view._nfc_selection = 0
         view._encoder_event = view.ENCODER_DIFF_CW
         with patch.dict('os.environ', {'PETREL_NFC': '0'}):

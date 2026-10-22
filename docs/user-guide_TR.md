@@ -206,7 +206,8 @@ seçeneğin üzerine gelip basınca seçim NFC ayar ekranına aktarılır.
 satırların sağında gösterilir; uzun aygıt adları özet satırında
 kısaltılır, seçim listesinde ayırt edilebilir biçimde görünür.
 **NFC feature** bilgisi, Info ekranındaki gibi salt okunur durum
-göstergesidir (yeşil **Enabled**, soluk **Disabled in setup**); menü ikonu,
+göstergesidir (yeşil **Enabled**, kurulumda kapalıysa soluk **Disabled**).
+Etiket standart menü sütununda, değer sağa hizalıdır; menü ikonu,
 işlem satırı ayracı veya enkoder odağı bulunmaz. Okuyucu veya
 arayüz değişince alt seçimler sıfırlanır. UART listesi Moonraker'ın
 `/machine/peripherals/serial` API'sinden gelir: her cihazın yalnızca ana

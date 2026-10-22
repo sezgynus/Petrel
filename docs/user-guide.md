@@ -207,7 +207,8 @@ press to select it and return to NFC settings. **Back** leaves the choice list
 without changes. The NFC settings rows show each selection right-aligned;
 long device names are shortened in the summary but remain identifiable in
 the selection list. The **NFC feature** indication is rendered as an Info-style read-only
-status (green **Enabled**, muted **Disabled in setup**), without a menu icon,
+status (green **Enabled**, muted **Disabled** when off in setup), with the label
+aligned to the standard menu column and the value right-aligned, without a menu icon,
 action separator or encoder focus.
 Changing the reader or interface clears dependent selections. UART ports come
 from Moonraker's `/machine/peripherals/serial` endpoint: exactly one primary
