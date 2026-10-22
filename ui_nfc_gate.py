@@ -66,7 +66,7 @@ class NFCGateViewMixin:
             self._draw_list_menu('Spool #%d: choose gate' % spool.id, rows, popup['selection'])
             if len(rows) == 1:
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 92, 263, 351)
-                for index, line in enumerate(self._spool_lines(reason, limit=3)):
+                for index, line in enumerate(self._spool_lines(reason, limit=2)):
                     self._draw_menu_text(line, 8, 104 + index * 22)
                 self._spool_draw_summary(spool)
             return
@@ -138,6 +138,9 @@ class NFCGateViewMixin:
         if self.pd.state.epoch != popup['epoch'] or not self.pd.state.ready:
             self._nfc_gate_close()
             return True
+        if popup['phase'] == 'checking' and popup['future'].done():
+            self._nfc_gate_verify()
+            return True
         if popup['phase'] == 'writing':
             session = self.pd.mmu_session
             if session.operation != popup['operation']:
@@ -160,6 +163,9 @@ class NFCGateViewMixin:
             future.cancel()
         self._nfc_gate_popup = None
         if self.checkkey != self.NFCGateMenu:
+            if (self.checkkey == self.PowerConfirm
+                    and getattr(self, '_power_origin', None) == self.NFCGateMenu):
+                self._power_origin = popup['origin']
             return
         self.checkkey = popup['origin']
         self._list_render = None

@@ -160,3 +160,31 @@ class GateUITests(unittest.TestCase):
         future.set_result(describe(spool(17)))
         view._nfc_gate_verify()
         view.pd.subscription.request.assert_not_called()
+
+    def test_emergency_during_nested_power_dialog_cannot_restore_a_dead_gate_popup(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        view._power_origin = view.NFCGateMenu
+        view.checkkey = view.PowerConfirm
+        view._nfc_gate_close()
+        self.assertIsNone(view._nfc_gate_popup)
+        self.assertEqual(view._power_origin, view.Info)
+        self.assertEqual(view.checkkey, view.PowerConfirm)
+        view.pd.subscription.request.assert_not_called()
+
+    def test_lookup_finishing_under_power_dialog_resumes_after_return(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        view._nfc_gate_popup['selection'] = 1
+        future = Future()
+        view.pd.nfc_lookup_spool = Mock(return_value=future)
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        view.checkkey = view.PowerConfirm
+        future.set_result(describe(spool(17)))
+        view._nfc_gate_verify()
+        view.pd.subscription.request.assert_not_called()
+        view.checkkey = view.NFCGateMenu
+        view._focus_tick_quiet = Mock()
+        self.assertTrue(view._nfc_gate_tick())
+        self.assertEqual(view._nfc_gate_popup['phase'], 'writing')
+        view.pd.subscription.request.assert_called_once()
