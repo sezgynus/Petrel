@@ -393,6 +393,12 @@ class PrinterData:
         self.system_info['nfc'], self.system_info['rfid'] = identity, values
         return old != (identity, values)
 
+    def nfc_lookup_spool(self, uid):
+        """One on-arrival lookup, never a UI tick or libnfc operation."""
+        from spoolman_tags import SpoolmanTags
+        return self._read_worker.submit(
+            lambda: SpoolmanTags(self.spoolman_client).lookup(uid))
+
     def nfc_spool_page(self, offset=0):
         """Load one Spoolman inventory page off the LCD/NFC workers."""
         from spoolman_tags import SpoolmanTags

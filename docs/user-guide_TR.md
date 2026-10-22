@@ -603,3 +603,28 @@ Bu akış aktif makarayı değiştirmez, MMU yükleme başlatmaz ve fiziksel kar
 üzerine veri yazmaz. Arşivlenmiş makaralar seçimde gösterilmez, ancak kartın
 mevcut sahibi aranırken dahil edilir. Spoolman native tag benzersizliğini
 sunar; iki sunucu isteğinden oluşan taşıma yine tek bir atomik işlem değildir.
+
+### Spool kartını okutarak MMU gate atama
+
+Petrel'in herhangi bir normal ekranında Spoolman **Tags** kaydı olan kartı
+okutunca **Spool #ID: choose gate** penceresi açılır. **Cancel** veya hedef gate'i
+seçin. Gate satırı mevcut makara ID'sini gösterir. Gate seçimi, okutulan kartın
+bağlı olduğu makara ID'sini Happy Hare'a atar; filament yükleme veya motor
+hareketi başlatmaz. Aynı makara ID'sinin diğer gate'lerden kaldırılması mevcut
+Happy Hare gate atama davranışını izler.
+
+Kartın güncel Spoolman eşleşmesi seçimden sonra yeniden doğrulanır. Gate sayısı,
+MMU durumu ve komutun gönderilme anındaki kontroller mevcut MMUSession üzerinden
+uygulanır. Baskı, pause/recovery, meşgul MMU veya desteklemeyen Spoolman modu
+atamayı engeller; gerekçe pencerede gösterilir. Başarı, MMU'nun yeni gate
+haritasının mevcut sorgu/doğrulama yoluyla onaylanmasından sonra gösterilir.
+Cancel önceki ekrana ve düzenleme durumuna döner. Başlamış atamayı kapatmak
+gönderilmiş komutu geri almaz.
+
+Bu işlev NFC Core'un kart olayını kullanır; yeni libnfc/PN532 erişimi veya
+periyodik Spoolman sorgusu yoktur. Bekleyen sorgu sayısı bir çalışan ve en son
+kart ile sınırlıdır; eski sorgu sonuçları kullanılmaz. Kart tanımlama mevcut
+önceliğini korur; EMG kartı eşleştirme sorgusundan önce işlenir ve açık gate
+penceresini iptal eder. Tanımsız veya arşivlenmiş makara kartı pencere açmaz.
+Aktif güç/telefon paylaşım penceresi bölünmez. URL paylaşımı target modunda
+olduğu sürece kart taraması zaten duraklar.

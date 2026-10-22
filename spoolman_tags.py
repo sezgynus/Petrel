@@ -105,6 +105,21 @@ class SpoolmanTags:
             raise ValueError('Spool unavailable or archived')
         return raw, spool
 
+    def lookup(self, uid):
+        """Resolve a native spool tag without scan broadcasts or active-spool changes."""
+        from nfc_core import normalize_uid
+        uid = normalize_uid(uid)
+        rows = self.request('GET', '/v1/spool', query={
+            'tag': uid.replace(':', ''), 'allow_archived': 'true', 'limit': 2})
+        if not isinstance(rows, list) or len(rows) > 1:
+            raise ValueError('Invalid Spoolman tag lookup')
+        if not rows:
+            return None
+        if uid not in tag_uids(rows[0]):
+            raise ValueError('Spoolman tag lookup not supported')
+        spool = describe(rows[0])
+        return None if spool.archived else spool
+
     def assign(self, spool_id, uid, expected, approval=None):
         uid = normalize_uid(uid)
         wire_uid = uid.replace(':', '')

@@ -168,6 +168,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     RFIDMenu = 51
     NFCSettingsMenu = 52
     NFCChoiceMenu = 53
+    NFCGateMenu = 54
 
     MINUNITMULT = 10
 
@@ -420,6 +421,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 lambda state: self._queue_nfc_ui_event('nfc_share_cancelled'))
         self.pd.sync_nfc_event()
         self._nfc_uri_share = NFCURIShareComponent(core)
+        if core is not None:
+            from nfc_spool_router import NFCSpoolRouter
+            self._nfc_spool_router = NFCSpoolRouter(
+                core, self.pd.nfc_lookup_spool,
+                lambda: self._queue_nfc_ui_event('nfc_gate_lookup'))
         self._power_monitor = PowerMonitor(self.pd.client, self.pd.power_device)
         self._relay_status = None
         self._relay_off_serial = 0
@@ -954,6 +960,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     return
             if self._power_popup_tick():
                 return
+            if self._nfc_gate_tick():
+                return
             if getattr(self, '_boot_active', False):
                 self._poll_boot()
                 return
@@ -1325,6 +1333,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self._closed = True
         for resource in (getattr(self, '_software_update', None),
                          getattr(self, '_remote_display', None),
+                         getattr(self, '_nfc_spool_router', None),
                          getattr(self, '_buzzer_player', None),
                          getattr(self, '_screenshot_server', None),
                          getattr(self, '_emulator', None),
@@ -1552,6 +1561,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return False
 
     def _process_input_untraced(self, event):
+        if event.kind in ('nfc_gate_lookup', 'nfc_gate_verify'):
+            if not self._closed:
+                (self._nfc_gate_result if event.kind == 'nfc_gate_lookup'
+                 else self._nfc_gate_verify)()
+            return
         if event.kind == 'nfc_spool_ready':
             if not self._closed:
                 self._spool_result_event()
@@ -1595,6 +1609,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return
         if (not getattr(self, '_uart_online', True)
                 or event.ui_epoch != getattr(self, '_uart_epoch', 0)):
+            return
+        if (getattr(self, '_nfc_gate_popup', None)
+                and self.checkkey == self.NFCGateMenu
+                and event.kind in ('press', 'rotate')):
+            self._nfc_gate_input(event)
             return
         # An active NFC target-mode session must remain cancellable even if
         # Moonraker/Klipper becomes unavailable during phone interaction.
@@ -4028,6 +4047,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if self.checkkey == self.MMUMenu:
             # The power popup overwrote the cached full-screen MMU canvas.
             self._mmu_canvas_page = None
+        self._redraw_current_screen()
+
+    def _redraw_current_screen(self):
         redraw = {
             self.MainMenu: self.Goto_MainMenu,
             self.SelectFile: self.Draw_Print_File_Menu,
@@ -4038,6 +4060,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.Motion: self.Draw_Motion_Menu,
             self.Info: self.Draw_Info_Menu,
             self.RFIDMenu: self.Draw_RFID_Menu,
+            self.NFCGateMenu: self._nfc_gate_draw,
             self.DisplayMenu: self.Draw_Display_Menu,
             self.BuzzerMenu: self.Draw_Buzzer_Menu,
             self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,

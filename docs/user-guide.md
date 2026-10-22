@@ -602,3 +602,27 @@ This flow does not change the active spool, start MMU loading or write to the
 physical tag. Archived spools are omitted from selection but included when
 looking up the tag's owner. Spoolman enforces native tag uniqueness; the
 two-request move itself is still not an atomic transaction.
+
+### Scan a spool card to assign an MMU gate
+
+Scan a card linked in Spoolman's **Tags** from any normal Petrel screen to open
+**Spool #ID: choose gate**. Select **Cancel** or a destination gate. Each gate row
+shows its current spool ID. Selection assigns the scanned card's bound spool ID
+through Happy Hare; it does not load filament or start motor movement. Moving
+the same spool ID off other gates follows the existing Happy Hare assignment
+behavior.
+
+The current Spoolman binding is rechecked after gate selection. Gate count,
+MMU state and dispatch-time validation use the existing MMUSession. Printing,
+pause/recovery, a busy MMU or an unsupported Spoolman mode blocks assignment;
+the prompt shows the reason. Success is displayed after the existing MMU
+query/readback path confirms the new gate map. Cancel restores the prior screen
+and editor state. Closing an already started assignment does not undo the command.
+
+This uses NFC Core card events, without new libnfc/PN532 access or periodic
+Spoolman polling. Lookup work is bounded to one active request plus the latest
+arrival; superseded results are discarded. Enrollment retains priority;
+emergency tags are dispatched before spool lookup and cancel an open gate
+prompt. Unknown or archived spool tags do not open a prompt. Active power/phone
+sharing dialogs are not interrupted. Target-mode URI sharing already suspends
+card scanning.

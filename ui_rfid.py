@@ -3,9 +3,10 @@ import logging
 
 from lcd_resources import ICON_NFC
 from ui_spool_tags import SpoolTagViewMixin
+from ui_nfc_gate import NFCGateViewMixin
 
 
-class RFIDViewMixin(SpoolTagViewMixin):
+class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
     def _rfid_cancel_assignment(self):
         future = getattr(self, '_rfid_assignment', None)
         self._rfid_assignment = None
