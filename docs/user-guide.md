@@ -566,3 +566,34 @@ The reader must be enabled, configured and listening. NFC target-mode URL
 sharing temporarily suspends card detection, as described above. UID matching
 is an identification convenience, not authentication or a hardware safety
 circuit; it depends on the running Pi, reader and Moonraker connection.
+
+### Assign an NFC tag to a Spoolman spool
+
+Open **Home → NFC → Spoolman tag**. Inventory is loaded on demand in pages of
+20 spools; use Previous/Next page for more. List rows show vendor/ID, filament
+name, material and a color swatch. Select a spool to see its ID, vendor, name,
+material, actual HEX color text and a large swatch; multicolor filament uses
+striped swatches. Missing colors are not guessed.
+
+Choose **Assign tag**, remove and present the card, check its UID, then confirm
+**Save tag**. NFC Core captures only a fresh arrival and global emergency tags
+retain priority. Cancel saves no tag assignment.
+
+The binding is written through Moonraker's Spoolman proxy to the spool's
+`extra.nfc_id`, using Spoolman's JSON-encoded text representation. If absent,
+a text field named **NFC ID** is created; an existing field of another type is
+not changed. A UID linked to another spool opens an additional **Move and assign** dialog
+showing source and target IDs. Replacing the target's existing tag is also
+shown. Cancel keeps existing bindings. Confirmation is compared against freshly
+read server state before clearing the source binding and writing the target. The spool is rechecked before writing; failed writes are never
+automatically replayed. A partial move reports “Move incomplete”; the old spool
+may have been unlinked, so check Spoolman before trying again. Other extra fields are preserved. Spoolman proxy and
+extra-field API support is required; connection errors are shown. The extra
+field supports older Spoolman releases rather than depending on the native
+tag API. Spoolman does not provide uniqueness/transaction guarantees for this
+extra field across concurrent external writers, so assign using one writer.
+
+This flow saves the binding; it does not change the active spool, start MMU
+loading or write data to the physical tag. Archived spools are omitted from
+selection but included in UID conflict checks. Conflict checking is bounded
+to 10,000 records; larger catalogues fail safely.

@@ -2,9 +2,10 @@
 import logging
 
 from lcd_resources import ICON_NFC
+from ui_spool_tags import SpoolTagViewMixin
 
 
-class RFIDViewMixin:
+class RFIDViewMixin(SpoolTagViewMixin):
     def _rfid_cancel_assignment(self):
         future = getattr(self, '_rfid_assignment', None)
         self._rfid_assignment = None
@@ -13,6 +14,10 @@ class RFIDViewMixin:
         self._rfid_candidate = None
 
     def _rfid_assignment_event(self):
+        if (getattr(self, 'checkkey', None) == self.RFIDMenu
+                and getattr(self, '_rfid_mode', '') == 'spool_waiting'):
+            self._spool_capture_event()
+            return
         future = getattr(self, '_rfid_assignment', None)
         if (getattr(self, 'checkkey', None) != self.RFIDMenu
                 or getattr(self, '_rfid_mode', 'info') != 'waiting'):
@@ -35,6 +40,9 @@ class RFIDViewMixin:
 
     def Draw_RFID_Menu(self, full=True):
         mode = getattr(self, '_rfid_mode', 'info')
+        if mode.startswith('spool_'):
+            self._spool_draw()
+            return
         if mode == 'info':
             self._draw_rfid_info(full)
             return
@@ -82,30 +90,35 @@ class RFIDViewMixin:
             self.pd.sync_nfc_event()
         self._draw_list_menu('NFC', [
             ('Back', self.ICON_Back, None, None),
-            ('Emergency stop tag', ICON_NFC, None, None)],
+            ('Emergency stop tag', ICON_NFC, None, None),
+            ('Spoolman tag', ICON_NFC, None, None)],
             getattr(self, '_rfid_selection', 0))
         state = self.pd.system_info.get('rfid') or {}
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
         card = state.get('card') or {}
-        rows = (('Status', status, 150), ('Type', card.get('type', '-'), 174),
-                ('ATQA', card.get('atqa', '-'), 198), ('SAK', card.get('sak', '-'), 222))
+        rows = (('Status', status, 198), ('Type', card.get('type', '-'), 220))
         old_rows, old_uid = getattr(self, '_rfid_render', ((), None))
         if full:
             # Standard action rows occupy y=31..136. Details have their own
             # bounded area; selection changes never erase the dashboard.
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 145, 263, 351)
-            self._draw_menu_text('UID / ID', 8, 248)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 193, 263, 351)
+            self._draw_menu_text('UID / ID', 8, 264)
             old_rows, old_uid = (), None
         for index, (label, value, y) in enumerate(rows):
             if full:
                 self._draw_info_row(label, value, y)
             elif index >= len(old_rows) or old_rows[index] != rows[index]:
                 self._draw_info_value(label, value, y, clear=True)
+        signature = (card.get('atqa', '-'), card.get('sak', '-'))
+        if full or getattr(self, '_rfid_protocol', None) != signature:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 240, 263, 257)
+            self._draw_menu_text(('ATQA %s  SAK %s' % signature)[:31], 8, 242)
+            self._rfid_protocol = signature
         uid = card.get('uid', 'Waiting for card')
         if uid != old_uid:
             if not full:
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 270, 263, 351)
-            self._rfid_draw_uid(uid, 272)
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 280, 263, 351)
+            self._rfid_draw_uid(uid, 282, 18)
         self._rfid_render = (rows, uid)
 
     def HMI_RFID(self):
@@ -114,7 +127,10 @@ class RFIDViewMixin:
             return
         mode = getattr(self, '_rfid_mode', 'info')
         selection = getattr(self, '_rfid_selection', 0)
-        maximum = 0 if mode == 'waiting' else 2 if mode == 'emg' else 1
+        if mode.startswith('spool_'):
+            self._spool_input(event)
+            return
+        maximum = 0 if mode == 'waiting' else 2 if mode in ('emg', 'info') else 1
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             direction = 1 if event == self.ENCODER_DIFF_CW else -1
             self._rfid_selection = max(0, min(maximum, selection +
@@ -128,9 +144,12 @@ class RFIDViewMixin:
                     self.Goto_MainMenu()
                     self.lcd.update()
                     return
-                self._rfid_mode = 'emg'
-                self._rfid_selection = 0
-                self._rfid_message = ''
+                if selection == 2:
+                    self._spool_load()
+                else:
+                    self._rfid_mode = 'emg'
+                    self._rfid_selection = 0
+                    self._rfid_message = ''
             elif mode == 'waiting' or selection == 0:
                 self._rfid_cancel_assignment()
                 self._rfid_mode = 'info' if mode == 'emg' else 'emg'

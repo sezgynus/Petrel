@@ -1552,6 +1552,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return False
 
     def _process_input_untraced(self, event):
+        if event.kind == 'nfc_spool_ready':
+            if not self._closed:
+                self._spool_result_event()
+            return
         if event.kind == 'nfc_emg_capture':
             if not self._closed:
                 self._rfid_assignment_event()

@@ -133,7 +133,7 @@ class EmergencyTagTests(unittest.TestCase):
                 view.Draw_RFID_Menu()
                 labels = [row[0] for row in view._draw_list_menu.call_args.args[1]]
                 if mode == 'info':
-                    self.assertEqual(labels, ['Back', 'Emergency stop tag'])
+                    self.assertEqual(labels, ['Back', 'Emergency stop tag', 'Spoolman tag'])
                 if mode == 'emg':
                     self.assertEqual(labels, ['Back', 'Replace tag', 'Remove tag'])
                 if mode == 'waiting':

@@ -393,6 +393,24 @@ class PrinterData:
         self.system_info['nfc'], self.system_info['rfid'] = identity, values
         return old != (identity, values)
 
+    def nfc_spool_page(self, offset=0):
+        """Load one Spoolman inventory page off the LCD/NFC workers."""
+        from spoolman_tags import SpoolmanTags
+        return self._read_worker.submit(
+            lambda: SpoolmanTags(self.spoolman_client).page(offset))
+
+    def nfc_assign_spool(self, spool, uid, approval=None):
+        """Explicit confirmed server write; never activate/load the spool."""
+        from spoolman_tags import SpoolmanTags
+        core = self.get_nfc_core()
+        if core is None:
+            raise OSError('NFC disabled')
+        from nfc_core import normalize_uid
+        if core.global_action_uid('emergency_stop') == normalize_uid(uid):
+            raise ValueError('Emergency tag cannot identify a spool')
+        return self._read_worker.submit(
+            lambda: SpoolmanTags(self.spoolman_client).assign(spool.id, uid, spool, approval))
+
     def test_nfc_connection(self, settings):
         """Queue a draft configuration probe through NFC Core."""
         core = self.get_nfc_core()

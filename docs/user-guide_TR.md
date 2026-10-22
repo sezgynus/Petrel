@@ -566,3 +566,36 @@ Okuyucu etkin, yapılandırılmış ve dinliyor olmalıdır. Yukarıda açıklan
 NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklatır.
 UID eşleştirmesi kimlik doğrulama veya donanımsal güvenlik devresi değildir;
 çalışan Pi'ye, okuyucuya ve Moonraker bağlantısına bağlıdır.
+
+### Spoolman makarasına NFC kartı atama
+
+**Home → NFC → Spoolman tag** yoluyla Spoolman envanterini açın. Liste 20'şer
+makara olarak ihtiyaç üzerine yüklenir; Previous/Next page ile diğer sayfalara
+geçilir. Liste üretici/ID, filament adı, malzeme ve renk kutucuğunu gösterir.
+Makarayı seçince ID, üretici, ad, malzeme ve gerçek HEX renk değeriyle büyük
+renk kutusu görünür; çok renkli filamentte kutu şeritlere bölünür.
+Eksik renk tahmin edilmez.
+
+**Assign tag** seçin, kartı uzaklaştırıp tekrar okutun ve UID'yi kontrol ederek
+**Save tag** ile onaylayın. NFC Core yalnız yeni kart olayını yakalar; EMG
+kartının global önceliği korunur. Cancel hiçbir kart ataması kaydetmez.
+
+Atama Moonraker'ın Spoolman proxy API'si üzerinden doğrudan makaranın
+`extra.nfc_id` alanına, Spoolman'ın istediği JSON kodlu metin biçiminde
+kaydedilir. Alan yoksa **NFC ID** adlı text alanı oluşturulur; mevcut farklı
+türdeki alan değiştirilmez. Kart başka makaraya bağlıysa kaynak ve hedef ID'leriyle ek bir
+**Move and assign** onayı istenir. Hedefteki mevcut kartın değişeceği de gösterilir.
+Cancel eski atamaları korur. Onaydan sonra kaynak ataması temizlenir ve hedefe
+yazılır; onay, yazmadan hemen önce sunucudan tekrar alınan durumla karşılaştırılır. İşlemden önce makara yeniden kontrol edilir;
+ağ hatasında yazma otomatik tekrarlanmaz. Taşıma sırasında kısmi hata olursa
+“Move incomplete” gösterilir; eski kart boşa çıkmış olabilir, Spoolman'dan kontrol edin. Diğer extra alanları korunur.
+Spoolman destekli proxy/extra-field API'leri gerekir; bağlantı yoksa hata
+gösterilir. Native tag API'si yerine eski Spoolman sürümleriyle de uyumlu
+extra alanı kullanılır. Eşzamanlı harici değişiklikler için Spoolman bu alanda
+benzersizlik/transaction garantisi sunmadığından tek yazıcıyla atama yapın.
+
+Bu akış makara-kart eşleştirmesini kaydeder; aktif makarayı değiştirmez, MMU
+yükleme başlatmaz ve kart üzerine veri yazmaz. Arşivlenmiş/tüketilmiş olarak
+işaretlenen makaralar seçim listesine alınmaz; UID çakışma kontrolünde
+arşivlenmiş kayıtlar da kontrol edilir. En fazla 10.000 kayıt kontrollü olarak
+taranır; daha büyük arşivde güvenli biçimde atama reddedilir.
