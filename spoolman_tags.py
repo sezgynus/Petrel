@@ -1,17 +1,15 @@
 """On-demand Spoolman catalogue and confirmed UID binding via Moonraker proxy.
 
 No NFC hardware access. Run only on the existing bounded read worker.
-Spoolman's JSON-encoded text extra field nfc_id works with older releases too.
+Bindings use Spoolman's native Tags API, never an extra-field substitute.
 """
 from dataclasses import dataclass
-import json
 import re
 from urllib.parse import urlencode
 
 from nfc_core import normalize_uid
 
 PAGE_SIZE = 20
-TAG_FIELD = 'nfc_id'
 
 
 @dataclass(frozen=True)
@@ -48,15 +46,14 @@ def describe(raw):
                  raw.get('archived') is True)
 
 
-def tag_uid(raw):
-    value = (raw.get('extra') or {}).get(TAG_FIELD)
-    if value in (None, '', 'null', '""'):
-        return None
+def tag_uids(raw):
+    tags = raw.get('tags')
+    if not isinstance(tags, list):
+        raise ValueError('Spoolman Tags API unavailable')
     try:
-        return normalize_uid(json.loads(value))
-    except (ValueError, TypeError):
-        # Never overwrite an unfamiliar existing field value.
-        raise ValueError('Invalid Spoolman NFC ID')
+        return tuple(sorted(normalize_uid(item['uid']) for item in tags))
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError('Invalid Spoolman tag data') from error
 
 
 @dataclass(frozen=True)
@@ -65,6 +62,7 @@ class BindingPlan:
     uid: str
     previous_uid: str | None
     sources: tuple
+    target_tags: tuple = ()
 
 
 class BindingConflict(ValueError):
@@ -109,68 +107,64 @@ class SpoolmanTags:
 
     def assign(self, spool_id, uid, expected, approval=None):
         uid = normalize_uid(uid)
+        wire_uid = uid.replace(':', '')
         raw, current = self.candidate(spool_id)
         if current != expected:
             raise ValueError('Spool changed; select again')
-        previous_uid = tag_uid(raw)
+        target_tags = tag_uids(raw)
+        # Native tag lookup is unique and includes archived spool owners.
+        rows = self.request('GET', '/v1/spool', query={
+            'tag': wire_uid, 'allow_archived': 'true', 'limit': 2})
+        if not isinstance(rows, list) or len(rows) > 1:
+            raise ValueError('Invalid Spoolman tag lookup')
         sources = []
-        # Check every catalogue page, including archived spools, without
-        # retaining the entire library. A conflicting UID is never moved.
-        for offset in range(0, 10000, 100):
-            rows = self.request('GET', '/v1/spool', query={
-                'limit': 100, 'offset': offset, 'sort': 'id:asc',
-                'allow_archived': 'true'})
-            if not isinstance(rows, list) or len(rows) > 100:
-                raise ValueError('Invalid Spoolman catalogue')
-            for item in rows:
-                if item.get('id') != spool_id and tag_uid(item) == uid:
-                    sources.append(describe(item))
-            if len(rows) < 100:
-                break
-        else:
-            raise ValueError('Catalogue too large to check tag safely')
-        plan = BindingPlan(expected, uid, previous_uid, tuple(sorted(sources, key=lambda s: s.id)))
-        conflicting = bool(sources) or previous_uid not in (None, uid)
-        if conflicting and approval != plan:
-            # The second explicit confirmation must match freshly read data.
+        for item in rows:
+            if uid not in tag_uids(item):
+                raise ValueError('Spoolman tag lookup not supported')
+            if item.get('id') != spool_id:
+                sources.append(describe(item))
+        plan = BindingPlan(expected, uid, None, tuple(sources), target_tags)
+        if sources and approval != plan:
             raise BindingConflict(plan)
-        fields = self.request('GET', '/v1/field/spool')
-        if not isinstance(fields, list):
-            raise ValueError('Invalid Spoolman fields')
-        field = next((item for item in fields if item.get('key') == TAG_FIELD), None)
-        if field is not None and field.get('field_type') != 'text':
-            raise ValueError('Spoolman nfc_id must be a text field')
-        if field is None:
-            self.request('POST', '/v1/field/spool/' + TAG_FIELD,
-                         body={'name': 'NFC ID', 'field_type': 'text'})
-        # Re-read after conflict/schema checks; do not overwrite a changed spool.
         latest, fresh = self.candidate(spool_id)
-        if fresh != expected or tag_uid(latest) != previous_uid:
+        if fresh != expected or tag_uids(latest) != target_tags:
             raise ValueError('Spool changed; select again')
-        for source in plan.sources:
+        for source in sources:
             owner = self.request('GET', '/v1/spool/%d' % source.id)
-            if describe(owner) != source or tag_uid(owner) != uid:
+            if describe(owner) != source or uid not in tag_uids(owner):
                 raise ValueError('Tag owner changed; select again')
         writing = False
         try:
-            for source in plan.sources:
+            for source in sources:
                 writing = True
-                cleared = self.request('PATCH', '/v1/spool/%d' % source.id,
-                                       body={'extra': {TAG_FIELD: json.dumps('')}})
-                if describe(cleared).id != source.id or tag_uid(cleared) is not None:
-                    raise ValueError('Old tag removal not confirmed')
-            if plan.sources:
+                # Some Moonraker proxies JSON-decode Spoolman's empty 204
+                # unlink response and report an error after a successful DELETE.
+                # Never replay it: fresh native tag readback decides the result.
+                unlink_error = None
+                try:
+                    self.request('DELETE', '/v1/spool/%d/tag/%s' % (source.id, wire_uid))
+                except Exception as error:
+                    unlink_error = error
+                owner = self.request('GET', '/v1/spool/%d' % source.id)
+                if uid in tag_uids(owner):
+                    raise ValueError('Old tag removal not confirmed') from unlink_error
+            if sources:
                 latest, fresh = self.candidate(spool_id)
-                if fresh != expected or tag_uid(latest) != previous_uid:
+                if fresh != expected or tag_uids(latest) != target_tags:
                     raise ValueError('Target spool changed during move')
-            # PATCH only our field; never replay an ambiguous server write.
+            # Native POST returns a Tag, not a Spool. Other tags are preserved.
             writing = True
-            result = self.request('PATCH', '/v1/spool/%d' % spool_id,
-                                 body={'extra': {TAG_FIELD: json.dumps(uid)}})
-            if describe(result).id != spool_id or tag_uid(result) != uid:
-                raise ValueError('Tag assignment not confirmed')
+            result = self.request('POST', '/v1/spool/%d/tag' % spool_id,
+                                 body={'uid': wire_uid})
+            if not isinstance(result, dict) or normalize_uid(result.get('uid')) != uid:
+                raise ValueError('Tag link not confirmed')
+            # Success is visible only after the spool's actual Tags collection
+            # contains the UID; an extra.nfc_id value is never sufficient.
+            linked, _ = self.candidate(spool_id)
+            if uid not in tag_uids(linked):
+                raise ValueError('Tag missing from Spoolman Tags')
         except Exception as error:
-            if plan.sources and writing:
-                raise ValueError('Move incomplete; check Spoolman before retry') from error
+            if sources and writing:
+                raise ValueError('Move incomplete; check Spoolman Tags') from error
             raise
         return uid

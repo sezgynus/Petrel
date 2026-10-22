@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock
 
 from nfc_core import NFCCore
-from spoolman_tags import SpoolmanTags, BindingConflict, describe, tag_uid, colors
+from spoolman_tags import SpoolmanTags, BindingConflict, describe, tag_uids, colors
 from test_nfc_core import backend
 from test_capabilities import display, snapshot
 
@@ -15,104 +15,63 @@ from test_capabilities import display, snapshot
 def spool(sid=7, uid=None, **changes):
     raw = {'id': sid, 'filament': {'name': 'Galaxy Red', 'material': 'PLA',
            'vendor': {'name': 'Example Filaments'}, 'color_hex': 'FF0022'},
-           'extra': {'other': '"keep"'}, 'archived': False}
+           'extra': {'other': '"keep"'}, 'tags': [], 'archived': False}
     if uid:
-        raw['extra']['nfc_id'] = json.dumps(uid)
+        raw['tags'] = [{'uid': uid.replace(':', '').replace(' ', '').upper()}]
     raw.update(changes)
     return raw
 
 
 class ServiceTests(unittest.TestCase):
-    def service(self, raw=None, other=None, fields=None):
+    def service(self, raw=None, other=None):
         raw = raw or spool()
-        client = Mock()
         database = {item['id']: item for item in [raw] + (other or [])}
+        client = Mock()
         def request(method, endpoint, payload):
             self.assertEqual((method, endpoint), ('POST', '/server/spoolman/proxy'))
             action, path = payload['request_method'], payload['path']
-            if action == 'GET' and path.startswith('/v1/spool/'):
+            from urllib.parse import parse_qs
+            if action == 'GET' and path == '/v1/spool':
+                query = parse_qs(payload.get('query', ''))
+                if 'tag' in query:
+                    from nfc_core import normalize_uid
+                    uid = normalize_uid(query['tag'][0])
+                    result = [item for item in database.values() if uid in tag_uids(item)]
+                else:
+                    result = list(database.values())
+            elif action == 'GET' and path.startswith('/v1/spool/'):
                 result = database[int(path.rsplit('/', 1)[1])].copy()
-            elif action == 'GET' and path == '/v1/spool':
-                result = [raw] + (other or [])
-            elif action == 'GET' and path == '/v1/field/spool':
-                result = fields if fields is not None else []
-            elif action == 'POST' and path == '/v1/field/spool/nfc_id':
-                self.assertEqual(payload['body']['field_type'], 'text')
-                result = [{'key': 'nfc_id', 'field_type': 'text'}]
-            elif action == 'PATCH':
-                self.assertEqual(payload['body'].keys(), {'extra'})
-                self.assertEqual(payload['body']['extra'].keys(), {'nfc_id'})
-                target = database[int(path.rsplit('/', 1)[1])]
-                target['extra'].update(payload['body']['extra'])
-                result = target
+            elif action == 'POST' and path.endswith('/tag'):
+                target = database[int(path.split('/')[3])]
+                uid = payload['body']['uid']
+                result = {'uid': uid}
+                if result not in target['tags']:
+                    target['tags'].append(result)
+            elif action == 'DELETE':
+                target = database[int(path.split('/')[3])]
+                uid = path.rsplit('/', 1)[1]
+                target['tags'] = [tag for tag in target['tags'] if tag['uid'] != uid]
+                result = None
             else:
-                raise AssertionError(payload)
+                raise AssertionError('Unexpected request: %r' % payload)
             return {'result': result}
         client.request.side_effect = request
         return SpoolmanTags(client), client, raw
 
-    def test_confirmed_assignment_is_server_persisted_and_other_fields_preserved(self):
-        service, client, raw = self.service()
+    def test_native_tag_link_is_verified_in_spool_tags_and_preserves_extra_and_other_tags(self):
+        raw = spool(uid='01:02')
+        service, client, raw = self.service(raw)
         expected = describe(raw)
         self.assertEqual(service.assign(7, 'aa bb cc dd', expected), 'AA:BB:CC:DD')
-        self.assertEqual(tag_uid(raw), 'AA:BB:CC:DD')
+        self.assertEqual(tag_uids(raw), ('01:02', 'AA:BB:CC:DD'))
         self.assertEqual(raw['extra']['other'], '"keep"')
-        self.assertEqual(describe(raw), expected)
         writes = [c.args[2] for c in client.request.call_args_list
-                  if c.args[2]['request_method'] == 'PATCH']
-        self.assertEqual(len(writes), 1)
+                  if c.args[2]['request_method'] != 'GET']
+        self.assertEqual(writes, [{'request_method': 'POST', 'path': '/v1/spool/7/tag',
+                                    'body': {'uid': 'AABBCCDD'}}])
+        self.assertEqual(client.request.call_args.args[2]['path'], '/v1/spool/7')
 
-    def test_conflicting_tag_in_archived_spool_and_existing_tag_are_not_overwritten(self):
-        for raw, others in ((spool(), [spool(8, 'aa:bb', archived=True)]),
-                            (spool(uid='01:02'), [])):
-            with self.subTest(raw=raw):
-                service, client, raw = self.service(raw, others)
-                with self.assertRaises(ValueError):
-                    service.assign(7, 'AA:BB', describe(raw))
-                self.assertFalse(any(c.args[2]['request_method'] in ('POST', 'PATCH')
-                                     for c in client.request.call_args_list))
-
-    def test_incompatible_field_or_changed_spool_fails_closed(self):
-        service, client, raw = self.service(fields=[{'key': 'nfc_id', 'field_type': 'integer'}])
-        with self.assertRaises(ValueError):
-            service.assign(7, '01:02', describe(raw))
-        self.assertFalse(any(c.args[2]['request_method'] == 'PATCH' for c in client.request.call_args_list))
-        service, client, raw = self.service()
-        expected = describe(raw)
-        raw['filament'] = dict(raw['filament'], material='PETG')
-        with self.assertRaisesRegex(ValueError, 'changed'):
-            service.assign(7, '01:02', expected)
-        self.assertEqual(client.request.call_count, 1)
-
-    def test_pagination_metadata_and_multicolor(self):
-        client = Mock()
-        client.request.return_value = {'result': [spool(i + 1) for i in range(21)]}
-        service = SpoolmanTags(client)
-        rows, more = service.page(20)
-        self.assertEqual(len(rows), 20)
-        self.assertTrue(more)
-        self.assertIn('offset=20', client.request.call_args.args[2]['query'])
-        self.assertEqual((rows[0].vendor, rows[0].name, rows[0].material),
-                         ('Example Filaments', 'Galaxy Red', 'PLA'))
-        self.assertEqual(colors('FF0000AA,00FF00,#0000FF'), ('FF0000', '00FF00', '0000FF'))
-        self.assertEqual(colors('garbage'), ())
-        self.assertTrue(describe(spool(archived=True)).archived)
-
-    def test_write_error_is_not_replayed_or_reported_as_success(self):
-        service, client, raw = self.service()
-        original = client.request.side_effect
-        def fail(method, endpoint, payload):
-            if payload['request_method'] == 'PATCH':
-                raise OSError('ambiguous connection loss')
-            return original(method, endpoint, payload)
-        client.request.side_effect = fail
-        with self.assertRaises(OSError):
-            service.assign(7, '01:02', describe(raw))
-        self.assertEqual(sum(c.args[2]['request_method'] == 'PATCH'
-                             for c in client.request.call_args_list), 1)
-
-
-    def test_conflicting_uid_moves_only_after_fresh_matching_approval(self):
+    def test_native_uid_moves_only_after_explicit_matching_approval(self):
         old = spool(8, 'AA:BB', archived=True)
         service, client, raw = self.service(other=[old])
         expected = describe(raw)
@@ -120,26 +79,85 @@ class ServiceTests(unittest.TestCase):
             service.assign(7, 'AA:BB', expected)
         plan = found.exception.plan
         self.assertEqual([item.id for item in plan.sources], [8])
-        self.assertEqual(tag_uid(old), 'AA:BB')
-        self.assertIsNone(tag_uid(raw))
+        self.assertEqual(tag_uids(old), ('AA:BB',))
+        self.assertFalse(any(c.args[2]['request_method'] != 'GET' for c in client.request.call_args_list))
         self.assertEqual(service.assign(7, 'AA:BB', expected, approval=plan), 'AA:BB')
-        self.assertIsNone(tag_uid(old))
-        self.assertEqual(tag_uid(raw), 'AA:BB')
-        writes = [c.args[2]['path'] for c in client.request.call_args_list
-                  if c.args[2]['request_method'] == 'PATCH']
-        self.assertEqual(writes, ['/v1/spool/8', '/v1/spool/7'])
+        self.assertEqual(tag_uids(old), ())
+        self.assertEqual(tag_uids(raw), ('AA:BB',))
+        writes = [(c.args[2]['request_method'], c.args[2]['path'])
+                  for c in client.request.call_args_list if c.args[2]['request_method'] != 'GET']
+        self.assertEqual(writes, [('DELETE', '/v1/spool/8/tag/AABB'),
+                                 ('POST', '/v1/spool/7/tag')])
 
-    def test_move_approval_cannot_authorize_changed_target_tag(self):
+    def test_move_approval_does_not_authorize_changed_target(self):
         old = spool(8, 'AA:BB')
         service, client, raw = self.service(other=[old])
         expected = describe(raw)
         with self.assertRaises(BindingConflict) as found:
             service.assign(7, 'AA:BB', expected)
-        raw['extra']['nfc_id'] = json.dumps('01:02')
+        raw['tags'].append({'uid': '0102'})
         with self.assertRaises(BindingConflict):
             service.assign(7, 'AA:BB', expected, approval=found.exception.plan)
-        self.assertEqual(tag_uid(old), 'AA:BB')
-        self.assertFalse(any(c.args[2]['request_method'] == 'PATCH' for c in client.request.call_args_list))
+        self.assertEqual(tag_uids(old), ('AA:BB',))
+
+    def test_unsupported_tags_never_fall_back_to_extra_fields(self):
+        raw = spool()
+        raw.pop('tags')
+        service, client, raw = self.service(raw)
+        with self.assertRaisesRegex(ValueError, 'Tags API unavailable'):
+            service.assign(7, '01:02', describe(raw))
+        self.assertFalse(any(c.args[2]['request_method'] != 'GET' for c in client.request.call_args_list))
+
+    def test_successful_post_without_actual_native_binding_is_not_success(self):
+        service, client, raw = self.service()
+        original = client.request.side_effect
+        def fake(method, endpoint, payload):
+            if payload['request_method'] == 'POST':
+                return {'result': {'uid': '0102'}}
+            return original(method, endpoint, payload)
+        client.request.side_effect = fake
+        with self.assertRaisesRegex(ValueError, 'missing'):
+            service.assign(7, '01:02', describe(raw))
+
+    def test_empty_204_proxy_error_is_resolved_by_readback_without_delete_replay(self):
+        old = spool(8, 'AA:BB')
+        service, client, raw = self.service(other=[old])
+        expected = describe(raw)
+        with self.assertRaises(BindingConflict) as found:
+            service.assign(7, 'AA:BB', expected)
+        original = client.request.side_effect
+        def empty(method, endpoint, payload):
+            result = original(method, endpoint, payload)
+            if payload['request_method'] == 'DELETE':
+                raise OSError('empty JSON response')
+            return result
+        client.request.side_effect = empty
+        self.assertEqual(service.assign(7, 'AA:BB', expected, found.exception.plan), 'AA:BB')
+        self.assertEqual(sum(c.args[2]['request_method'] == 'DELETE' for c in client.request.call_args_list), 1)
+
+    def test_failed_native_link_is_not_replayed(self):
+        service, client, raw = self.service()
+        original = client.request.side_effect
+        def fail(method, endpoint, payload):
+            if payload['request_method'] == 'POST':
+                raise OSError('lost response')
+            return original(method, endpoint, payload)
+        client.request.side_effect = fail
+        with self.assertRaises(OSError):
+            service.assign(7, '01:02', describe(raw))
+        self.assertEqual(sum(c.args[2]['request_method'] == 'POST' for c in client.request.call_args_list), 1)
+
+    def test_pagination_metadata_and_multicolor(self):
+        client = Mock()
+        client.request.return_value = {'result': [spool(i + 1) for i in range(21)]}
+        rows, more = SpoolmanTags(client).page(20)
+        self.assertEqual(len(rows), 20)
+        self.assertTrue(more)
+        self.assertIn('offset=20', client.request.call_args.args[2]['query'])
+        self.assertEqual((rows[0].vendor, rows[0].name, rows[0].material),
+                         ('Example Filaments', 'Galaxy Red', 'PLA'))
+        self.assertEqual(colors('FF0000AA,00FF00,#0000FF'), ('FF0000', '00FF00', '0000FF'))
+        self.assertEqual(colors('bad'), ())
 
 
 class SpoolUITests(unittest.TestCase):

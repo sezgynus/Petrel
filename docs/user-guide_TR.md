@@ -580,22 +580,26 @@ Eksik renk tahmin edilmez.
 **Save tag** ile onaylayın. NFC Core yalnız yeni kart olayını yakalar; EMG
 kartının global önceliği korunur. Cancel hiçbir kart ataması kaydetmez.
 
-Atama Moonraker'ın Spoolman proxy API'si üzerinden doğrudan makaranın
-`extra.nfc_id` alanına, Spoolman'ın istediği JSON kodlu metin biçiminde
-kaydedilir. Alan yoksa **NFC ID** adlı text alanı oluşturulur; mevcut farklı
-türdeki alan değiştirilmez. Kart başka makaraya bağlıysa kaynak ve hedef ID'leriyle ek bir
-**Move and assign** onayı istenir. Hedefteki mevcut kartın değişeceği de gösterilir.
-Cancel eski atamaları korur. Onaydan sonra kaynak ataması temizlenir ve hedefe
-yazılır; onay, yazmadan hemen önce sunucudan tekrar alınan durumla karşılaştırılır. İşlemden önce makara yeniden kontrol edilir;
-ağ hatasında yazma otomatik tekrarlanmaz. Taşıma sırasında kısmi hata olursa
-“Move incomplete” gösterilir; eski kart boşa çıkmış olabilir, Spoolman'dan kontrol edin. Diğer extra alanları korunur.
-Spoolman destekli proxy/extra-field API'leri gerekir; bağlantı yoksa hata
-gösterilir. Native tag API'si yerine eski Spoolman sürümleriyle de uyumlu
-extra alanı kullanılır. Eşzamanlı harici değişiklikler için Spoolman bu alanda
-benzersizlik/transaction garantisi sunmadığından tek yazıcıyla atama yapın.
+Atama Moonraker'ın Spoolman proxy API'si üzerinden makaranın gerçek **Tags**
+kayıtlarına yazılır: `POST /v1/spool/{id}/tag`. Başarı göstermeden önce makara
+yeniden okunur ve UID'nin `tags` listesinde bulunduğu doğrulanır. Özel
+`extra.nfc_id` alanına yazma veya sessiz fallback yoktur; native Tags API'si
+olmayan sunucuda açık hata gösterilir.
 
-Bu akış makara-kart eşleştirmesini kaydeder; aktif makarayı değiştirmez, MMU
-yükleme başlatmaz ve kart üzerine veri yazmaz. Arşivlenmiş/tüketilmiş olarak
-işaretlenen makaralar seçim listesine alınmaz; UID çakışma kontrolünde
-arşivlenmiş kayıtlar da kontrol edilir. En fazla 10.000 kayıt kontrollü olarak
-taranır; daha büyük arşivde güvenli biçimde atama reddedilir.
+Kart başka makaraya bağlıysa kaynak ve hedef ID'leriyle **Move and assign**
+onayı istenir. Cancel bağlantıları değiştirmez. Onay güncel sunucu durumuyla
+yeniden karşılaştırılır; eski makaradaki yalnız ilgili tag silinir ve hedefe
+eklenir. Hedefin diğer tag'leri korunur. API'nin boş 204 silme yanıtı Moonraker
+tarafında hata olarak raporlansa bile tekrar silme gönderilmez: kaynaktaki
+gerçek tag listesi yeniden okunarak sonuç doğrulanır. Kısmi taşıma hatasında
+“Move incomplete” gösterilir; bağlantıları Spoolman'dan kontrol edin.
+Başarısız yazmalar otomatik tekrarlanmaz.
+
+Önceki hatalı sürümün oluşturduğu `extra.nfc_id` değerleri otomatik taşınmaz
+ve silinmez. Aynı makara ve kartı bu akışla yeniden atayın; gerçek **Tags**
+bölümünde görünmesi bu kez sunucudan doğrulanır.
+
+Bu akış aktif makarayı değiştirmez, MMU yükleme başlatmaz ve fiziksel kart
+üzerine veri yazmaz. Arşivlenmiş makaralar seçimde gösterilmez, ancak kartın
+mevcut sahibi aranırken dahil edilir. Spoolman native tag benzersizliğini
+sunar; iki sunucu isteğinden oluşan taşıma yine tek bir atomik işlem değildir.

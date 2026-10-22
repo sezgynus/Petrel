@@ -579,21 +579,26 @@ Choose **Assign tag**, remove and present the card, check its UID, then confirm
 **Save tag**. NFC Core captures only a fresh arrival and global emergency tags
 retain priority. Cancel saves no tag assignment.
 
-The binding is written through Moonraker's Spoolman proxy to the spool's
-`extra.nfc_id`, using Spoolman's JSON-encoded text representation. If absent,
-a text field named **NFC ID** is created; an existing field of another type is
-not changed. A UID linked to another spool opens an additional **Move and assign** dialog
-showing source and target IDs. Replacing the target's existing tag is also
-shown. Cancel keeps existing bindings. Confirmation is compared against freshly
-read server state before clearing the source binding and writing the target. The spool is rechecked before writing; failed writes are never
-automatically replayed. A partial move reports “Move incomplete”; the old spool
-may have been unlinked, so check Spoolman before trying again. Other extra fields are preserved. Spoolman proxy and
-extra-field API support is required; connection errors are shown. The extra
-field supports older Spoolman releases rather than depending on the native
-tag API. Spoolman does not provide uniqueness/transaction guarantees for this
-extra field across concurrent external writers, so assign using one writer.
+The binding is written through Moonraker's Spoolman proxy to the spool's real
+**Tags** records: `POST /v1/spool/{id}/tag`. Before showing success, Petrel reads
+the spool again and verifies that its `tags` collection contains the UID.
+There is no write to `extra.nfc_id` and no silent fallback; servers without the
+native Tags API report an explicit error.
 
-This flow saves the binding; it does not change the active spool, start MMU
-loading or write data to the physical tag. Archived spools are omitted from
-selection but included in UID conflict checks. Conflict checking is bounded
-to 10,000 records; larger catalogues fail safely.
+If the tag belongs to another spool, **Move and assign** shows source and
+target IDs and requires confirmation. Cancel preserves bindings. Approval is
+revalidated against current server data; only the requested tag is unlinked
+from the source and added to the target. Other target tags are preserved.
+Some Moonraker proxies report an error while JSON-decoding the empty 204 unlink
+response: Petrel never replays DELETE, but checks the actual source tag list
+to verify removal. Partial moves report “Move incomplete”; inspect the
+bindings in Spoolman. Failed writes are not automatically replayed.
+
+The previous incorrect release's `extra.nfc_id` values are not automatically
+migrated or deleted. Assign the same spool and card again through this flow;
+the server's actual **Tags** collection is now checked before reporting success.
+
+This flow does not change the active spool, start MMU loading or write to the
+physical tag. Archived spools are omitted from selection but included when
+looking up the tag's owner. Spoolman enforces native tag uniqueness; the
+two-request move itself is still not an atomic transaction.

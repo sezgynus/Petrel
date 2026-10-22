@@ -29,7 +29,7 @@ class SpoolTagViewMixin:
                 self._spool_rows, self._spool_more = result
                 self._rfid_mode = 'spool_list'
             else:
-                self._spool_message = 'Tag saved in Spoolman'
+                self._spool_message = 'Saved in Spoolman Tags'
                 self._rfid_candidate = None
                 self._rfid_mode = 'spool_saved'
         except BindingConflict as error:
