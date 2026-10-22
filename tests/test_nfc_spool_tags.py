@@ -243,7 +243,11 @@ class SpoolUITests(unittest.TestCase):
         view.Draw_RFID_Menu = Mock()
         view._queue_nfc_ui_event = Mock()
         view.pd.nfc_assign_spool = Mock(return_value=Future())
-        first.set_exception(BindingConflict(plan))
+        # The shared UI fixture can retain an earlier module instance after
+        # import-isolation tests reload optional modules. Raise the exact
+        # exception class used by this view's real handler.
+        conflict = view._spool_result_event.__func__.__globals__['BindingConflict']
+        first.set_exception(conflict(plan))
         view._spool_result_event()
         self.assertEqual(view._rfid_mode, 'spool_transfer')
         view.pd.nfc_assign_spool.assert_not_called()
