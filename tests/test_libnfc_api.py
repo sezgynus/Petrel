@@ -220,8 +220,8 @@ class DirectLibNFCTests(unittest.TestCase):
         self.assertFalse(target.serve_uri('https://example.org',
                                          lambda: cancelled[0],
                                          lambda *args: None))
-        self.assertEqual(parameters, [(1, b'\\x00\\x08', 0x20,
-                                       b'\\x08\\x00\\xb0\\x0b')])
+        self.assertEqual(parameters, [(1, bytes((0x00, 0x08)), 0x20,
+                                       bytes((0x08, 0x00, 0xB0, 0x0B)))])
 
     def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
         from libnfc_api import NFCTargetSession
