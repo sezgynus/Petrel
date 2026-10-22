@@ -222,6 +222,16 @@ arka plan okuyucusuna uygulanır. Hız ayarı yalnızca UART için değiştirile
 Libnfc I2C, SPI, USB, PC/SC ve NCI için bu ayarı uygulamadığından hız satırı
 pasiftir ve odaklanamaz.
 
+**Test connection**, **Save** altındaki son seçenektir ve model, arayüz,
+aygıt seçildikten sonra etkinleşir. Dosyaya kaydetmeden *ekranda seçili*
+değerleri sınar. Ekranda önce **Checking**, ardından **Conn. OK** veya
+**Failed** görülür. Ortak libnfc API'si, karta ihtiyaç duymadan seçilen
+okuyucuyu açar ve initiator modunda başlatır; kart okuma kalitesini veya
+RF menzilini doğrulamaz. Test, Petrel'in mevcut RFID iş parçacığında
+seri olarak yürütülür; aktif taramayla aynı anda ikinci libnfc oturumu
+açılmaz ve ekran/enkoder bloke edilmez. Test sürerken kaydetme ertelenir.
+Test tamamlandığında kayıtlı ayarlar değişmez; hatalar günlüklenir.
+
 Liste libnfc sürücü ailelerini gösterir; tüm üreticilerin kart adlarını ayrı ayrı
 listelemez. Upstream libnfc'de PN532 UART, I2C ve SPI arayüzlerini destekler;
 kurulu derlemenin etkin sürücüleri kullanılabilir seçenekleri belirler.

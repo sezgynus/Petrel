@@ -148,7 +148,7 @@ class NFCSettingsTests(unittest.TestCase):
         self.assertEqual(entries[1][2], 'Disabled in setup')
         self.assertEqual([entry[0] for entry in entries],
                          ['Back', '', 'RFID module', 'Interface',
-                          'Port / device', 'Link speed', 'Save'])
+                          'Port / device', 'Link speed', 'Save', 'Test connection'])
         self.assertIsNone(entries[1][1])
         self.assertTrue(all(not entry[2][1] for entry in entries[2:]))
         view._draw_menu_text = Mock()
@@ -239,7 +239,7 @@ class NFCSettingsTests(unittest.TestCase):
             self.assertEqual(view._nfc_values.port, '/dev/ttyDWIN0')
             self.assertTrue(view._nfc_confirmed['port'])
             self.assertEqual(view._nfc_value_text('port'), 'ttyDWIN0')
-            self.assertEqual(view._nfc_focusable(), [0, 2, 3, 4, 5, 6])
+            self.assertEqual(view._nfc_focusable(), [0, 2, 3, 4, 5, 6, 7])
 
             view._nfc_selection = 5
             view.HMI_NFC_Settings_Menu()
@@ -261,6 +261,58 @@ class NFCSettingsTests(unittest.TestCase):
             view.HMI_NFC_Settings_Menu()
             fake_save.assert_called_once_with(view._nfc_values)
             self.assertEqual(view._nfc_saved, view._nfc_values)
+
+    def test_manual_connection_test_reports_success_and_failure_without_saving(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
+        view._nfc_saved = view._nfc_values
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': True}
+        view._nfc_selection = 7
+        view.checkkey = view.NFCSettingsMenu
+        future = Future()
+        view.pd.test_nfc_connection = Mock(return_value=future)
+        globals_ = view.HMI_NFC_Settings_Menu.__func__.__globals__
+        fake_save = Mock()
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
+                patch.dict(globals_, {'save': fake_save}):
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            view.pd.test_nfc_connection.assert_called_once_with(view._nfc_values)
+            rows = view._draw_list_menu.call_args.args[1]
+            self.assertEqual(rows[7][:3],
+                             ('Test connection', view.ICON_Info, ('Checking', True)))
+            self.assertEqual(rows[6][2][0], 'Busy')
+            self.assertFalse(view._nfc_poll_test_connection())
+            future.set_result(True)
+            self.assertTrue(view._nfc_poll_test_connection())
+            rows = view._draw_list_menu.call_args.args[1]
+            self.assertEqual(rows[7][2], ('Conn. OK', True))
+            # A connectivity test never modifies the persisted settings.
+            fake_save.assert_not_called()
+            self.assertEqual(view._nfc_saved, view._nfc_values)
+            second = Future()
+            second.set_exception(OSError('device not found'))
+            view.pd.test_nfc_connection.return_value = second
+            view.HMI_NFC_Settings_Menu()
+            self.assertTrue(view._nfc_poll_test_connection())
+            rows = view._draw_list_menu.call_args.args[1]
+            self.assertEqual(rows[7][2], ('Failed', True))
+
+    def test_connection_test_disabled_until_valid_configuration(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings()
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': False}
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            view.Draw_NFC_Settings_Menu()
+            self.assertNotIn(7, view._nfc_focusable())
+            self.assertEqual(view._draw_list_menu.call_args.args[1][7][2],
+                             ('Run', False))
+            view._nfc_values = ViewSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
+            view._nfc_confirmed['port'] = True
+            view.Draw_NFC_Settings_Menu()
+            self.assertIn(7, view._nfc_focusable())
 
     def test_uart_port_discovery_error_and_retry_after_cancel(self):
         view = display(snapshot())

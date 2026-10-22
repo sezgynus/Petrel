@@ -34,6 +34,55 @@ class DirectLibNFCTests(unittest.TestCase):
         lib.nfc_device_get_supported_baud_rate.side_effect = bauds
         return lib
 
+    def test_connection_probe_uses_exact_draft_for_each_libnfc_driver(self):
+        from libnfc_api import check_connection
+        from nfc_settings import NFCSettings, PROFILES
+        examples = {
+            'UART': '/dev/ttyDWIN0', 'I2C': '/dev/i2c-1',
+            'SPI': '/dev/spidev0.0', 'USB': 'pn53x_usb:001:003',
+            'PC/SC': 'acr122_pcsc:Reader', 'NCI': 'pn71xx:Reader',
+        }
+        for model, profile in PROFILES.items():
+            for interface in profile['interfaces']:
+                with self.subTest(model=model, interface=interface):
+                    port = examples[interface]
+                    if interface == 'USB':
+                        port = profile['drivers'][interface] + ':001:003'
+                    if interface == 'PC/SC':
+                        port = profile['drivers'][interface] + ':Reader'
+                    setting = NFCSettings(model, interface, port,
+                                          115200 if interface == 'UART' else 0)
+                    lib = self.fake_library()
+                    with patch('libnfc_api.bind_library', return_value=lib), \
+                            patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'wrong'}):
+                        self.assertTrue(check_connection(setting))
+                    lib.nfc_open.assert_called_once()
+                    self.assertEqual(lib.nfc_open.call_args.args[0].value, 1)
+                    self.assertEqual(lib.nfc_open.call_args.args[1],
+                                     setting.connection_string().encode('utf-8'))
+                    lib.nfc_initiator_init.assert_called_once_with(100)
+                    lib.nfc_close.assert_called_once_with(100)
+                    lib.nfc_exit.assert_called_once()
+                    self.assertEqual(lib.nfc_exit.call_args.args[0].value, 1)
+
+    def test_connection_probe_reports_open_and_init_failure_without_leaks(self):
+        from libnfc_api import check_connection
+        from nfc_settings import NFCSettings
+        config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
+        for failure in ('open', 'init'):
+            with self.subTest(failure=failure):
+                lib = self.fake_library()
+                if failure == 'open':
+                    lib.nfc_open.return_value = 0
+                else:
+                    lib.nfc_initiator_init.return_value = -3
+                with patch('libnfc_api.bind_library', return_value=lib), \
+                        self.assertRaises(OSError):
+                    check_connection(config)
+                self.assertEqual(lib.nfc_close.call_count, failure != 'open')
+                lib.nfc_exit.assert_called_once()
+                self.assertEqual(lib.nfc_exit.call_args.args[0].value, 1)
+
     def test_persistent_explicit_handle_and_all_advertised_card_types(self):
         lib = self.fake_library()
         with patch('libnfc_api.bind_library', return_value=lib), \

@@ -344,6 +344,15 @@ class PrinterData:
         return self._read_worker.submit(lambda: serial_ports_from_moonraker(
             self.client.get('/machine/peripherals/serial')))
 
+    def test_nfc_connection(self, settings):
+        """Run an explicit libnfc connection probe on the single RFID owner."""
+        settings.validate()
+        reader = getattr(self, '_rfid_reader', None)
+        if reader is None:
+            reader = self._rfid_reader = RFIDReader()
+            self._rfid_token = None
+        return reader.test_connection(settings)
+
     def refresh_nfc_info(self):
         """Read one shared background owner's snapshots, never touch UART here."""
         reader = getattr(self, '_rfid_reader', None)

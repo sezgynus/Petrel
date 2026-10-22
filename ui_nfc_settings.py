@@ -78,6 +78,7 @@ class NFCSettingsViewMixin:
         if (all(confirmed.get(field, False)
                 for field in ('model', 'interface', 'port')) and port_available):
             result.append(6)
+            result.append(7)
         return result
 
     def _nfc_value_text(self, field):
@@ -148,8 +149,18 @@ class NFCSettingsViewMixin:
         save_enabled = enabled and 6 in self._nfc_focusable()
         saved = value == getattr(self, '_nfc_saved', value)
         shown = 'Saved' if saved else 'Apply'
-        rows.append(('Save', self.ICON_Info, (shown, save_enabled),
-                     self._nfc_value_painter('Save', shown, save_enabled)))
+        running = getattr(self, '_nfc_test_future', None) is not None
+        save_label = 'Busy' if running else shown
+        rows.append(('Save', self.ICON_Info, (save_label, save_enabled),
+                     self._nfc_value_painter('Save', save_label, save_enabled)))
+        test_enabled = enabled and 7 in self._nfc_focusable()
+        status = 'Run'
+        if getattr(self, '_nfc_test_values', None) == value:
+            status = 'Checking' if running else (
+                getattr(self, '_nfc_test_state', None) or 'Run')
+        rows.append(('Test connection', self.ICON_Info, (status, test_enabled),
+                     self._nfc_value_painter('Test connection',
+                                             status, test_enabled, 9)))
         self._nfc_selection = min(getattr(self, '_nfc_selection', 0), len(rows) - 1)
         if not enabled or self._nfc_selection not in self._nfc_focusable():
             self._nfc_selection = 0
@@ -256,6 +267,7 @@ class NFCSettingsViewMixin:
             self._nfc_port_choices = None
         self._nfc_values = replace(value, **changes)
         self._nfc_save_error = False
+        self._nfc_test_state = None
 
     def _nfc_exit_choice(self):
         pending = getattr(self, '_nfc_port_future', None)
@@ -289,6 +301,23 @@ class NFCSettingsViewMixin:
                 self._nfc_apply_choice(field, options[selection - 1])
             self._nfc_exit_choice()
 
+    def _nfc_poll_test_connection(self):
+        future = getattr(self, '_nfc_test_future', None)
+        if future is None or not future.done():
+            return False
+        self._nfc_test_future = None
+        try:
+            success = future.result() is True
+        except Exception as error:
+            logging.warning('NFC connection test failed: %s', error)
+            success = False
+        self._nfc_test_state = 'Conn. OK' if success else 'Failed'
+        if (getattr(self, 'checkkey', None) == self.NFCSettingsMenu
+                and getattr(self, '_nfc_test_values', None) == self._nfc_config()):
+            self.Draw_NFC_Settings_Menu()
+            self.lcd.update()
+        return True
+
     def HMI_NFC_Settings_Menu(self):
         event = self.get_encoder_state()
         if event == self.ENCODER_DIFF_NO:
@@ -321,7 +350,23 @@ class NFCSettingsViewMixin:
                 if self._nfc_open_choice(field):
                     self.lcd.update()
                 return
+            if selection == 7 and selection in self._nfc_focusable():
+                if getattr(self, '_nfc_test_future', None) is not None:
+                    return
+                self._nfc_test_values = self._nfc_config()
+                self._nfc_test_state = None
+                try:
+                    self._nfc_test_future = self.pd.test_nfc_connection(
+                        self._nfc_test_values)
+                except (OSError, ValueError) as error:
+                    logging.warning('NFC connection test could not start: %s', error)
+                    self._nfc_test_state = 'Failed'
+                self.Draw_NFC_Settings_Menu()
+                self.lcd.update()
+                return
             if selection == 6 and selection in self._nfc_focusable():
+                if getattr(self, '_nfc_test_future', None) is not None:
+                    return
                 try:
                     save(self._nfc_config())
                     self._nfc_saved = self._nfc_values

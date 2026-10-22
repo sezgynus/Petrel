@@ -1,14 +1,18 @@
 """Single persistent direct-libnfc owner; keep only the latest card and identity."""
 import logging
+from concurrent.futures import Future
 from threading import Event, Lock, Thread
 
-from libnfc_api import NFCSession
+from libnfc_api import NFCSession, check_connection
 
 
 class RFIDReader:
     def __init__(self):
         self._stop = Event()
         self._lock = Lock()
+        self._probe_event = Event()
+        self._probe = None
+        self._probe_active = False
         self._session = None
         self._card = {}
         self._present_card = None
@@ -59,8 +63,44 @@ class RFIDReader:
                 self._status, self._card, self._identity = status, dict(latest), dict(info)
                 self._revision += 1
 
+    def test_connection(self, settings):
+        """Queue one exclusive reader probe; never open libnfc from the UI."""
+        settings.validate()
+        future = Future()
+        with self._lock:
+            if self._stop.is_set():
+                future.set_exception(OSError('NFC reader stopped'))
+            elif self._probe_active:
+                future.set_exception(OSError('NFC test already in progress'))
+            else:
+                self._probe_active = True
+                self._probe = (settings, future)
+                self._probe_event.set()
+        return future
+
+    def _run_probe(self):
+        with self._lock:
+            pending, self._probe = self._probe, None
+            self._probe_event.clear()
+        if pending is None:
+            return False
+        settings, future = pending
+        try:
+            if future.set_running_or_notify_cancel():
+                try:
+                    future.set_result(check_connection(settings))
+                except Exception as error:
+                    future.set_exception(error)
+        finally:
+            with self._lock:
+                self._probe_active = False
+        return True
+
     def _run(self):
         while not self._stop.is_set():
+            if self._probe_event.is_set():
+                self._run_probe()
+                continue
             session = None
             try:
                 session = NFCSession()
@@ -74,13 +114,15 @@ class RFIDReader:
                 # successful technology. Revisit it between every other scan,
                 # while advancing all advertised technologies fairly in order.
                 preferred = (1, 1) if (1, 1) in session.modulations else None
-                while not self._stop.is_set():
+                while not self._stop.is_set() and not self._probe_event.is_set():
                     for modulation in session.modulations:
+                        if self._probe_event.is_set():
+                            break
                         candidates = ((preferred, modulation)
                                       if preferred and preferred != modulation
                                       else (modulation,))
                         for candidate in candidates:
-                            if self._stop.is_set():
+                            if self._stop.is_set() or self._probe_event.is_set():
                                 break
                             if candidate in unsupported:
                                 continue
@@ -107,11 +149,17 @@ class RFIDReader:
                     self._session = None
                 if session is not None:
                     session.close()
-            # Backoff applies only to reader failures, never normal scans.
-            self._stop.wait(2)
+            # A requested probe interrupts between scans and skips backoff.
+            if not self._probe_event.is_set():
+                self._probe_event.wait(2)
 
     def close(self):
         self._stop.set()
+        self._probe_event.set()
+        with self._lock:
+            pending, self._probe = self._probe, None
+            if pending is not None:
+                pending[1].cancel()
         with self._lock:
             if self._session is not None:
                 self._session.abort()

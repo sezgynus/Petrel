@@ -486,6 +486,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._nfc_choice_selection = 0
         self._nfc_port_choices = None
         self._nfc_port_error = False
+        future = getattr(self, '_nfc_test_future', None)
+        if future is not None:
+            future.cancel()
+        self._nfc_test_future = None
+        self._nfc_test_state = None
+        self._nfc_test_values = None
         if hasattr(self, '_display_saved'):
             self._display_values = list(self._display_saved)
         self._mmu_canvas_page = None
@@ -975,6 +981,11 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 if hasattr(self, '_loop'):
                     self._loop.cap_interval(.1)
                 self._nfc_poll_port_choices()
+            if (getattr(self, 'checkkey', None) == self.NFCSettingsMenu
+                    and getattr(self, '_nfc_test_future', None) is not None):
+                if hasattr(self, '_loop'):
+                    self._loop.cap_interval(.1)
+                self._nfc_poll_test_connection()
             if getattr(self, '_mesh_pending_points', None) is not None:
                 if self.checkkey == self.BedMeshScreen:
                     if hasattr(self, '_loop'):

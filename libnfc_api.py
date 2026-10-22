@@ -117,6 +117,35 @@ def list_devices(limit=32):
         lib.nfc_exit(context)
 
 
+def check_connection(settings):
+    """Verify a selected reader with libnfc without requiring a card.
+
+    Deliberately bypasses PETREL_NFC_DEVICE and the saved settings: the menu
+    tests its *current draft*. The caller must serialize this operation with
+    any active RFIDSession, since most NFC devices are exclusive-access.
+    """
+    connection = settings.connection_string()
+    lib = bind_library()
+    context = PTR()
+    device = None
+    try:
+        lib.nfc_init(C.byref(context))
+        if not context:
+            raise OSError('libnfc context unavailable')
+        device = lib.nfc_open(context, connection.encode('utf-8'))
+        if not device:
+            raise OSError('Unable to open NFC reader')
+        result = lib.nfc_initiator_init(device)
+        if result < 0:
+            raise OSError('Cannot initialize NFC reader (libnfc error %d)' % result)
+        return True
+    finally:
+        if device:
+            lib.nfc_close(device)
+        if context:
+            lib.nfc_exit(context)
+
+
 class NFCSession:
     """One device handle, all supported passive card technologies, no CLI tools."""
     def __init__(self):

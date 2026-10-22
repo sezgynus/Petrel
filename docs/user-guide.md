@@ -224,6 +224,17 @@ reader after saving. Link speed is editable only for UART. I2C, SPI, USB, PC/SC
 and NCI show an inactive speed field because libnfc does not apply a configurable
 host-interface speed for those transports.
 
+**Test connection** is the final action below **Save** and becomes selectable
+once the model, interface and device have been chosen. It tests the *currently
+selected* values without saving them. The display shows **Checking** followed
+by **Conn. OK** or **Failed**. The shared libnfc API initializes and opens the
+specified reader in initiator mode without needing a tag; it does not establish
+card-read quality or RF range. The connection probe is serialized through
+Petrel's existing RFID worker, never opens a second handle alongside an active
+scan and never blocks the encoder/UI thread. While the probe is pending, saving
+is deferred. A completed test does not change the saved settings; failures are
+logged for diagnostics.
+
 The list follows libnfc driver families rather than every board vendor's product
 name. PN532 offers UART, I2C and SPI in upstream libnfc; the available set still
 depends on the installed libnfc build.
