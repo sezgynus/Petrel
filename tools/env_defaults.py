@@ -25,6 +25,17 @@ def ensure_aux_uart_default(path):
     return True
 
 
+def ensure_nfc_default(path):
+    path = Path(path)
+    text = path.read_text()
+    if re.search(r'^\s*PETREL_NFC=', text, re.MULTILINE):
+        return False
+    with path.open('a') as stream:
+        stream.write(('' if not text or text.endswith('\n') else '\n') + 'PETREL_NFC=0\n')
+    return True
+
+
 if __name__ == '__main__':
     ensure_emulator_default(sys.argv[1])
     ensure_aux_uart_default(sys.argv[1])
+    ensure_nfc_default(sys.argv[1])

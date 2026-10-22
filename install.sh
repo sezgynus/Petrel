@@ -133,6 +133,9 @@ if [[ "${aux_uart:-0}" == 1 || -f /var/lib/Petrel/dwin-uart.json ]]; then
         --updater "$UPDATE_CONF" --asvc "$ASVC_FILE"
 fi
 
+nfc_enabled="$(sed -n 's/^PETREL_NFC=//p' "$ENV_FILE" | tail -n 1)"
+sudo python3 "$REPO_DIR/tools/nfc_install.py" --enabled "${nfc_enabled:-0}"
+
 sudo systemctl enable --now "$SERVICE_NAME.service"
 
 if systemctl list-unit-files moonraker.service >/dev/null 2>&1; then

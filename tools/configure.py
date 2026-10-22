@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from tools.axis_travel_install import install as install_axis
 
-BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'RESTART_PETREL'}
+BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
@@ -85,7 +85,7 @@ def defaults(home):
                 PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
                 PETREL_EMULATOR='n', PETREL_REMOTE='n', PETREL_REMOTE_HOST='0.0.0.0',
-                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', RESTART_PETREL='y')
+                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n', RESTART_PETREL='y')
 
 
 def normalize_bool(value):
@@ -221,8 +221,17 @@ def dwin_install(repo, home, user, enabled, port):
         print(result.stdout, end='')
 
 
+def nfc_install(repo, enabled):
+    result = command('sudo', 'python3', repo / 'tools/nfc_install.py',
+                     '--enabled', '1' if enabled else '0')
+    if result.stdout:
+        print(result.stdout, end='')
+
+
 def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_install,
-          writer=atomic_private, dwin_manifest=Path('/var/lib/Petrel/dwin-uart.json')):
+          nfc=nfc_install, writer=atomic_private,
+          dwin_manifest=Path('/var/lib/Petrel/dwin-uart.json'),
+          nfc_manifest=Path('/var/lib/Petrel/nfc.json')):
     validate(values)
     env_file = home / '.config/Petrel/Petrel.env'
     if (env_file.read_text() if env_file.exists() else '') != original:
@@ -231,7 +240,8 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
     axis_manifest = home / '.config/Petrel/axis-travel-install.json'
     old_axis = json.loads(axis_manifest.read_text()) if axis_manifest.exists() else None
     old_dwin = json.loads(dwin_manifest.read_text()) if dwin_manifest.exists() else None
-    axis_done = dwin_done = False
+    old_nfc = json.loads(nfc_manifest.read_text()) if nfc_manifest.exists() else None
+    axis_done = dwin_done = nfc_done = False
     try:
         changed = axis(values['PETREL_AXIS_TRAVEL'] == 'y', repo=repo,
                        klipper=values['PETREL_KLIPPER_DIR'], printer_config=values['PETREL_PRINTER_CONFIG'],
@@ -240,6 +250,9 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
         if values['PETREL_AUX_UART'] == 'y' or previous['PETREL_AUX_UART'] == 'y' or old_dwin:
             dwin(repo, home, user, values['PETREL_AUX_UART'] == 'y', values['PETREL_SERIAL_PORT'])
             dwin_done = True
+        if values['PETREL_NFC'] == 'y' or previous['PETREL_NFC'] == 'y' or old_nfc:
+            nfc(repo, values['PETREL_NFC'] == 'y')
+            nfc_done = True
         writer(env_file, render_env(values, original))
     except Exception:
         # Each installer rolls its own failure back; undo earlier successful steps.
@@ -248,6 +261,11 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
                 dwin(repo, home, user, bool(old_dwin), old_dwin['port'] if old_dwin else previous['PETREL_SERIAL_PORT'])
             except Exception as error:
                 print('DWIN rollback needs attention: ' + str(error), file=sys.stderr)
+        if nfc_done:
+            try:
+                nfc(repo, bool(old_nfc and old_nfc.get('enabled')))
+            except Exception as error:
+                print('NFC rollback needs attention: ' + str(error), file=sys.stderr)
         if axis_done:
             try:
                 axis(bool(old_axis), repo=repo,

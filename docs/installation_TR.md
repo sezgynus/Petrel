@@ -117,6 +117,7 @@ Menüde bulunmayan ayarlar için harici ortam dosyasını düzenleyin. `export` 
 | `PETREL_REMOTE` | Tarayıcı görüntüsü ve enkoder kontrolü / `0` kapalı, `1` açık; emülatörü de başlatır |
 | `PETREL_REMOTE_HOST` | Remote dinleme adresi / `0.0.0.0`; yapılandırıcı korur |
 | `PETREL_REMOTE_PORT` | Remote portu / `8088`; yapılandırıcı korur |
+| `PETREL_NFC` | İsteğe bağlı libnfc çalışma zamanı bağımlılığı / `0` kapalı; `configure.sh` ile açıp kapatın; DWIN yardımcı UART'ından bağımsızdır |
 | `PETREL_AXIS_TRAVEL` | İsteğe bağlı extra kurulum tercihi / ilk yapılandırmada `1`; yalnız bu anahtarı düzenlemek yerine `configure.sh` kullanın |
 | `PETREL_KLIPPER_DIR` | `klippy/extras` içeren Klipper deposu / `~/klipper` |
 | `PETREL_PRINTER_CONFIG` | Yönetilen include eklenecek ana config / `~/printer_data/config/printer.cfg` |

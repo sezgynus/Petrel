@@ -117,6 +117,7 @@ For settings not listed in the menu, edit the external environment file. Use pla
 | `PETREL_REMOTE` | Browser display and encoder control / `0` disabled, `1` enabled; also starts emulator |
 | `PETREL_REMOTE_HOST` | Remote listener / `0.0.0.0`; preserved by configurator |
 | `PETREL_REMOTE_PORT` | Remote port / `8088`; preserved by configurator |
+| `PETREL_NFC` | Optional libnfc runtime dependency / `0` disabled; enable or remove through `configure.sh`; independent of DWIN auxiliary UART |
 | `PETREL_AXIS_TRAVEL` | Optional extra installation preference / `1` on first configuration; change using `configure.sh`, not by editing this key alone |
 | `PETREL_KLIPPER_DIR` | Klipper repository containing `klippy/extras` / `~/klipper` |
 | `PETREL_PRINTER_CONFIG` | Main config to receive the managed include / `~/printer_data/config/printer.cfg` |

@@ -100,7 +100,10 @@ mevcut ayarları dışarı aktarın:
 ```
 
 Özel izinli bu dosyayı Kconfig biçimiyle düzenleyin (`CONFIG_PETREL_AUX_UART=y`,
-`CONFIG_PETREL_AXIS_TRAVEL=n`, tırnaklı metinler), ardından açıkça uygulayın:
+`CONFIG_PETREL_NFC=y`, `CONFIG_PETREL_AXIS_TRAVEL=n`, tırnaklı metinler), ardından açıkça uygulayın.
+`PETREL_NFC`, yalnız libnfc çalışma zamanı paketini kurup kaldırır. Okuyucu UART'ı
+çalışma zamanında seçilir; DWIN yardımcı UART'ını etkinleştirmez veya zorunlu kılmaz.
+Örneğin:
 
 ```bash
 ./configure.sh --apply-config ~/petrel-settings.config --no-restart

@@ -101,6 +101,16 @@ config PETREL_AUX_UART
       Missing running-kernel headers stop the optional setup safely.
 endmenu
 
+menu "NFC"
+config PETREL_NFC
+    bool "NFC reader support (libnfc)"
+    default n
+    help
+      Install or remove the libnfc runtime dependency used by Petrel's NFC
+      support. Reader transport is configured separately at runtime and does
+      not require the DWIN auxiliary UART option.
+endmenu
+
 menu "Apply options"
 config RESTART_PETREL
     bool "Restart running Petrel after applying"

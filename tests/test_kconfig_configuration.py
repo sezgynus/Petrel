@@ -33,6 +33,14 @@ class KconfigConfigurationTests(unittest.TestCase):
         self.assertEqual(config.syms['PETREL_REMOTE_PORT'].str_value, '8099')
         self.assertEqual(config.syms['PETREL_BUTTON_PIN'].str_value, '13')
 
+    def test_nfc_is_an_independent_opt_in_from_dwin_uart(self):
+        values = self.values(Path('/home/printer'))
+        self.assertEqual(values['PETREL_NFC'], 'n')
+        config = Configuration(ROOT, values)
+        config.syms['PETREL_NFC'].set_value('y')
+        self.assertEqual(collect(config)['PETREL_NFC'], 'y')
+        self.assertEqual(collect(config)['PETREL_AUX_UART'], 'n')
+
     def test_cancel_without_save_does_not_offer_apply(self):
         values = self.values(Path('/home/printer'))
         config = Configuration(ROOT, values)
@@ -129,6 +137,27 @@ class KconfigConfigurationTests(unittest.TestCase):
                       axis=axis, dwin=dwin, writer=writer, dwin_manifest=home / 'none')
             self.assertEqual([call.args[3] for call in dwin.call_args_list], [True, False])
             self.assertFalse((home / '.config/Petrel/Petrel.env').exists())
+
+    def test_nfc_dependency_is_applied_and_removed_without_enabling_dwin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            values = self.values(home)
+            values['PETREL_NFC'] = 'y'
+            axis, dwin, nfc = Mock(return_value=False), Mock(), Mock()
+            apply(values, repo=ROOT, home=home, user='user', original='', axis=axis,
+                  dwin=dwin, nfc=nfc, dwin_manifest=home / 'none', nfc_manifest=home / 'no-nfc')
+            nfc.assert_called_once_with(ROOT, True)
+            dwin.assert_not_called()
+            self.assertIn('PETREL_NFC=1\n', (home / '.config/Petrel/Petrel.env').read_text())
+
+            original = (home / '.config/Petrel/Petrel.env').read_text()
+            values = read_settings(home, original)
+            values['PETREL_NFC'] = 'n'
+            nfc.reset_mock()
+            apply(values, repo=ROOT, home=home, user='user', original=original, axis=axis,
+                  dwin=dwin, nfc=nfc, dwin_manifest=home / 'none', nfc_manifest=home / 'no-nfc')
+            nfc.assert_called_once_with(ROOT, False)
+            dwin.assert_not_called()
 
     def test_settings_changed_during_menu_are_not_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:

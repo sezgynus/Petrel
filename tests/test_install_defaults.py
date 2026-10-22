@@ -4,12 +4,23 @@ import subprocess
 import tempfile
 import unittest
 
-from tools.env_defaults import ensure_emulator_default
+from tools.env_defaults import ensure_emulator_default, ensure_nfc_default
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallerDefaultsTests(unittest.TestCase):
+    def test_existing_config_gets_nfc_disabled_by_default_without_resetting_choice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'app.env'
+            path.write_text('MOONRAKER_URL=http://localhost:7125')
+            self.assertTrue(ensure_nfc_default(path))
+            self.assertTrue(path.read_text().endswith('PETREL_NFC=0\n'))
+            self.assertFalse(ensure_nfc_default(path))
+            path.write_text('PETREL_NFC=1\n')
+            self.assertFalse(ensure_nfc_default(path))
+            self.assertEqual(path.read_text(), 'PETREL_NFC=1\n')
+
     def test_existing_config_adds_default_once_and_preserves_enabled_value(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'app.env'

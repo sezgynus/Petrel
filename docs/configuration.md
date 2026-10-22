@@ -97,7 +97,9 @@ current settings without applying anything:
 ```
 
 Edit that private file using Kconfig syntax (`CONFIG_PETREL_AUX_UART=y`,
-`CONFIG_PETREL_AXIS_TRAVEL=n`, quoted strings), then apply explicitly:
+`CONFIG_PETREL_NFC=y`, `CONFIG_PETREL_AXIS_TRAVEL=n`, quoted strings), then apply explicitly.
+`PETREL_NFC` installs/removes only the libnfc runtime package. Its reader UART is
+selected at runtime and does not enable or require the DWIN auxiliary UART. For example:
 
 ```bash
 ./configure.sh --apply-config ~/petrel-settings.config --no-restart
