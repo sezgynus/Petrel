@@ -206,9 +206,15 @@ seçeneğin üzerine gelip basınca seçim NFC ayar ekranına aktarılır.
 satırların sağında gösterilir; uzun aygıt adları özet satırında
 kısaltılır, seçim listesinde ayırt edilebilir biçimde görünür.
 **NFC feature** satırı yalnızca durumu bildirir. Okuyucu veya
-arayüz değişince alt seçimler sıfırlanır. UART/I2C/SPI listeleri mevcut Linux
-aygıt düğümlerinden; USB, PC/SC ve NCI listeleri kurulu libnfc'nin gerçekten
-bulduğu aygıtlardan oluşturulur. Bu arayüzlerde hız ayarı yoktur. Seçimler Petrel
+arayüz değişince alt seçimler sıfırlanır. UART listesi Moonraker'ın
+`/machine/peripherals/serial` API'sinden gelir: her cihazın yalnızca ana
+`device_path` yolu görünür; `/dev/serial/by-id`, `/dev/serial/by-path`
+ve `/dev/serial0` takma adları ayrı seçenekler olmaz. Liste yalnızca
+**Port / device** alt menüsüne girilince arka planda yenilenir ve gerekirse
+kısa süreli **Loading...** durumu gösterilir. Moonraker hatasında veya boş
+yanıtında eski /dev taramasına geri dönülmez. I2C/SPI mevcut Linux aygıt
+düğümlerinden; USB, PC/SC ve NCI kurulu libnfc'nin gerçekten bulduğu
+aygıtlardan alınır. Bu arayüzlerde hız ayarı yoktur. Seçimler Petrel
 kullanıcısının özel yapılandırma dizininde saklanır ve seçilen bağlantı kaydedince
 arka plan okuyucusuna uygulanır. Hız ayarı yalnızca UART için değiştirilebilir.
 Libnfc I2C, SPI, USB, PC/SC ve NCI için bu ayarı uygulamadığından hız satırı

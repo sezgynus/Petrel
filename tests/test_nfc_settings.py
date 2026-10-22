@@ -1,3 +1,4 @@
+from concurrent.futures import Future
 import json
 from pathlib import Path
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from nfc_settings import (NFCSettings, PROFILES, available_ports, installed_enabled,
-                          load, save)
+                          load, save, serial_ports_from_moonraker)
 from test_capabilities import display, snapshot
 from lcd_resources import ICON_NFC
 from test_regressions import ui
@@ -67,10 +68,46 @@ class NFCSettingsTests(unittest.TestCase):
             (dev / 'ttyS0').touch()
             (dev / 'i2c-1').touch()
             (dev / 'spidev0.0').touch()
-            self.assertEqual(available_ports('UART', 'PN532', dev),
-                             (str(dev / 'ttyAMA0'), str(dev / 'ttyS0')))
+            # Even when /dev contains multiple UART nodes/aliases, Petrel
+            # must never reintroduce its old filesystem-based serial list.
+            self.assertEqual(available_ports('UART', 'PN532', dev), ())
             self.assertEqual(available_ports('I2C', 'PN532', dev), (str(dev / 'i2c-1'),))
             self.assertEqual(available_ports('SPI', 'PN532', dev), (str(dev / 'spidev0.0'),))
+
+    def test_moonraker_serial_response_uses_canonical_paths_only(self):
+        data = {'result': {'serial_devices': [
+            {'device_type': 'hardware_uart', 'device_path': '/dev/ttyS0'},
+            {'device_type': 'usb', 'device_path': '/dev/ttyUSB0',
+             'path_by_id': '/dev/serial/by-id/usb-reader',
+             'path_by_hardware': '/dev/serial/by-path/usb-reader'},
+            {'device_type': 'hardware_uart', 'device_path': '/dev/ttyAMA0'},
+            {'device_type': 'hardware_uart', 'device_path': '/dev/ttyDWIN0'},
+            {'device_type': 'hardware_uart', 'device_path': '/dev/ttyDWIN0'},
+            {'device_type': 'usb', 'device_path': '/dev/ttyS_DWIN0'},
+            {'device_type': 'usb', 'device_path': '/dev/../etc/passwd'},
+            {'device_type': 'video', 'device_path': '/dev/video0'},
+            {'device_type': 'usb', 'device_path': 123},
+        ]}}
+        # Moonraker itself normally returns only canonical paths; duplicate
+        # entries are also filtered. It does not enumerate serial0/by-path.
+        data['result']['serial_devices'].pop(5)
+        self.assertEqual(serial_ports_from_moonraker(data),
+                         ('/dev/ttyS0', '/dev/ttyUSB0',
+                          '/dev/ttyAMA0', '/dev/ttyDWIN0'))
+        for response in ({}, {'result': {}}, {'result': {'serial_devices': None}},
+                         {'result': []}):
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                serial_ports_from_moonraker(response)
+
+    def test_moonraker_backend_uses_shared_bounded_read_worker(self):
+        view = display(snapshot())
+        view.pd._read_worker = Mock()
+        view.pd.client.get = Mock(return_value={'result': {'serial_devices': [
+            {'device_type': 'hardware_uart', 'device_path': '/dev/ttyDWIN0'}]}})
+        view.pd.discover_serial_ports()
+        work = view.pd._read_worker.submit.call_args.args[0]
+        self.assertEqual(work(), ('/dev/ttyDWIN0',))
+        view.pd.client.get.assert_called_once_with('/machine/peripherals/serial')
 
     def test_usb_devices_are_filtered_by_selected_libnfc_driver(self):
         with patch('libnfc_api.list_devices', return_value=(
@@ -165,16 +202,20 @@ class NFCSettingsTests(unittest.TestCase):
         view._nfc_selection = 4
         view.checkkey = view.NFCSettingsMenu
         ports = ('/dev/ttyAMA0', '/dev/ttyDWIN0')
-        fake_ports = Mock(return_value=ports)
+        future = Future()
+        future.set_result(ports)
+        view.pd.discover_serial_ports = Mock(return_value=future)
         fake_save = Mock()
-        code = view._nfc_options.__func__.__globals__
         save_code = view.HMI_NFC_Settings_Menu.__func__.__globals__
         with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
-                patch.dict(code, {'available_ports': fake_ports}), \
                 patch.dict(save_code, {'save': fake_save}):
             view._encoder_event = view.ENCODER_DIFF_ENTER
             view.HMI_NFC_Settings_Menu()
             self.assertEqual(view.checkkey, view.NFCChoiceMenu)
+            view.pd.discover_serial_ports.assert_called_once_with()
+            self.assertEqual(view._nfc_choice_options, ())
+            self.assertEqual(view._draw_list_menu.call_args.args[1][-1][0], 'Loading...')
+            self.assertTrue(view._nfc_poll_port_choices())
             self.assertEqual(view._nfc_choice_options, ports)
             view._nfc_choice_selection = 2
             view.HMI_NFC_Choice_Menu()
@@ -203,6 +244,37 @@ class NFCSettingsTests(unittest.TestCase):
             view.HMI_NFC_Settings_Menu()
             fake_save.assert_called_once_with(view._nfc_values)
             self.assertEqual(view._nfc_saved, view._nfc_values)
+
+    def test_uart_port_discovery_error_and_retry_after_cancel(self):
+        view = display(snapshot())
+        view._draw_list_menu = Mock()
+        view._nfc_values = ViewSettings()
+        view._nfc_confirmed = {'model': True, 'interface': True, 'port': False}
+        view._nfc_selection = 4
+        view.checkkey = view.NFCSettingsMenu
+        pending = Future()
+        second = Future()
+        view.pd.discover_serial_ports = Mock(side_effect=[pending, second])
+        with patch.dict('os.environ', {'PETREL_NFC': '1'}):
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Settings_Menu()
+            self.assertIs(view._nfc_port_future, pending)
+            view._encoder_event = view.ENCODER_DIFF_CW
+            view.HMI_NFC_Choice_Menu()
+            # Loading placeholder is never focusable.
+            self.assertEqual(view.checkkey, view.NFCChoiceMenu)
+            self.assertEqual(view._nfc_choice_selection, 0)
+            view._encoder_event = view.ENCODER_DIFF_ENTER
+            view.HMI_NFC_Choice_Menu()
+            self.assertEqual(view.checkkey, view.NFCSettingsMenu)
+            self.assertTrue(pending.cancelled())
+            view.HMI_NFC_Settings_Menu()
+            self.assertIs(view._nfc_port_future, second)
+            second.set_exception(ValueError('Moonraker unavailable'))
+            self.assertTrue(view._nfc_poll_port_choices())
+            self.assertEqual(view._nfc_choice_options, ())
+            self.assertEqual(view._draw_list_menu.call_args.args[1][-1][0], 'Unavailable')
+            self.assertIn(4, view._nfc_focusable())
 
     def test_choice_rendering_truncates_long_ports_and_shows_checkmark(self):
         view = display(snapshot())

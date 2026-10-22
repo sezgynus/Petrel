@@ -477,10 +477,15 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         self._display_selection = 0
         self._display_edit = False
         self._display_save_message = ''
+        pending = getattr(self, '_nfc_port_future', None)
+        if pending is not None:
+            pending.cancel()
+        self._nfc_port_future = None
         self._nfc_choice_field = None
         self._nfc_choice_options = ()
         self._nfc_choice_selection = 0
         self._nfc_port_choices = None
+        self._nfc_port_error = False
         if hasattr(self, '_display_saved'):
             self._display_values = list(self._display_saved)
         self._mmu_canvas_page = None
@@ -964,6 +969,12 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 blink = bool(getattr(self, '_quiet_blinks', {}))
                 loading = self.checkkey == self.PrintProcess and hasattr(self, '_thumbnail_cache') and self._thumbnail_cache.has_work()
                 self._loop.set_interval(.1 if blink else (.05 if loading else .5))
+            if (getattr(self, 'checkkey', None) == self.NFCChoiceMenu
+                    and getattr(self, '_nfc_choice_field', None) == 'port'
+                    and getattr(self, '_nfc_port_future', None) is not None):
+                if hasattr(self, '_loop'):
+                    self._loop.cap_interval(.1)
+                self._nfc_poll_port_choices()
             if getattr(self, '_mesh_pending_points', None) is not None:
                 if self.checkkey == self.BedMeshScreen:
                     if hasattr(self, '_loop'):
@@ -2038,6 +2049,8 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 self._nfc_choice_field = None
                 self._nfc_choice_options = ()
                 self._nfc_port_choices = None
+                self._nfc_port_future = None
+                self._nfc_port_error = False
                 self._nfc_save_error = False
                 self.checkkey = self.NFCSettingsMenu
                 self.Draw_NFC_Settings_Menu()

@@ -94,13 +94,41 @@ def installed_enabled(environ=None):
     return str(value).strip().lower() in ('1', 'y', 'yes', 'true', 'on')
 
 
+def serial_ports_from_moonraker(response):
+    """One canonical path per UART, matching Moonraker's serial device list.
+
+    Never treat by-id/by-path links or /dev/serial* aliases as extra ports.
+    Invalid or unexpected responses fail closed rather than triggering a local
+    /dev scan that would resurrect the duplicate entries.
+    """
+    if not isinstance(response, dict) or not isinstance(response.get('result'), dict):
+        raise ValueError('Invalid Moonraker serial response')
+    entries = response['result'].get('serial_devices')
+    if not isinstance(entries, list):
+        raise ValueError('Moonraker serial_devices must be a list')
+    paths, seen = [], set()
+    for device in entries:
+        if not isinstance(device, dict):
+            continue
+        if device.get('device_type') not in ('hardware_uart', 'usb'):
+            continue
+        path = device.get('device_path')
+        if (not isinstance(path, str) or not path.startswith('/dev/')
+                or not path[5:] or '/' in path[5:] or path in seen):
+            continue
+        seen.add(path)
+        paths.append(path)
+    return tuple(paths)
+
+
 def available_ports(interface, profile, dev='/dev'):
-    """Return only Linux device nodes present for the selected bus."""
+    """Discover non-UART interfaces; UART is supplied only by Moonraker."""
     root = Path(dev)
     if interface == 'UART':
-        paths = list(root.glob('serial/by-id/*')) + list(root.glob('serial/by-path/*'))
-        paths += [p for pattern in ('ttyAMA*', 'ttyS*', 'ttyUSB*', 'ttyACM*', 'ttyDWIN*', 'serial[0-9]*') for p in root.glob(pattern)]
-    elif interface == 'I2C':
+        # The NFC menu uses serial_ports_from_moonraker via its read worker.
+        # Do not silently fall back to the old duplicate-prone glob scan.
+        return ()
+    if interface == 'I2C':
         paths = list(root.glob('i2c-*'))
     elif interface == 'SPI':
         paths = list(root.glob('spidev*'))

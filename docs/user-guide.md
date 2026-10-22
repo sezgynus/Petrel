@@ -207,9 +207,15 @@ press to select it and return to NFC settings. **Back** leaves the choice list
 without changes. The NFC settings rows show each selection right-aligned;
 long device names are shortened in the summary but remain identifiable in
 the selection list. The **NFC feature** row is informational, not editable.
-Changing the reader or interface clears dependent selections. UART, I2C and SPI
-port lists come from existing Linux device nodes; USB, PC/SC and NCI lists come
-from devices actually enumerated by the installed libnfc build. These interfaces do not have
+Changing the reader or interface clears dependent selections. UART ports come
+from Moonraker's `/machine/peripherals/serial` endpoint: exactly one primary
+`device_path` per device, rather than extra `/dev/serial/by-id`,
+`/dev/serial/by-path` and `/dev/serial0` aliases. The UART list is fetched
+asynchronously only when opening **Port / device** and shows a brief
+**Loading...** state; an unavailable or empty Moonraker response does not
+fall back to a local /dev scan. I2C and SPI continue using existing
+Linux device nodes, while USB, PC/SC and NCI use devices actually enumerated
+by the installed libnfc build. These interfaces do not have
 a separate link-speed control. Settings are stored in the Petrel user's private
 configuration directory and the selected connection is applied to the background
 reader after saving. Link speed is editable only for UART. I2C, SPI, USB, PC/SC

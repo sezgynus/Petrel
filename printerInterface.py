@@ -338,6 +338,12 @@ class PrinterData:
         self._read_jobs.pop(key)
         return job[1].result()
 
+    def discover_serial_ports(self):
+        """Fetch Moonraker's canonical UART list once, off the LCD UI thread."""
+        from nfc_settings import serial_ports_from_moonraker
+        return self._read_worker.submit(lambda: serial_ports_from_moonraker(
+            self.client.get('/machine/peripherals/serial')))
+
     def refresh_nfc_info(self):
         """Read one shared background owner's snapshots, never touch UART here."""
         reader = getattr(self, '_rfid_reader', None)
