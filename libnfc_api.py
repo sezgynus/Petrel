@@ -7,7 +7,10 @@ from pathlib import Path
 import logging
 
 from nfc_info import parse_info
-from nfc_target_experiment import PROFILES, library_for_mode, selected_profile, target_atqa
+from nfc_target_experiment import (
+    PROFILES, library_for_mode, selected_profile, target_atqa,
+    diagnostics_enabled, diagnostics_library_path,
+)
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
 PTR = C.c_void_p
@@ -77,6 +80,10 @@ def library_path():
     mode-0x04 build. Never silently use another mode during a controlled test.
     """
     profile = selected_profile()
+    if diagnostics_enabled():
+        if profile not in ('A', 'B'):
+            raise ValueError('PN532 diagnostics requires upstream Mode 0x05 profile A/B')
+        return diagnostics_library_path()
     if profile is not None:
         return library_for_mode(PROFILES[profile][0])
     root = Path(os.environ.get('XDG_DATA_HOME') or
@@ -357,6 +364,7 @@ class NFCTargetSession:
         # One controlled ATQA variable for the physical A/B matrix.
         # libnfc reverses these bytes for TgInitAsTarget SENS_RES.
         profile = selected_profile()
+        diagnostic = diagnostics_enabled()
         atqa = target_atqa()
         target.info.a.atqa[:] = atqa
         logging.info('NFC Type4 test profile=%s mode=%s ATQA=%02X%02X library=%s',
@@ -373,9 +381,13 @@ class NFCTargetSession:
             n = self.lib.nfc_target_init(self.device, C.byref(target),
                                          receive, len(receive), 500)
             if n in (-6, -10, -20):
+                if diagnostic:
+                    logging.info('PETREL_NFC_DIAG python target_retry rc=%d', n)
                 continue
             if n < 0:
                 raise OSError('NFC target activation failed (%d)' % n)
+            if diagnostic:
+                logging.info('PETREL_NFC_DIAG python target_accepted initial_len=%d', n)
             on_event('share.phone_detected', {})
             while not cancelled():
                 # libnfc can activate a target without delivering an APDU yet.
@@ -389,7 +401,15 @@ class NFCTargetSession:
                         raise OSError('NFC target receive failed (%d)' % n)
                     continue
                 packet = bytes(receive[:n])
+                if diagnostic:
+                    logging.info('PETREL_NFC_DIAG apdu_rx len=%d cla=%s ins=%s',
+                                 n, ('%02X' % packet[0]) if len(packet) else '--',
+                                 ('%02X' % packet[1]) if len(packet) > 1 else '--')
                 answer = tag.respond(packet)
+                if diagnostic:
+                    logging.info('PETREL_NFC_DIAG apdu_tx len=%d sw=%s',
+                                 len(answer), answer[-2:].hex().upper()
+                                 if len(answer) >= 2 else '--')
                 outgoing = (U8 * len(answer)).from_buffer_copy(answer)
                 sent = self.lib.nfc_target_send_bytes(self.device, outgoing,
                                                        len(outgoing), 500)
@@ -398,6 +418,8 @@ class NFCTargetSession:
                         break
                     raise OSError('NFC target send failed (%d)' % sent)
                 if tag.sent():
+                    if diagnostic:
+                        logging.info('PETREL_NFC_DIAG ndef_transferred confirmed')
                     on_event('share.ndef_transferred', {'url': url})
                     return True
                 n = self.lib.nfc_target_receive_bytes(self.device, receive,

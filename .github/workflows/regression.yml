@@ -51,3 +51,22 @@ jobs:
           persist-credentials: false
       - name: Verify native trapq travel and report synthetic cost
         run: python tools/benchmark_axis_travel.py --klipper-source .ci-klipper-travel
+
+  pn532-native-diagnostics:
+    name: Build isolated PN532 native diagnostic libnfc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned libnfc build dependencies
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
+      - name: Compile original 0x05 PN532 mode with observation-only diagnostics
+        run: bash tools/build_pn532_picc_libnfc.sh diag
+      - name: Verify native library, diagnostic symbols and exact upstream mode marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${HOME}/.local/share/Petrel/libnfc-pn532-diagnostics"
+          test -s "$root/lib/libnfc.so.6"
+          grep -Fx 'libnfc-1.8.0 PN532 target diagnostics mode=0x05 v1' "$root/.petrel-nfc-diagnostics"
+          grep -a -q PETREL_NFC_DIAG "$root/lib/libnfc.so.6"
+          ldd "$root/lib/libnfc.so.6"

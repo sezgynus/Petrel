@@ -554,6 +554,55 @@ sudo systemctl restart Petrel.service
 Bu çalışma **nedensellik testidir**: popup'ın kapanması NDEF verisinin
 gönderildiğini gösterir, telefonun tarayıcı açtığını değil.
 
+### PN532 yerel hedef teşhisi (yalnız gözlem)
+
+İlk Mode/ATQA deneyleri, aynı yapılandırmanın farklı okutmalarda FeliCa
+veya Type 4 olarak algılanabildiğini gösterdi. **Bu, upstream Mode 0x05
+değerinin hatalı olduğunu kanıtlamaz.** Ayrı derlenen libnfc 1.8.0 teşhis
+sürümü, upstream `ptm |= ...` Mode kararını değiştirmez; yalnızca
+`pn53x.c` içine günlük kayıtları ekler. Sistem libnfc paketine veya
+önceki 04/05 derlemelerine dokunulmaz.
+
+Sabitlenmiş upstream kaynakla Petrel servis kullanıcısı altında derleyin.
+İlk karşılaştırma için **A** profilini (`0x05` / ATQA `00 04`) seçin:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh diag
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_diag.py enable
+sudo systemctl restart Petrel.service
+```
+
+**Info → Share via NFC** sayfasını açın. Her okutma arasında telefonu
+tamamen uzaklaştırıp NFC Tools'ta FeliCa/NfcA/Type 4 sonuçlarını izleyin.
+Yerel `PETREL_NFC_DIAG` günlükleri PN532'ye *gerçekten gönderilen komut
+yükünü* kaydeder: `tx cmd=8C` Mode, altı MIFARE baytı (ATQA, UID sonu,
+SAK), 18 FeliCa baytı, timeout, gelen aktivasyon modu ve libnfc'nin kabul
+kararı. Python günlükleri APDU komut başlığını, uzunluğu, yanıt durumunu
+ve NDEF aktarımını kaydeder; **NDEF içeriğini veya URL'yi yazmaz**.
+Aktivasyon cevabı bağımsız RF ölçümü değildir: gerçek radyo ATQA baytlarını
+doğrulamak için ayrı bir NFC sniffer gerekir.
+
+Logları incelemek için:
+
+```bash
+python3 tools/nfc_target_diag.py status
+journalctl -u Petrel.service --since "10 minutes ago" --no-pager | grep -E 'PETREL_NFC_DIAG|NFC Type4 test'
+```
+
+Deneyden sonra **teşhisi kapatın**. Bir sonraki servis başlangıcında normal
+05 kütüphanesine geri dönülür; A/B profili ve diğer özel derlemeler değişmez:
+
+```bash
+python3 tools/nfc_target_diag.py disable
+sudo systemctl restart Petrel.service
+```
+
+Eksik/uyumsuz derlemelerde ve teşhis etkinken C/D profillerinde sistem
+hata verir; sessizce başka kütüphaneye geçmez. Özellik isteğe bağlıdır,
+ayrıca NFC donanımı taramaz ve kalıcı teşhis dosyaları üretmez.
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın

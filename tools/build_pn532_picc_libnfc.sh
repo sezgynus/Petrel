@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build controlled PN532 libnfc target variants from the SAME pinned source.
-# 04: strict PICC-only patch; 05: exact unmodified upstream mode.
+# 04: PICC-only patch; 05: upstream mode; diag: upstream 0x05 + RF diagnostics.
 # Never replace apt's libnfc6 or run as root.
 set -euo pipefail
 
@@ -17,17 +17,17 @@ done
 
 MODE="${1:-04}"
 case "$MODE" in
-    04|05) ;;
-    *) echo "Usage: $0 [04|05]" >&2; exit 2 ;;
+    04|05|diag) ;;
+    *) echo "Usage: $0 [04|05|diag]" >&2; exit 2 ;;
 esac
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 ROOT="$DATA_HOME/Petrel"
-if [ "$MODE" = 04 ]; then
-    TARGET="$ROOT/libnfc-pn532-picc"
-else
-    TARGET="$ROOT/libnfc-pn532-mode05"
-fi
+case "$MODE" in
+    04) TARGET="$ROOT/libnfc-pn532-picc" ;;
+    05) TARGET="$ROOT/libnfc-pn532-mode05" ;;
+    diag) TARGET="$ROOT/libnfc-pn532-diagnostics" ;;
+esac
 mkdir -p "$ROOT"
 WORK="$(mktemp -d "$ROOT/.pn532-picc-build.XXXXXXXX")"
 BACKUP=""
@@ -51,8 +51,13 @@ if [ "$HEAD" != "f02ff51449240102c27a97173dc495e8e7789046" ]; then
     echo "Unexpected libnfc source commit: $HEAD" >&2
     exit 1
 fi
-python3 "$SCRIPT_DIR/nfc_pn532_picc_patch.py" --mode "$MODE" \
-    "$WORK/libnfc/libnfc/chips/pn53x.c"
+if [ "$MODE" = diag ]; then
+    python3 "$SCRIPT_DIR/nfc_pn532_diag_patch.py" \
+        "$WORK/libnfc/libnfc/chips/pn53x.c"
+else
+    python3 "$SCRIPT_DIR/nfc_pn532_picc_patch.py" --mode "$MODE" \
+        "$WORK/libnfc/libnfc/chips/pn53x.c"
+fi
 cd "$WORK/libnfc"
 autoreconf -vis
 ./configure --prefix="$WORK/staged" --libdir="$WORK/staged/lib" \
@@ -64,13 +69,22 @@ test -f "$WORK/staged/lib/libnfc.so.6.0.0" || {
     exit 1
 }
 # The marker prevents Petrel from selecting a partial or failed build.
-printf 'libnfc-1.8.0 PN532 Type4 test mode=0x%s\n' "$MODE" \
-    > "$WORK/staged/.petrel-pn532-picc"
+if [ "$MODE" = diag ]; then
+    printf 'libnfc-1.8.0 PN532 target diagnostics mode=0x05 v1\n' \
+        > "$WORK/staged/.petrel-nfc-diagnostics"
+else
+    printf 'libnfc-1.8.0 PN532 Type4 test mode=0x%s\n' "$MODE" \
+        > "$WORK/staged/.petrel-pn532-picc"
+fi
 if [ -d "$TARGET" ]; then
     BACKUP="$WORK/old-install"
     mv "$TARGET" "$BACKUP"
 fi
 mv "$WORK/staged" "$TARGET"
-echo "PN532 mode 0x$MODE library installed: $TARGET/lib/libnfc.so.6"
-echo "Use python3 tools/nfc_target_ab.py select A|B|C|D then restart Petrel.service."
-echo "After testing, use python3 tools/nfc_target_ab.py reset and restart."
+echo "PN532 $MODE library installed: $TARGET/lib/libnfc.so.6"
+if [ "$MODE" = diag ]; then
+    echo "Choose profile A or B, then python3 tools/nfc_target_diag.py enable."
+else
+    echo "Use python3 tools/nfc_target_ab.py select A|B|C|D then restart Petrel.service."
+fi
+ echo "Restart Petrel.service to load the selected library."

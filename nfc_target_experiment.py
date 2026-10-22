@@ -66,3 +66,29 @@ def selected_profile():
 def target_atqa():
     profile = selected_profile()
     return DEFAULT_ATQA if profile is None else PROFILES[profile][1]
+
+
+# Isolated native diagnostics. Installation alone never enables it.
+def diagnostics_file():
+    return config_file().with_name('nfc-target-diagnostics.enabled')
+
+
+def diagnostics_enabled():
+    flag = diagnostics_file()
+    if not flag.exists():
+        return False
+    if flag.read_text(encoding='utf-8') != 'enabled-v1\n':
+        raise ValueError('Unrecognized PN532 diagnostics activation marker')
+    return True
+
+
+def diagnostics_library_path():
+    root = data_home() / 'libnfc-pn532-diagnostics'
+    library = root / 'lib' / 'libnfc.so.6'
+    marker = root / '.petrel-nfc-diagnostics'
+    if not library.is_file() or not marker.is_file():
+        raise OSError('PN532 diagnostic library not installed; build diag variant')
+    if marker.read_text(encoding='utf-8') != (
+            'libnfc-1.8.0 PN532 target diagnostics mode=0x05 v1\n'):
+        raise OSError('PN532 diagnostic build marker is incorrect')
+    return str(library)

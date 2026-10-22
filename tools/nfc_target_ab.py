@@ -15,12 +15,14 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from nfc_target_experiment import (
-    PROFILES, config_file, library_for_mode, selected_profile,
+    PROFILES, config_file, library_for_mode, selected_profile, diagnostics_enabled,
 )
 
 
 def select(profile):
     mode, atqa = PROFILES[profile]
+    if diagnostics_enabled() and mode != 0x05:
+        raise ValueError('Disable PN532 diagnostics before selecting mode 0x04')
     library_for_mode(mode)  # Do not allow a silent fallback to system libnfc.
     target = config_file()
     target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)

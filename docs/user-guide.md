@@ -555,6 +555,56 @@ sudo systemctl restart Petrel.service
 This is still a physical **causality experiment**; a successful popup close
 proves NDEF response transmission, not Android opening the browser.
 
+### PN532 native target diagnostics (observation only)
+
+The first Mode/ATQA trials showed that the same settings may yield FeliCa
+or Type 4 on different phone presentations. **Do not assume that the upstream
+Mode 0x05 is faulty.** Use a separately built libnfc 1.8.0 diagnostic
+variant that retains the exact upstream `ptm |= ...` mode decision and only
+adds journal tracing in `pn53x.c`. It does not change the system libnfc or
+the previously installed 04/05 builds.
+
+Build from the pinned upstream source using the Petrel service account.
+Select **A** (`0x05` / ATQA `00 04`) for the first comparison:
+
+```bash
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh diag
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_diag.py enable
+sudo systemctl restart Petrel.service
+```
+
+Open **Info → Share via NFC**, move the phone completely away after each
+presentation, and observe successive FeliCa/NfcA/Type 4 results in NFC Tools.
+The native `PETREL_NFC_DIAG` lines show the *actual PN532 command payload*:
+`tx cmd=8C` Mode, six MIFARE bytes (ATQA, UID suffix, SAK), the 18 FeliCa
+bytes, timeout, returned activated mode and whether libnfc accepted it.
+The Python lines show APDU command headers, lengths, response status,
+and whether NDEF transferred; **they never print NDEF content or URL**.
+An activated-mode reply is **not** an RF air-interface capture: to verify
+actual over-the-air ATQA independently, a dedicated NFC sniffer is required.
+
+To inspect logs:
+
+```bash
+python3 tools/nfc_target_diag.py status
+journalctl -u Petrel.service --since "10 minutes ago" --no-pager | grep -E 'PETREL_NFC_DIAG|NFC Type4 test'
+```
+
+After the diagnostic test, **disable logging**. This restores the ordinary
+selected 05 library on the next service restart; the A/B configuration and
+other private builds remain untouched:
+
+```bash
+python3 tools/nfc_target_diag.py disable
+sudo systemctl restart Petrel.service
+```
+
+The diagnostics selector refuses missing/mismatched builds and refuses
+profiles C/D while active. It is opt-in and has no automatic NFC hardware
+tests, polling or persistent diagnostic files.
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped
