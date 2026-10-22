@@ -77,6 +77,14 @@ class NFCBackendTests(unittest.TestCase):
         backend._session_factory.assert_not_called()
         backend.close()
 
+    def test_disabled_backend_refuses_hardware_discovery(self):
+        backend = self.backend(feature_enabled=lambda: False)
+        future = backend.discover_devices('PN53x USB', 'USB')
+        with self.assertRaisesRegex(OSError, 'disabled'):
+            future.result()
+        self.assertIsNone(backend._discover)
+        backend.close()
+
     def test_usb_discovery_runs_serialized_on_owner_without_unrelated_devices(self):
         reader = self.backend(feature_enabled=lambda: True,
                               config_loader=lambda: SERIAL)

@@ -113,7 +113,9 @@ class NFCBackend:
             raise ValueError('Unsupported NFC reader/transport')
         future = Future()
         with self._lock:
-            if self._stop.is_set():
+            if not self._feature_enabled():
+                future.set_exception(OSError('NFC feature disabled'))
+            elif self._stop.is_set():
                 future.set_exception(OSError('NFC backend stopped'))
             elif self._discover is not None:
                 future.set_exception(OSError('NFC discovery busy'))
