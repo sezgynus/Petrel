@@ -425,7 +425,7 @@ Real UI emulator output with example data. [Original panel PNGs](screenshots.md)
 
 ### NFC and RFID (experimental)
 
-**Info → NFC** and **Home → RFID** share one background owner using the public
+**Info → NFC** and **Home → NFZ** share one background owner using the public
 libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
 library is required; no compiler or development headers are needed on the Pi.
@@ -547,8 +547,8 @@ experimental tile reuses the Info icon; screenshots do not yet show these pages.
 
 ### Emergency stop tag
 
-Home always ends with **RFID → Info**; add future home entries before Info.
-In **RFID**, rotate to **Emergency stop tag** and select **Assign tag** (or
+Home always ends with **NFZ → Info**; add future home entries before Info.
+In **NFZ**, rotate to **Emergency stop tag** and select **Assign tag** (or
 **Replace tag**). Remove any card already held at the reader, then present the
 new card. Check the displayed UID and choose **Save tag** to confirm; **Cancel**
 leaves the previous assignment intact. **Remove tag** clears the saved mapping.

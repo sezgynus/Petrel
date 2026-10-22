@@ -80,7 +80,7 @@ class RFIDViewMixin:
     def _draw_rfid_info(self, full=True):
         if full:
             self.pd.sync_nfc_event()
-        self._draw_list_menu('RFID', [
+        self._draw_list_menu('NFZ', [
             ('Back', self.ICON_Back, None, None),
             ('Emergency stop tag', ICON_NFC, None, None)],
             getattr(self, '_rfid_selection', 0))

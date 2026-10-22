@@ -104,6 +104,7 @@ class EmergencyTagTests(unittest.TestCase):
         from PIL import Image, ImageChops
         view = display(snapshot())
         entry = next(row for row in view._home_entries() if row[0] == 'RFID')
+        self.assertEqual(entry[1], 'NFZ')
         self.assertEqual(entry[2:], (ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
         self.assertNotEqual(entry[2:], (view.ICON_Info_0, view.ICON_Info_1))
         root = Path(__file__).resolve().parents[1] / 'assets/icons'
