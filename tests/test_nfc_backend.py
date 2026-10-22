@@ -133,6 +133,74 @@ class NFCBackendTests(unittest.TestCase):
         self.assertEqual(reader.capabilities()['ndef_uri_emulation'], True)
         reader.close()
 
+    def test_queued_commands_interrupt_scan_without_opening_second_handle(self):
+        for command in ('probe', 'discover', 'reload', 'share'):
+            with self.subTest(command=command):
+                reader = self.backend(feature_enabled=lambda: True,
+                                      config_loader=lambda: SERIAL)
+                session = Mock()
+                reader._session = session
+                if command == 'probe':
+                    future = reader.test_connection(USB)
+                    self.assertFalse(future.done())
+                elif command == 'discover':
+                    future = reader.discover_devices('PN53x USB', 'USB')
+                    self.assertFalse(future.done())
+                elif command == 'reload':
+                    self.assertTrue(reader.reload_configuration())
+                else:
+                    reader._capabilities['ndef_uri_emulation'] = True
+                    future = reader.share_ndef_uri('https://example.org')
+                    self.assertFalse(future.done())
+                session.abort.assert_called_once_with()
+                reader._session = None
+                reader.close()
+
+    def test_disconnect_clears_stale_card_and_rearms_same_uid_arrival(self):
+        reader = self.backend(feature_enabled=lambda: True,
+                              config_loader=lambda: SERIAL)
+        events = []
+        reader.set_event_sink(lambda event, data: events.append((event, data)))
+        card = {'uid': '12:34', 'type': 'ISO14443A'}
+        reader._observe_card((1, 1), card)
+        reader._publish('Listening', card)
+        self.assertTrue(reader.take_card_event())
+        reader._reset_for_configuration('Reader unavailable')
+        self.assertEqual(reader.snapshot()[1:], ('Reader unavailable', {}))
+        self.assertFalse(reader.take_card_event())
+        self.assertIn(('card.removed', card), events)
+        reader._observe_card((1, 1), card)
+        self.assertTrue(reader.take_card_event())
+        self.assertEqual([name for name, _ in events].count('card.detected'), 2)
+        reader.close()
+
+    def test_aborted_scan_does_not_report_false_reader_failure(self):
+        reader = None
+        statuses = []
+        session = Mock()
+        session.modulations = [(1, 1)]
+        session.identity.return_value = {'status': 'Connected'}
+        # The stop flag by itself masks error handling. Instead, let a queued
+        # reload prevent the error path and stop after the reload is consumed.
+        session.scan.side_effect = lambda _: (reader.reload_configuration(),
+                                              (_ for _ in ()).throw(OSError('aborted')))[1]
+        count = [0]
+        def factory(_):
+            count[0] += 1
+            if count[0] == 2:
+                reader._stop.set()
+            return session
+        reader = self.backend(feature_enabled=lambda: True,
+                              config_loader=lambda: SERIAL,
+                              session_factory=factory)
+        reader.set_event_sink(lambda event, data: statuses.append((event, data)))
+        reader._run()
+        self.assertFalse(any(event == 'reader.changed' and
+                             data.get('status') == 'Reader unavailable'
+                             for event, data in statuses))
+        self.assertEqual(count[0], 2)
+        reader.close()
+
     def test_reconfigure_resets_last_card_and_pending_arrival(self):
         backend = self.backend(feature_enabled=lambda: True,
                                config_loader=lambda: SERIAL)

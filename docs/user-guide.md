@@ -426,8 +426,12 @@ are not used. With NFC disabled or no valid saved device, no libnfc reader
 handle is opened. The backend runs in the existing Petrel process, with one
 worker and one device owner across both screens. **Save** signals asynchronous
 reconfiguration; it does not close or join the worker on the LCD thread.
-An active session closes before the new settings are applied. Identity is
-read once per connection and refreshed after reconnect.
+Pending Save, connection-test, device-discovery and share requests interrupt an
+in-flight libnfc scan; the backend worker closes the old session before using
+the reader for another operation. A hardware disconnect clears the current
+card/pending arrival and produces a removal event so reconnecting the same card
+can generate a fresh detection. Identity is read once per connection and
+refreshed after reconnect.
 Info shows model, firmware, libnfc version and supported A/B/FeliCa protocols;
 PN532 does not expose its module board revision, so Hardware is **Not reported**.
 

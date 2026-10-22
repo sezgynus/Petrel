@@ -67,6 +67,19 @@ class NFCBackend:
             except Exception:
                 logging.exception('NFC event sink failed')
 
+    def _interrupt_scan(self):
+        """Ask libnfc to end an in-flight scan so queued work runs promptly.
+
+        Do not close or open a device here. Only the worker may do that, after
+        the interrupted scan has unwound. Synchronize with session teardown.
+        """
+        with self._lock:
+            if self._session is not None:
+                try:
+                    self._session.abort()
+                except Exception:
+                    logging.exception('Unable to interrupt NFC scan')
+
     def capabilities(self):
         with self._lock:
             return dict(self._capabilities)
@@ -87,6 +100,8 @@ class NFCBackend:
                 self._share_cancel.clear()
                 self._share_event.set()
                 self._wake.set()
+        if not future.done():
+            self._interrupt_scan()
         return future
 
     def cancel_share(self):
@@ -123,6 +138,8 @@ class NFCBackend:
                 self._discover = (model, interface, future)
                 self._discover_event.set()
                 self._wake.set()
+        if not future.done():
+            self._interrupt_scan()
         return future
 
     def _run_discovery(self):
@@ -210,6 +227,8 @@ class NFCBackend:
                 self._probe = (settings, future)
                 self._probe_event.set()
                 self._wake.set()
+        if not future.done():
+            self._interrupt_scan()
         return future
 
     def reload_configuration(self):
@@ -220,6 +239,7 @@ class NFCBackend:
                 return False
             self._change.set()
             self._wake.set()
+        self._interrupt_scan()
         return True
 
     def _read_configuration(self):
@@ -237,7 +257,11 @@ class NFCBackend:
         return settings
 
     def _reset_for_configuration(self, status):
+        removed = None
         with self._lock:
+            if self._present_card is not None:
+                removed = {'type': self._present_card[0],
+                           'uid': self._present_card[1]}
             self._card = {}
             self._present_card = None
             self._present_modulation = None
@@ -247,6 +271,8 @@ class NFCBackend:
             self._status = status
             self._capabilities = {'target_mode': None, 'ndef_uri_emulation': None}
             self._revision += 1
+        if removed is not None:
+            self._emit('card.removed', removed)
         self._emit('capabilities.changed', self.capabilities())
         self._emit('reader.changed', {'status': status, 'identity': {'status': 'Unavailable'}})
 
@@ -391,12 +417,16 @@ class NFCBackend:
                     if len(unsupported) == len(session.modulations):
                         raise OSError('No usable NFC modulation')
             except (OSError, ValueError) as error:
-                if not self._stop.is_set():
+                # nfc_abort_command() can terminate a scan with a libnfc
+                # error. That is not a reader failure if a command requested
+                # the interruption: process it after closing this session.
+                preempted = (self._probe_event.is_set() or self._discover_event.is_set()
+                             or self._change.is_set() or self._share_event.is_set())
+                if not self._stop.is_set() and not preempted:
                     logging.warning('NFC reader unavailable: %s', error)
-                    with self._lock:
-                        self._capabilities = {'target_mode': None, 'ndef_uri_emulation': None}
-                    self._emit('capabilities.changed', self.capabilities())
-                    self._publish('Reader unavailable', identity={'status': 'Unavailable'})
+                    # A reconnect must count the same UID as a new arrival.
+                    # Never keep a stale pending arrival after unplug/errors.
+                    self._reset_for_configuration('Reader unavailable')
             finally:
                 with self._lock:
                     self._session = None

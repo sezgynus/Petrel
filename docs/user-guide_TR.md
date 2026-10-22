@@ -426,8 +426,12 @@ sabit bir UART adresine geri dönüş yoktur. NFC devre dışıysa ya da geçerl
 okuyucu kaydı yoksa libnfc aygıtı açılmaz. Backend mevcut Petrel sürecinde tek
 worker ve tek donanım sahibi olarak iki ekran tarafından paylaşılır.
 **Save** seçimi UI thread'ini bloke etmeden yeniden yapılandırma bildirimi
-gönderir. Önceki oturum kapatılmadan yeni aygıt açılmaz. Kimlik bağlantı
-başına bir kez okunur, yeniden bağlantıda yenilenir.
+gönderir. Save, bağlantı testi, aygıt keşfi ve paylaşım istekleri devam eden libnfc
+taramasını keser; backend worker eski oturumu kapatmadan başka bir işlem için
+okuyucuyu kullanmaz. Donanım bağlantısı kopunca mevcut kart ve bekleyen algılama
+bildirimi temizlenir, kaldırılma olayı yayımlanır; aynı kart yeniden bağlanınca
+yeni bir algılama olayı üretilebilir. Kimlik bağlantı başına bir kez okunur,
+yeniden bağlantıda yenilenir.
 Info model, firmware, libnfc sürümü ve desteklenen A/B/FeliCa protokollerini gösterir.
 PN532 modül kartının revizyonunu bildirmez; Hardware alanı **Not reported** olur.
 
