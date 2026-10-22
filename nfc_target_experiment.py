@@ -127,3 +127,17 @@ def modedet_library_path(profile=None):
             % (mode, version)):
         raise OSError('PN532 ModeDetOff build marker is incorrect')
     return str(library)
+
+
+# Unpatched distro libnfc register-access experiment. One private opt-in flag.
+def system_modedet_file():
+    return config_file().with_name('nfc-target-system-modedet.enabled')
+
+
+def system_modedet_enabled():
+    flag = system_modedet_file()
+    if not flag.exists():
+        return False
+    if flag.read_text(encoding='utf-8') != 'enabled-v1\n':
+        raise ValueError('Unrecognized system libnfc register experiment marker')
+    return True

@@ -731,6 +731,54 @@ bildirimi hem NFC Tools'ta Petrel etiketinin okunmaya devam edip etmediğini
 kaydedin. Android'in URL bildirimi işletim sistemi ve uygulama
 ilişkilendirmesine de bağlıdır. Bu deney henüz kesin düzeltme değildir.
 
+### Değiştirilmemiş sistem libnfc ile register deneyi (özel derleme yok)
+
+**İsteğe bağlı** PN532 deneyinde yamalı kütüphane yerine dağıtımın orijinal
+`libnfc.so.6` kütüphanesi kullanılır. Upstream libnfc 1.8.0
+`pn53x_write_register` sembolünü dışarı aktarır. Petrel bu genel olmayan
+fonksiyonu `ctypes` ile bağlar, mevcutluğunu kontrol eder ve her Type 4
+hedef aktivasyonundan **önce** `CIU_Mode 0x6301` bit 2 için maskeli
+yazma isteğini libnfc'nin write-back cache'ine ekler. Sonraki PN532
+komutunda cache donanıma aktarılır. Sistem paketinin RF davranışında
+bu yöntemin başarılı olacağı henüz fiziksel olarak doğrulanmadı.
+Hedef oturumu kapanırken bitin temizlenmesi istenir; cihaz zaten
+kapatılmış olabileceğinden bu işlem best-effort'tur.
+
+**A profili** (mode `0x05`, ATQA `00 04`) seçiliyken:
+
+```bash
+cd ~/Petrel
+python3 tools/nfc_target_system_modedet.py probe
+python3 tools/nfc_target_modedet.py disable
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_system_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+`probe`, sistem `libnfc6` paketini ve
+`pn53x_write_register` sembolünü kontrol eder; okuyucuya erişmez.
+Sistem libnfc paketini değiştirmeyin. Telefonla en az on okutma yapıp
+Type 4 NDEF / Unknown FeliCa / aktivasyon hatalarını ayrı sayın.
+Kayıtları alın:
+
+```bash
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
+  grep -E 'PETREL_NFC_SYSTEM_MODEDET|NFC Type4|NFC URI'
+```
+
+`queued` kaydı yalnız libnfc cache'ine yazma isteğinin eklendiğini
+gösterir; **register'ın fiziksel olarak yazıldığını kanıtlamaz**.
+Sembol yoksa veya işlem başarısızsa sessiz fallback yapılmaz.
+
+Derleme gerektirmeden önceki çalışan A + yamalı kütüphane deneyine dönmek:
+
+```bash
+python3 tools/nfc_target_system_modedet.py disable
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın

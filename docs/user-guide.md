@@ -732,6 +732,53 @@ browser notification behavior and whether NFC Tools continues to read the
 Petrel tag. Android notification behavior remains dependent on the phone
 OS and browser handlers. This experiment does not prove the issue is fixed.
 
+### Unmodified system libnfc register experiment (no custom build)
+
+An **opt-in** physical PN532 test can use the distribution's unmodified
+`libnfc.so.6` rather than the patched ModeDetOff variants. Upstream
+libnfc 1.8.0 exports `pn53x_write_register`; Petrel binds that
+non-public symbol using `ctypes`, checks its presence, and queues a masked
+`CIU_Mode 0x6301` bit-2 write **before each** Type 4 target-init attempt.
+The next PN532 command flushes the library's write-back cache. This is a
+hypothesis to validate with the actual system package, not a proven RF fix.
+At target-session close it requests a masked clear, but this is best effort
+because the device can already be deactivated.
+
+With **profile A** (mode `0x05`, ATQA `00 04`) selected, use:
+
+```bash
+cd ~/Petrel
+python3 tools/nfc_target_system_modedet.py probe
+python3 tools/nfc_target_modedet.py disable
+python3 tools/nfc_target_diag.py disable
+python3 tools/nfc_target_ab.py select A
+python3 tools/nfc_target_system_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
+The probe requires the system `libnfc6` package with an exported
+`pn53x_write_register` symbol and does not touch the reader. Never
+replace the distro library. Run at least ten phone presentations and
+record Type 4 NDEF / Unknown FeliCa / activation-error results. Logs:
+
+```bash
+journalctl -u Petrel.service --since "15 minutes ago" --no-pager |
+  grep -E 'PETREL_NFC_SYSTEM_MODEDET|NFC Type4|NFC URI'
+```
+
+The `queued` line means the library accepted a write into its cache;
+it **does not prove** that a hardware write occurred. If it fails or the
+system library omits the private symbol, it fails explicitly rather than
+silently reverting to incompatible behavior.
+
+Rollback to the known A + patched-lib experiment **without recompiling**:
+
+```bash
+python3 tools/nfc_target_system_modedet.py disable
+python3 tools/nfc_target_modedet.py enable
+sudo systemctl restart Petrel.service
+```
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped

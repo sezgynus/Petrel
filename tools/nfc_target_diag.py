@@ -13,11 +13,13 @@ import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from nfc_target_experiment import (
     diagnostics_file, diagnostics_enabled, diagnostics_library_path,
-    selected_profile, modedet_enabled,
+    selected_profile, modedet_enabled, system_modedet_enabled,
 )
 
 
 def enable():
+    if system_modedet_enabled():
+        raise ValueError('Disable system ModeDetOff before enabling diagnostics')
     if modedet_enabled():
         raise ValueError('Disable PN532 ModeDetOff before enabling diagnostics')
     profile = selected_profile()

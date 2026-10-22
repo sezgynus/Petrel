@@ -11,6 +11,7 @@ from nfc_target_experiment import (
     PROFILES, library_for_mode, selected_profile, target_atqa,
     diagnostics_enabled, diagnostics_library_path,
     modedet_enabled, modedet_library_path,
+    system_modedet_enabled,
 )
 
 U8, SIZE, INT = C.c_uint8, C.c_size_t, C.c_int
@@ -81,6 +82,13 @@ def library_path():
     mode-0x04 build. Never silently use another mode during a controlled test.
     """
     profile = selected_profile()
+    if system_modedet_enabled():
+        if profile != 'A' or modedet_enabled() or diagnostics_enabled():
+            raise ValueError('System libnfc ModeDetOff requires profile A exclusively')
+        system = C.util.find_library('nfc')
+        if not system:
+            raise OSError('System libnfc not installed (libnfc6 required)')
+        return system
     if modedet_enabled():
         if diagnostics_enabled():
             raise ValueError('PN532 ModeDetOff and diagnostics cannot be combined')
@@ -137,6 +145,15 @@ def bind_library():
     for name, (result, args) in signatures.items():
         function = getattr(lib, name)
         function.restype, function.argtypes = result, args
+    if system_modedet_enabled():
+        # Exported by upstream libnfc 1.8.0 but not part of the public NFC ABI.
+        # Fail closed instead of claiming ModeDetOff was applied without a symbol.
+        try:
+            write = lib.pn53x_write_register
+        except AttributeError as error:
+            raise OSError('Installed libnfc lacks pn53x_write_register symbol') from error
+        write.restype = INT
+        write.argtypes = [PTR, C.c_uint16, U8, U8]
     return lib
 
 
@@ -344,6 +361,8 @@ class NFCTargetSession:
 
     def __init__(self, settings):
         connection = settings.connection_string()
+        if system_modedet_enabled() and settings.model != 'PN532':
+            raise ValueError('Register experiment supports only PN532 device profiles')
         self.lib = bind_library()
         self.context = PTR()
         self.device = None
@@ -371,7 +390,8 @@ class NFCTargetSession:
         # One controlled ATQA variable for the physical A/B matrix.
         # libnfc reverses these bytes for TgInitAsTarget SENS_RES.
         profile = selected_profile()
-        diagnostic = diagnostics_enabled() or modedet_enabled()
+        system_mode = system_modedet_enabled()
+        diagnostic = diagnostics_enabled() or modedet_enabled() or system_mode
         atqa = target_atqa()
         target.info.a.atqa[:] = atqa
         logging.info('NFC Type4 test profile=%s mode=%s ATQA=%02X%02X library=%s',
@@ -389,6 +409,15 @@ class NFCTargetSession:
         # is a quiet RF interval. This applies only after a confirmed read.
         post_transfer_timeout_ms = 2000
         while not cancelled():
+            if system_mode:
+                # Upstream pn53x_write_register queues a masked write in its
+                # cache. The next target-init command flushes it to the chip.
+                rc = self.lib.pn53x_write_register(
+                    self.device, 0x6301, 0x04, 0x04)
+                if rc < 0:
+                    raise OSError('PN532 ModeDetOff register write failed (%d)' % rc)
+                if diagnostic:
+                    logging.info('PETREL_NFC_SYSTEM_MODEDET queued addr=6301 mask=04 rc=%d', rc)
             n = self.lib.nfc_target_init(self.device, C.byref(target),
                                          receive, len(receive), 500)
             if n in (-6, -10, -20):
@@ -466,6 +495,16 @@ class NFCTargetSession:
 
     def close(self):
         if self.device:
+            if system_modedet_enabled():
+                # Best-effort masked clear. Do not turn a transferred NDEF
+                # into failure if the field has already been deactivated.
+                try:
+                    rc = self.lib.pn53x_write_register(
+                        self.device, 0x6301, 0x04, 0x00)
+                    if rc < 0:
+                        logging.warning('PETREL_NFC_SYSTEM_MODEDET clear rc=%d', rc)
+                except (AttributeError, OSError):
+                    logging.exception('PETREL_NFC_SYSTEM_MODEDET clear failed')
             self.lib.nfc_close(self.device)
             self.device = None
         if self.context:
