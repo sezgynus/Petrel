@@ -480,6 +480,38 @@ successfully served**. It does not mean the phone opened a browser. Cancel,
 failure and successful transfer relinquish target mode and resume normal
 scanning. While sharing, global RFID-card actions are suspended.
 
+**Experimental PN532 / Android Type 4 fix:** The stock libnfc 1.8.0 PN532
+target implementation constructs `TgInitAsTarget` mode `0x05` (passive +
+PICC). Some Android phones instead see a zero-filled FeliCa/NfcF target,
+even while the backend reports a complete NDEF transfer. Petrel provides an
+opt-in, reversible build of **the pinned libnfc 1.8.0 source** that changes
+only the PN532 ISO14443-4 PICC activation to mode `0x04`. It does not
+replace the operating system's libnfc package or change the Core architecture.
+On the Pi, as the Petrel service user (not root), install the build prerequisites
+once and build the isolated library:
+
+```bash
+sudo apt-get install -y build-essential git python3 autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh
+sudo systemctl restart Petrel.service
+```
+
+The patched library is used on the next Petrel start only after a successful
+build. Reader scanning continues to use libnfc and the same NFC Backend worker.
+For an immediate rollback, run as the same Petrel service user:
+
+```bash
+rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
+sudo systemctl restart Petrel.service
+```
+
+This is a **hardware experiment**, not a verified phone compatibility fix.
+A successful popup close establishes successful NDEF response transmission,
+not that Android accepted or opened the URI. Confirm in NFC Tools that the
+phone sees **NfcA / IsoDep**, an NDEF URI and the Petrel URL. If it still reads
+only as NfcF or FeliCa, do not count it as a successful share.
+
 The event-driven NFC Core is the single observer of the NFC Backend and
 implements scoped, prioritized and consumable `card.detected`/
 `card.removed` events. Global emergency-stop mappings preempt ordinary scoped

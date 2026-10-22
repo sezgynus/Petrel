@@ -481,6 +481,37 @@ taklit edilir; ancak **NDEF dosyasının tüm baytları başarıyla gönderildi�
 anlamına gelmez. İptal, hata veya başarılı aktarım sonunda normal taramaya
 dönülür. Paylaşım sırasında global RFID kart işlevleri duraklar.
 
+**Deneysel PN532 / Android Type 4 düzeltmesi:** Stok libnfc 1.8.0,
+PN532 için `TgInitAsTarget` modunu `0x05` (passive + PICC) olarak üretir.
+Bazı Android telefonlarda tam NDEF aktarım olayı oluşsa da etiket sıfır
+kimlikli FeliCa/NfcF olarak görünebilir. Petrel, yalnız PN532 ISO14443-4
+etiket taklit modunu `0x04` yapan, **libnfc 1.8.0'ın sabitlenmiş kaynak
+sürümünü** kullanan isteğe bağlı ve geri alınabilir bir derleme aracı içerir.
+Sistemdeki apt/libnfc paketine dokunulmaz; NFC Core/Backend mimarisi
+değişmez. Raspberry Pi'de Petrel servis kullanıcısıyla (root değil):
+
+```bash
+sudo apt-get install -y build-essential git python3 autoconf automake libtool pkg-config libusb-dev libusb-1.0-0-dev libpcsclite-dev
+cd ~/Petrel
+bash tools/build_pn532_picc_libnfc.sh
+sudo systemctl restart Petrel.service
+```
+
+Derleme eksiksiz tamamlanırsa sonraki Petrel başlangıcında özel libnfc
+kullanılır; normal RFID taraması aynı Backend worker'ında sürer.
+Geri dönüş için aynı kullanıcıyla:
+
+```bash
+rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/Petrel/libnfc-pn532-picc"
+sudo systemctl restart Petrel.service
+```
+
+Bu işlem **fiziksel kabulü yapılmamış bir uyumluluk denemesidir**.
+Popup'ın kapanması Android'in bağlantıyı kabul ettiği veya açtığı anlamına
+gelmez. NFC Tools'ta **NfcA / IsoDep**, geçerli NDEF URI ve Petrel
+repo adresi doğrulanmalıdır. Telefon yalnız NfcF/FeliCa algılıyorsa
+başarılı paylaşım kabul edilmez.
+
 NFC Core, NFC Backend olaylarını tek noktadan alır; bağlama özel, öncelikli,
 tüketilebilir `card.detected`/`card.removed` olaylarını dağıtır. Global
 emergency-stop eşleşmeleri normal bağlamlardan önceliklidir ve Moonraker'ın

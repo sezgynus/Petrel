@@ -2,6 +2,8 @@
 import ctypes as C
 import ctypes.util
 from functools import lru_cache
+import os
+from pathlib import Path
 
 from nfc_info import parse_info
 
@@ -66,6 +68,21 @@ def decode_target(target):
     return card
 
 
+def library_path():
+    """Prefer an opt-in, isolated PN532 PICC-only build; never modify apt libnfc.
+
+    Only a completed build with the marker file is eligible. When absent,
+    preserve the existing system libnfc behavior for every reader family.
+    """
+    root = Path(os.environ.get('XDG_DATA_HOME') or
+                (Path.home() / '.local' / 'share')) / 'Petrel' / 'libnfc-pn532-picc'
+    patched = root / 'lib' / 'libnfc.so.6'
+    marker = root / '.petrel-pn532-picc'
+    if marker.is_file() and patched.is_file():
+        return str(patched)
+    return C.util.find_library('nfc')
+
+
 @lru_cache(maxsize=1)
 def bind_library():
     """Resolve and bind the libnfc ABI once per Petrel process.
@@ -73,7 +90,7 @@ def bind_library():
     Context and device handles are still owned and closed per worker session.
     Only the immutable CDLL binding is shared to avoid repeated linker lookups.
     """
-    path = C.util.find_library('nfc')
+    path = library_path()
     if not path:
         raise OSError('libnfc missing')
     lib = C.CDLL(path)
@@ -332,8 +349,10 @@ class NFCTargetSession:
         tag = Type4UriTag(url)
         target = Target()
         target.modulation = Modulation(1, 0)  # ISO14443A / undefined bitrate
-        target.info.a.atqa[:] = (0x00, 0x04)
-        target.info.a.sak = 0x20  # ISO14443-4 compliant Type A
+        # The validated PN532 Type 4 reference uses SENS_RES 08 00.
+        # libnfc reverses the two bytes when composing TgInitAsTarget.
+        target.info.a.atqa[:] = (0x00, 0x08)
+        target.info.a.sak = 0x20  # ISO14443-4 only (do not advertise unsupported DEP)
         target.info.a.uid_len = 4
         target.info.a.uid[:4] = (0x08, 0x00, 0xB0, 0x0B)  # Random UID prefix
         target.info.a.ats_len = 4

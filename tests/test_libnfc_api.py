@@ -183,6 +183,46 @@ class DirectLibNFCTests(unittest.TestCase):
             session.scan((1, 1))
         session.close()
 
+    def test_private_pn532_library_selection_is_opt_in_and_reversible(self):
+        from libnfc_api import library_path
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ, {'XDG_DATA_HOME': tmp}), \
+                    patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'):
+                self.assertEqual(library_path(), 'libnfc.so.6')
+                root = Path(tmp) / 'Petrel' / 'libnfc-pn532-picc'
+                lib = root / 'lib' / 'libnfc.so.6'
+                lib.parent.mkdir(parents=True)
+                lib.write_bytes(b'fake')
+                self.assertEqual(library_path(), 'libnfc.so.6')
+                (root / '.petrel-pn532-picc').write_text('ready')
+                self.assertEqual(library_path(), str(lib))
+                (root / '.petrel-pn532-picc').unlink()
+                self.assertEqual(library_path(), 'libnfc.so.6')
+
+    def test_pn532_target_emulates_type_4a_without_advertising_dep(self):
+        from libnfc_api import NFCTargetSession
+        target = NFCTargetSession.__new__(NFCTargetSession)
+        target.device = 123
+        target.lib = self.fake_library()
+        parameters = []
+        def activate(device, target_ptr, *_):
+            param = C.cast(target_ptr, C.POINTER(Target)).contents
+            a = param.info.a
+            parameters.append((param.modulation.kind, bytes(a.atqa),
+                               a.sak, bytes(a.uid[:a.uid_len])))
+            return 0
+        target.lib.nfc_target_init.side_effect = activate
+        cancelled = [False]
+        def receive(*args):
+            cancelled[0] = True
+            return -6
+        target.lib.nfc_target_receive_bytes.side_effect = receive
+        self.assertFalse(target.serve_uri('https://example.org',
+                                         lambda: cancelled[0],
+                                         lambda *args: None))
+        self.assertEqual(parameters, [(1, b'\\x00\\x08', 0x20,
+                                       b'\\x08\\x00\\xb0\\x0b')])
+
     def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
         from libnfc_api import NFCTargetSession
         from unittest.mock import Mock
