@@ -258,7 +258,7 @@ class RFIDTests(unittest.TestCase):
         core.get_last_card.return_value = {'uid': '01:02:03:04'}
         core.reload_configuration.return_value = True
         settings = NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200)
-        with patch('printerInterface.installed_enabled', return_value=True):
+        with patch.object(pd, 'get_nfc_core', return_value=core):
             self.assertTrue(pd.sync_nfc_event())
             self.assertFalse(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['nfc']['model'], 'PN532')
@@ -316,6 +316,7 @@ class RFIDTests(unittest.TestCase):
         uid = ':'.join(f'{i:02X}' for i in range(10))
         view.pd.system_info['rfid'] = {'status': 'Listening',
             'card': {'type': 'ISO14443A', 'uid': uid}}
+        view.pd.sync_nfc_event = Mock(return_value=False)
         view.Draw_RFID_Menu()
         texts = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
         self.assertIn('00:01:02:03:04:05:06:07:08:09', texts)

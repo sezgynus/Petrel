@@ -31,25 +31,30 @@ class NFCInfoTests(unittest.TestCase):
     def test_shared_background_identity_is_cached_without_ui_io(self):
         pd = printer(snapshot())
         reader = pd._rfid_reader
-        reader.identity.return_value = parse_info(OUTPUT)
-        globals_ = pd.refresh_nfc_info.__func__.__globals__
-        with patch.dict(globals_, {'installed_enabled': lambda: True}):
-            self.assertTrue(pd.refresh_nfc_info())
+        core = Mock()
+        core.get_reader_info.return_value = parse_info(OUTPUT)
+        core.get_capabilities.return_value = {'ndef_uri_emulation': True}
+        core.get_status.return_value = 'Listening'
+        core.get_last_card.return_value = {}
+        with patch.object(pd, 'get_nfc_core', return_value=core):
+            self.assertTrue(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['nfc']['firmware'], '1.6')
-            self.assertFalse(pd.refresh_rfid())
-        reader.identity.assert_called()
+            self.assertEqual(pd.system_info['nfc']['ndef_uri'], 'Yes')
+            self.assertFalse(pd.sync_nfc_event())
+        reader.identity.assert_not_called()
+        reader.snapshot.assert_not_called()
 
     def test_disabled_feature_reports_status_without_spawning_reader(self):
         pd = printer(snapshot())
         pd._rfid_reader = None
-        globals_ = pd.refresh_nfc_info.__func__.__globals__
+        globals_ = pd.get_nfc_core.__func__.__globals__
         factory = Mock()
         with patch.dict(globals_, {'installed_enabled': lambda: False,
                                    'RFIDReader': factory}):
-            self.assertTrue(pd.refresh_nfc_info())
+            self.assertTrue(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['nfc'], {'status': 'Disabled'})
             self.assertEqual(pd.system_info['rfid'], {'status': 'Disabled', 'card': {}})
-            self.assertFalse(pd.refresh_nfc_info())
+            self.assertFalse(pd.sync_nfc_event())
             factory.assert_not_called()
             from nfc_settings import NFCSettings
             with self.assertRaisesRegex(OSError, 'disabled'):
