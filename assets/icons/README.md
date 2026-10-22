@@ -55,3 +55,5 @@ Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activi
 The NFC settings entry uses ID **171** (`ICON_NFC`), the familiar NFC N silhouette in the shared 20×20 Graphite cyan style. The read-only NFC feature status follows the Info layout and does not use an action icon. The icon's editable source is `assets/icon-source/171.svg`.
 
 The NFC silhouette is adapted from [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg); its proportions are preserved, with only uniform scaling and Graphite coloring. Source attribution and license are in [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt).
+
+The RFID home entry uses dedicated **172/173** normal/selected contactless-card-and-wave icons (110×100). Graphite tile surfaces, selection outlines and native label space match the other home icons; RFID does not reuse Info artwork.

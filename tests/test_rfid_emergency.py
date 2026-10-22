@@ -98,3 +98,48 @@ class EmergencyTagTests(unittest.TestCase):
                 'card.detected', {'uid': 'AA:BB'})
             pd.subscription.request.assert_called_once_with('printer.emergency_stop')
             core.close()
+
+    def test_rfid_home_artwork_is_distinct_and_both_states_are_bound(self):
+        from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
+        from PIL import Image, ImageChops
+        view = display(snapshot())
+        entry = next(row for row in view._home_entries() if row[0] == 'RFID')
+        self.assertEqual(entry[2:], (ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
+        self.assertNotEqual(entry[2:], (view.ICON_Info_0, view.ICON_Info_1))
+        root = Path(__file__).resolve().parents[1] / 'assets/icons'
+        for number in entry[2:]:
+            with Image.open(root / f'{number}.jpg') as icon:
+                self.assertEqual(icon.size, (110, 100))
+                with Image.open(root / '092.jpg') as info:
+                    self.assertIsNotNone(ImageChops.difference(icon, info).getbbox())
+
+    def test_rfid_actions_and_all_uid_lines_stay_above_dashboard(self):
+        view = display(snapshot())
+        view.pd.sync_nfc_event = Mock()
+        uid = ':'.join(f'{i:02X}' for i in range(32))
+        view.pd.system_info['rfid'] = {
+            'status': 'Listening', 'card': {'uid': uid, 'type': 'ISO14443A'}}
+        core = Mock()
+        core.global_action_uid.return_value = uid
+        view.pd.get_nfc_core = Mock(return_value=core)
+        view._draw_list_menu = Mock()
+        view._draw_menu_text = Mock()
+        view._rfid_candidate = {'uid': uid}
+        for mode in ('info', 'emg', 'waiting', 'confirm'):
+            with self.subTest(mode=mode):
+                view._rfid_mode = mode
+                view._draw_menu_text.reset_mock()
+                view.Draw_RFID_Menu()
+                labels = [row[0] for row in view._draw_list_menu.call_args.args[1]]
+                if mode == 'info':
+                    self.assertEqual(labels, ['Back', 'Emergency stop tag'])
+                if mode == 'emg':
+                    self.assertEqual(labels, ['Back', 'Replace tag', 'Remove tag'])
+                if mode == 'waiting':
+                    self.assertEqual(labels, ['Cancel'])
+                calls = view._draw_menu_text.call_args_list
+                self.assertTrue(calls)
+                self.assertTrue(all(call.args[2] + 16 < view.STATUS_Y for call in calls))
+                if mode != 'waiting':
+                    lines = [call.args[0] for call in calls if ':' in call.args[0]]
+                    self.assertEqual(':'.join(lines), uid)

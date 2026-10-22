@@ -55,3 +55,5 @@ Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, 
 NFC ayarları menü satırı, tanınan NFC N siluetini ortak 20×20 Graphite turkuaz tarzında gösteren ikon **171** (`ICON_NFC`) kullanır. Salt okunur NFC özellik durumu Info düzenini izler ve işlem ikonu kullanmaz. Düzenlenebilir ikon kaynağı `assets/icon-source/171.svg` dosyasındadır.
 
 NFC silueti [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg) kaynağından uyarlanmıştır; oranları korunmuş, yalnız eşit ölçekleme ve Graphite renklendirmesi uygulanmıştır. Kaynak atfı ve lisans [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) dosyasındadır.
+
+RFID ana menüsü, özel temassız kart/dalga çizimli **172/173** normal/seçili ikonlarını (110×100) kullanır. Graphite kart yüzeyleri, seçim çerçevesi ve native etiket alanı diğer ana menü ikonlarıyla aynıdır; Info ikonunu paylaşmaz.

@@ -118,3 +118,7 @@ ICON_WIFI_STRONG = 170
 
 # Dedicated 20x20 Graphite NFC reader/settings symbol.
 ICON_NFC = 171
+
+# Dedicated normal/selected RFID home tiles (110x100 Graphite).
+ICON_RFID_HOME_NORMAL = 172
+ICON_RFID_HOME_SELECTED = 173

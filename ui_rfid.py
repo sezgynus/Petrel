@@ -41,68 +41,72 @@ class RFIDViewMixin:
         core = self.pd.get_nfc_core()
         uid = core.global_action_uid('emergency_stop') if core else None
         if mode == 'waiting':
-            self._draw_list_menu('Emergency stop tag', [
-                ('Cancel', self.ICON_Back, None, None),
-                ('Present a new tag', ICON_NFC, None, None)], 0)
-            self._draw_menu_text('Remove and tap card', 8, 240)
-            return
-        if mode == 'confirm':
+            self._draw_list_menu('Emergency stop tag',
+                [('Cancel', self.ICON_Back, None, None)], 0)
+            details = ('Present a new tag', 'Remove and tap card')
+        elif mode == 'confirm':
             self._draw_list_menu('Save emergency tag?', [
                 ('Cancel', self.ICON_Back, None, None),
                 ('Save tag', ICON_NFC, None, None)],
                 getattr(self, '_rfid_selection', 0))
             uid = (getattr(self, '_rfid_candidate', None) or {}).get('uid')
+            details = ('New emergency tag',)
         else:
             self._draw_list_menu('Emergency stop tag', [
                 ('Back', self.ICON_Back, None, None),
                 ('Replace tag' if uid else 'Assign tag', ICON_NFC, None, None),
                 ('Remove tag', self.ICON_Info, None, None)],
                 getattr(self, '_rfid_selection', 0))
-            self._draw_menu_text(getattr(self, '_rfid_message', '') or
-                                 ('Assigned' if uid else 'Not assigned'), 8, 240)
-        # Preserve the entire UID, including long native identifiers.
-        parts = (uid or '').split(':')
+            details = (getattr(self, '_rfid_message', '') or
+                       ('Assigned' if uid else 'Not assigned'),)
+        # All content ends before STATUS_Y=360; four full UID lines fit.
+        token = (mode, uid, details)
+        if full or getattr(self, '_rfid_details', None) != token:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 198, 263, 351)
+            for index, text in enumerate(details):
+                self._draw_menu_text(text, 8, 204 + index * 22)
+            if uid:
+                self._draw_menu_text('UID / ID', 8, 244)
+                self._rfid_draw_uid(uid, 268, 22)
+            self._rfid_details = token
+
+    def _rfid_draw_uid(self, uid, y, spacing=20):
+        # 10 bytes = 29 characters: fits 232px; never truncate native identity.
+        parts = uid.split(':')
         for index in range(0, len(parts), 10):
             self._draw_menu_text(':'.join(parts[index:index + 10]), 8,
-                                 272 + (index // 10) * 24)
+                                 y + (index // 10) * spacing)
 
     def _draw_rfid_info(self, full=True):
-        # Initial render uses Core's last cached event; subsequent renders are
-        # exclusively triggered by NFC events on the LCD owner's event queue.
         if full:
             self.pd.sync_nfc_event()
+        self._draw_list_menu('RFID', [
+            ('Back', self.ICON_Back, None, None),
+            ('Emergency stop tag', ICON_NFC, None, None)],
+            getattr(self, '_rfid_selection', 0))
         state = self.pd.system_info.get('rfid') or {}
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
         card = state.get('card') or {}
-        rows = (('Status', status, 132), ('Type', card.get('type', '-'), 164),
-                ('ATQA', card.get('atqa', '-'), 316), ('SAK', card.get('sak', '-'), 340))
+        rows = (('Status', status, 150), ('Type', card.get('type', '-'), 174),
+                ('ATQA', card.get('atqa', '-'), 198), ('SAK', card.get('sak', '-'), 222))
         old_rows, old_uid = getattr(self, '_rfid_render', ((), None))
         if full:
-            self.Clear_Main_Window()
-            self.Draw_Title('RFID')
-            self.Draw_Back_First(getattr(self, '_rfid_selection', 0) == 0)
-            self._draw_info_section('Last card', 100)
-            self._draw_menu_text('UID / ID', 8, 188)
+            # Standard action rows occupy y=31..136. Details have their own
+            # bounded area; selection changes never erase the dashboard.
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 145, 263, 351)
+            self._draw_menu_text('UID / ID', 8, 248)
             old_rows, old_uid = (), None
         for index, (label, value, y) in enumerate(rows):
             if full:
                 self._draw_info_row(label, value, y)
             elif index >= len(old_rows) or old_rows[index] != rows[index]:
                 self._draw_info_value(label, value, y, clear=True)
-        # Full-width UID lines preserve identifiers up to 32 bytes; never truncate identity.
         uid = card.get('uid', 'Waiting for card')
         if uid != old_uid:
             if not full:
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 208, 263, 303)
-            parts = uid.split(':')
-            lines = [':'.join(parts[i:i+10]) for i in range(0, len(parts), 10)]
-            for index, text in enumerate(lines[:4]):
-                self._draw_menu_text(text, 8, 208 + index * 24)
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 270, 263, 351)
+            self._rfid_draw_uid(uid, 272)
         self._rfid_render = (rows, uid)
-
-        if full:
-            selected = getattr(self, '_rfid_selection', 0) == 1
-            self._draw_menu_text(('> ' if selected else '  ') + 'Emergency stop tag', 8, 374)
 
     def HMI_RFID(self):
         event = self.get_encoder_state()

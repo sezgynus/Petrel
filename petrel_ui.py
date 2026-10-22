@@ -6,6 +6,7 @@ from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, IC
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_NFC
+from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
 import display_settings
 from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
 import copy
@@ -1758,7 +1759,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         entries.append(('MMU', 'MMU', self.ICON_MMU_0, self.ICON_MMU_1))
         entries.append(('DISPLAY', 'Display', self.ICON_Display_0, self.ICON_Display_1))
         entries.append(('MAINTENANCE', 'Maintenance', self.ICON_Maintenance_0, self.ICON_Maintenance_1))
-        entries.append(('RFID', 'RFID', self.ICON_Info_0, self.ICON_Info_1))
+        entries.append(('RFID', 'RFID', ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
         # Home navigation contract: append new features above Info; Info is always last.
         entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
         return tuple(entries)
