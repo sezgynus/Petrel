@@ -543,3 +543,26 @@ kanıtlamaz. Yalnız değişen alanlar çizilir; kart belleğine veya diske yaz�
 Sayfadan çıkılınca tarama sürer; kapanışta bekleyen libnfc I/O'su iptal edilip port
 kapatılır. Basarak Home'a dönülür. Deneysel kutucuk Info simgesini kullanır;
 ekran görüntülerinde bu sayfalar henüz yoktur.
+
+### Acil durdurma kartı
+
+Ana menü daima **RFID → Info** ile biter; gelecekteki yeni ana menü öğeleri
+Info'dan önce eklenir. **RFID** içinde encoderi çevirip **Emergency stop tag**
+seçeneğini, ardından **Assign tag** (veya **Replace tag**) seçeneğini açın.
+Okuyucuda tutulan kartı uzaklaştırıp yeni kartı okutun. Görünen UID'yi kontrol
+edip **Save tag** ile onaylayın; **Cancel** önceki atamayı korur.
+**Remove tag** kayıtlı atamayı siler.
+
+Tek kayıtlı UID, NFC ayarlarının yanındaki `nfc-actions.json` dosyasına atomik
+kaydedilir ve Petrel yeniden başlatıldığında korunur. Bu kart okutulunca NFC
+Core, açık menüden ve baskı durumundan bağımsız olarak Moonraker'ın
+`printer.emergency_stop` API isteğini gönderir. Mevcut öncelikli yol normal
+G-code komutlarının arkasında beklemez. Kayıtlı acil durdurma kartı tanımlama
+sırasında da önceliklidir; yeni kart olarak yakalanmaz. Backend her kart sunumu
+için bir olay üretir; yeniden tetiklemek için kartı uzaklaştırıp tekrar okutun.
+Acil durdurma işleminde onay penceresi beklenmez.
+
+Okuyucu etkin, yapılandırılmış ve dinliyor olmalıdır. Yukarıda açıklandığı gibi
+NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklatır.
+UID eşleştirmesi kimlik doğrulama veya donanımsal güvenlik devresi değildir;
+çalışan Pi'ye, okuyucuya ve Moonraker bağlantısına bağlıdır.

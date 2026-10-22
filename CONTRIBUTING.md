@@ -91,3 +91,7 @@ Reading an NDEF URI in NFC Tools did not initially cause Android to offer/open t
 - Closing the PN532 target session queues a masked clear of bit 2 as **best effort**. A deactivated device or cached write means this is not verified hardware restoration.
 - Keep the distribution library intact. Do not restore custom `.so` selection, experiment profiles or activation-marker files. Real NFC reader configuration and optional feature installation remain valid, separate concerns.
 - Relevant regressions: `tests/test_nfc_system_modedet.py`, `tests/test_nfc_type4_dispatch.py` and `tests/test_libnfc_api.py`. Automated tests cannot establish RF compatibility; validate technology detection and Android URL opening physically after changing this path.
+
+## Home menu ordering contract
+
+Info is always the final home entry. Insert new features before Info; RFID immediately precedes Info. `tests/test_rfid_emergency.py` preserves this ordering.

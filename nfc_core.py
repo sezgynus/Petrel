@@ -58,9 +58,11 @@ class NFCCore:
         self._closed = False
         self._operations = deque(maxlen=8)
         self._emergency_stop = emergency_stop
+        self._assignment = None
         self._actions_file = Path(actions_file or settings_path().with_name('nfc-actions.json'))
         self._global_actions = self._load_actions()
         self.subscribe('card.detected', self._dispatch_global, priority=GLOBAL_PRIORITY)
+        self.subscribe('card.detected', self._capture_assignment, priority=100)
         backend.set_event_sink(self._on_backend_event)
 
     def _load_actions(self):
@@ -72,6 +74,41 @@ class NFCCore:
                     if action in ALLOWED_GLOBAL_ACTIONS}
         except (OSError, ValueError, TypeError):
             return {}
+
+    def global_action_uid(self, action):
+        """Return the saved UID without exposing the mutable action mapping."""
+        with self._lock:
+            return next((uid for uid, name in self._global_actions.items()
+                         if name == action), None)
+
+    def begin_assignment(self):
+        """Capture the NEXT arrival; saved emergency tags always preempt capture.
+
+        No cached/last card is enrolled and nothing is persisted here. The LCD
+        owner must explicitly confirm assign_global_action after capture.
+        """
+        with self._lock:
+            if self._closed:
+                raise OSError('NFC Core closed')
+            if self._assignment is not None and not self._assignment.done():
+                raise OSError('Tag assignment already active')
+            self._assignment = Future()
+            return self._assignment
+
+    def _capture_assignment(self, card):
+        with self._lock:
+            future = self._assignment
+            if future is None or future.done():
+                return False
+            try:
+                uid = normalize_uid(card.get('uid'))
+            except (TypeError, ValueError):
+                return False
+            # Lock cancellation and completion together via Future's own state.
+            if not future.set_running_or_notify_cancel():
+                return False
+            future.set_result(dict(card, uid=uid))
+        return CONSUMED
 
     def assign_global_action(self, action, uid):
         if action not in ALLOWED_GLOBAL_ACTIONS:
@@ -250,5 +287,7 @@ class NFCCore:
     def close(self):
         with self._lock:
             self._closed = True
+            if self._assignment is not None:
+                self._assignment.cancel()
             self._subscribers.clear()
         self.backend.set_event_sink(None)

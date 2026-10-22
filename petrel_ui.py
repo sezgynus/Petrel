@@ -30,6 +30,7 @@ from ui_power import PowerShortcutMixin
 from ui_mmu import MMUViewMixin
 from ui_buzzer import BuzzerViewMixin
 from ui_nfc_settings import NFCSettingsViewMixin
+from ui_rfid import RFIDViewMixin
 import buzzer_control
 from buzzer_control import Settings as BuzzerSettings
 from ui_screws_tilt import ScrewsTiltMixin
@@ -83,7 +84,7 @@ class select_t:
         return self.changed()
 
 
-class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, NFCSettingsViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, NFCSettingsViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -899,6 +900,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                     self._loop.cap_interval(.1)
 
     def _ui_tick_body(self):
+        if (getattr(self, '_rfid_assignment', None) is not None
+                and self.checkkey != self.RFIDMenu):
+            self._rfid_cancel_assignment()
         # Operation deadlines must not depend on the visible screen or LCD.
         self._maintenance_advanced_this_tick = False
         if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
@@ -1547,6 +1551,10 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         return False
 
     def _process_input_untraced(self, event):
+        if event.kind == 'nfc_emg_capture':
+            if not self._closed:
+                self._rfid_assignment_event()
+            return
         if event.kind in ('nfc_share_done', 'nfc_share_failed', 'nfc_share_cancelled'):
             if getattr(self, '_nfc_share_popup', None):
                 if event.kind in ('nfc_share_done', 'nfc_share_cancelled'):
@@ -1750,8 +1758,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
         entries.append(('MMU', 'MMU', self.ICON_MMU_0, self.ICON_MMU_1))
         entries.append(('DISPLAY', 'Display', self.ICON_Display_0, self.ICON_Display_1))
         entries.append(('MAINTENANCE', 'Maintenance', self.ICON_Maintenance_0, self.ICON_Maintenance_1))
-        entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
         entries.append(('RFID', 'RFID', self.ICON_Info_0, self.ICON_Info_1))
+        # Home navigation contract: append new features above Info; Info is always last.
+        entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
         return tuple(entries)
 
     def _draw_home_page(self, previous=None):
@@ -1827,6 +1836,9 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
                 if idle(self.pd.state):
                     self.Enter_Maintenance_Menu()
             elif key == 'RFID':
+                self._rfid_cancel_assignment()
+                self._rfid_mode = 'info'
+                self._rfid_selection = 0
                 self.checkkey = self.RFIDMenu
                 self.Draw_RFID_Menu()
             elif key == 'INFO':
@@ -2155,47 +2167,6 @@ class PetrelDisplay(RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, Buzz
             return
         self.Draw_Display_Menu()
         self.lcd.update()
-
-    def Draw_RFID_Menu(self, full=True):
-        # Initial render uses Core's last cached event; subsequent renders are
-        # exclusively triggered by NFC events on the LCD owner's event queue.
-        if full:
-            self.pd.sync_nfc_event()
-        state = self.pd.system_info.get('rfid') or {}
-        status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')
-        card = state.get('card') or {}
-        rows = (('Status', status, 132), ('Type', card.get('type', '-'), 164),
-                ('ATQA', card.get('atqa', '-'), 316), ('SAK', card.get('sak', '-'), 340))
-        old_rows, old_uid = getattr(self, '_rfid_render', ((), None))
-        if full:
-            self.Clear_Main_Window()
-            self.Draw_Title('RFID')
-            self.Draw_Back_First(True)
-            self._draw_info_section('Last card', 100)
-            self._draw_menu_text('UID / ID', 8, 188)
-            old_rows, old_uid = (), None
-        for index, (label, value, y) in enumerate(rows):
-            if full:
-                self._draw_info_row(label, value, y)
-            elif index >= len(old_rows) or old_rows[index] != rows[index]:
-                self._draw_info_value(label, value, y, clear=True)
-        # Full-width UID lines preserve identifiers up to 32 bytes; never truncate identity.
-        uid = card.get('uid', 'Waiting for card')
-        if uid != old_uid:
-            if not full:
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 208, 263, 303)
-            parts = uid.split(':')
-            lines = [':'.join(parts[i:i+10]) for i in range(0, len(parts), 10)]
-            for index, text in enumerate(lines[:4]):
-                self._draw_menu_text(text, 8, 208 + index * 24)
-        self._rfid_render = (rows, uid)
-
-    def HMI_RFID(self):
-        if self.get_encoder_state() == self.ENCODER_DIFF_ENTER:
-            self.select_page.set(next(i for i, entry in enumerate(self._home_entries())
-                                      if entry[0] == 'RFID'))
-            self.Goto_MainMenu()
-            self.lcd.update()
 
     def HMI_Info(self):
         event = self.get_encoder_state()

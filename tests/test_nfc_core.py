@@ -3,7 +3,7 @@ from concurrent.futures import Future
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from nfc_core import NFCCore, normalize_uid
 
@@ -121,3 +121,40 @@ class CoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 restored.assign_global_action('arbitrary_gcode', '01:02')
             restored.close()
+
+    def test_assignment_requires_fresh_arrival_and_explicit_persistence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            emergency = Mock(return_value=Future())
+            core, reader = self.make(tmp, emergency)
+            emit = reader.set_event_sink.call_args.args[0]
+            emit('card.detected', {'uid': '01:02'})
+            pending = core.begin_assignment()
+            self.assertFalse(pending.done())
+            with self.assertRaises(OSError):
+                core.begin_assignment()
+            emit('card.detected', {'uid': 'aa bb cc dd', 'type': 'ISO14443A'})
+            self.assertEqual(pending.result()['uid'], 'AA:BB:CC:DD')
+            self.assertIsNone(core.global_action_uid('emergency_stop'))
+            emergency.assert_not_called()
+            core.assign_global_action('emergency_stop', pending.result()['uid'])
+            self.assertEqual(core.global_action_uid('emergency_stop'), 'AA:BB:CC:DD')
+            waiting = core.begin_assignment()
+            emit('card.detected', {'uid': 'AA:BB:CC:DD'})
+            emergency.assert_called_once_with()
+            self.assertFalse(waiting.done(), 'Saved EMG tag must preempt enrollment')
+            waiting.cancel()
+            emit('card.detected', {'uid': '05:06'})
+            self.assertTrue(waiting.cancelled())
+            core.close()
+
+    def test_failed_save_preserves_previous_tag_and_close_cancels_enrollment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            core, _ = self.make(tmp)
+            core.assign_global_action('emergency_stop', '01:02')
+            with patch.object(core, '_save_actions', side_effect=OSError('disk')):
+                with self.assertRaises(OSError):
+                    core.assign_global_action('emergency_stop', '03:04')
+            self.assertEqual(core.global_action_uid('emergency_stop'), '01:02')
+            pending = core.begin_assignment()
+            core.close()
+            self.assertTrue(pending.cancelled())

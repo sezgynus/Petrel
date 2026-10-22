@@ -544,3 +544,25 @@ prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
 written or persisted. Scanning continues after leaving the page, and shutdown
 aborts pending libnfc I/O before closing the reader. Press to return Home. The
 experimental tile reuses the Info icon; screenshots do not yet show these pages.
+
+### Emergency stop tag
+
+Home always ends with **RFID → Info**; add future home entries before Info.
+In **RFID**, rotate to **Emergency stop tag** and select **Assign tag** (or
+**Replace tag**). Remove any card already held at the reader, then present the
+new card. Check the displayed UID and choose **Save tag** to confirm; **Cancel**
+leaves the previous assignment intact. **Remove tag** clears the saved mapping.
+
+The single assigned UID is stored atomically in `nfc-actions.json` alongside
+the NFC settings and survives Petrel restarts. Presenting that tag sends
+Moonraker's `printer.emergency_stop` API request directly from NFC Core,
+independently of the visible menu or print state. The existing priority path
+does not wait behind ordinary G-code commands. A saved emergency tag retains
+priority even during enrollment and cannot be captured as a replacement.
+The backend emits one arrival per presentation; remove and retap to trigger
+another request. No confirmation dialog delays the emergency action.
+
+The reader must be enabled, configured and listening. NFC target-mode URL
+sharing temporarily suspends card detection, as described above. UID matching
+is an identification convenience, not authentication or a hardware safety
+circuit; it depends on the running Pi, reader and Moonraker connection.

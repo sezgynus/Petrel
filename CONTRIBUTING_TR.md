@@ -91,3 +91,7 @@ NFC Tools içinde NDEF URI okunmasına rağmen Android başlangıçta URL açmay
 - PN532 target oturumu kapanırken bit 2'nin maskeli temizlenmesi **best effort** olarak kuyruğa alınır. Cihazın deaktive olması veya yazmanın önbellekte kalması nedeniyle bu, doğrulanmış donanım restorasyonu değildir.
 - Dağıtım kütüphanesini koruyun. Özel `.so` seçimini, deney profillerini veya aktivasyon işaret dosyalarını geri getirmeyin. Gerçek NFC okuyucu yapılandırması ve özelliğin isteğe bağlı kurulumu ayrı ve geçerli konulardır.
 - İlgili regresyonlar: `tests/test_nfc_system_modedet.py`, `tests/test_nfc_type4_dispatch.py` ve `tests/test_libnfc_api.py`. Otomatik testler RF uyumluluğunu kanıtlayamaz; bu yol değiştiğinde teknoloji tanımasını ve Android URL açılmasını fiziksel olarak doğrulayın.
+
+## Ana menü sıralama sözleşmesi
+
+Info her zaman son ana menü öğesidir. Yeni özellikleri Info'dan önce ekleyin; RFID, Info'nun hemen önündedir. Bu sıralama `tests/test_rfid_emergency.py` ile korunur.
