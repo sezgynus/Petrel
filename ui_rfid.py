@@ -7,20 +7,33 @@ from ui_nfc_gate import NFCGateViewMixin
 
 
 class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
+    def _rfid_context_active(self):
+        """Temporary overlays retain the enrollment owned by their origin."""
+        screen = getattr(self, 'checkkey', None)
+        if screen == self.PowerConfirm:
+            screen = getattr(self, '_power_origin', None)
+        if screen == self.NFCGateMenu:
+            screen = (getattr(self, '_nfc_gate_popup', None) or {}).get('origin')
+        return screen == self.RFIDMenu
+
     def _rfid_cancel_assignment(self):
         future = getattr(self, '_rfid_assignment', None)
         self._rfid_assignment = None
         if future is not None:
             future.cancel()
         self._rfid_candidate = None
+        # Real navigation/cancellation must not leave a nonfunctional wait page.
+        mode = getattr(self, '_rfid_mode', '')
+        if mode in ('waiting', 'spool_waiting'):
+            self._rfid_mode = 'emg' if mode == 'waiting' else 'spool_detail'
 
     def _rfid_assignment_event(self):
-        if (getattr(self, 'checkkey', None) == self.RFIDMenu
+        if (self._rfid_context_active()
                 and getattr(self, '_rfid_mode', '') == 'spool_waiting'):
             self._spool_capture_event()
             return
         future = getattr(self, '_rfid_assignment', None)
-        if (getattr(self, 'checkkey', None) != self.RFIDMenu
+        if (not self._rfid_context_active()
                 or getattr(self, '_rfid_mode', 'info') != 'waiting'):
             self._rfid_cancel_assignment()
             return
@@ -35,7 +48,7 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
         else:
             self._rfid_mode = 'confirm'
         self._rfid_selection = 0
-        if self._uart_online:
+        if self._uart_online and self.checkkey == self.RFIDMenu:
             self.Draw_RFID_Menu()
             self.lcd.update()
 

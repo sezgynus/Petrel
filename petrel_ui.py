@@ -908,7 +908,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
 
     def _ui_tick_body(self):
         if (getattr(self, '_rfid_assignment', None) is not None
-                and self.checkkey != self.RFIDMenu):
+                and not self._rfid_context_active()):
             self._rfid_cancel_assignment()
         # Operation deadlines must not depend on the visible screen or LCD.
         self._maintenance_advanced_this_tick = False

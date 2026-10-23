@@ -43,3 +43,36 @@ class OverlayCompletionTests(unittest.TestCase):
                     view.checkkey = view.RFIDMenu
                     view.Draw_RFID_Menu()
                     view.Draw_RFID_Menu.assert_called_once()
+
+    def test_enrollment_capture_survives_overlay_and_nested_power_dialog(self):
+        for mode in ('waiting', 'spool_waiting'):
+            for overlay in ('power', 'gate', 'nested'):
+                with self.subTest(mode=mode, overlay=overlay):
+                    view = display(snapshot())
+                    view._uart_online = True
+                    view.Draw_RFID_Menu = Mock()
+                    view._rfid_mode = mode
+                    view._nfc_gate_popup = {'origin': view.RFIDMenu}
+                    view.checkkey = view.NFCGateMenu if overlay == 'gate' else view.PowerConfirm
+                    view._power_origin = view.NFCGateMenu if overlay == 'nested' else view.RFIDMenu
+                    future = view._rfid_assignment = Future()
+                    self.assertTrue(view._rfid_context_active())
+                    self.assertFalse(future.cancelled())
+                    future.set_result({'uid': 'AA:BB'})
+                    view._rfid_assignment_event()
+                    self.assertEqual(view._rfid_candidate, {'uid': 'AA:BB'})
+                    self.assertEqual(view._rfid_mode,
+                                     'confirm' if mode == 'waiting' else 'spool_confirm')
+                    view.Draw_RFID_Menu.assert_not_called()
+
+    def test_real_navigation_cancels_capture_and_leaves_waiting_page(self):
+        for mode, target in (('waiting', 'emg'), ('spool_waiting', 'spool_detail')):
+            view = display(snapshot())
+            view.checkkey = view.MainMenu
+            view._rfid_mode = mode
+            future = view._rfid_assignment = Future()
+            self.assertFalse(view._rfid_context_active())
+            view._rfid_cancel_assignment()
+            self.assertTrue(future.cancelled())
+            self.assertIsNone(view._rfid_assignment)
+            self.assertEqual(view._rfid_mode, target)
