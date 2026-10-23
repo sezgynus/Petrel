@@ -158,6 +158,22 @@ Statik görüntüler belgelenmiş örnek durumları gösterir. Değer, etiket ve
 | MMU ünitelerine göz atma | <a href="assets/screens/mmu-units.png"><img src="assets/screens/framed/mmu-units.png" width="176" alt="MMU ünitelerine göz atma"></a> | [Tam boyut PNG](assets/screens/mmu-units.png) |
 | Bir MMU ünitesinin gate listesi | <a href="assets/screens/mmu-unit-gates.png"><img src="assets/screens/framed/mmu-unit-gates.png" width="176" alt="Bir MMU ünitesinin gate listesi"></a> | [Tam boyut PNG](assets/screens/mmu-unit-gates.png) |
 
+## NFC kartları ve makara atama
+
+| Ekran | Önizleme | Panel PNG |
+|---|---|---|
+| NFC kart ve işlem menüsü | <a href="assets/screens/nfc-home.png"><img src="assets/screens/framed/nfc-home.png" width="176" alt="NFC kart ve işlem menüsü"></a> | [Tam boyut PNG](assets/screens/nfc-home.png) |
+| Yeni acil durdurma kartı okutma | <a href="assets/screens/nfc-emergency-waiting.png"><img src="assets/screens/framed/nfc-emergency-waiting.png" width="176" alt="Yeni acil durdurma kartı okutma"></a> | [Tam boyut PNG](assets/screens/nfc-emergency-waiting.png) |
+| Acil durdurma kartının UID onayı | <a href="assets/screens/nfc-emergency-confirm.png"><img src="assets/screens/framed/nfc-emergency-confirm.png" width="176" alt="Acil durdurma kartının UID onayı"></a> | [Tam boyut PNG](assets/screens/nfc-emergency-confirm.png) |
+| Kimlik ve renk ile Spoolman envanteri | <a href="assets/screens/nfc-spool-list.png"><img src="assets/screens/framed/nfc-spool-list.png" width="176" alt="Kimlik ve renk ile Spoolman envanteri"></a> | [Tam boyut PNG](assets/screens/nfc-spool-list.png) |
+| Makara kimliği ve HEX rengi | <a href="assets/screens/nfc-spool-detail.png"><img src="assets/screens/framed/nfc-spool-detail.png" width="176" alt="Makara kimliği ve HEX rengi"></a> | [Tam boyut PNG](assets/screens/nfc-spool-detail.png) |
+| Uzun filament adı ve çoklu renk | <a href="assets/screens/nfc-spool-multicolor.png"><img src="assets/screens/framed/nfc-spool-multicolor.png" width="176" alt="Uzun filament adı ve çoklu renk"></a> | [Tam boyut PNG](assets/screens/nfc-spool-multicolor.png) |
+| Okutulan makara kartını onaylama | <a href="assets/screens/nfc-spool-confirm.png"><img src="assets/screens/framed/nfc-spool-confirm.png" width="176" alt="Okutulan makara kartını onaylama"></a> | [Tam boyut PNG](assets/screens/nfc-spool-confirm.png) |
+| Kartı makaralar arasında taşıma onayı | <a href="assets/screens/nfc-spool-transfer.png"><img src="assets/screens/framed/nfc-spool-transfer.png" width="176" alt="Kartı makaralar arasında taşıma onayı"></a> | [Tam boyut PNG](assets/screens/nfc-spool-transfer.png) |
+| Okutulan makara için gate seçme | <a href="assets/screens/nfc-gate-choose.png"><img src="assets/screens/framed/nfc-gate-choose.png" width="176" alt="Okutulan makara için gate seçme"></a> | [Tam boyut PNG](assets/screens/nfc-gate-choose.png) |
+| Değişen kart eşleşmesi gate atamasını engeller | <a href="assets/screens/nfc-gate-error.png"><img src="assets/screens/framed/nfc-gate-error.png" width="176" alt="Değişen kart eşleşmesi gate atamasını engeller"></a> | [Tam boyut PNG](assets/screens/nfc-gate-error.png) |
+| Geri okumayla doğrulanan gate ataması | <a href="assets/screens/nfc-gate-complete.png"><img src="assets/screens/framed/nfc-gate-complete.png" width="176" alt="Geri okumayla doğrulanan gate ataması"></a> | [Tam boyut PNG](assets/screens/nfc-gate-complete.png) |
+
 ## Sistem bilgileri ve güncellemeler
 
 | Ekran | Önizleme | Panel PNG |

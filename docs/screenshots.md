@@ -158,6 +158,22 @@ Static captures illustrate documented example states. Values, labels and availab
 | Browse MMU units | <a href="assets/screens/mmu-units.png"><img src="assets/screens/framed/mmu-units.png" width="176" alt="Browse MMU units"></a> | [Full-size PNG](assets/screens/mmu-units.png) |
 | Gates of one MMU unit | <a href="assets/screens/mmu-unit-gates.png"><img src="assets/screens/framed/mmu-unit-gates.png" width="176" alt="Gates of one MMU unit"></a> | [Full-size PNG](assets/screens/mmu-unit-gates.png) |
 
+## NFC tags and spool assignment
+
+| Screen | Preview | Panel PNG |
+|---|---|---|
+| NFC card and action menu | <a href="assets/screens/nfc-home.png"><img src="assets/screens/framed/nfc-home.png" width="176" alt="NFC card and action menu"></a> | [Full-size PNG](assets/screens/nfc-home.png) |
+| Capture a new emergency tag | <a href="assets/screens/nfc-emergency-waiting.png"><img src="assets/screens/framed/nfc-emergency-waiting.png" width="176" alt="Capture a new emergency tag"></a> | [Full-size PNG](assets/screens/nfc-emergency-waiting.png) |
+| Confirm the emergency tag UID | <a href="assets/screens/nfc-emergency-confirm.png"><img src="assets/screens/framed/nfc-emergency-confirm.png" width="176" alt="Confirm the emergency tag UID"></a> | [Full-size PNG](assets/screens/nfc-emergency-confirm.png) |
+| Spoolman inventory with identity and color | <a href="assets/screens/nfc-spool-list.png"><img src="assets/screens/framed/nfc-spool-list.png" width="176" alt="Spoolman inventory with identity and color"></a> | [Full-size PNG](assets/screens/nfc-spool-list.png) |
+| Spool identity and HEX color | <a href="assets/screens/nfc-spool-detail.png"><img src="assets/screens/framed/nfc-spool-detail.png" width="176" alt="Spool identity and HEX color"></a> | [Full-size PNG](assets/screens/nfc-spool-detail.png) |
+| Long filament name and multiple colors | <a href="assets/screens/nfc-spool-multicolor.png"><img src="assets/screens/framed/nfc-spool-multicolor.png" width="176" alt="Long filament name and multiple colors"></a> | [Full-size PNG](assets/screens/nfc-spool-multicolor.png) |
+| Confirm a captured spool tag | <a href="assets/screens/nfc-spool-confirm.png"><img src="assets/screens/framed/nfc-spool-confirm.png" width="176" alt="Confirm a captured spool tag"></a> | [Full-size PNG](assets/screens/nfc-spool-confirm.png) |
+| Confirm moving a tag between spools | <a href="assets/screens/nfc-spool-transfer.png"><img src="assets/screens/framed/nfc-spool-transfer.png" width="176" alt="Confirm moving a tag between spools"></a> | [Full-size PNG](assets/screens/nfc-spool-transfer.png) |
+| Choose a gate for the scanned spool | <a href="assets/screens/nfc-gate-choose.png"><img src="assets/screens/framed/nfc-gate-choose.png" width="176" alt="Choose a gate for the scanned spool"></a> | [Full-size PNG](assets/screens/nfc-gate-choose.png) |
+| Changed tag binding blocks gate assignment | <a href="assets/screens/nfc-gate-error.png"><img src="assets/screens/framed/nfc-gate-error.png" width="176" alt="Changed tag binding blocks gate assignment"></a> | [Full-size PNG](assets/screens/nfc-gate-error.png) |
+| Gate assignment confirmed by readback | <a href="assets/screens/nfc-gate-complete.png"><img src="assets/screens/framed/nfc-gate-complete.png" width="176" alt="Gate assignment confirmed by readback"></a> | [Full-size PNG](assets/screens/nfc-gate-complete.png) |
+
 ## System information and updates
 
 | Screen | Preview | Panel PNG |
