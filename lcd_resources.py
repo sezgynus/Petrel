@@ -126,3 +126,7 @@ ICON_RFID_HOME_SELECTED = 173
 # Twelve opaque 160x160 phone-approach frames, panel-native animation.
 ICON_NFC_SHARE_FIRST = 174
 ICON_NFC_SHARE_LAST = 185
+
+# Compact reusable NFC URI-share control (20x20, 16px glyph).
+ICON_NFC_SHARE_NORMAL = 186
+ICON_NFC_SHARE_SELECTED = 187

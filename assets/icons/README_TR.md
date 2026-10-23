@@ -61,3 +61,7 @@ RFID ana menüsü, NFC N sembollü **172/173** normal/seçili ikonlarını (110�
 ## NFC telefonu yaklaştırma animasyonu
 
 Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak 160×160 kare kullanır. DWIN native `0x28`, animasyon kanalı **2**, **20×10 ms** aralıkla **2,4 saniyede** döner; sunucuda kare zamanlayıcısı yoktur. 0/1 kanalları açılış/fan için korunur. Kapanma, tamamlanma, hata ve pencere değişimi yeniden çizimden önce kanal 2’yi durdurur. Başarısız paylaşımda ilk kare animasyonsuz gösterilir. Yeniden üretim: `python assets/icon-source/nfc-share/render.py`; eklenen NFC N-Mark bitmap’i onaylanan önizlemenin simgesini korur. N-Mark, NFC’yi tanımlar (NFC Forum).
+
+## Küçük NFC paylaşım kontrolü
+
+**186/187** ID’leri (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`), **16×16** telefon, NFC N silueti ve paylaşım oku içeren normal/seçili **20×20** kontrollerdir. Mevcut 24 piksel satırlara, satır yüksekliğini artırmadan sığarlar. Normal durumda odak çerçevesi yoktur; seçili durumda aynı sınırlar içinde turkuaz çerçeve ve renkli zemin bulunur. Düzenlenebilir kaynaklar: `assets/icon-source/186.svg` ve `187.svg`; yeniden üretim: `python tools/render_icon_sources.py --ids 186 187`. NFC silueti, atfı [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) içinde bulunan kaynağı yeniden kullanır. Bunlar ortak kullanım için eklenen görsellerdir; eklenmeleri UI yerleşimini değiştirmez.

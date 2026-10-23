@@ -61,3 +61,7 @@ The RFID home entry uses dedicated **172/173** normal/selected NFC N icons (110�
 ## NFC phone approach animation
 
 Share via NFC uses twelve opaque 160×160 frames, IDs **174–185**, on popup RGB565 `0x2967`. DWIN native `0x28`, animation channel **2**, interval **20×10 ms**, loops in **2.4 seconds** without host frame timers. Channels 0/1 remain boot/fan. Closing, completion, failure and window replacement stop channel 2 before repainting. Failed sharing shows the first frame without animation. Regenerate with `python assets/icon-source/nfc-share/render.py`; the included NFC N-Mark bitmap preserves the approved preview symbol. The N-Mark identifies NFC (NFC Forum).
+
+## Compact NFC share control
+
+IDs **186/187** (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`) provide normal/selected **20×20** controls with a **16×16** phone, NFC N silhouette and sharing arrow. They fit existing 24-pixel rows without increasing row height. Normal has no focus border; selected adds a cyan border and tinted surface within the same bounds. Editable sources: `assets/icon-source/186.svg` and `187.svg`; regenerate with `python tools/render_icon_sources.py --ids 186 187`. The NFC silhouette reuses the attributed source in [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt). These are reusable assets; their addition does not change UI placement.
