@@ -197,7 +197,7 @@ Kconfig'teki **Klipper virtual buzzer → Virtual SET_PIN Buzzer Klipper extra**
 
 ```ini
 [petrel_buzzer Buzzer]
-socket_path: /home/KULLANICI/.config/Petrel/klipper-buzzer.sock
+socket_path: /home/YOUR_USER/.config/Petrel/klipper-buzzer.sock
 value: 0
 shutdown_value: 0
 cycle_time: 0.001
