@@ -1,7 +1,9 @@
 """Display menu NFC reader configuration and standard choice submenus."""
 from dataclasses import replace
 import logging
-from lcd_resources import ICON_NFC
+from lcd_resources import (ICON_NFC, ICON_NFC_INTERFACE, ICON_SERIAL_PORT,
+                           ICON_VELOCITY, ICON_SAVE_PROFILE,
+                           ICON_MAINTENANCE_DIAGNOSTICS)
 from nfc_settings import (BAUD_RATES, NFCSettings, PROFILES,
                           available_ports, installed_enabled, load, save)
 
@@ -10,6 +12,10 @@ NFC_FIELDS = ((2, 'model', 'RFID module'),
               (3, 'interface', 'Interface'),
               (4, 'port', 'Port / device'),
               (5, 'speed', 'Link speed'))
+
+
+NFC_FIELD_ICONS = {'model': ICON_NFC, 'interface': ICON_NFC_INTERFACE,
+                   'port': ICON_SERIAL_PORT, 'speed': ICON_VELOCITY}
 
 
 class NFCSettingsViewMixin:
@@ -167,7 +173,7 @@ class NFCSettingsViewMixin:
             cells = 9 if field == 'port' else 10
             if len(shown) > cells:
                 shown = shown[:cells - 3] + '...'
-            rows.append((label, ICON_NFC if field == 'model' else self.ICON_Info,
+            rows.append((label, NFC_FIELD_ICONS[field],
                          (shown, active),
                          self._nfc_value_painter(label, shown, active, cells)))
         save_enabled = enabled and 6 in self._nfc_focusable()
@@ -175,7 +181,7 @@ class NFCSettingsViewMixin:
         shown = 'Saved' if saved else 'Apply'
         running = getattr(self, '_nfc_test_future', None) is not None
         save_label = 'Busy' if running else shown
-        rows.append(('Save', self.ICON_Info, (save_label, save_enabled),
+        rows.append(('Save', ICON_SAVE_PROFILE, (save_label, save_enabled),
                      self._nfc_value_painter('Save', save_label, save_enabled)))
         test_enabled = enabled and 7 in self._nfc_focusable()
         status = 'Run'
@@ -187,7 +193,7 @@ class NFCSettingsViewMixin:
         # The full-width 9-character field overlaps "Test connection" on
         # 272px panels. Keep result values short and right-aligned.
         cells = 4
-        rows.append(('Test connection', self.ICON_Info, (status, test_enabled),
+        rows.append(('Test connection', ICON_MAINTENANCE_DIAGNOSTICS, (status, test_enabled),
                      self._nfc_value_painter('Test connection',
                                              status, test_enabled, cells,
                                              color=result_color)))
@@ -272,7 +278,7 @@ class NFCSettingsViewMixin:
         for option in options:
             checked = option == current and (field == 'speed' or confirmed.get(field, False))
             entries.append((self._nfc_choice_label(option),
-                            ICON_NFC if field == 'model' else self.ICON_Info,
+                            NFC_FIELD_ICONS[field],
                             checked, self._menu_checkbox_painter(checked)))
         if field == 'port' and not options:
             if getattr(self, '_nfc_port_future', None) is not None:
@@ -281,7 +287,7 @@ class NFCSettingsViewMixin:
                 message = 'Unavailable'
             else:
                 message = 'No devices'
-            entries.append((message, self.ICON_Info, None, None))
+            entries.append((message, ICON_SERIAL_PORT, None, None))
         self._nfc_choice_selection = min(getattr(self, '_nfc_choice_selection', 0),
                                           len(entries) - 1)
         self._draw_list_menu(title, entries, self._nfc_choice_selection)

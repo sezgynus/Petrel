@@ -10,4 +10,4 @@ if __name__ == '__main__':
         with Image.open(SOURCE / f'spool-{frame:02d}.png') as image:
             image.convert('RGB').save(
                 OUTPUT / f'{188 + frame:03d}.jpg', 'JPEG',
-                quality=85, subsampling=2, progressive=False, optimize=True)
+                quality=84, subsampling=2, progressive=False, optimize=True)

@@ -134,3 +134,7 @@ ICON_NFC_SHARE_SELECTED = 187
 # Reserved artwork only; no screen starts this animation yet.
 ICON_NFC_SPOOL_FIRST = 188
 ICON_NFC_SPOOL_LAST = 199
+
+# Small Graphite communication settings glyphs (20x20).
+ICON_NFC_INTERFACE = 155
+ICON_SERIAL_PORT = 156

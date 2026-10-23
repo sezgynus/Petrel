@@ -48,7 +48,7 @@ The current reference pack occupies **13×32 KiB = 416 KiB**, slots **3–15**. 
 
 All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: subsampling=2`). Render directly from SVG using `tools/render_icon_sources.py`; do not repeatedly recompress JPEGs. Physical T5UIC1 tests reproduced damaged selected home tiles and homing artwork with 4:4:4 from both Flash and byte-verified SRAM; 4:2:0 rendered correctly. A clean emulator preview cannot validate the panel JPEG decoder. The source loader rejects other sampling formats before any panel access, and CI checks every shipped icon and the exported ICO against its sources. Check selected/unselected home tiles, homing, small menu/status icons and animation on hardware after artwork updates.
 
-Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 156–163 are retired; they are not shipped or referenced by the UI.
+Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 157–163 are retired; they are not shipped or referenced by the UI.
 
 Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 13×32 KiB.
 
@@ -70,4 +70,8 @@ IDs **186/187** (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`) provide no
 
 IDs **188–199** (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`) contain the approved preview's twelve opaque **160×160** frames. The spool approaches the panel, NFC waves light up, and the spool retreats. No screen uses these resources yet; no animation channel or timer is started. The suggested interval for future use is 200 ms/frame (2.4 seconds/loop).
 
-Lossless PNG sources are in `assets/icon-source/nfc-spool`. Regenerate with `python assets/icon-source/nfc-spool/render.py`, then update the reference ICO using the packing command above. The new JPEGs use quality **85**, optimized Huffman tables and baseline **4:2:0** to fit Flash capacity; existing icons remain unchanged. The pack occupies **13×32 KiB = 416 KiB**, using all reserved slots 3–15.
+Lossless PNG sources are in `assets/icon-source/nfc-spool`. Regenerate with `python assets/icon-source/nfc-spool/render.py`, then update the reference ICO using the packing command above. The new JPEGs use quality **84**, optimized Huffman tables and baseline **4:2:0** to fit Flash capacity; existing icons remain unchanged. The pack occupies **13×32 KiB = 416 KiB**, using all reserved slots 3–15.
+
+## NFC settings action icons
+
+NFC Settings and its choice submenus use purpose-specific icons instead of Info: RFID module **171**, interface **155** (bidirectional data arrows), port/device **156** (plug), link speed **220**, Save **228**, and connection test **165**. Empty/loading/error device-list rows also use the port icon. New icons 155/156 use the shared 20×20 Graphite stroke on a filterable black background, baseline 4:2:0, quality 94 and optimized Huffman tables. SVG sources: `assets/icon-source/155.svg` and `156.svg`; regenerate with Pillow using `python assets/icon-source/nfc-settings/render.py`. To make room for these icons, spool frames are re-encoded from lossless PNG sources at quality 84; dimensions and animation content remain unchanged. The pack stays within 416 KiB.

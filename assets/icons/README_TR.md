@@ -48,7 +48,7 @@ Mevcut referans paket **13×32 KiB = 416 KiB**, yani **3–15** slotlarını kul
 
 Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanmalıdır (`Pillow: subsampling=2`). `tools/render_icon_sources.py` ile doğrudan SVG’den üretin; JPEG’leri tekrar tekrar sıkıştırmayın. Fiziksel T5UIC1 testinde 4:4:4, hem Flash hem baytları geri okunarak doğrulanmış SRAM üzerinden seçili ana menü kartlarını ve homing görselini bozdu; 4:2:0 düzgün çizildi. Temiz emülatör görüntüsü panelin JPEG çözücüsünü doğrulamaz. Kaynak yükleyici diğer örnekleme biçimlerini panele erişmeden reddeder; CI tüm ikonların biçimini ve ICO’nun kaynaklarla eşleşmesini kontrol eder. Görsel güncellemelerden sonra seçili/seçili olmayan ana menü kartlarını, homing’i, küçük menü/durum ikonlarını ve animasyonu fiziksel panelde kontrol edin.
 
-Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
+Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 157–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
 Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 13×32 KiB yer kaplar.
 
@@ -70,4 +70,8 @@ Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak
 
 **188–199** ID’leri (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`), onaylanan önizlemenin on iki opak **160×160** karesini içerir. Spool panele yaklaşır, NFC dalgaları yanar ve geri çekilir. Bu kaynak henüz hiçbir ekranda kullanılmaz; animasyon kanalı veya zamanlayıcı başlatılmaz. Gelecekteki kullanım için önerilen aralık 200 ms/kare (2,4 saniye/döngü).
 
-Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **85**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 3–15 slotlarının tamamını kullanır.
+Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 3–15 slotlarının tamamını kullanır.
+
+## NFC ayarları işlem ikonları
+
+NFC Settings ve seçim alt menüleri Info yerine alana uygun ikonlar kullanır: RFID modülü **171**, arayüz **155** (çift yönlü veri okları), port/cihaz **156** (fiş), bağlantı hızı **220**, Kaydet **228**, bağlantı testi **165**. Cihaz listesi boş/yükleniyor/hata satırları da port ikonunu kullanır. Yeni 155/156 ikonları siyah filtrelenebilir zemin üzerinde 20×20 Graphite çizgisindedir; baseline 4:2:0, kalite 94 ve optimize edilmiş Huffman tabloları kullanır. SVG kaynakları `assets/icon-source/155.svg` ve `156.svg`; Pillow ile yeniden üretim: `python assets/icon-source/nfc-settings/render.py`. Yeni ikonlara alan açmak için spool kareleri kayıpsız PNG kaynaklarından kalite 84 ile yeniden kodlanmıştır; boyutlar ve animasyon içeriği değişmez. Paket 416 KiB içinde kalır.
