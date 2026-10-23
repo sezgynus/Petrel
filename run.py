@@ -103,7 +103,8 @@ def main():
                 display._buzzer_player = Player()
             path = Path.home() / '.config/Petrel/klipper-buzzer.sock'
             try:
-                server = BuzzerServer(path, display._buzzer_player)
+                server = BuzzerServer(path, display._buzzer_player,
+                                      enabled=display._buzzer_enabled)
             except OSError:
                 logging.exception('Optional Klipper virtual buzzer socket unavailable')
         display.wait()

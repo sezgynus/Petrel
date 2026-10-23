@@ -115,6 +115,13 @@ class Player:
             self.condition.notify_all()
             return True
 
+    def mute_external(self):
+        """Clear Klipper's latched duty when the master buzzer is disabled."""
+        with self.condition:
+            self.external = None
+            self.external_dirty = True
+            self.condition.notify_all()
+
     def play_emergency(self):
         """Preempt all sounds; Klipper events cannot interrupt the alarm."""
         with self.condition:

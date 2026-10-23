@@ -63,6 +63,8 @@ class BuzzerViewMixin:
         player = getattr(self, '_buzzer_player', None)
         if player is not None:
             player.cancel()
+            if not values.enabled and hasattr(player, 'mute_external'):
+                player.mute_external()
 
     def _buzzer_rows(self):
         settings = self._buzzer_settings()

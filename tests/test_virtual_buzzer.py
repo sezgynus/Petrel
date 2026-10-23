@@ -44,6 +44,22 @@ class VirtualBuzzerTests(unittest.TestCase):
                 with_server.close()
             self.assertFalse(path.exists())
 
+    def test_master_disabled_drops_ipc_and_mutes_existing_level(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'klipper-buzzer.sock'
+            event = Event()
+            player = Mock()
+            player.mute_external.side_effect = event.set
+            server = BuzzerServer(path, player, enabled=lambda: False)
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as client:
+                    client.sendto(PACKET.pack(b'PB1', .8, .001), str(path))
+                self.assertTrue(event.wait(1))
+                player.set_external.assert_not_called()
+                player.mute_external.assert_called_once()
+            finally:
+                server.close()
+
     def test_klipper_module_registers_existing_set_pin_and_preserves_scale(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'klipper-buzzer.sock'

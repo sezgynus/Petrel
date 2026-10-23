@@ -28,9 +28,10 @@ def decode(payload):
 
 
 class BuzzerServer:
-    def __init__(self, path, player):
+    def __init__(self, path, player, enabled=None):
         self.path = Path(path)
         self.player = player
+        self.enabled = enabled if enabled is not None else lambda: True
         self.stopping = threading.Event()
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self.path.parent.stat().st_uid != os.getuid():
@@ -73,7 +74,13 @@ class BuzzerServer:
                 break
             event = decode(payload)
             if event is not None:
-                self.player.set_external(*event)
+                try:
+                    if self.enabled():
+                        self.player.set_external(*event)
+                    else:
+                        self.player.mute_external()
+                except Exception:
+                    logging.exception('Virtual buzzer IPC dispatch failed')
 
     def close(self):
         self.stopping.set()
