@@ -367,8 +367,9 @@ Tam bir ısıtma sonucunda **Heating speed reference** sunulabilir. Yalnız sağ
 </p>
 
 Repoyu açmak için proje QR kodunu tarayın. Bağlı NFC okuyucu Type 4 NDEF
-URI etiket taklit desteğini doğrulamışsa QR kodunun hemen altında
-**Share via NFC** düğmesi otomatik görünür. Basınca bekleme popup'ı açılır;
+URI etiket taklit desteğini doğrulamışsa Software bölümündeki Petrel sürüm
+numarasının hemen önünde küçük NFC paylaşım ikonu otomatik görünür. Turkuaz
+odak çerçevesi görünene kadar kaydırıp basınca bekleme popup'ı açılır;
 telefonu okuyucuya yaklaştırınca aynı Petrel repo bağlantısı
 (`https://github.com/sezgynus/Petrel`) NDEF URI olarak sunulur.
 NDEF verisinin tamamı başarıyla iletildiğinde popup kendiliğinden kapanır;

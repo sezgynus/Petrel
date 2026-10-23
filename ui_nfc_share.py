@@ -2,7 +2,7 @@
 
 The UI never owns libnfc handles. A Core event refreshes capability visibility.
 """
-from lcd_resources import (ICON_NFC, ICON_LIBRARY_ID,
+from lcd_resources import (ICON_NFC_SHARE_NORMAL, ICON_NFC_SHARE_SELECTED, ICON_LIBRARY_ID,
                            ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST)
 from graphite_theme import show_icon as show_theme_icon
 
@@ -29,8 +29,8 @@ class NFCURIShareComponent:
             self._render = None
         return changed
 
-    def info_item(self, url):
-        return ('nfc_share', 'Share via NFC', url) if self.visible else None
+    def info_item(self, version):
+        return ('nfc_share', 'Petrel', version) if self.visible else None
 
     def start(self, url):
         # Revalidate once on explicit activation; no periodic device polling.
@@ -58,12 +58,11 @@ class NFCURIShareComponent:
         state = (id(lcd), y, bool(selected))
         if state == self._render:
             return
-        background = 0x063B if selected else 0x2967
-        foreground = 0x10C4 if selected else lcd.Color_White
-        lcd.draw_rectangle(1, lcd.Color_Bg_Black, 32, y - 4, 239, y + 23)
-        show_theme_icon(lcd, view.ICON, ICON_NFC, 40, y)
-        lcd.draw_text(False, False, lcd.font8x16, foreground,
-                      background, 76, y + 2, 'Share via NFC')
+        # Clear both states before drawing; normal has no focus border.
+        top = y - 2
+        lcd.draw_rectangle(1, lcd.Color_Bg_Black, 92, top, 111, top + 19)
+        icon = ICON_NFC_SHARE_SELECTED if selected else ICON_NFC_SHARE_NORMAL
+        show_theme_icon(lcd, ICON_LIBRARY_ID, icon, 92, top)
         self._render = state
 
     def draw_popup(self, view, failed=False):

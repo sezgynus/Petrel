@@ -53,27 +53,52 @@ class NFCShareUITests(unittest.TestCase):
         view.Draw_Info_Menu.assert_not_called()
         view.lcd.update.assert_not_called()
 
-    def test_info_button_is_directly_below_qr_with_update_still_last(self):
+    def test_info_share_reuses_petrel_row_without_changing_layout(self):
         view, core = self.screen()
         items = view._info_items()
-        self.assertEqual(items[-3][0], 'qr')
-        self.assertEqual(items[-2], ('nfc_share', 'Share via NFC', PROJECT_URL))
+        index = next(i for i, item in enumerate(items) if item[0] == 'nfc_share')
+        self.assertEqual(items[index][1], 'Petrel')
+        self.assertEqual(items[-2][0], 'qr')
         self.assertEqual(items[-1][0], 'update')
-        end = len(items) + extra_info_rows() - 11
-        view._info_scroll = end - 1
+        self.assertEqual(items[index + 1][1], 'Klipper')
+        view._info_scroll = index - 1
         view.Draw_Info_Menu()
-        share_labels = [c.args for c in view.lcd.draw_text.call_args_list
-                        if c.args[-1] == 'Share via NFC']
-        self.assertTrue(share_labels)
-        self.assertEqual(share_labels[-1][-2], 286)
-        self.assertEqual(view._info_scroll, end - 1)
+        view.lcd.show_icon.assert_any_call(3, 187, 92, 114,
+                                           background=False, enhanced=True)
+        self.assertFalse(any(c.args[-1] == 'Share via NFC'
+                             for c in view.lcd.draw_text.call_args_list))
+        core.is_ready.return_value = False
+        view._nfc_share_component().sync()
+        hidden = view._info_items()
+        self.assertEqual(len(hidden), len(items))
+        self.assertEqual(hidden[index][0:2], ('row', 'Petrel'))
+
+    def test_normal_selected_and_hidden_button_follow_capability_event(self):
+        view, core = self.screen()
+        items = view._info_items()
+        index = next(i for i, item in enumerate(items) if item[0] == 'nfc_share')
+        view._info_scroll = index - 2
+        view.Draw_Info_Menu()
+        view.lcd.show_icon.assert_any_call(3, 186, 92, 138,
+                                           background=False, enhanced=True)
+        view._info_scroll = index - 1
+        view.Draw_Info_Menu()
+        view.lcd.show_icon.assert_any_call(3, 187, 92, 114,
+                                           background=False, enhanced=True)
+        core.get_capabilities.return_value = {'ndef_uri_emulation': False}
+        view.pd.sync_nfc_event = Mock(return_value=False)
+        view.lcd.reset_mock()
+        view._process_input_untraced(InputEvent('nfc_capabilities', 0, 0, 0))
+        self.assertFalse(any(c.args[1] in (186, 187)
+                             for c in view.lcd.show_icon.call_args_list))
 
     def test_popup_transfers_repository_uri_and_closes_on_complete_event(self):
         view, core = self.screen()
         pending = Future()
         core.share_ndef_uri.return_value = pending
         items = view._info_items()
-        view._info_scroll = len(items) + extra_info_rows() - 12
+        view._info_scroll = next(i for i, item in enumerate(items)
+                                 if item[0] == 'nfc_share') - 1
         view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
         view.HMI_Info()
         self.assertEqual(view._nfc_share_popup, 'waiting')

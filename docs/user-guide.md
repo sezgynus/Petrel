@@ -367,8 +367,9 @@ Open **Home → Info** or **Control → Info**, then rotate to scroll through Ma
 </p>
 
 Scan the project QR to open the repository. If the connected NFC reader
-advertises confirmed Type 4 NDEF URI tag emulation, **Share via NFC** is shown
-immediately beneath the QR. Press it to open the waiting popup, then touch a
+advertises confirmed Type 4 NDEF URI tag emulation, a compact NFC share icon is shown
+immediately before the Petrel version in the Software section. Scroll until its
+cyan focus border appears, then press it to open the waiting popup and touch a
 compatible phone to the reader to receive the same Petrel repository URL
 (`https://github.com/sezgynus/Petrel`). The popup closes automatically only
 after the full NDEF URI has been transferred; it does not assert that the

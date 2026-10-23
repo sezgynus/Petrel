@@ -2213,7 +2213,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.Draw_Info_Menu()
         elif event == self.ENCODER_DIFF_ENTER:
             if (any(kind == 'nfc_share' for kind, _, _ in items)
-                    and current == max_scroll - 1):
+                    and current == next(i for i, item in enumerate(items)
+                                        if item[0] == 'nfc_share') - 1):
                 if self._start_nfc_share_popup():
                     self.lcd.update()
                 return
@@ -3432,15 +3433,13 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 items.append(('row', label, nfc.get(key, 'Unavailable')))
         items.extend([
             ('section', 'Software', None),
-            ('row', 'Petrel', info.get('petrel', 'Unavailable')),
+            (self._nfc_share_component().info_item(info.get('petrel', 'Unavailable'))
+             or ('row', 'Petrel', info.get('petrel', 'Unavailable'))),
             ('row', 'Klipper', self.pd.SHORT_BUILD_VERSION),
             ('row', 'Moonraker', info.get('moonraker', 'Unavailable')),
             ('row', 'Mainsail', info.get('mainsail', 'Unavailable')),
             ('qr', 'Scan for project info', PROJECT_URL),
         ])
-        share = self._nfc_share_component().info_item(PROJECT_URL)
-        if share is not None:
-            items.append(share)
         items.append(('update', '', None))
         return items
 
@@ -3454,9 +3453,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         delta = self._info_scroll - previous if previous is not None else 0
         old_items = getattr(self, '_info_render_items', ())
         share_selected = (any(kind == 'nfc_share' for kind, _, _ in items)
-                          and self._info_scroll == max_scroll - 1)
+                          and self._info_scroll == next(i for i, item in enumerate(items)
+                                                          if item[0] == 'nfc_share') - 1)
         old_share_selected = (any(kind == 'nfc_share' for kind, _, _ in old_items)
-                              and previous == max_scroll - 1)
+                              and previous == next(i for i, item in enumerate(old_items)
+                                                    if item[0] == 'nfc_share') - 1)
         same_layout = (previous is not None and
                        getattr(self, '_info_render_lcd', None) is self.lcd and
                        [(kind, label) for kind, label, _ in old_items] ==
@@ -3465,6 +3466,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         incremental = same_layout and 0 < distance < 266
         stationary = same_layout and delta == 0
         band = (356 - distance, 356) if delta > 0 else (90, 90 + distance)
+        if not stationary:
+            self._nfc_share_component()._render = None
         if incremental:
             # Moving the viewport can evict the update control entirely. Its
             # screen-space cache cannot survive a scroll out and back to the
@@ -3495,11 +3498,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                             top=max(92, band[0]) if incremental else 92,
                             bottom=min(356, band[1]) if incremental else 356)
         for index, (kind, label, value) in enumerate(items):
-            offset = (extra_info_rows() if kind == 'update' else
-                      extra_info_rows() - 2 if kind == 'nfc_share' else 0)
+            offset = extra_info_rows() if kind == 'update' else 0
             y = 92 + (index + offset - self._info_scroll) * 24
             if not 92 <= y < 356:
-                if incremental and kind in ('update', 'nfc_share') and y == 356:
+                if incremental and kind == 'update' and y == 356:
                     self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 352, 239, 355)
                 continue
             exposed = incremental and (band[0] <= y < band[1] or
@@ -3513,6 +3515,12 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             if kind == 'qr':
                 self._draw_menu_text(label, 48, y)
             elif kind == 'nfc_share':
+                if not stationary:
+                    self._draw_menu_text(label, 8, y)
+                if (not stationary or
+                        T5UIC1Display._panel_text(value)[:17] !=
+                        T5UIC1Display._panel_text(old_items[index][2])[:17]):
+                    self._draw_info_value(label, value, y, clear=True)
                 self._nfc_share_component().draw_button(self, y, share_selected)
             elif kind == 'update':
                 self._draw_info_update_button(y, self._info_scroll == max_scroll)
