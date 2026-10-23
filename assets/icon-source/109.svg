@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="110" height="100" viewBox="0 0 110 100"><defs><linearGradient id="petrel" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#dd7952"/><stop offset="1" stop-color="#dd7952"/></linearGradient></defs><rect width="110" height="100" fill="#000000"/><rect x="1" y="1" width="108" height="98" rx="16" fill="#183e4c" stroke="#00c4dc"/><g transform="translate(32.5,17.5) scale(1.875)" stroke="#dd7952" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" color="#dd7952"><rect x="2" y="3" width="5" height="12" rx="1" fill="currentColor"/><rect x="10" y="3" width="5" height="12" rx="1" fill="currentColor"/><rect x="18" y="3" width="4" height="12" rx="1" fill="currentColor"/><path d="M4 18h16M12 15v8" /></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+<rect width="20" height="20" fill="#000000"/>
+<g fill="none" stroke-width="1.8" stroke-linecap="round">
+ <path d="M2.5 7.5 Q10 1.7 17.5 7.5" stroke="#465f70"/>
+ <path d="M5.25 10.65 Q10 6.85 14.75 10.65" stroke="#63dce8"/>
+ <path d="M8.2 13.7 Q10 12.2 11.8 13.7" stroke="#63dce8"/>
+</g>
+<circle cx="10" cy="16.7" r="1.35" fill="#63dce8"/>
+</svg>

@@ -4,24 +4,24 @@ from lcd_resources import (ICON_MAINTENANCE_CHECK,ICON_MAINTENANCE_DIAGNOSTICS,
     ICON_MOTION,ICON_PROBE_CALIBRATION,ICON_LIGHT,ICON_BUZZER,ICON_ENCODER_TONE,
     ICON_HOST,ICON_MCU,ICON_SOFTWARE,ICON_POWER,ICON_SCREW_ADJUST,ICON_SAVE_PROFILE)
 
-TOPICS={'thermal':28,'motion':ICON_MOTION,'geometry':ICON_PROBE_CALIBRATION,
-        'filament':26,'cooling':32,'vibration':ICON_MAINTENANCE_DIAGNOSTICS,
+TOPICS={'thermal':26,'motion':ICON_MOTION,'geometry':ICON_PROBE_CALIBRATION,
+        'filament':24,'cooling':30,'vibration':ICON_MAINTENANCE_DIAGNOSTICS,
         'system':ICON_HOST,'auxiliary':ICON_LIGHT}
 FAMILIES=dict(F='cooling',H='thermal',M='motion',P='geometry',R='vibration',E='filament',S='system',O='auxiliary')
 PAGES={'groups':ICON_MAINTENANCE_CHECK,'diagnostic_groups':ICON_MAINTENANCE_DIAGNOSTICS,
        'diagnostics':ICON_MAINTENANCE_DIAGNOSTICS,'service':ICON_MAINTENANCE_CARE,
-       'calibrations':33,'support':14,'more':17,'sensor_devices':20}
+       'calibrations':28,'support':14,'more':16,'sensor_devices':19}
 
 
 def device_icon(device):
     device=device or ''
     if device.startswith('extruder'): return 9
     if device=='heater_bed': return 10
-    if device.startswith('heater_'): return 28
-    if device.startswith(('stepper_','axis_','manual_stepper ')): return 18
-    if device.startswith('endstop '): return 20
+    if device.startswith('heater_'): return 26
+    if device.startswith(('stepper_','axis_','manual_stepper ')): return 17
+    if device.startswith('endstop '): return 19
     if device.startswith('tmc'): return ICON_MCU
-    if device.startswith(('fan','heater_fan ','controller_fan ')): return 32
+    if device.startswith(('fan','heater_fan ','controller_fan ')): return 30
     if device.startswith(('neopixel ','led ','output_pin ')): return ICON_LIGHT
     if 'buzzer' in device: return ICON_BUZZER
     if 'probe' in device: return ICON_PROBE_CALIBRATION
@@ -30,14 +30,14 @@ def device_icon(device):
 
 
 def feature_icon(feature,device=None):
-    specific={'M01':20,'M03':19,'M07':ICON_MCU,'M10':ICON_MCU,'M12':20,
-        'S01':ICON_HOST,'S02':154,'S03':ICON_POWER,'S04':14,'S05':ICON_HOST,
+    specific={'M01':19,'M03':18,'M07':ICON_MCU,'M10':ICON_MCU,'M12':19,
+        'S01':ICON_HOST,'S02':26,'S03':ICON_POWER,'S04':14,'S05':ICON_HOST,
         'S06':ICON_MCU,'S07':ICON_MCU,'S08':ICON_SOFTWARE,'S09':14,'S10':15,
-        'S11':15,'S12':15,'S13':18,'S14':ICON_SOFTWARE,'S15':ICON_ENCODER_TONE,
-        'S16':ICON_MAINTENANCE_DIAGNOSTICS,'S17':156,'S18':ICON_BUZZER,
+        'S11':15,'S12':15,'S13':17,'S14':ICON_SOFTWARE,'S15':ICON_ENCODER_TONE,
+        'S16':ICON_MAINTENANCE_DIAGNOSTICS,'S17':144,'S18':ICON_BUZZER,
         'S19':ICON_SOFTWARE,'S20':14,'O04':ICON_LIGHT}
     if feature in specific: return specific[feature]
-    if feature in ('H02','H03','H04'): return 33
+    if feature in ('H02','H03','H04'): return 28
     if feature.startswith('H'): return 10 if device=='heater_bed' else 9
     return TOPICS.get(FAMILIES.get(feature[:1]))
 
@@ -60,13 +60,13 @@ def icon_for(choice):
     if action=='service_device': return device_icon(value)
     if action=='service_task':
         policy=value[0]
-        return ICON_SCREW_ADJUST if policy.task_id in ('lubricate','mechanical') else 26 if policy.task_id in ('nozzle_inspect','nozzle','filament_feed') else ICON_MAINTENANCE_CARE
+        return ICON_SCREW_ADJUST if policy.task_id in ('lubricate','mechanical') else 24 if policy.task_id in ('nozzle_inspect','nozzle','filament_feed') else ICON_MAINTENANCE_CARE
     if action in ('history','load_history','history_read'): return 15
     if action=='historical_result': return feature_icon(value.get('feature',''),value.get('device'))
-    if action=='load_services': return 30
+    if action=='load_services': return 28
     if action in ('trace','export','instructions'): return 14
     if action=='leveling': return ICON_PROBE_CALIBRATION
-    if action=='details': return 31
-    if action in ('reference','reference_limit','reference_confirm'): return 152
+    if action=='details': return 29
+    if action in ('reference','reference_limit','reference_confirm'): return 19
     if action in ('service_save','service_complete'): return ICON_SAVE_PROFILE
     return None

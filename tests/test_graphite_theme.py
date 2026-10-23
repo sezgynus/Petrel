@@ -56,7 +56,7 @@ class GraphiteContracts(unittest.TestCase):
         v._draw_list_menu = Mock()
         v.Draw_Display_Menu()
         rows = v._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[1] for r in rows[4:8]], [159, 160, 161, 162])
+        self.assertEqual([r[1] for r in rows[4:8]], [147, 148, 149, 150])
         # Brightness artwork only belongs to PWM-capable case lights.
         data = snapshot()
         data['objects'].append('output_pin case_light')
@@ -65,8 +65,8 @@ class GraphiteContracts(unittest.TestCase):
         v.pd.update_variable()
         v.Draw_Case_Light_Menu()
         rows = v._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[1] for r in rows[1:]], [155, 156])
-        self.assertNotEqual(v.ICON_CloseMotor, 111)  # Motor-off is not an MCU chip.
+        self.assertEqual([r[1] for r in rows[1:]], [143, 144])
+        self.assertNotEqual(v.ICON_CloseMotor, 101)  # Motor-off is not an MCU chip.
         self.assertNotEqual(v.ICON_Motion, v.ICON_CaseLight)
 
     def test_metadata_for_all_reserved_slots_stays_before_buzzer_record(self):

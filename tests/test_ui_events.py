@@ -385,7 +385,6 @@ class DisplayIntegrationTests(unittest.TestCase):
                 patch.object(ui, 'T5UIC1Display', FakeLCD), \
                 patch.object(ui, 'PowerMonitor'), \
                 patch.object(ui, 'PanelProbe'), \
-                patch.object(ui.PetrelDisplay, 'HMI_ShowBoot'), \
                 patch.object(ui.PetrelDisplay, 'Draw_Prepare_Menu', prepare):
             subscription.return_value.snapshot.return_value = snapshot
             display = ui.PetrelDisplay('fake-port', (21, 19), 13, '')

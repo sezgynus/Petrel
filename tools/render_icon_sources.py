@@ -39,12 +39,12 @@ def main():
                 rendered = Image.new('RGB', (width, height), BACKGROUND_RGB)
                 rendered.paste(rgba.convert('RGB'), (0, 0), coverage)
                 rendered.paste((0, 0, 0), (0, 0), coverage.point(lambda a: 255 if a <= 8 else 0))
-            button_frame = 76 <= icon_id <= 84 or 188 <= icon_id <= 192
+            button_frame = 66 <= icon_id <= 74 or 174 <= icon_id <= 178
             if button_frame:
                 # Keep the SVG's antialiased round outline. Runtime clears only
                 # the changed button, so transparency cannot retain stale ink.
                 pass
-            fan_frame = 180 <= icon_id <= 187
+            fan_frame = 166 <= icon_id <= 173
             if fan_frame:
                 # Native 0x28 animation draws opaque frames. Preserve the SVG's
                 # dashboard-colored backing (RGB565 0x18C4) instead of turning
