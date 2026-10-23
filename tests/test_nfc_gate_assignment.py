@@ -212,6 +212,36 @@ class GateUITests(unittest.TestCase):
         self.assertEqual(int.from_bytes(packet[3:5], 'big'), 12)
         self.assertEqual(int.from_bytes(packet[5:7], 'big'), 0x2125)
 
+    def test_panel_move_preserves_pixels_and_clears_vacated_strips(self):
+        """Real driver + emulator: no icon re-upload and no motion trails."""
+        from dwin_emulator.framebuffer import Framebuffer, rgb565
+        from dwin_emulator.assets import PanelAssets
+        from test_t5uic1_driver import driver
+        lcd = driver()
+        model = Framebuffer(PanelAssets())
+        lcd._packet_observer = model
+        lcd.clear(0x2125)
+        lcd.draw_rectangle(1, 0xF800, 19, 234, 60, 285)  # Simulated colored spool
+        lcd.draw_rectangle(1, 0x07E0, 8, 132, 123, 202)  # Simulated info card
+        lcd.update()
+        view, _ = self.make()
+        view.lcd = lcd
+        popup = {'sprite_x': 19, 'sprite_y': 234, 'card_x': 8}
+        view._nfc_gate_move(popup, x=83)
+        image, _ = model.snapshot()
+        self.assertEqual(image.getpixel((20, 250)), rgb565(0x2125))
+        self.assertEqual(image.getpixel((84, 250)), rgb565(0xF800))
+        self.assertEqual(image.getpixel((10, 170)), rgb565(0x2125))
+        self.assertEqual(image.getpixel((47, 170)), rgb565(0x07E0))
+        self.assertEqual(popup['sprite_x'], 83)
+        self.assertEqual(popup['card_x'], 46)
+        view._nfc_gate_move(popup, y=326)
+        image, _ = model.snapshot()
+        self.assertEqual(image.getpixel((84, 250)), rgb565(0x2125))
+        self.assertEqual(image.getpixel((84, 340)), rgb565(0xF800))
+        self.assertEqual(popup['sprite_y'], 326)
+        self.assertTrue(all(frame[1] != 0x23 for frame in lcd.serial.frames[-4:]))
+ 
     def test_back_header_is_cancel_and_never_sends_mmu_command(self):
         view, _ = self.make()
         view._nfc_gate_result()
