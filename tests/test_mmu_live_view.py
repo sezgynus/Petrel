@@ -88,8 +88,11 @@ class LiveMMUViewTests(unittest.TestCase):
         view.lcd.draw_circle.assert_not_called()
         view._mmu_selection = 2
         view.Draw_MMU_Menu()
-        view.lcd.show_icon.assert_not_called()
+        view.lcd.show_icon.assert_called_once_with(
+            3, 13, 6, 5, background=False, enhanced=True)
         for call in view.lcd.draw_rectangle.call_args_list:
+            if call.args[2:] == (4, 3, 27, 26):
+                continue  # Only the title-bar Back focus changed above the spools.
             self.assertGreaterEqual(call.args[3], 109)
             self.assertLessEqual(call.args[5], 128)
 

@@ -772,7 +772,7 @@ class MMUUITests(unittest.TestCase):
         v.HMI_MMU_Menu()
         self.assertTrue(v.lcd.draw_rectangle.called)
         for c in v.lcd.draw_rectangle.call_args_list:
-            self.assertGreaterEqual(c.args[3], 5)
+            self.assertGreaterEqual(c.args[3], 3)
             self.assertNotEqual(c.args[2:], (0,0,271,479))
         self.assertNotIn('78%', self.strings(v))
 
@@ -931,6 +931,7 @@ class MMUUITests(unittest.TestCase):
         v.get_encoder_state = lambda: v._encoder_event
         data['state'] = 'disconnected'
         data['error'] = 'offline'
+        v._mmu_selection = 1  # Exercise an action after disconnect, not initial Back.
         v._process_input(InputEvent('press',1,1,1))  # Old Gates selection changed safely.
         self.assertEqual(v.checkkey,v.MMUMenu)
         v._process_input(InputEvent('rotate',1,1,1))  # CCW to Back.
