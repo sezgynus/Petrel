@@ -159,3 +159,39 @@ class NFCShareUITests(unittest.TestCase):
                     view.Clear_Popup_Area()
                 view.lcd.configure_animation.assert_called_once_with(
                     2, False, 3, 174, 185, 56, 116, 20)
+
+    def test_batched_encoder_cannot_skip_inline_share_focus_in_either_direction(self):
+        for direction, start_offset in (('ENCODER_DIFF_CW', -3),
+                                        ('ENCODER_DIFF_CCW', 3)):
+            with self.subTest(direction=direction):
+                view, core = self.screen()
+                core.share_ndef_uri.return_value = Future()
+                items = view._info_items()
+                stop = next(i - 1 for i, item in enumerate(items)
+                            if item[0] == 'nfc_share')
+                view._info_scroll = stop + start_offset
+                view._rotation_steps = 8
+                view.get_encoder_state = Mock(return_value=getattr(view, direction))
+                view.HMI_Info()
+                self.assertEqual(view._info_scroll, stop)
+                view.lcd.show_icon.assert_any_call(
+                    3, 187, 92, 114, background=False, enhanced=True)
+                view.get_encoder_state.return_value = view.ENCODER_DIFF_ENTER
+                view.HMI_Info()
+                core.share_ndef_uri.assert_called_once_with(PROJECT_URL)
+
+    def test_encoder_can_leave_share_focus_and_hidden_share_does_not_stop_scroll(self):
+        view, core = self.screen()
+        stop = next(i - 1 for i, item in enumerate(view._info_items())
+                    if item[0] == 'nfc_share')
+        view._info_scroll = stop
+        view._rotation_steps = 2
+        view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_CW)
+        view.HMI_Info()
+        self.assertEqual(view._info_scroll, stop + 2)
+        core.is_ready.return_value = False
+        view._nfc_share_component().sync()
+        view._info_scroll = stop - 2
+        view._rotation_steps = 4
+        view.HMI_Info()
+        self.assertEqual(view._info_scroll, stop + 2)

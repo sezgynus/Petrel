@@ -2201,14 +2201,18 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         current = getattr(self, '_info_scroll', 0)
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             self._software_updater().cancel_confirmation()
-        if event == self.ENCODER_DIFF_CW:
-            self._info_scroll = min(max_scroll, current + getattr(self,"_rotation_steps",1))
-            if self._info_scroll == current:
-                return
-            self.Draw_Info_Menu()
-        elif event == self.ENCODER_DIFF_CCW:
-            self._info_scroll = max(0, current - getattr(self,"_rotation_steps",1))
-            if self._info_scroll == current:
+        if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
+            steps = max(1, getattr(self, '_rotation_steps', 1))
+            delta = steps if event == self.ENCODER_DIFF_CW else -steps
+            target = max(0, min(max_scroll, current + delta))
+            share_stop = next((i - 1 for i, item in enumerate(items)
+                               if item[0] == 'nfc_share'), None)
+            # Coalesced detents must land on an actionable control, not skip it.
+            if share_stop is not None and (
+                    current < share_stop <= target or target <= share_stop < current):
+                target = share_stop
+            self._info_scroll = target
+            if target == current:
                 return
             self.Draw_Info_Menu()
         elif event == self.ENCODER_DIFF_ENTER:
