@@ -78,6 +78,12 @@ The Kconfig **Buzzer hardware PWM** menu selects one of GPIO12/13/18/19, default
 
 Legacy installations with encoder B on GPIO19 are preserved: automatic PWM provisioning is skipped until `./configure.sh` selects nonconflicting GPIOs. A legacy pin conflict silences the buzzer rather than preventing the UI from starting. Use a transistor buzzer driver if the buzzer current exceeds Pi GPIO limits.
 
+## Optional Klipper virtual buzzer
+
+`./configure.sh` now defaults **Virtual SET_PIN Buzzer Klipper extra** to enabled. It installs `[petrel_buzzer Buzzer]` in a managed include and registers the matching Klipper module without changing G-code macros. **Remove the old `[pwm_cycle_time Buzzer]` section manually before restarting Klipper**, otherwise `SET_PIN PIN=Buzzer` would have two owners. Klipper is never automatically restarted by the configurator; restart it while idle.
+
+The Klipper extra communicates with Petrel via a private local socket at `~/.config/Petrel/klipper-buzzer.sock`, not a physical Klipper pin. When Klipper and Petrel run under different OS accounts, arrange private socket access before using the feature. See [user guide](user-guide.md#klipper-virtual-buzzer-optional-extra) for `VALUE`, `CYCLE_TIME` and sound priorities.
+
 ## LCD resources and first start
 
 **LCD font installation is optional.** Petrel works with the stock DWIN font. For the typography shown in Petrel's screenshots, you may optionally [install the bundled LCD font](lcd-assets.md#lcd-font) from the display's SD slot. Icons and boot artwork synchronize automatically over UART.

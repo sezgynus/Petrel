@@ -78,6 +78,12 @@ Kconfig **Buzzer hardware PWM** menüsü GPIO12/13/18/19 arasından seçim yapar
 
 GPIO19'u encoder B için kullanan eski kurulumlar korunur: `./configure.sh` ile çakışmayan pinler seçilene kadar otomatik PWM kurulumu atlanır. Eski pin çakışması UI'ı durdurmaz, yalnız buzzer susturulur. Akım Pi GPIO sınırını aşıyorsa transistörlü buzzer sürücüsü kullanın.
 
+## İsteğe bağlı Klipper sanal buzzer
+
+`./configure.sh` içindeki **Virtual SET_PIN Buzzer Klipper extra** varsayılan açıktır. Yönetilen include üzerinden `[petrel_buzzer Buzzer]` oluşturur ve G-code makrolarına dokunmadan Klipper extra'sını kurar. **Klipper restart öncesi eski `[pwm_cycle_time Buzzer]` bölümünü elle silin**; aynı `SET_PIN PIN=Buzzer` adına iki modül kaydolamaz. Klipper otomatik yeniden başlatılmaz; yazıcı boşta iken restart edin.
+
+Extra fiziksel Klipper pinine değil, Petrel'in `~/.config/Petrel/klipper-buzzer.sock` yerel socket adresine bağlanır. Klipper ve Petrel farklı Linux kullanıcılarıyla çalışıyorsa özel socket erişimini ayrıca yapılandırmak gerekir. Parametreler ve öncelikler için [kullanım rehberi](user-guide_TR.md#klipper-sanal-buzzer-isteğe-bağlı-extra) bölümüne bakın.
+
 ## LCD kaynakları ve ilk açılış
 
 **LCD fontunu değiştirmek isteğe bağlıdır.** Petrel stok DWIN fontuyla çalışır. Petrel'in ekran görüntülerindeki yazı görünümünü isteyenler [paketle sunulan LCD fontunu](lcd-assets_TR.md#lcd-fontu) ekranın SD yuvasından isteğe bağlı yükleyebilir. İkonlar ve açılış görseli UART üzerinden otomatik eşitlenir.

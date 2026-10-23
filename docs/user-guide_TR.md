@@ -189,6 +189,32 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer On/Off ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
+### Klipper sanal buzzer (isteğe bağlı extra)
+
+Kconfig'teki **Klipper virtual buzzer → Virtual SET_PIN Buzzer Klipper extra** seçeneği ilk yapılandırmada **varsayılan açıktır**. Apply edildiğinde Petrel, Klipper extras klasörüne kaynak dosyasının sembolik bağlantısını kurar, yönetilen `petrel-buzzer.cfg` parçasını oluşturur ve `printer.cfg` dosyasına include ekler. Klipper **otomatik yeniden başlatılmaz**; yazıcı boşta iken elle restart uygulayın. Kconfig seçeneği kapatılırsa yalnız Petrel tarafından yönetilen dosyalar temizlenir.
+
+**Klipper'ı yeniden başlatmadan önce eski `[pwm_cycle_time Buzzer]` bölümünü kendiniz silin.** Petrel bu bölümü silmez; aksi halde iki modül `PIN=Buzzer` adına kaydolmaya çalışır. Yeni bölüm:
+
+```ini
+[petrel_buzzer Buzzer]
+socket_path: /home/KULLANICI/.config/Petrel/klipper-buzzer.sock
+value: 0
+shutdown_value: 0
+cycle_time: 0.001
+```
+
+Bu bölüm installer tarafından gerçek mutlak kullanıcı yolu ile otomatik yazılır; elle ikinci kopya eklemeyin. Mevcut G-code makroları **değişmeden çalışır**:
+
+```gcode
+SET_PIN PIN=Buzzer VALUE=0.5 CYCLE_TIME=0.001
+G4 P200
+SET_PIN PIN=Buzzer VALUE=0
+```
+
+`VALUE`, doğrudan **fiziksel PWM duty oranıdır** (0–1); `scale` ayarlanmışsa değere ölçek uygulanır. `CYCLE_TIME` saniye cinsinden periyottur (0.00005–1 s); verilmezse yapılandırmadaki varsayılan kullanılır. UI'daki volume ayarının aksine `VALUE=0.5` tam %50 PWM duty üretir. Eski Jinja durum nesnesi isimleri için uyumluluk sağlamıyoruz.
+
+Klipper extra'sı komutları Petrel'in tek PWM işçisine, **özel yerel Unix datagram socket** üzerinden gönderir. Petrel çalışmıyorsa G-code akışını bloke etmez. LCD bildirimleri Klipper tonuna kısa süreli öncelik alabilir; acil durum NFC melodisi tüm tonları keserek özel öncelik kazanır. Klipper shutdown anında `shutdown_value` gönderilir; aktarım kaybolursa harici PWM için 30 saniyelik güvenlik zaman aşımı vardır. Özel socket erişimi için Petrel ve Klipper'ın aynı Linux kullanıcısı ile çalışması önerilir. Klipper shutdown durumundayken LCD bildirimleri bağımsızdır.
+
 ### NFC okuyucu ayarları
 
 **Display → NFC settings** menüsü `configure.sh` sırasında NFC'nin etkin olup

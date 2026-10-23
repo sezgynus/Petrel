@@ -55,6 +55,10 @@ yolunu ise kendi kurulumunuza göre ayarlayın. Gerçek kablolamanızdaki pinler
 
 Buzzer pinini yalnızca GPIO12 (PWM0), 13 (PWM1), 18 (PWM0) veya 19 (PWM1) arasından seçin; varsayılan GPIO19. Enkoder A/B veya butonla çakışamaz. Fiziksel pini ve boot overlay'ini Kconfig ayarlar; LCD'de yalnız On/Off, volume ve tonlar değişir. Boot overlay'i değişmişse reboot gereklidir. Klipper output pin kullanılmaz.
 
+### Klipper virtual buzzer
+
+**Virtual SET_PIN Buzzer Klipper extra** seçeneği varsayılan **açık** gelir. Apply sonrasında gerçek Klipper GPIO'su kullanmadan `[petrel_buzzer Buzzer]` extra'sını kurar. Eski `SET_PIN PIN=Buzzer VALUE=... CYCLE_TIME=...` makroları değişmeden çalışır; Jinja uyumluluğu eklenmez. Klipper restart öncesi eski `[pwm_cycle_time Buzzer]` bölümünü kendiniz silin. Seçenek kapatılırsa yalnız Petrel yönetimli Klipper modülü/config kaldırılır, LCD buzzer etkilenmez.
+
 ### Maintenance usage counters
 
 İsteğe bağlı Klipper extra'sını açın veya kaldırın; mevcut Klipper deposunu ve ana

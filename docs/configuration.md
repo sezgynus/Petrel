@@ -54,6 +54,10 @@ path. Use the actual pin assignments of your wiring.
 
 Select the buzzer pin only among GPIO12 (PWM0), 13 (PWM1), 18 (PWM0), or 19 (PWM1), default GPIO19. The pin cannot conflict with encoder A/B or button. Kconfig configures the physical pin and boot overlay; the LCD controls On/Off, volume and tones only. Reboot after changing boot overlay. No Klipper output pin is required.
 
+### Klipper virtual buzzer
+
+**Virtual SET_PIN Buzzer Klipper extra** defaults to **on**. When applied it installs the independent `[petrel_buzzer Buzzer]` Klipper extra, without a physical Klipper pin. Existing `SET_PIN PIN=Buzzer VALUE=... CYCLE_TIME=...` macros work unchanged; Jinja status compatibility is not supplied. Remove the previous `[pwm_cycle_time Buzzer]` section yourself before manually restarting Klipper. Disable this option to remove only the Petrel-managed Klipper module/config; native LCD buzzer settings remain functional.
+
 ### Maintenance usage counters
 
 Enable or remove the optional Klipper extra and select the existing Klipper checkout
