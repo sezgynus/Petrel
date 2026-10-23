@@ -85,7 +85,7 @@ class MotionTests(unittest.TestCase):
         result.Draw_Menu_Line = Mock()
         result.Draw_Motion_Menu()
         labels = [call.args[-1] for call in result.Draw_Menu_Line.call_args_list if isinstance(call.args[-1], str)]
-        self.assertEqual(labels, ['Back', 'Velocity mm/s', 'Accel mm/s2', 'SCV mm/s', 'Cruise ratio'])
+        self.assertEqual(labels, ['Velocity mm/s', 'Accel mm/s2', 'SCV mm/s', 'Cruise ratio'])
         source = data()
         source['status']['toolhead']['max_accel'] = 2000
         result.pd.subscription.snapshot.return_value = source

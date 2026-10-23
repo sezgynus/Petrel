@@ -50,9 +50,10 @@ class MaintenanceReports(unittest.TestCase):
         d=self.view();screen=self.screen()
         maximum=max(0,len(report_rows(screen.sections,screen.choices))-REPORT_VISIBLE_ROWS)
         screen=replace(screen,report_offset=maximum)
+        d._maintenance_selection=1
         draw_maintenance(d,screen);d.lcd.reset_mock();draw_maintenance(d,screen)
         d.lcd.draw_text.assert_not_called();d.lcd.draw_rectangle.assert_not_called()
-        d._maintenance_selection=1;draw_maintenance(d,screen)
+        d._maintenance_selection=2;draw_maintenance(d,screen)
         d.lcd.draw_text.assert_not_called();d.lcd.show_icon.assert_not_called()
         self.assertTrue(all(c.args[-4]==4 and c.args[-2]==7 for c in d.lcd.draw_rectangle.call_args_list))
 
@@ -66,15 +67,15 @@ class MaintenanceReports(unittest.TestCase):
     def test_scrolling_moves_one_band_and_only_draws_exposed_cells(self):
         d=self.view();screen=self.screen();draw_maintenance(d,screen);d.lcd.reset_mock()
         draw_maintenance(d,replace(screen,report_offset=1))
-        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,24,BG,0,148,259,339)
+        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,24,BG,0,96,259,335)
         self.assertLessEqual(d.lcd.draw_text.call_count,2)
         d.lcd.show_icon.assert_not_called()
         for call in d.lcd.draw_rectangle.call_args_list:
             x,y,x1,y1=call.args[-4:]
             self.assertLess(y1,360)
-            self.assertFalse(x<=16 and x1>=258 and y<148 and y1>=339)
+            self.assertFalse(x<=16 and x1>=258 and y<96 and y1>=335)
         d.lcd.reset_mock();draw_maintenance(d,screen)
-        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_DOWN,24,BG,0,148,259,339)
+        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_DOWN,24,BG,0,96,259,335)
         self.assertEqual([c.args[-1] for c in d.lcd.draw_text.call_args_list],['Host'])
 
     def test_encoder_scroll_wraps_both_directions_without_actuation_or_reflow(self):

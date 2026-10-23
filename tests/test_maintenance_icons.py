@@ -58,6 +58,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
 
     def test_root_draws_purpose_icons_once_and_keeps_them_on_focus(self):
         d=display(snapshot());d._maintenance_init();d._maintenance_page='root'
+        d._maintenance_selection=2
         d.Draw_Maintenance_Menu()
         shown={c.args[1] for c in d.lcd.show_icon.call_args_list}
         self.assertTrue({164,165,166,167}<=shown)

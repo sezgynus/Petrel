@@ -93,7 +93,7 @@ class InfoCacheRenderingTests(unittest.TestCase):
         from tools.render_docs_screenshots import canvas
         v = canvas()
         q = next(i for i, item in enumerate(v._info_items()) if item[0] == 'qr')
-        v._info_scroll = q-10
+        v._info_scroll = q-12
         v.Draw_Info_Menu()
         v.lcd.serial.frames.clear()
         v._info_scroll += 1
@@ -102,7 +102,7 @@ class InfoCacheRenderingTests(unittest.TestCase):
         self.assertFalse(any(p[1] in (0x24, 0x25) for p in packets))
         copies = [p for p in packets if p[1] == 0x26]
         self.assertEqual(len(copies), 1)
-        self.assertEqual(v.lcd._words(0, 0, 167, 23, 52, 332), copies[0][2:-4])
+        self.assertEqual(v.lcd._words(0, 0, 167, 23, 52, 326), copies[0][2:-4])
         self.assertEqual(sum(p[1] == 0x09 for p in packets), 1)
         self.assertLessEqual(sum(map(len, packets)), 260)
 
@@ -110,14 +110,14 @@ class InfoCacheRenderingTests(unittest.TestCase):
         from tools.render_docs_screenshots import canvas
         from PIL import ImageChops
         v, reference = canvas(), canvas()
-        maximum = len(v._info_items()) + 9 - 11
+        maximum = len(v._info_items()) + 9 - 13
         for scroll in list(range(maximum+1)) + list(range(maximum-1, -1, -1)) + [maximum, 0]:
             v._info_scroll = reference._info_scroll = scroll
             reference._info_render_scroll = None
             v.Draw_Info_Menu(); v.lcd.update()
             reference.Draw_Info_Menu(); reference.lcd.update()
-            a = v.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
-            b = reference.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
+            a = v.framebuffer.snapshot()[0].crop((0, 36, 256, 350))
+            b = reference.framebuffer.snapshot()[0].crop((0, 36, 256, 350))
             self.assertIsNone(ImageChops.difference(a, b).getbbox(), scroll)
 
 
@@ -134,11 +134,11 @@ class InfoCacheRenderingTests(unittest.TestCase):
                 view, reference = canvas(), canvas()
                 for panel in (view, reference):
                     panel._software_update = Mock(phase=phase, label=label, message=message)
-                maximum = len(view._info_items()) + extra_info_rows() - 11
+                maximum = len(view._info_items()) + extra_info_rows() - 13
                 view._info_scroll = reference._info_scroll = maximum
                 view.Draw_Info_Menu(); view.lcd.update()
                 reference.Draw_Info_Menu(); reference.lcd.update()
-                expected = reference.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
+                expected = reference.framebuffer.snapshot()[0].crop((0, 36, 256, 350))
                 for depth in (1, 2, 3, 4):
                     for repeat in range(3):
                         with self.subTest(depth=depth, repeat=repeat):
@@ -148,7 +148,7 @@ class InfoCacheRenderingTests(unittest.TestCase):
                                 view.lcd.serial.frames.clear()
                                 view.Draw_Info_Menu(); view.lcd.update()
                                 self.assertFalse(any(p[1] == 0x25 for p in view.lcd.serial.frames))
-                            actual = view.framebuffer.snapshot()[0].crop((0, 90, 256, 356))
+                            actual = view.framebuffer.snapshot()[0].crop((0, 36, 256, 350))
                             self.assertIsNone(ImageChops.difference(expected, actual).getbbox())
                             # The last incremental step must restore the backing,
                             # not trust a token from the previous bottom visit.
@@ -160,7 +160,7 @@ class InfoCacheRenderingTests(unittest.TestCase):
         from PIL import ImageChops
         from info_qr import extra_info_rows
         view, reference = canvas(), canvas()
-        maximum = len(view._info_items()) + extra_info_rows() - 11
+        maximum = len(view._info_items()) + extra_info_rows() - 13
         view._info_scroll = maximum
         view.Draw_Info_Menu(); view.lcd.update()
         # Reproduce a QR copy extending into the fixed 356..359 gutter.
@@ -173,6 +173,6 @@ class InfoCacheRenderingTests(unittest.TestCase):
             reference._info_render_scroll = None
             view.Draw_Info_Menu(); view.lcd.update()
             reference.Draw_Info_Menu(); reference.lcd.update()
-            actual = view.framebuffer.snapshot()[0].crop((0, 90, 256, 360))
-            expected = reference.framebuffer.snapshot()[0].crop((0, 90, 256, 360))
+            actual = view.framebuffer.snapshot()[0].crop((0, 36, 256, 360))
+            expected = reference.framebuffer.snapshot()[0].crop((0, 36, 256, 360))
             self.assertIsNone(ImageChops.difference(actual, expected).getbbox(), scroll)

@@ -628,11 +628,11 @@ class CapabilityMenuTests(unittest.TestCase):
             self.assertEqual(draw_qr.call_args.args[1], first_y - 24)
             result.Draw_Status_Area.assert_not_called()
             result.lcd.draw_qr.assert_not_called()
-            maximum = len(result._info_items()) + 9 - 11
+            maximum = len(result._info_items()) + 9 - 13
             for _ in range(20):
                 result.HMI_Info()
             self.assertEqual(result._info_scroll, maximum)
-            self.assertEqual(draw_qr.call_args.args[1], 116)
+            self.assertEqual(draw_qr.call_args.args[1], 110)
             result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CCW)
             result.HMI_Info()
             self.assertEqual(result._info_scroll, maximum - 1)
@@ -648,7 +648,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CW)
         result.HMI_Info()
         result.lcd.move_area.assert_called_once_with(1, result.DWIN_SCROLL_UP, 24,
-                                                   result.lcd.Color_Bg_Black, 0, 90, 255, 355)
+                                                   result.lcd.Color_Bg_Black, 0, 36, 255, 349)
         result.Clear_Main_Window.assert_not_called()
         result.Draw_Title.assert_not_called()
         rows = [call.args for call in result.lcd.draw_text.call_args_list
@@ -658,7 +658,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CCW)
         result.HMI_Info()
         result.lcd.move_area.assert_called_once_with(1, result.DWIN_SCROLL_DOWN, 24,
-                                                   result.lcd.Color_Bg_Black, 0, 90, 255, 355)
+                                                   result.lcd.Color_Bg_Black, 0, 36, 255, 349)
 
     def test_info_value_change_preserves_scroll_and_screen_clear_invalidates_cache(self):
         result = display(snapshot())
@@ -706,7 +706,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result = display(snapshot())
         result._software_update = Mock(label='Check for updates', message='')
         result.Draw_Info_Menu = Mock()
-        result._info_scroll = len(result._info_items()) + 9 - 11
+        result._info_scroll = len(result._info_items()) + 9 - 13
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_ENTER)
         result.HMI_Info()
         result._software_update.start.assert_called_once_with()

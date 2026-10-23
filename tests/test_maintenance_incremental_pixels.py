@@ -55,7 +55,8 @@ class MaintenancePixelUpdates(unittest.TestCase):
         ref.lcd._packet_observer=ref.fb
         ref.lcd.clear(0x2125)
         ref.Clear_Title_Bar()
-        ref.Draw_Title(screen.title)
+        ref.Draw_Title(screen.title, back=True)
+        ref._draw_header_back(True)
         ref.lcd.update()
         d.lcd.update()
         self.assertIsNone(ImageChops.difference(

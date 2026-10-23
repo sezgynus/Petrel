@@ -59,7 +59,10 @@ def register(scene,canvas,finish):
     host=NS(feature_id='S01',device=None,status=None,reason='observed_information',
         evidence=(('cpu.cpu',36.5),('cpu.cpu0',42.1),('cpu.cpu1',30.9),('cpu.cpu2',35.2),
                   ('cpu.cpu3',37.8),('cpu.cpu4',30.),('cpu.cpu5',40.),
-                  ('cpu.cpu6',35.),('cpu.cpu7',41.),('memory.total',949000),('memory.available',193992),('memory.used',755008)))
+                  ('cpu.cpu6',35.),('cpu.cpu7',41.),('cpu.cpu8',34.),('cpu.cpu9',31.),
+                  ('cpu.cpu10',32.),('cpu.cpu11',37.),('cpu.cpu12',39.),
+                  ('cpu.cpu13',30.),('cpu.cpu14',36.),('cpu.cpu15',33.),
+                  ('memory.total',949000),('memory.available',193992),('memory.used',755008)))
     def host_scroll(v,offset=0):
         v._maintenance_result=host;v._maintenance_report_position=offset
     add('maintenance-host','Host readings as labeled measurements','Etiketli ölçümler olarak host verileri','result',0,host_scroll)

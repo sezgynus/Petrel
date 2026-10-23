@@ -30,23 +30,25 @@ class MaintenancePartialUpdates(unittest.TestCase):
         for kind in ('list','detail'):
             with self.subTest(kind=kind):
                 d=self.view();screen=self.menu(3,kind)
+                d._maintenance_selection=1
                 draw_maintenance(d,screen);d.lcd.reset_mock()
-                d._maintenance_selection=1;draw_maintenance(d,screen)
+                d._maintenance_selection=2;draw_maintenance(d,screen)
                 d.lcd.draw_text.assert_not_called();d.lcd.show_icon.assert_not_called()
                 d.lcd.move_area.assert_not_called();self.no_full_clear(d)
                 self.assertTrue(all(c.args[-4]==4 and c.args[-2]==7 for c in d.lcd.draw_rectangle.call_args_list))
 
     def test_list_scroll_moves_pixels_and_draws_only_the_exposed_row(self):
         d=self.view();screen=self.menu()
+        d._maintenance_selection=1
         draw_maintenance(d,screen);d.lcd.reset_mock()
-        d._maintenance_selection=6;draw_maintenance(d,screen)
-        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,52,BG,0,86,259,345)
+        d._maintenance_selection=7;draw_maintenance(d,screen)
+        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,52,BG,0,34,259,345)
         self.assertEqual(d.lcd.show_icon.call_count,1)
         strings=[c.args[-1] for c in d.lcd.draw_text.call_args_list]
-        self.assertIn('Check 6',strings);self.assertNotIn('Check 2',strings)
+        self.assertIn('Check 7',strings);self.assertNotIn('Check 2',strings)
         self.no_full_clear(d)
         d.lcd.reset_mock();d._maintenance_selection=1;draw_maintenance(d,screen)
-        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_DOWN,52,BG,0,86,259,345)
+        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_DOWN,52,BG,0,34,259,345)
         self.assertEqual(d.lcd.show_icon.call_count,1)
 
     def test_one_row_value_update_keeps_label_and_icon(self):
@@ -56,7 +58,7 @@ class MaintenancePartialUpdates(unittest.TestCase):
         draw_maintenance(d,replace(screen,choices=tuple(choices)))
         d.lcd.show_icon.assert_not_called();d.lcd.move_area.assert_not_called()
         self.assertEqual([c.args[-1] for c in d.lcd.draw_text.call_args_list],['Reading changed'])
-        self.assertTrue(all(c.args[-4]==60 and c.args[-3]==166 for c in d.lcd.draw_rectangle.call_args_list))
+        self.assertTrue(all(c.args[-4]==60 and c.args[-3]==114 for c in d.lcd.draw_rectangle.call_args_list))
 
     def test_care_scroll_reuses_two_existing_rows(self):
         d=self.view('service')
@@ -64,11 +66,12 @@ class MaintenancePartialUpdates(unittest.TestCase):
             {'timestamp':1},'not_due','Fan '+str(i),'1d left',.25,75) for i in range(5))
         screen=Screen('Care schedule',choices=(Choice('Back','back'),)+tuple(
             Choice(item.label,'service_task',(item.policy,item.last,item.state)) for item in items),kind='care',care=items)
+        d._maintenance_selection=1
         draw_maintenance(d,screen);d.lcd.reset_mock()
-        d._maintenance_selection=4;draw_maintenance(d,screen)
-        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,82,BG,0,86,259,331)
+        d._maintenance_selection=5;draw_maintenance(d,screen)
+        d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,80,BG,0,34,259,353)
         strings=[c.args[-1] for c in d.lcd.draw_text.call_args_list]
-        self.assertIn('Fan 3',strings);self.assertNotIn('Fan 1',strings)
+        self.assertIn('Fan 4',strings);self.assertNotIn('Fan 1',strings)
         self.no_full_clear(d)
 
     def test_bar_growth_changes_only_new_pixels_and_reset_removes_old_fill(self):
@@ -85,7 +88,7 @@ class MaintenancePartialUpdates(unittest.TestCase):
         draw_maintenance(d,screen);d.lcd.reset_mock()
         d._maintenance_selection=4;draw_maintenance(d,screen)
         d.lcd.move_area.assert_called_once_with(1,d.DWIN_SCROLL_UP,39,BG,0,241,259,357)
-        self.assertTrue(all(c.args[-3]>=220 or (c.args[-4]==4 and c.args[-2]==7)
+        self.assertTrue(all(c.args[-3]>=220 or (c.args[-4]==4 and c.args[-2] in (7,27))
                             for c in d.lcd.draw_rectangle.call_args_list))
         self.no_full_clear(d)
 

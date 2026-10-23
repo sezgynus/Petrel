@@ -268,7 +268,9 @@ class NFCSettingsTests(unittest.TestCase):
         view._encoder_event = view.ENCODER_DIFF_CW
         with patch.dict('os.environ', {'PETREL_NFC': '1'}):
             view.Draw_NFC_Settings_Menu()
-            view.Draw_Menu_Cursor.assert_called_once_with(0)
+            view.Draw_Menu_Cursor.assert_not_called()
+            view.lcd.show_icon.assert_any_call(view.ICON, view.ICON_Back, 6, 5,
+                                               background=False, enhanced=True)
             view.Draw_Menu_Cursor.reset_mock()
             # Skip the read-only feature status and focus the RFID model.
             view.HMI_NFC_Settings_Menu()

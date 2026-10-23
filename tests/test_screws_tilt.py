@@ -302,7 +302,7 @@ class ViewTests(unittest.TestCase):
         self.assertEqual(row[2], 226)
         view.Draw_Menu_Line = Mock()
         view.Draw_Screws_Menu()
-        view.Draw_Menu_Line.assert_any_call(1, 227, 'Calculate')
+        view.Draw_Menu_Line.assert_any_call(0, 227, 'Calculate')
 
     def test_long_turn_labels_remain_inside_display(self):
         view = self.make()

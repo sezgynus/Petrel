@@ -160,7 +160,7 @@ class AuditRenderingTests(unittest.TestCase):
         frames = [f for f in result.lcd.MYSERIAL1.frames if f[1] == 0x11]
         rendered = [f[11:-4].strip() for f in frames
                     if int.from_bytes(f[7:9], 'big') == 184
-                    and int.from_bytes(f[9:11], 'big') in (102, 155, 208, 261)]
+                    and int.from_bytes(f[9:11], 'big') in (49, 102, 155, 208)]
         self.assertEqual(rendered, [b'-1.50', b'12.30', b'2.5', b'-4.5'])
         result.select_axis.set(1)
         result.get_encoder_state = lambda: result.ENCODER_DIFF_ENTER

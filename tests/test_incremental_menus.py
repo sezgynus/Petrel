@@ -18,6 +18,7 @@ class IncrementalMenuTests(unittest.TestCase):
 
     def test_selection_changes_only_two_cursor_rectangles(self):
         v = self.make()
+        v.select_prepare.set(1)
         v.Draw_Prepare_Menu()
         v.lcd.reset_mock()
         v.select_prepare.set(2)
@@ -89,6 +90,8 @@ class IncrementalMenuTests(unittest.TestCase):
             ('Draw_Case_Light_Menu', 'select_light', True)):
             with self.subTest(menu=draw_name):
                 v = self.make()
+                if is_object: getattr(v, selection_name).set(1)
+                else: setattr(v, selection_name, 1)
                 getattr(v, draw_name)()
                 v.lcd.reset_mock()
                 if is_object: getattr(v, selection_name).set(2)

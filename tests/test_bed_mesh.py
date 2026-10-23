@@ -397,8 +397,12 @@ class MeshViewTests(unittest.TestCase):
                 self.assertEqual(view.lcd.draw_rectangle.call_count, 2)
                 for call in view.lcd.draw_rectangle.call_args_list:
                     mode, _, _, top, _, bottom = call.args
-                    self.assertEqual(mode, 0)
-                    self.assertEqual((top, bottom), (303, 345))
+                    if top < 31:
+                        self.assertTrue(confirmation)
+                        self.assertEqual((mode, top, bottom), (1, 3, 26))
+                    else:
+                        self.assertEqual(mode, 0)
+                        self.assertEqual((top, bottom), (303, 345))
                 view.lcd.update.assert_called_once()
             view.lcd.reset_mock()
             self.event(view, view.ENCODER_DIFF_CCW)

@@ -36,9 +36,9 @@ class PublishedMaintenanceGuide(unittest.TestCase):
             scenes={scene[0]:scene[-1] for scene in self.scenes()}
             top=scenes['maintenance-host']()
             scrolled=scenes['maintenance-host-page-2']()
-        self.assertIsNone(ImageChops.difference(top.crop((0,0,272,148)),scrolled.crop((0,0,272,148))).getbbox())
+        self.assertIsNone(ImageChops.difference(top.crop((0,0,272,96)),scrolled.crop((0,0,272,96))).getbbox())
         self.assertIsNone(ImageChops.difference(top.crop((0,360,272,480)),scrolled.crop((0,360,272,480))).getbbox())
-        self.assertIsNotNone(ImageChops.difference(top.crop((0,148,260,340)),scrolled.crop((0,148,260,340))).getbbox())
+        self.assertIsNotNone(ImageChops.difference(top.crop((0,96,260,336)),scrolled.crop((0,96,260,336))).getbbox())
 
     # Published pixels are intentionally refreshed by manual Documentation Render,
     # not by every source push. Verify only after that workflow regenerates them.

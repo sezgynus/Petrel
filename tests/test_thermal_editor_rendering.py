@@ -51,10 +51,10 @@ class ThermalEditorRenderingTests(unittest.TestCase):
         view.HMI_FanSpeed()
         view.pd.setFanSpeed.assert_called_once()
         self.assertEqual([call.args[0] for call in view.Draw_Menu_Line.call_args_list],
-                         [row])
+                         [view._menu_row(row)])
         view.lcd.move_area.assert_not_called()
         updated = [call.args for call in view.lcd.draw_text.call_args_list
-                   if call.args[5] == 216 and call.args[6] == view.MBASE(row)]
+                   if call.args[5] == 216 and call.args[6] == view.MBASE(view._menu_row(row))]
         self.assertEqual(len(updated), 1)
         self.assertEqual(updated[0][3], view.lcd.Color_White)
         self.assertEqual(updated[0][4], view.lcd.Color_Bg_Black)
@@ -73,7 +73,7 @@ class ThermalEditorRenderingTests(unittest.TestCase):
         view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
         view.HMI_FanSpeed()
         updated = [call.args for call in view.lcd.draw_text.call_args_list
-                   if call.args[5] == 216 and call.args[6] == view.MBASE(row)]
+                   if call.args[5] == 216 and call.args[6] == view.MBASE(view._menu_row(row))]
         self.assertEqual(len(updated), 1)
         self.assertEqual(updated[0][4], view.lcd.Color_Bg_Black)
 
