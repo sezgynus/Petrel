@@ -108,32 +108,103 @@ class GateUITests(unittest.TestCase):
             view._nfc_gate_close()
             self.assertEqual(view.checkkey, getattr(view, origin))
 
-    def test_gate_popup_reuses_shared_mmu_spool_icons_and_moves_reel(self):
+    def test_gate_popup_reuses_shared_mmu_icons_without_redrawing_on_rotate(self):
         from lcd_resources import ICON_SPOOL_EMPTY
+        from unittest.mock import patch
         view, _ = self.make()
         view._nfc_gate_result()
-        self.assertEqual(view._nfc_gate_popup['selection'], 0)
+        popup = view._nfc_gate_popup
+        self.assertEqual(popup['selection'], 0)
         icons = [call.args for call in view.lcd.show_icon.call_args_list
                  if len(call.args) >= 4 and call.args[1] == ICON_SPOOL_EMPTY]
-        self.assertEqual(len(icons), 5)  # Four ghost gates + one colored reel.
-        titles = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
-        spool = view._nfc_gate_popup['spool']
-        self.assertTrue(any(spool.vendor[:20] in text for text in titles))
-        self.assertTrue(any(spool.name[:20] in text for text in titles))
-        self.assertTrue(any(spool.material in text for text in titles))
-        self.assertEqual(view._nfc_gate_popup['operations'][0], None)
+        self.assertEqual(len(icons), 5)  # Four ghost gates + colored moving reel.
+        lines = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
+        self.assertTrue(any('Example Filament' in line for line in lines))
+        self.assertTrue(any('Galaxy Red' in line for line in lines))
+        self.assertTrue(any('PLA' in line for line in lines))
+        self.assertIsNone(popup['operations'][0])
 
         view.lcd.reset_mock()
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
-        self.assertEqual(view._nfc_gate_popup['selection'], 1)
-        first = [call.args[2] for call in view.lcd.show_icon.call_args_list
-                 if call.args[1] == ICON_SPOOL_EMPTY][-1]
+        self.assertEqual(popup['selection'], 1)
+        self.assertIn('motion', popup)
+        view.Clear_Popup_Area = Mock()
+        view._nfc_gate_draw = Mock()
         view.lcd.reset_mock()
+        start = popup['motion']['start']
+        view._nfc_gate_motion_tick(popup, now=start + .175)
+        self.assertEqual(view.lcd.move_area.call_count, 2)  # Reel + moving info.
+        args = [call.args for call in view.lcd.move_area.call_args_list]
+        self.assertTrue(all(a[0] == 1 and a[1] == 1 and a[2] > 0 for a in args))
+        self.assertFalse(view.lcd.show_icon.called)
+        self.assertFalse(view.Clear_Popup_Area.called)
+        self.assertFalse(view._nfc_gate_draw.called)
+        self.assertFalse(view.lcd.draw_text.called)
+
+        # Retarget mid-flight; no jumps or catch-up redraw.
+        midway = popup['sprite_x']
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
-        second = [call.args[2] for call in view.lcd.show_icon.call_args_list
-                  if call.args[1] == ICON_SPOOL_EMPTY][-1]
-        self.assertGreater(second, first)
+        self.assertEqual(popup['selection'], 2)
+        self.assertEqual(popup['sprite_x'], midway)
+        view.lcd.reset_mock()
+        next_motion = popup['motion']
+        view._nfc_gate_motion_tick(popup, now=next_motion['start'] + .35)
+        self.assertEqual(popup['sprite_x'], popup['positions'][2])
+        self.assertFalse(view.lcd.show_icon.called)
         view.pd.subscription.request.assert_not_called()
+
+    def test_gif_easing_and_timing_match_sampled_motions(self):
+        from ui_nfc_gate import NFCGateViewMixin
+        ease = NFCGateViewMixin._nfc_gate_ease
+        self.assertEqual((ease(0), ease(.5), ease(1)), (0, .5, 1))
+        self.assertAlmostEqual(ease(.25), .1464466094, places=8)
+        self.assertAlmostEqual(ease(.75), .8535533906, places=8)
+        self.assertAlmostEqual(ease(-1), 0)
+        self.assertAlmostEqual(ease(5), 1)
+        self.assertEqual(NFCGateViewMixin.GATE_TRAVEL_SECONDS, .35)
+        self.assertEqual(NFCGateViewMixin.GATE_LANDING_SECONDS, .60)
+        self.assertEqual(NFCGateViewMixin.GATE_ANIMATION_INTERVAL, .05)
+
+    def test_verified_landing_moves_existing_pixels_and_does_not_reload_icon(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        popup = view._nfc_gate_popup
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .35)
+        popup['operation'] = popup['operations'][1]
+        popup['phase'] = 'writing'
+        popup['message'] = 'Assigning to G0'
+        view.lcd.reset_mock()
+        view._nfc_gate_start_vertical(popup, 267)
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .3)
+        self.assertTrue(view.lcd.move_area.called)
+        a = view.lcd.move_area.call_args.args
+        self.assertEqual(a[:2], (1, 3))  # Native 0x09, down.
+        self.assertFalse(view.lcd.show_icon.called)
+        self.assertFalse(view.lcd.draw_text.called)
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .6)
+        self.assertEqual(popup['sprite_y'], 267)
+        view.lcd.reset_mock()
+        view._nfc_gate_start_vertical(popup, view.GATE_GHOST_TOP)
+        # Clear the destination ghost just once, not on each moving frame.
+        self.assertEqual(view.lcd.draw_rectangle.call_count, 1)
+        view.lcd.reset_mock()
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .6)
+        self.assertEqual(popup['sprite_y'], view.GATE_GHOST_TOP)
+        self.assertFalse(view.lcd.show_icon.called)
+        self.assertFalse(view.lcd.draw_rectangle.called)
+        self.assertFalse(view.lcd.draw_text.called)
+
+    def test_popup_uses_native_packet_opcode_09_with_filled_clear_mode(self):
+        from test_t5uic1_driver import driver
+        from ui_nfc_gate import NFCGateViewMixin
+        lcd = driver()
+        lcd.move_area(1, 1, 12, NFCGateViewMixin.GATE_BG, 19, 234, 72, 285)
+        packet = lcd.serial.frames[-1]
+        self.assertEqual(packet[1], 0x09)
+        self.assertEqual(packet[2], 0x81)  # mode 1, right.
+        self.assertEqual(int.from_bytes(packet[3:5], 'big'), 12)
+        self.assertEqual(int.from_bytes(packet[5:7], 'big'), 0x2125)
 
     def test_back_header_is_cancel_and_never_sends_mmu_command(self):
         view, _ = self.make()
