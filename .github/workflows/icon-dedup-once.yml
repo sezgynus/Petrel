@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   migrate-verify-push:
-    if: github.actor != 'sezgynus-commit-signing-bot[bot]'
+    if: github.actor == 'sezgynus-commit-signing-bot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Generate push token
