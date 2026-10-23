@@ -139,6 +139,21 @@ def main():
             assert a.exists() and b.exists() and a.read_bytes()==b.read_bytes(),(a,b)
     change('petrel_ui.py',ui)
     change('lcd_resources.py',resources)
+    # The Maintenance icon selector has active literal numerical icon IDs.
+    # Remap Python NUMBER tokens only; preserve feature strings, UI geometry and aliases.
+    def maintenance_literal_ids(source):
+        import io, tokenize
+        tokens=list(tokenize.generate_tokens(io.StringIO(source).readline))
+        updated=[]
+        for token in tokens:
+            if token.type==tokenize.NUMBER and token.string.isdecimal():
+                old=int(token.string)
+                if old in M:
+                    token=token._replace(string=str(M[old]))
+            updated.append(token)
+        return tokenize.untokenize(updated)
+    change('maintenance_icons.py',maintenance_literal_ids)
+
     change('icon_library.py',lambda s:sub(s,"MAGIC = b'PETICO05'","MAGIC = b'PETICO06'"))
     change('tools/render_button_backings.py',
         lambda s:sub(generators(s),'if index in (92, 93):','if index in (82, 83):'))
