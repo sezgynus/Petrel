@@ -58,7 +58,7 @@ class BootSplashTests(unittest.TestCase):
         v = self.view()
         v._draw_boot_progress(70)
         frame = next(f for f in v.lcd.serial.frames if f[1] == 0x28)
-        self.assertEqual(frame[6:11], bytes((0xC0, ICON_LIBRARY_ID, 250, 254, 10)))
+        self.assertEqual(frame[6:11], bytes((0xC0, ICON_LIBRARY_ID, 207, 211, 10)))
         self.assertEqual(int.from_bytes(frame[4:6], 'big'), 320)
         text = next(f for f in v.lcd.serial.frames if f[1] == 0x11)
         self.assertEqual(int.from_bytes(text[7:9], 'big'), int.from_bytes(frame[2:4], 'big')+24)
@@ -268,3 +268,4 @@ class BootFilePreparationTests(unittest.TestCase):
             v._poll_boot()
         self.assertFalse(v._boot_active)
         v.HMI_StartFrame.assert_called_once()
+

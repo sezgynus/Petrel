@@ -1,5 +1,8 @@
 from PIL import Image, ImageDraw
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from lcd_resources import ICON_NFC_CARD_FIRST
 import math
 O=Path(__file__).parent
 B='#2c2e3c'; W='#edf3f7'; C='#42d5db'
@@ -47,4 +50,5 @@ if __name__ == '__main__':
  args=parser.parse_args()
  output=O.parent.parent/'icons'
  for i in range(12):
-  frame(i*2).save(output/f'{94+i:03}.jpg',quality=args.quality,subsampling=2,progressive=False,optimize=True)
+  frame(i*2).save(output/f'{ICON_NFC_CARD_FIRST+i:03}.jpg',quality=args.quality,subsampling=2,progressive=False,optimize=True)
+

@@ -1,3 +1,4 @@
+from lcd_resources import ICON_BOOT_FIRST, ICON_BOOT_LAST
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
 from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
                             AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR,
@@ -210,56 +211,56 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     ICON_Back = 13
     ICON_File = 14
     ICON_PrintTime = 15
-    ICON_Setup_0 = 17
-    ICON_Setup_1 = 18
-    ICON_Pause_0 = 19
-    ICON_Pause_1 = 20
-    ICON_Continue_0 = 21
-    ICON_Continue_1 = 22
-    ICON_Stop_0 = 23
-    ICON_Stop_1 = 24
-    ICON_Bar = 25
-    ICON_More = 26
+    ICON_Setup_0 = 16
+    ICON_Setup_1 = 17
+    ICON_Pause_0 = 18
+    ICON_Pause_1 = 19
+    ICON_Continue_0 = 20
+    ICON_Continue_1 = 21
+    ICON_Stop_0 = 22
+    ICON_Stop_1 = 23
+    ICON_Bar = 24
+    ICON_More = 25
 
-    ICON_Axis = 27
+    ICON_Axis = 26
     ICON_CloseMotor = ICON_MOTOR_OFF
-    ICON_Homing = 29
-    ICON_SetHome = 30
+    ICON_Homing = 27
+    ICON_SetHome = 28
     ICON_PLAPreheat = ICON_PREHEAT_PROFILE
-    ICON_ABSPreheat = 32
-    ICON_Cool = 33
+    ICON_ABSPreheat = 29
+    ICON_Cool = 30
 
-    ICON_MoveX = 35
-    ICON_MoveY = 36
-    ICON_MoveZ = 37
-    ICON_Extruder = 38
+    ICON_MoveX = 31
+    ICON_MoveY = 32
+    ICON_MoveZ = 33
+    ICON_Extruder = 34
 
-    ICON_Temperature = 40
+    ICON_Temperature = 36
     ICON_Motion = ICON_MOTION
-    ICON_WriteEEPROM = 42
-    ICON_ReadEEPROM = 43
-    ICON_Info = 45
+    ICON_WriteEEPROM = 37
+    ICON_ReadEEPROM = 38
+    ICON_Info = 39
     ICON_CaseLight = ICON_LIGHT
 
-    ICON_FanSpeed = 48
+    ICON_FanSpeed = 40
 
-    ICON_StockConfiguraton = 58
-    ICON_MaxSpeedX = 59
-    ICON_MaxSpeedY = 60
-    ICON_MaxSpeedZ = 61
+    ICON_StockConfiguraton = 41
+    ICON_MaxSpeedX = 42
+    ICON_MaxSpeedY = 43
+    ICON_MaxSpeedZ = 44
     ICON_StepE = ICON_FLOW
-    ICON_BLTouch = 78
-    ICON_TempTooLow = 79
-    ICON_NoTips_C = 82
-    ICON_NoTips_E = 83
-    ICON_Continue_C = 84
-    ICON_Cancel_C = 86
-    ICON_Confirm_C = 88
-    ICON_Confirm_E = 89
-    ICON_Maintenance_0 = 90
-    ICON_Maintenance_1 = 91
-    ICON_Info_0 = 92
-    ICON_Info_1 = 93
+    ICON_BLTouch = 45
+    ICON_TempTooLow = 46
+    ICON_NoTips_C = 47
+    ICON_NoTips_E = 48
+    ICON_Continue_C = 49
+    ICON_Cancel_C = 50
+    ICON_Confirm_C = 51
+    ICON_Confirm_E = 52
+    ICON_Maintenance_0 = 53
+    ICON_Maintenance_1 = 54
+    ICON_Info_0 = 55
+    ICON_Info_1 = 56
 
     MENU_CHAR_LIMIT = 24
     STATUS_Y = 360
@@ -716,11 +717,15 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._uart_failed()
             return False
 
-    def _draw_progress_track(self, lcd, x, y, width, value):
+    def _draw_progress_track(self, lcd, x, y, width, value, *, use_icons=True):
         # Text-free managed caps work on panels without opcode 0x08.
         from lcd_resources import ICON_PROGRESS_TRACK, ICON_PROGRESS_FILL
         def capsule(length, color, icon):
             length = min(width, max(8, length))
+            if not use_icons:
+                # Resident IDs may still belong to the previous directory.
+                lcd.draw_rectangle(1, color, x, y, x + length - 1, y + 7)
+                return
             show_theme_icon(lcd, self.ICON, icon, x, y)
             if length > 8:
                 show_theme_icon(lcd, self.ICON, icon, x + length - 8, y)
@@ -742,18 +747,18 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 and lcd is getattr(self, '_boot_animation_lcd', None)):
             return
         if lcd is getattr(self, '_boot_animation_lcd', None) and getattr(self, '_boot_animation_running', False):
-            lcd.configure_animation(0, False, getattr(self, '_boot_animation_active_library', self.ICON), 250, 254, self._boot_animation_x, 320, 10)
+            lcd.configure_animation(0, False, getattr(self, '_boot_animation_active_library', self.ICON), ICON_BOOT_FIRST, ICON_BOOT_LAST, self._boot_animation_x, 320, 10)
         self._boot_progress, self._boot_message = value, message
         # Restore original splash pixels; no solid-color patches over the artwork.
         lcd.copy_cache(0, 16, 284, 255, 344, 16, 284, background=True, enhanced=False)
-        self._draw_progress_track(lcd, 24, 292, 224, value)
+        library = getattr(lcd, '_boot_animation_library', self.ICON)
+        self._draw_progress_track(lcd, 24, 292, 224, value, use_icons=library is not None)
         x = (272 - (len(message)*8 + 24)) // 2
         lcd.draw_text(False, False, lcd.font8x16, 0xE75E, 0,
                       x+24, 322, message)
-        library = getattr(lcd, '_boot_animation_library', self.ICON)
         self._boot_animation_running = value < 100 and library is not None
         if self._boot_animation_running:
-            lcd.configure_animation(0, True, library, 250, 254, x, 320, 10)
+            lcd.configure_animation(0, True, library, ICON_BOOT_FIRST, ICON_BOOT_LAST, x, 320, 10)
         self._boot_animation_active_library = library
         self._boot_animation_x, self._boot_animation_lcd = x, lcd
         lcd.update()

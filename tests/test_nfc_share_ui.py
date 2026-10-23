@@ -64,7 +64,7 @@ class NFCShareUITests(unittest.TestCase):
         self.assertEqual(items[index + 1][1], 'Klipper')
         view._info_scroll = index - 1
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 187, 92, 60,
+        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 149, 92, 60,
                                            background=False, enhanced=True)
         self.assertFalse(any(c.args[-1] == 'Share via NFC'
                              for c in view.lcd.draw_text.call_args_list))
@@ -80,17 +80,17 @@ class NFCShareUITests(unittest.TestCase):
         index = next(i for i, item in enumerate(items) if item[0] == 'nfc_share')
         view._info_scroll = index - 2
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 186, 92, 84,
+        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 148, 92, 84,
                                            background=False, enhanced=True)
         view._info_scroll = index - 1
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 187, 92, 60,
+        view.lcd.show_icon.assert_any_call(ICON_LIBRARY_ID, 149, 92, 60,
                                            background=False, enhanced=True)
         core.get_capabilities.return_value = {'ndef_uri_emulation': False}
         view.pd.sync_nfc_event = Mock(return_value=False)
         view.lcd.reset_mock()
         view._process_input_untraced(InputEvent('nfc_capabilities', 0, 0, 0))
-        self.assertFalse(any(c.args[1] in (186, 187)
+        self.assertFalse(any(c.args[1] in (148, 149)
                              for c in view.lcd.show_icon.call_args_list))
 
     def test_popup_transfers_repository_uri_and_closes_on_complete_event(self):
@@ -138,9 +138,9 @@ class NFCShareUITests(unittest.TestCase):
         core.share_ndef_uri.return_value = Future()
         view._start_nfc_share_popup()
         view.lcd.configure_animation.assert_called_once_with(
-            2, True, ICON_LIBRARY_ID, 174, 185, 56, 116, 20)
+            2, True, ICON_LIBRARY_ID, 136, 147, 56, 116, 20)
         view._process_input_untraced(InputEvent('nfc_share_done', 0, 0, 0))
-        self.assertIn(((2, False, ICON_LIBRARY_ID, 174, 185, 56, 116, 20), {}),
+        self.assertIn(((2, False, ICON_LIBRARY_ID, 136, 147, 56, 116, 20), {}),
                       view.lcd.configure_animation.call_args_list)
 
     def test_native_animation_stops_on_failure_cancel_and_window_replacement(self):
@@ -159,7 +159,7 @@ class NFCShareUITests(unittest.TestCase):
                 else:
                     view.Clear_Popup_Area()
                 view.lcd.configure_animation.assert_called_once_with(
-                    2, False, ICON_LIBRARY_ID, 174, 185, 56, 116, 20)
+                    2, False, ICON_LIBRARY_ID, 136, 147, 56, 116, 20)
 
     def test_batched_encoder_cannot_skip_inline_share_focus_in_either_direction(self):
         for direction, start_offset in (('ENCODER_DIFF_CW', -3),
@@ -176,7 +176,7 @@ class NFCShareUITests(unittest.TestCase):
                 view.HMI_Info()
                 self.assertEqual(view._info_scroll, stop)
                 view.lcd.show_icon.assert_any_call(
-                    ICON_LIBRARY_ID, 187, 92, 60, background=False, enhanced=True)
+                    ICON_LIBRARY_ID, 149, 92, 60, background=False, enhanced=True)
                 view.get_encoder_state.return_value = view.ENCODER_DIFF_ENTER
                 view.HMI_Info()
                 core.share_ndef_uri.assert_called_once_with(PROJECT_URL)
@@ -196,3 +196,4 @@ class NFCShareUITests(unittest.TestCase):
         view._rotation_steps = 4
         view.HMI_Info()
         self.assertEqual(view._info_scroll, stop + 2)
+

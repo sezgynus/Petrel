@@ -1,3 +1,4 @@
+from lcd_resources import ICON_BOOT_FIRST, ICON_BOOT_LAST
 """Dedicated Klipper error panel with fixed recovery controls."""
 import textwrap
 from time import monotonic
@@ -124,7 +125,7 @@ class RecoveryViewMixin:
             self._recovery_drawn = None
             if getattr(self, '_boot_animation_running', False):
                 self.lcd.configure_animation(0, False, self._boot_animation_active_library,
-                                            250, 254, self._boot_animation_x, 320, 10)
+                                            ICON_BOOT_FIRST, ICON_BOOT_LAST, self._boot_animation_x, 320, 10)
                 self._boot_animation_running = False
             self._boot_active = False
             self.checkkey = self.RecoveryScreen

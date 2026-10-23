@@ -725,12 +725,12 @@ class MeshSubmenuNavigationTests(unittest.TestCase):
         view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
         view.HMI_Leveling()
         self.assertEqual([e[0] for e in view._mesh_menu_entries()], ['BACK','MESH'])
-        self.assertEqual(view._mesh_menu_entries()[1][2], 203)
+        self.assertEqual(view._mesh_menu_entries()[1][2], 165)
         view._mesh_menu_selection = 1
         view.HMI_Bed_Mesh_Menu()
         self.assertTrue(view._mesh_submenu)
         self.assertEqual([(e[0], e[2]) for e in view._mesh_menu_entries()],
-                         [('BACK',view.ICON_Back),('CALIBRATE',234),('VIEWER',225)])
+                         [('BACK',view.ICON_Back),('CALIBRATE',191),('VIEWER',182)])
         view._mesh_menu_selection = 0
         view.HMI_Bed_Mesh_Menu()
         self.assertFalse(view._mesh_submenu)
@@ -782,3 +782,4 @@ class MeshPacketBudgetTests(unittest.TestCase):
         view._advance_mesh_render()
         self.assertLessEqual(view.lcd.draw_points.call_count - before, 40)
         view.lcd.update.assert_called_once()
+

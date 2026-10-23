@@ -26,7 +26,7 @@ class VisualRoundingTests(unittest.TestCase):
 
     def test_power_artwork_has_filtered_corners_and_no_opaque_matte(self):
         assets = PanelAssets()
-        for index in (146, 149, 150, 151):
+        for index in (109, 112, 113, 114):
             with self.subTest(icon=index):
                 image = assets.icon(ICON_LIBRARY_ID, index)
                 for corner in ((0, 0), (image.width-1, 0),
@@ -84,3 +84,4 @@ class VisualRoundingTests(unittest.TestCase):
             view._draw_info_update_button(332, True)
             view._draw_info_update_button(332, False)
             self.assertIsNone(ImageChops.difference(before, self.capture(view)).getbbox())
+

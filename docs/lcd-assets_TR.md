@@ -16,7 +16,7 @@ Panel, T5UIC1 komutlarını ve ekran yönü **1** düzenini desteklemelidir. Pet
 - **Ortak UI JPEG’i:** Petrel `assets/petrel_shared.jpg` görselini Picture Flash **1** numaralı yuvaya eşitler. Info, QR bölgelerini bu sayfanın çözülmüş Area 1 önbelleğinden kopyalar.
 - **2 numaralı ikon kütüphanesi:** `assets/icons/` içindeki baseline JPEG'ler 32 KiB bloklara paketlenir; **2** numaralı yuvadan başlayarak **2–15** aralığında yalnız değişen bloklar yazılır. Böylece menü ikonları, seçim durumları, baskı kontrolleri ve animasyon kareleri yeniden tekrar tekrar çizilmeden kullanılır.
 - **Gereksiz yazmaları önleme:** İçerik parmak izleri ayrı bir kalıcı Data Flash alanında tutulur; eşleşen kaynaklar normalde atlanır. Bu parmak izleri **orijinal OEM görsellerin yedeği değildir**.
-- **Otomatik üzerine yazılmayanlar:** Stok resim yuvası **2**, LCD kernel'i ve font kaynakları. Baskı önizlemeleri geçici SRAM'e taşınır. Paketle sunulan ASCII fontu **isteğe bağlıdır** ve yalnız kullanıcı isterse SD kartla yüklenir.
+- **Otomatik üzerine yazılmayanlar:** LCD kernel'i ve font kaynakları. Baskı önizlemeleri geçici SRAM'e taşınır. Paketle sunulan ASCII fontu **isteğe bağlıdır** ve yalnız kullanıcı isterse SD kartla yüklenir.
 
 **Stok Creality açılış görseline ve ikonlarına dönmek için**, Petrel'i durdurduktan sonra [orijinal DWIN_SET](../assets/stock-dwin/DWIN_SET) paketini LCD'nin microSD yuvasından yükleyin. Adımlar [orijinal DWIN'e dönüş rehberinde](restore-stock-dwin_TR.md) bulunur. Host yazılımını kaldırmak tek başına Picture Flash'ı geri yüklemez. Bu paket yalnızca **DWIN T5UIC1** içindir; DACAI/TJC ile kullanılamaz. LCD kaynakları yazıcının ana kart firmware'ini de geri yüklemez.
 
@@ -41,7 +41,7 @@ sudo systemctl stop Petrel.service
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
-Araç yapılandırılmış seri portu kullanır ve 3’ten başlayan slotlara yazar (her 32 KiB blok için bir slot). Yazma başarısız olursa servis kapalı kalır. Yazma onayları kontrol edilir; Flash geri okuması yapılmaz. Yüklemeden sonra ikonları fiziksel panelde kontrol edin.
+Araç yapılandırılmış seri portu kullanır ve 2’den başlayan slotlara yazar (her 32 KiB blok için bir slot). Yazma başarısız olursa servis kapalı kalır. Yazma onayları kontrol edilir; Flash geri okuması yapılmaz. Yüklemeden sonra ikonları fiziksel panelde kontrol edin.
 
 Referans export dosyasının kendisini incelemek için servis kapalıyken açıkça `--file` verin. Aşağıdaki işlem, JPEG kaynaklarından yeniden paketlemek yerine belirtilen dosyanın baytlarını yükler; kaynaklar değiştiyse bu referans dosya farklı veya eski olabilir:
 
@@ -57,3 +57,8 @@ Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO --libr
 ## LCD fontu
 
 **İsteğe bağlı — Petrel stok DWIN LCD fontuyla çalışır.** Font değişimi, Petrel'in özellikleri veya performansı için gerekli değildir; yalnızca yazı görünümüne ilişkin bir tercihtir. Paketle sunulan ASCII fontu, fiziksel ekrandaki yazıları Petrel'in dokümantasyon ekran görüntülerine benzetebilir. Bunu tercih ederseniz `0T5UIC1.HZK` içeren yalnızca font amaçlı `assets/fonts/DWIN_SET` klasörünü uyumlu bir LCD güncelleme SD kartına kopyalayın. Yazıcıyı kapatın, kartı LCD'nin kart okuyucusuna takın ve enerjiyi verin. Kaynak güncellemesi tamamlanınca kapatın, kartı çıkarın ve normal başlatın. **Bu isteğe bağlı font değişimi için stok geri yükleme paketi olan `assets/stock-dwin/DWIN_SET` klasörünü kullanmayın.** Petrel açılış görselini ve ikon kütüphanesini UART üzerinden otomatik günceller; Pi servisi font Flash'ını kendiliğinden yazmaz. Emülatör paketle sunulan fontu kullandığından stok fontlu fiziksel ekrandaki yazılarla ekran görüntüleri farklı görünebilir. Fontun DejaVu lisansı `assets/emulator/Petrel-font-license.txt` içindedir.
+
+
+## Ardışık yönetilen ID’ler
+
+Güncel kütüphanede 0–211 ID’lerinde 212 ikon vardır; 212–255 boştur. PETICO02 metadata sürümü, eşitleme öncesinde eski yerleşik ID’lerle yeni açılış karelerinin başlatılmasını önler. JPEG baytları ve UI davranışları korunur. [Güncel ikon envanterine](../assets/icons/README_TR.md) bakın.

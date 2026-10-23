@@ -1,5 +1,8 @@
 """Encode the approved lossless spool frames for the managed DWIN library."""
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from lcd_resources import ICON_NFC_SPOOL_FIRST
 from PIL import Image
 
 SOURCE = Path(__file__).resolve().parent
@@ -9,5 +12,6 @@ if __name__ == '__main__':
     for frame in range(12):
         with Image.open(SOURCE / f'spool-{frame:02d}.png') as image:
             image.convert('RGB').save(
-                OUTPUT / f'{188 + frame:03d}.jpg', 'JPEG',
+                OUTPUT / f'{ICON_NFC_SPOOL_FIRST + frame:03d}.jpg', 'JPEG',
                 quality=84, subsampling=2, progressive=False, optimize=True)
+

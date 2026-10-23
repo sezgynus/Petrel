@@ -14,7 +14,7 @@ These files are inputs for screenshot rendering on the Pi. Enabling the emulator
 
 For a custom panel font, set `PETREL_EMULATOR_FONT` to the matching file in the service environment and restart. See [optional emulator settings](../../docs/ui-emulator.md#optional-settings). The stock DWIN font works with Petrel; installing the bundled font on the physical panel is optional and only changes its typography. Match font resources when comparing a screenshot with a physical display.
 
-Picture slot **1** is supplied by `../petrel_shared.jpg`; Area 1 uses its portrait upper-left QR region. ICO sources no longer contain QR ID 155.
+Picture slot **1** is supplied by `../petrel_shared.jpg`; Area 1 uses its portrait upper-left QR region. QR artwork is supplied by the shared picture rather than an ICO ID.
 
 ## Provenance
 
@@ -24,3 +24,4 @@ Picture slot **1** is supplied by `../petrel_shared.jpg`; Area 1 uses its portra
 Upstream resources retain their original provenance; Petrel does not claim authorship of these binary files.
 
 Graphite rebuilds the ASCII glyph banks using DejaVu Sans Mono; its license is bundled in `Petrel-font-license.txt`. The remaining original banks retain the upstream provenance above.
+

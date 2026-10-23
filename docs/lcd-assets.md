@@ -16,7 +16,7 @@ The panel must support T5UIC1 commands and display direction **1**. Petrel rende
 - **Shared UI JPEG:** Petrel synchronizes `assets/petrel_shared.jpg` to Picture Flash **slot 1**. Info copies QR regions from its decoded Area 1 cache.
 - **Icon library 2:** Petrel packs the baseline JPEGs under `assets/icons/` into 32 KiB blocks starting at **slot 2**, within slots **2–15**, and uploads only changed blocks. This provides menu icons, selected states, print controls and animation frames without redrawing all artwork as primitives.
 - **Write reduction:** Content fingerprints are kept in a separate persistent Data Flash area, so matching resources are normally skipped. These fingerprints are **not a backup** of the original OEM images.
-- **Not overwritten automatically:** Stock picture slot **2**, the LCD kernel and font resources. Print thumbnails are transferred to volatile SRAM. The bundled ASCII font is **optional** and is installed manually by SD card only if the user chooses it.
+- **Not overwritten automatically:** The LCD kernel and font resources. Print thumbnails are transferred to volatile SRAM. The bundled ASCII font is **optional** and is installed manually by SD card only if the user chooses it.
 
 **To restore the stock Creality boot image and icon resources, flash the [original DWIN_SET](../assets/stock-dwin/DWIN_SET) from the LCD microSD slot** after stopping Petrel. Follow the [original DWIN restoration guide](restore-stock-dwin.md). Merely uninstalling the host service cannot restore Picture Flash. This package is for **DWIN T5UIC1 only**; it is not interchangeable with DACAI/TJC. The original LCD files also do not restore the printer mainboard firmware.
 
@@ -41,7 +41,7 @@ sudo systemctl stop Petrel.service
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
-The tool uses the configured serial port and writes slots starting at 3 (one slot per 32 KiB block). Failed writes leave the service stopped. It checks write acknowledgements, without Flash readback. Inspect the icons on the physical panel after upload.
+The tool uses the configured serial port and writes slots starting at 2 (one slot per 32 KiB block). Failed writes leave the service stopped. It checks write acknowledgements, without Flash readback. Inspect the icons on the physical panel after upload.
 
 To inspect the reference export itself, pass `--file` explicitly with the service stopped. This uploads the specified file's bytes rather than rebuilding from JPEG sources; the reference export may differ or be older if sources have changed:
 
@@ -57,3 +57,8 @@ The [stock inventory](lcd-assets.json) records the resources previously audited 
 ## LCD font
 
 **Optional — Petrel works with the stock DWIN LCD font.** Changing the font is a visual preference, not a requirement for Petrel's features or performance. The bundled ASCII font can make physical text resemble Petrel's documentation screenshots. If you choose to use it, copy the font-only `assets/fonts/DWIN_SET` directory (containing `0T5UIC1.HZK`) to a compatible LCD update SD card, power off the printer, insert the card in the LCD's card reader and power on. Wait for the resource update to finish, power off, remove the card and start normally. **Do not use the separate stock-recovery `assets/stock-dwin/DWIN_SET` for this optional font change.** Petrel's boot artwork and icon library update automatically over UART, but the Pi service never uploads font Flash. The emulator uses the bundled font, so screenshots can have different typography from a physical panel retaining its stock font. The font's DejaVu license is in `assets/emulator/Petrel-font-license.txt`.
+
+
+## Compact managed IDs
+
+The current library has 212 icons at IDs 0–211; 212–255 are free. The PETICO02 metadata version prevents old resident IDs from starting new boot frames before synchronization. JPEG bytes and UI behavior are preserved. See the [current icon inventory](../assets/icons/README.md).

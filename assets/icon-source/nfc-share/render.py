@@ -1,5 +1,8 @@
 from PIL import Image, ImageDraw
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from lcd_resources import ICON_NFC_SHARE_FIRST
 import math
 O=Path(__file__).parent
 B='#2c2e3c'; W='#edf3f7'; C='#42d5db'
@@ -45,4 +48,5 @@ def frame(i):
 if __name__ == '__main__':
  output=O.parent.parent/'icons'
  for i in range(12):
-  frame(i*2).save(output/f'{174+i:03}.jpg',quality=94,subsampling=2,progressive=False)
+  frame(i*2).save(output/f'{ICON_NFC_SHARE_FIRST+i:03}.jpg',quality=94,subsampling=2,progressive=False)
+

@@ -17,12 +17,12 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, 160)) + result.lcd.TAIL])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, 123)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_machine_host_software_headings_use_native_library_ids(self):
         result = self.screen()
-        for label, icon in (('Machine', 161), ('Host', 162), ('Software', 106)):
+        for label, icon in (('Machine',124),('Host',125),('Software',69)):
             with self.subTest(label=label):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
@@ -192,3 +192,4 @@ def test_user_visible_labels_do_not_depend_on_frame_copy_assets():
         'copy_cache(1, 202, 61, 271, 71',    # Auto home
     )
     assert not any(fragment in source for fragment in legacy_text_fragments)
+

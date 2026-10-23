@@ -2,101 +2,68 @@
 
 [English](README.md) · [Türkçe](README_TR.md)
 
-Baseline **4:2:0 JPEG** dosyalarını buraya ekleyin veya mevcut olanları değiştirin. Dosya adı ikon ID'siyle başlamalı: `092.jpg`, `092-about.jpg` veya `092_about.jpeg`. ID aralığı 0–255'tir; her ID yalnız bir dosyada kullanılabilir. Mevcut ID'lerin anlamı korunur. ID ve içerik aynı kalırken dosya adını değiştirmek yükleme başlatmaz. Yeni görsel kütüphaneye girer; ID'nin arayüzde nerede gösterileceğini UI kodu seçer.
+Kütüphanede **212 ikon, 0–211 ID’leri** bulunur. **212–255 boştur**; sonraki ikonu **212** ID’siyle ekleyip sırayla devam edin. Dosya adları sıfır dolgulu olmalıdır (`212.jpg`, `assets/icon-source/212.svg`). UI ve üretim araçlarını `lcd_resources.py` sabitlerine bağlayın. Tek seferlik [ID taşıma haritası](id-migration.json) eski/yeni ID’leri kaydeder; çalışma zamanında tekrar uygulanmaz.
 
-JPEG'ler boyutlandırılmadan ve yeniden sıkıştırılmadan korunur. Progressive JPEG, diğer renk örnekleme biçimleri, yinelenen ID ve 32767 bayttan büyük görseller reddedilir. Kütüphane Picture Flash 2–15 slotlarına sığmalıdır; resim 0 Petrel açılış görselidir, resim 1 ortak UI görsel sayfasıdır ve ikon kütüphanesi resim 2’den başlar.
+Temizlikte **40 kullanılmayan ikon** (44.535 JPEG baytı) kaldırıldı. Eski 203 ID’sinin Bed Mesh menüsünde kullanıldığı bulundu; `ICON_BED_MESH` (165) olarak korundu. Kalan 212 JPEG ve düzenlenebilir SVG’nin baytları, boyutları, renkleri ve kalitesi değiştirilmeden taşındı. ID’ler ardışıktır; fiziksel yerleşim ID sırasından bağımsızdır.
 
-Uygulama güncellemesinden sonraki ilk LCD bağlantısında bu klasörden kütüphane oluşturulur. Paketleyici önce büyükten küçüğe best-fit yerleşimi oluşturur; ardından her önceki bloğu dolduracak JPEG alt kümesini bayt düzeyinde bitset dinamik programlamasıyla arayarak boşlukları birleştirmeyi dener. İyileştirme aynı veya daha az blokta daha büyük kesintisiz boşluk sağlarsa seçilir; aksi durumda geçerli başlangıç yerleşimi korunur. ID sırası fiziksel yerleşimden bağımsızdır. Her bloğun son baytı ayrılır ve UART yazımına dahil edilmez. Hiçbir JPEG blok sınırını geçmez.
+## Kaynaklar ve paketleme
 
-Yalnız değişen bloklar yüklenir; tablo bloğu en son yazılır. Paneldeki kayıt tamamlanan blokları saklar; sonraki açılış eksik yüklemeyi tamamlar. Değişmeyen kütüphanede Flash yazılmaz. Başarısız Picture Flash denemesi aynı süreçte tekrarlanmaz. Yükleme ilerlemesi ve hatalar loglarda yer alır.
+Bu dizine baseline **4:2:0 JPEG** ekleyin. ID’ler benzersiz ve 0–255 aralığında olmalıdır. Progressive JPEG, diğer renk örneklemeleri, geçersiz dosya adları ve 32767 bayttan büyük yükler reddedilir. Görselleri yeniden üretme aracı açıkça çalıştırılmadıkça mevcut JPEG’ler korunur.
 
-Çalışma sırasında kullanılan paketin aynısını dışa aktarın:
+Picture Flash **0** açılış görseline, **1** ortak QR/UI görseline, **2–15** ise **2** numaralı ikon kütüphanesine ayrılmıştır. Güncel çıktı **13×32 KiB**, yani **2–14** slotlarını kullanır. Bu bloklarda **12.581 kullanılabilir bayt boşluk** vardır; **15** numaralı slot da kullanılabilir. Ayrılmış alanın toplam kullanılabilir boşluğu **45.348 bayttır**. Yeni kaynaklarla bu değerler değişir. ID silinince 4096 baytlık dizin küçülmez.
 
-```bash
+Çalışma zamanı ve dışa aktarma aracı aynı deterministik paketleyiciyi kullanır: best-fit decreasing ardından önceki boşlukları birleştiren sınırlı subset-sum aramaları. Daha büyük boşluk için fazladan blok tüketilmez. Her blok araması kesindir; sıralı aramalar tüm paket için küresel optimum kanıtı değildir. Her bloğun son baytı ayrılmıştır; JPEG blok sınırını aşmaz. Paketleme adresleri değiştirir; JPEG baytlarını ve ID’leri değiştirmez. Önbellek, değişmeyen kaynakları her bağlantıda yeniden paketlemeyi önler.
+
+```sh
 python tools/pack_icon_library.py assets/icons /tmp/2.ICO --library 2
 ```
 
-Emülatör de bu JPEG kaynaklarını kullanır. `assets/emulator/2.ICO` referans çıktıdır; otomatik güncellemenin kaynağı değildir.
+`assets/emulator/2.ICO` repodaki referans çıktıdır. Üretim sistemi paketi JPEG kaynaklarından otomatik oluşturur; emülatör aynı kaynakları kullanır. Varlıklar değişince çıktıyı ve `docs/lcd-assets.json` dosyasını güncelleyin.
 
-MMU normal/seçili ana menü ikonları **157/158** (110×100), klasör **159** (20×18), MCU **160**, makine **161**, host **162**, yazılım **106**, güç **107**, Display **108/109**, boş makara **124** kullanır. 1–7 genişlikleri için kenar parçaları **110–123** kalır. Önceki 100–105 ID’li altı ikon, kart animasyonuna ardışık 94–105 aralığı açmak için baytları değiştirilmeden 157–162’ye taşındı. Üretim çizimi `lcd_resources.py` sembolik eşleştirmelerini ve kütüphane 2’yi kullanır.
+## Otomatik güncelleme ve ID taşıması
 
-Panel kaynaklarını yeniden yüklediğinizde, kayıt eski kurulumu tarif ediyor olabileceğinden zorla yeniden yükleyin:
+İlk LCD bağlantısında kütüphane eşitlenir. **PETICO02** metadata sürümü sıkıştırılmış ID’leri eski dizinden ayırır. PETICO01 kaydıyla yeni ID’lerde açılış animasyonu başlatılmaz; ilk geçişte animasyon yeni dizin tamamlandıktan sonra başlar. Picture Flash yazılmadan tüm native animasyonlar durur. Önce yük blokları, en son dizin yazılır; CRC doğrulamalı kontrol noktaları yarım yüklemeyi sürdürür. Sonraki değişmeyen bağlantılarda Flash yazılmaz. Başarısız otomatik Picture Flash denemesi aynı süreçte tekrarlanmaz.
 
-```bash
-sudo systemctl stop Petrel.service
-~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
-sudo systemctl start Petrel.service
-```
+0/1 slotları, ekran/ses ayarları, NFC UID’leri ve Spoolman kayıtları taşınmaz. LCD SD güncellemesi gerekmez. Eski 3/7 kütüphane tabanlarının kayıtları yönetilen 2 tabanında kullanılmaz. Eski yazılıma dönüldüğünde o yazılım kendi kaynaklarından kendi dizinini yeniden oluşturur.
 
-Yazma onayları ve kayıt geri okuması doğrulanır; Picture Flash'ın kendisi geri okunmaz. Yeni ikon yerleşimini fiziksel ekranda kontrol edin.
+Elle tanılama yüklemesinden önce Petrel’i durdurun. `tools/reload_icons.py` güncel kaynakları kontrol noktalı olarak zorla eşitler. `tools/flash_icon_library.py` varsayılan olarak güncel kaynakları; açık `--file` seçeneğiyle belirtilen ICO’yu yükler. Tanılama yüklemesi eski metadata’yı geçersiz kılar; sonraki normal açılış yönetilen kaynakları geri getirir. [LCD görselleri](../README_TR.md) kılavuzuna bakın.
 
-## Graphite
+## Güncel kaynaklar
 
-Graphite; ışık, parlaklık, ses ayarları, hareket parametreleri, kalibrasyon ve profiller için 210–234 ID’lerini ekler. Düzenlenebilir SVG kaynakları `assets/icon-source` içindedir; JPEG üretmek için `python tools/render_icon_sources.py` çalıştırın (geliştirme bağımlılığı: CairoSVG). Siyah JPEG zemini panelin şeffaf/enhanced ikon modu ile filtrelenir; menü ve dashboard yüzeyleri korunur. İkon paketi 2 numaralı slotta başlar, 2–15 slotlarını kullanabilir; 512 baytlık metadata kaydı Data Flash `0x0200–0x03FF` aralığındadır.
+| Amaç | ID’ler | Boyut / davranış |
+|---|---|---|
+| Dashboard hotend / tabla | 9 / 10 | 18×18; kullanılmayan eski 20×20 ayar sürümleri kaldırıldı |
+| MMU normal / seçili | 120 / 121 | 110×100 |
+| Ekran normal / seçili | 71 / 72 | 110×100 |
+| Klasör; MCU; makine; sunucu; yazılım; güç | 122; 123; 124; 125; 69; 70 | Klasör 20×18, diğerleri 20×20 |
+| Makara flanşları / boş makara | 73–86 / 87 | 1–7 genişlik, 52 yükseklik / 42×52 |
+| Bakım kontrol / tanılama / öneri / servis | 126–129 | 20×20 |
+| Wi-Fi zayıf / orta / güçlü | 130–132 | 20×20, filtrelenen koyu arka plan |
+| NFC ayarları; arayüz; port | 133; 118; 119 | 20×20 |
+| RFID ana menü normal / seçili | 134 / 135 | 110×100 |
+| Telefon yaklaştırma | 136–147 | 12 opak 160×160 kare, kanal 2, 200 ms/kare |
+| Küçük NFC paylaşım normal / seçili | 148 / 149 | 20×20 kontrol, 16×16 sembol |
+| Makara yaklaştırma | 150–161 | 12 opak 160×160 kare, kanal 3, 200 ms/kare |
+| Acil durum; makara; ata; kaldır; ileri; yeniden dene | 35; 47; 48; 49; 50; 51 | Ortak 20×20 amaç ikonları |
+| Kart yaklaştırma | 57–68 | 12 opak 160×160 kare, kanal 3, 200 ms/kare |
+| Bed Mesh menüsü | 165 | `ICON_BED_MESH` sabiti |
+| Fan; açılış | 192–199; 207–211 | Native animasyon kanalları 1 / 0 |
+
+Telefon paylaşımı sunucuda kare zamanlayıcısı olmadan 2,4 saniyede döner. Okuma, hata, iptal ve pencere değişimi animasyonu durdurur. Yetenek keşfi Software bölümündeki Petrel sürümünden önceki küçük NFC kontrolünün görünürlüğünü belirler; QR altında ek paylaşım satırı yoktur. Paylaşım hatasında ilk kare sabit gösterilir.
+
+Makara ve genel kart ataması ortak yakalama popup’ını kullanır. Emergency Assign/Replace kart karelerini, makara ataması makara karelerini kullanır. Tıklama iptal eder; okuma, açık UID/kayıt onayından önce animasyonu durdurur. Yalnız okuma Spoolman ataması yazmaz. Güç pencereleri, bağlantı kapanması ve ekran değişimi animasyonu durdurur/temizler; bekleyen yakalama kaynak ekrana dönüldüğünde sürer veya tamamlanır. Yeniden çizim ve enkoder hareketi yakalamayı baştan başlatmaz.
+
+## Görsel üretimi
+
+- `python tools/render_icon_sources.py --ids 148 149` seçilen SVG ID’lerini üretir; `--ids` olmadan yalnız bilinçli tam yeniden üretim yapın. Fiziksel panel baseline 4:2:0 ister; 4:4:4 daha önce görselleri bozdu.
+- `python tools/render_button_backings.py` güncel buton zemini ID’lerini kullanır.
+- `python assets/icon-source/nfc-settings/render.py` ve `python assets/icon-source/rfid/render.py` güncel amaç ikonlarını ve SVG’lerini üretir.
+- `python assets/icon-source/nfc-card/render.py`: kalite 65, optimize Huffman tabloları, baseline 4:2:0.
+- `python assets/icon-source/nfc-spool/render.py`: özgün kayıpsız PNG’ler, kalite 84, optimize Huffman tabloları, baseline 4:2:0.
+- `python assets/icon-source/nfc-share/render.py`: onaylanan telefon çizimi ve NFC N-Mark. Bütün üreticiler artık sıkıştırılmış ID’leri hedefler.
+
+Ortak Graphite çizgileri, filtrelenen siyah arka planlar ve normal/seçili durumları korunur. N-Mark atfı [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt), Lucide atfı [Lucide-LICENSE.txt](../icon-source/Lucide-LICENSE.txt) içindedir.
 
 ## Print butonları, switchler ve fan görselleri
 
-Print butonları yuvarlatılmış yüzeyi, seçim çerçevesini ve Lucide simgesini tek JPEG içinde taşır; etiketler panelin **0 numaralı fontuyla** native metin olarak çizilir. Normal dar butonlar **243–247**, seçili karşılıkları **125–129** (78×36); tamamlanan baskının Tune/Close çiftleri **130–133** (119×36) ID'lerini kullanır. AFTER JOB switchleri **248/249** (27×12) kullanır. Normal/seçili siluetleri aynı tutun: üretici aynı nötr opak kenarı taşıyan keskin yuvarlak maske kullanır; böylece filtrelenen JPEG kenarlarında önceki durumun pikselleri kalmaz.
-
-Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan simgesiyle üretilir. JPEG yuvarlamasının aynı RGB565 renginde kalması için SVG'de renk basamağının ortasındaki `#1c1a24` RGB değeri kullanılır. Native animasyonda (`0x28`) arka plan filtresi seçeneği bulunmadığından bu kareler opaktır; duran fan da aynı opak çizimi kullanır. SVG'den yeniden üretirken bu zemini koruyun. Fan ve tam buton JPEG'leri **kalite 100**, baseline **4:2:0** kullanır. Diğer üretilen ikonlar kalite 94 kullanır. JPEG'i tekrar sıkıştırmak yerine SVG'den üretin. Lucide kaynak lisansı: [Lucide lisansı](../icon-source/Lucide-LICENSE.txt).
-
-## Paket boyutu ve ayrılan alan
-
-Mevcut referans paket **14×32 KiB = 448 KiB**, yani **2–15** slotlarını kullanır; ayrılan üst sınır da budur. Bu ayrılmış blok alanıdır; birebir JPEG bütçesi değildir: dizin, yerleşim boşlukları ve ayrılmış son baytlar da alan tüketir. Data Flash metadata kaydı 0x0200–0x03FF aralığında 512 bayt kalır. Paketleyici yönetilen kütüphaneyi varsayılan alır; açık seçim için `--library 2` verin.
-
-## JPEG uyumluluk kuralı
-
-Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanmalıdır (`Pillow: subsampling=2`). `tools/render_icon_sources.py` ile doğrudan SVG’den üretin; JPEG’leri tekrar tekrar sıkıştırmayın. Fiziksel T5UIC1 testinde 4:4:4, hem Flash hem baytları geri okunarak doğrulanmış SRAM üzerinden seçili ana menü kartlarını ve homing görselini bozdu; 4:2:0 düzgün çizildi. Temiz emülatör görüntüsü panelin JPEG çözücüsünü doğrulamaz. Kaynak yükleyici diğer örnekleme biçimlerini panele erişmeden reddeder; CI tüm ikonların biçimini ve ICO’nun kaynaklarla eşleşmesini kontrol eder. Görsel güncellemelerden sonra seçili/seçili olmayan ana menü kartlarını, homing’i, küçük menü/durum ikonlarını ve animasyonu fiziksel panelde kontrol edin.
-
-Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
-
-Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 13×32 KiB yer kaplar.
-
-NFC ayarları menü satırı, tanınan NFC N siluetini ortak 20×20 Graphite turkuaz tarzında gösteren ikon **171** (`ICON_NFC`) kullanır. Salt okunur NFC özellik durumu Info düzenini izler ve işlem ikonu kullanmaz. Düzenlenebilir ikon kaynağı `assets/icon-source/171.svg` dosyasındadır.
-
-NFC silueti [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg) kaynağından uyarlanmıştır; oranları korunmuş, yalnız eşit ölçekleme ve Graphite renklendirmesi uygulanmıştır. Kaynak atfı ve lisans [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) dosyasındadır.
-
-RFID ana menüsü, NFC N sembollü **172/173** normal/seçili ikonlarını (110×100) kullanır. Graphite kart yüzeyleri, seçim çerçevesi ve native etiket alanı diğer ana menü ikonlarıyla aynıdır; Info ikonunu paylaşmaz.
-
-## NFC telefonu yaklaştırma animasyonu
-
-Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak 160×160 kare kullanır. DWIN native `0x28`, animasyon kanalı **2**, **20×10 ms** aralıkla **2,4 saniyede** döner; sunucuda kare zamanlayıcısı yoktur. 0/1 kanalları açılış/fan için korunur. Kapanma, tamamlanma, hata ve pencere değişimi yeniden çizimden önce kanal 2’yi durdurur. Başarısız paylaşımda ilk kare animasyonsuz gösterilir. Yeniden üretim: `python assets/icon-source/nfc-share/render.py`; eklenen NFC N-Mark bitmap’i onaylanan önizlemenin simgesini korur. N-Mark, NFC’yi tanımlar (NFC Forum).
-
-## Küçük NFC paylaşım kontrolü
-
-**186/187** ID’leri (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`), **16×16** telefon, NFC N silueti ve paylaşım oku içeren normal/seçili **20×20** kontrollerdir. Mevcut 24 piksel satırlara, satır yüksekliğini artırmadan sığarlar. Normal durumda odak çerçevesi yoktur; seçili durumda aynı sınırlar içinde turkuaz çerçeve ve renkli zemin bulunur. Düzenlenebilir kaynaklar: `assets/icon-source/186.svg` ve `187.svg`; yeniden üretim: `python tools/render_icon_sources.py --ids 186 187`. NFC silueti, atfı [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) içinde bulunan kaynağı yeniden kullanır. Info ekranında Software bölümünün Petrel satırında, sürüm numarasının hemen önünde kullanılır. Okuyucu paylaşım kabiliyeti doğrulandığında görünür; QR altında ayrı paylaşım satırı bulunmaz.
-
-## NFC spool okutma animasyonu (ayrılmış kaynak)
-
-**188–199** ID’leri (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`), onaylanan önizlemenin on iki opak **160×160** karesini içerir. Spool panele yaklaşır, NFC dalgaları yanar ve geri çekilir. Bu kaynak henüz hiçbir ekranda kullanılmaz; animasyon kanalı veya zamanlayıcı başlatılmaz. Gelecekteki kullanım için önerilen aralık 200 ms/kare (2,4 saniye/döngü).
-
-Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. RFID menü ikonlarıyla paket artık **14×32 KiB = 448 KiB**, yani 2–15 slotlarını kullanır.
-
-## NFC ayarları işlem ikonları
-
-NFC Settings ve seçim alt menüleri Info yerine alana uygun ikonlar kullanır: RFID modülü **171**, arayüz **155** (çift yönlü veri okları), port/cihaz **156** (fiş), bağlantı hızı **220**, Kaydet **228**, bağlantı testi **165**. Cihaz listesi boş/yükleniyor/hata satırları da port ikonunu kullanır. Yeni 155/156 ikonları siyah filtrelenebilir zemin üzerinde 20×20 Graphite çizgisindedir; baseline 4:2:0, kalite 94 ve optimize edilmiş Huffman tabloları kullanır. SVG kaynakları `assets/icon-source/155.svg` ve `156.svg`; Pillow ile yeniden üretim: `python assets/icon-source/nfc-settings/render.py`. Yeni ikonlara alan açmak için spool kareleri kayıpsız PNG kaynaklarından kalite 84 ile yeniden kodlanmıştır; boyutlar ve animasyon içeriği değişmez. Paket 416 KiB içinde kalır.
-
-## Otomatik boşluk birleştirme
-
-Optimizasyon hem çalışma anındaki `build_library` hem ICO dışa aktarma/yeniden paketleme yolunda ortaktır; JPEG baytlarını, boyutları ve ikon ID’lerini değiştirmez. Girdi sırasından bağımsız deterministik yerleşim aynı kaynaklardan aynı ICO ve parmak izlerini üretir. Her blok için alt küme araması tamdır; blokların sırayla seçimi genel bin-packing optimumunu her gelecek ikon kümesi için garanti etmez. Sığan başlangıç yerleşimi kaybedilmez; ayrılan slot sınırı aşılırsa dosya üretilmez. Paketleyici boşluğu bulabildiği en büyük kesintisiz alanda toplar; kaynak eklemeleri kalan alanı değiştirir. Dizin 4096 bayttır ve her bloğun son baytı ayrılmış kalır. Gelecek kaynak değişikliklerinde kalan boşluk doğal olarak değişir. Mevcut paket önbelleği sayesinde arama UI karelerinde veya değişmeyen yeniden bağlantılarda tekrarlanmaz. İlk güncellemede yerleşimi değişen bloklar normal senkronizasyonla yüklenir.
-
-## Kütüphane 3 veya 7’den geçiş
-
-Bu güncellemeden sonraki ilk LCD bağlantısı CRC ile doğrulanmış metadata kaydını okur. Tamamlanmış eski dizin, yükleme başlayana kadar açılış animasyonunu sağlayabilir. İlk ikon bloğu değiştirilmeden önce tüm native animasyonlar durdurulur. Eski kütüphanenin hash kayıtları yeni başlangıç adresinde yeniden kullanılmaz: gereken bütün bloklar 2’den başlayarak yüklenir ve yeni dizin slot 2’ye en son yazılır. Doğrulanmış blok kayıtları yarıda kalan aktarımı devam ettirir; sıfır dizin hash’i kısmi kütüphaneden açılış animasyonu başlatılmasını engeller. Slot 0/1, ekran ayarları ve buzzer kayıtları korunur. SD kartla kaynak güncellemesi gerekmez. Sonraki değişmeyen bağlantılarda Flash yeniden yazılmaz. Referans çıktı, emülatör ve elle yeniden yükleme araçları `2.ICO` ile `lcd_resources.py` içindeki ortak kimliği kullanır. 14 blok hash’i mevcut 512 baytlık metadata kaydına sığar.
-
-Elle tanısal yükleme, Picture Flash yazımından önce eski metadata kaydını geçersiz kılar ve doğrular; sonraki normal açılış yönetilen kaynakları otomatik geri yükler. Blok kayıtlı zorunlu kaynak yüklemesi için `tools/reload_icons.py` kullanın.
-
-## RFID ve makara etiketi işlemleri
-
-Küçük 20×20 Graphite ikonları: acil durdurma etiketi **39**, makara **82**, etiket atama **83**, etiket silme **84**, sonraki sayfa **86**, yeniden deneme **88**. Kaydet mevcut **228**, taşıma **155**, önceki/geri **13** ikonunu kullanır. NFC, acil durdurma etiketi, Spoolman envanter/detay/onay ve gate seçimi menüleri bu amaca uygun ikonları paylaşır. Kaynaklar `assets/icon-source/rfid/render.py` ve ilgili SVG dosyalarıdır; baseline 4:2:0 JPEG, kalite 94 ve optimize Huffman tabloları kullanılır.
-
-Makara etiketi atama artık NFC paylaşımı tarzında popup içinde mevcut on iki 160×160 **188–199** karesini, native animasyon kanalı **3** ve 200 ms/kare ile gösterir. Tek yakalama işlemi başlatılır; yeniden çizim ve encoder dönüşü animasyonu yeniden başlatmaz. Tıklama iptal eder. Kart gelince animasyon durur ve açık UID/kaydet onayı açılır; yalnız okutmayla Spoolman kaydı yazılmaz. İptal, hata, pencere değişimi, güç popup’ı ve bağlantı kesilmesi/kapanış animasyonu durdurur veya kaydını temizler; korunan yakalama, kaynak ekrana dönünce doğru biçimde sürer ya da tamamlanır.
-
-## Kart yaklaştırma animasyonu
-
-Genel kart atama on iki opak **160×160** kareyi, **94–105** ID’lerini, native kanal **3** ve 200 ms/kare (2,4 saniye/döngü) kullanır. Emergency Assign/Replace tag bu popup’ı açar; kart okununca UID onayından önce animasyon durur, tıklama iptal eder. Hata/pencere değişimi/güç/UART yaşam döngüsü spool popup’ıyla ortaktır. `_draw_tag_capture_popup`, sunucuda kare zamanlayıcısı olmadan kart veya spool görsellerini seçer. Yeniden üretim: `python assets/icon-source/nfc-card/render.py`; baseline 4:2:0, kalite 65, optimize Huffman tabloları. Mevcut ikonların JPEG baytları değişmedi; taşınan SVG kaynaklarının çizimleri korundu. Temizlik sonrası 212 ikon ve 45 boş ID vardır. Paket 13 slot kullanır; ayrılmış 14 slotun toplam kullanılabilir boşluğu **45.348 bayttır**.
-
-
-## Kullanılmayan kaynakların temizlenmesi
-
-Referansı olmayan 40 JPEG, bunların düzenlenebilir SVG kaynakları ve kullanılmayan eski sabitleri kaldırıldı. Kalan ID’ler ve JPEG baytları değişmedi. Referans ICO kalan 212 kaynaktan yeniden oluşturulur; normal kontrol noktalı eşitleme paneli otomatik günceller. SD güncellemesi veya ayar/etiket verisi taşıması gerekmez.
+Print Tune/Pause/Resume/Stop/MMU kontrolleri normal 200–204, seçili 88–92 ID’lerini kullanır. Geniş Tune 93/94, Close 95/96; iş anahtarları 205/206 ID’lerindedir. Etiketler şeffaf yuvarlatılmış görseller üzerinde çalışma zamanında native metinle yazılır. 192–199 fan kareleri dashboard rengindeki opak arka planı ve native animasyonu korur; üretici yeni aralıkları JPEG kalitesini değiştirmeden tanır.

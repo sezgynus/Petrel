@@ -60,8 +60,8 @@ class PopupRenderingTests(unittest.TestCase):
         view.Popup_Window_Home()
         view.lcd.update()
         image, _ = model.snapshot()
-        assets.icon.assert_called_with(ICON_LIBRARY_ID, 78)
-        self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 78
+        assets.icon.assert_called_with(ICON_LIBRARY_ID, 45)
+        self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 45
                             for frame in view.lcd.serial.frames))
         background = rgb565(view.lcd.Color_Bg_Window)
         self.assertEqual(image.getpixel((20, 70)), background)
@@ -80,3 +80,4 @@ class PopupRenderingTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     lcd.draw_text(False, True, 1, 0xFFFF, 0, x, y, 'Homing XYZ')
                 self.assertEqual(len(lcd.serial.frames), count)
+

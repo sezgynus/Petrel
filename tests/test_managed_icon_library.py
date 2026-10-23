@@ -164,7 +164,7 @@ class ManagedIconTests(unittest.TestCase):
                     int.from_bytes(entry[2:4], 'big'), payload)
                    for index, entry, offset, payload in entries(original)]
         # Preserve the pre-card golden capacity fixture.
-        records = [record for record in records if not 94 <= record[0] <= 105]
+        records = [record for record in records if not 57 <= record[0] <= 68]
         original = icons.pack_records(records)
         # ID 255 is unused; this payload exceeded the old largest 1172-byte hole.
         added = bytes.fromhex('ffd8') + bytes(1996) + bytes.fromhex('ffd9')
@@ -220,4 +220,5 @@ class ManagedIconTests(unittest.TestCase):
         for index, entry, offset, payload in entries(data):
             self.assertEqual(payload, (root / 'assets/icons' / f'{index:03d}.jpg').read_bytes())
         validate_block_layout(data, ICON_LIBRARY_ID)
+
 

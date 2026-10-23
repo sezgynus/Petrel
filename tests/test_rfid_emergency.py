@@ -109,9 +109,9 @@ class EmergencyTagTests(unittest.TestCase):
         self.assertNotEqual(entry[2:], (view.ICON_Info_0, view.ICON_Info_1))
         root = Path(__file__).resolve().parents[1] / 'assets/icons'
         for number in entry[2:]:
-            with Image.open(root / f'{number}.jpg') as icon:
+            with Image.open(root / f'{number:03d}.jpg') as icon:
                 self.assertEqual(icon.size, (110, 100))
-                with Image.open(root / '092.jpg') as info:
+                with Image.open(root / '055.jpg') as info:
                     self.assertIsNotNone(ImageChops.difference(icon, info).getbbox())
 
     def test_rfid_actions_and_all_uid_lines_stay_above_dashboard(self):
@@ -141,3 +141,4 @@ class EmergencyTagTests(unittest.TestCase):
                 self.assertTrue(all(call.args[2] + 16 < view.STATUS_Y for call in calls))
                 lines = [call.args[0] for call in calls if ':' in call.args[0]]
                 self.assertEqual(':'.join(lines), uid)
+

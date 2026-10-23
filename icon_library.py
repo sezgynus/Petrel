@@ -1,4 +1,5 @@
 """Build and synchronize the managed JPEG icon library."""
+from lcd_resources import ICON_BOOT_FIRST, ICON_BOOT_LAST
 import hashlib
 from functools import lru_cache
 from io import BytesIO
@@ -18,7 +19,8 @@ DIRECTORY_SIZE = 4096
 SOURCE_DIRECTORY = Path(__file__).resolve().parent / 'assets/icons'
 METADATA_ADDRESS = 0x0200
 METADATA_SIZE = 512
-MAGIC = b'PETICO01'
+# ID meaning changed: old metadata must not start the new boot range.
+MAGIC = b'PETICO02'
 MAX_BLOCKS = 16 - ICON_LIBRARY_ID
 _ATTEMPTS = set()
 
@@ -198,7 +200,7 @@ def sync_library(lcd, *, directory=SOURCE_DIRECTORY, force=False, automatic=True
     # A migrated library overlaps the old one. Stop every resident animation
     # before rewriting either directory or payload blocks.
     lcd.set_animation_mask(0)
-    lcd.configure_animation(0, False, ICON_LIBRARY_ID, 250, 254, 0, 320, 10)
+    lcd.configure_animation(0, False, ICON_LIBRARY_ID, ICON_BOOT_FIRST, ICON_BOOT_LAST, 0, 320, 10)
     # Whenever any payload changes, commit the directory last, even if its
     # bytes happen to match. Its checkpoint denotes a completed upload.
     current = (current + [bytes(32)] * len(wanted))[:len(wanted)]

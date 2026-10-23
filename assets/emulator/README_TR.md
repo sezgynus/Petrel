@@ -14,7 +14,7 @@ Bu dosyalar Pi üzerinde ekran görüntüsü çiziminde kullanılır. Emülatör
 
 Özel panel fontu için servis ortamında `PETREL_EMULATOR_FONT` değişkenine eşleşen dosyayı verip yeniden başlatın. [Ek emülatör ayarlarına](../../docs/ui-emulator_TR.md#ek-ayarlar) bakın. Petrel stok DWIN fontuyla da çalışır; fiziksel panele paketle sunulan fontu yüklemek isteğe bağlıdır ve yalnızca yazı görünümünü değiştirir. Ekran görüntüsüyle fiziksel ekranı karşılaştırırken font kaynaklarının eşleşmesine dikkat edin.
 
-Resim slotu **1**, `../petrel_shared.jpg` dosyasından gelir; Area 1, portre sayfanın sol üstündeki QR alanını kullanır. ICO kaynakları artık QR ID 155 içermez.
+Resim slotu **1**, `../petrel_shared.jpg` dosyasından gelir; Area 1, portre sayfanın sol üstündeki QR alanını kullanır. QR görseli bir ICO ID’si yerine ortak resimden sağlanır.
 
 ## Kaynak kökeni
 
@@ -24,3 +24,4 @@ Resim slotu **1**, `../petrel_shared.jpg` dosyasından gelir; Area 1, portre say
 Üst projelerin kaynak kökeni korunur; Petrel bu ikili dosyaların yazarlığını üstlenmez.
 
 Graphite ASCII karakter bankalarını DejaVu Sans Mono ile yeniden üretir; lisansı `Petrel-font-license.txt` içindedir. Korunan diğer bankaların özgün kaynak bağlantıları yukarıdadır.
+

@@ -1,4 +1,5 @@
 """Verified Picture Flash slot 1, shared by cached UI artwork."""
+from lcd_resources import ICON_BOOT_FIRST, ICON_BOOT_LAST
 import hashlib
 from io import BytesIO
 import logging
@@ -34,7 +35,7 @@ def sync(lcd, source=SOURCE, *, force=False):
         raise RuntimeError('Shared Picture Flash write already failed; restart to retry')
     logging.info('Uploading shared UI artwork to picture slot 1')
     from lcd_resources import ICON_LIBRARY_ID
-    lcd.configure_animation(0, False, ICON_LIBRARY_ID, 250, 254, 0, 320, 10)
+    lcd.configure_animation(0, False, ICON_LIBRARY_ID, ICON_BOOT_FIRST, ICON_BOOT_LAST, 0, 320, 10)
     lcd.write_sram(0, data)
     lcd.serial.flush()
     time.sleep(.1)

@@ -32,7 +32,7 @@ Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretm
 
 ## Teşhis sunumu ve ortak görseller
 
-Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Eski 156–163 kutu ikonları SVG/JPEG kaynaklarından ve paketten kaldırılır; Maintenance master ikonları 13, 45 ve 218 kullanır. Eşleşen çıktı/manifest 9 bloktur (288 KiB); önceki bakım UI paketinden bir blok küçüktür.
+Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Ardışık ID taşıması sonrasında Maintenance ortak master ikonları 13, 39 ve 175 kullanır. Güncel kütüphane/çıktı 212 ikon ve 13 bloktur (416 KiB); tam eşleştirme yönetilen ikon envanterindedir.
 
 ## Tüm alt menülerde artımlı güncelleme
 
@@ -57,3 +57,4 @@ Bakım kayıtları Maintenance menüsüne her girişte ve bakım görünümü bo
 Komponente özgü hatırlatıcı seçenekleri, desteklenen telemetri ve kapasite durumları [Komponent kullanım takibi](maintenance-usage_TR.md) belgesindedir.
 
 Kayıtlı hatırlatıcıyı kaldırmak için **Care schedule** içinde açın, **Remove reminder** seçin ve ayrı **Remove reminder?** ekranında onaylayın. İlk seçili eylem **Keep reminder** olur. Silme mevcut worker üzerinde çalışır ve yenilenmiş takvime döner. Kayıtlı politika ve ona ait aktif takip başlangıcı kaldırılarak iki kayıt alanı da serbest bırakılır; kullanım sayaçları ve tamamlanan bakım geçmişi korunur. Onay ekranı açıldıktan sonra düzenlenen hatırlatıcı eski onayla silinemez.
+

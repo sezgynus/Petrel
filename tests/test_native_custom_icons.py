@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class NativeCustomIconTests(unittest.TestCase):
     def test_custom_icon_dimensions_and_all_spool_sizes_stay_in_bounds(self):
         assets = PanelAssets()
-        expected = {157: (110, 100), 158: (110, 100), 159: (20, 18),
-                    160: (20, 20), 161: (20, 20), 162: (20, 20),
-                    106: (20, 20), 107: (20, 20), 108: (110, 100), 109: (110, 100), 124: (42, 52)}
+        expected = {120: (110, 100), 121: (110, 100), 122: (20, 18),
+                    123: (20, 20), 124: (20, 20), 125: (20, 20),
+                    69: (20, 20), 70: (20, 20), 71: (110, 100), 72: (110, 100), 87: (42, 52)}
         for icon, size in expected.items():
             self.assertEqual(assets.icon(ICON_LIBRARY_ID, icon).size, size)
         for width in range(1, 43):
@@ -42,3 +42,4 @@ class NativeCustomIconTests(unittest.TestCase):
         for width in range(1, 8):
             for mapping in (SPOOL_LEFT_FLANGES, SPOOL_RIGHT_FLANGES):
                 self.assertEqual(assets.icon(ICON_LIBRARY_ID, mapping[width]).size, (width, 52))
+

@@ -32,7 +32,7 @@ The empty-evidence root does not build an assessment report or controller plan. 
 
 ## Diagnostic presentation and shared artwork
 
-Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Retired tile IDs 156–163 are removed from SVG/JPEG sources and the packed library; Maintenance uses master icons 13, 45 and 218. The matching export/manifest is 9 blocks (288 KiB), one block smaller than the former Maintenance UI.
+Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Maintenance uses shared master icons 13, 39 and 175 after the dense ID migration. The current library/export has 212 icons and 13 blocks (416 KiB); see the managed icon inventory for the complete mapping.
 
 ## Incremental updates across all submenus
 
@@ -57,3 +57,4 @@ Care records refresh asynchronously on every Maintenance entry and at most once 
 Component-specific reminder options, supported telemetry and capacity states are documented in [Component usage tracking](maintenance-usage.md).
 
 To remove a saved reminder, open it in **Care schedule**, choose **Remove reminder**, then confirm on the separate **Remove reminder?** screen. **Keep reminder** is selected first. Removal runs on the existing worker and returns to the refreshed schedule. It removes that saved policy and its active tracking anchor, freeing both slots; usage counters and completed-service history are retained. A reminder edited after the confirmation opened cannot be deleted by that stale confirmation.
+

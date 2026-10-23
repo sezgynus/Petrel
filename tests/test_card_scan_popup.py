@@ -24,7 +24,7 @@ class CardScanPopupTests(TestCase):
         view, core, pending = self.screen()
         core.begin_assignment.assert_called_once_with()
         view.lcd.configure_animation.assert_called_once_with(
-            3, True, ICON_LIBRARY_ID, 94, 105, 56, 116, 20)
+            3, True, ICON_LIBRARY_ID, 57, 68, 56, 116, 20)
         view.Draw_RFID_Menu(full=False)
         view.get_encoder_state.return_value = view.ENCODER_DIFF_CW
         view.HMI_RFID()
@@ -35,7 +35,7 @@ class CardScanPopupTests(TestCase):
         self.assertEqual(view._rfid_selection, 0)
         core.assign_global_action.assert_not_called()
         view.lcd.configure_animation.assert_any_call(
-            3, False, ICON_LIBRARY_ID, 94, 105, 56, 116, 20)
+            3, False, ICON_LIBRARY_ID, 57, 68, 56, 116, 20)
 
     def test_cancel_reader_failure_and_window_replacement_stop_card_animation(self):
         for action in ('cancel', 'failure', 'window'):
@@ -49,7 +49,7 @@ class CardScanPopupTests(TestCase):
             self.assertIsNone(view._spool_scan_lcd)
             core.assign_global_action.assert_not_called()
             view.lcd.configure_animation.assert_any_call(
-                3, False, ICON_LIBRARY_ID, 94, 105, 56, 116, 20)
+                3, False, ICON_LIBRARY_ID, 57, 68, 56, 116, 20)
 
     def test_card_frames_are_twelve_opaque_baseline_420_images(self):
         root = Path(__file__).resolve().parents[1]
@@ -59,3 +59,4 @@ class CardScanPopupTests(TestCase):
                 self.assertEqual(image.size, (160, 160))
                 self.assertEqual(JpegImagePlugin.get_sampling(image), 2)
                 self.assertFalse(image.info.get('progressive'))
+

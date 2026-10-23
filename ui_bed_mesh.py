@@ -1,3 +1,4 @@
+from lcd_resources import ICON_BED_MESH
 from lcd_resources import ICON_ACTIVE_MESH, ICON_MESH_CALIBRATE, ICON_MESH_PROFILE, ICON_PROBE_CALIBRATION, ICON_SCREW_ADJUST
 """Bed mesh screens, profile browsing and encoder navigation."""
 import math
@@ -77,7 +78,7 @@ class BedMeshMixin:
     def _leveling_menu_entries(self):
         entries = [('BACK', 'Back', self.ICON_Back)]
         if self.pd.capabilities.bed_mesh:
-            entries.append(('MESH', 'Bed Mesh', 203))
+            entries.append(('MESH', 'Bed Mesh', ICON_BED_MESH))
         if self.pd.capabilities.screws_tilt_adjust:
             entries.append(('SCREWS', 'Screws Tilt Adjust', ICON_SCREW_ADJUST))
         if self.pd.capabilities.probe and 'manual_probe' in self.pd.state.objects:

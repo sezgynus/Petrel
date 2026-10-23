@@ -33,7 +33,7 @@ class AssetContracts(unittest.TestCase):
         assets = PanelAssets()
         for number in (ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG):
             with self.subTest(icon=number):
-                with Image.open(ROOT / 'assets/icons' / ('%d.jpg' % number)) as icon:
+                with Image.open(ROOT / 'assets/icons' / ('%03d.jpg' % number)) as icon:
                     self.assertEqual(icon.size, (20, 20))
                     self.assertLess(max(icon.getpixel((0, 0))), 32)
                 self.assertEqual(assets.icon(ICON_LIBRARY_ID, number).size, (20, 20))
@@ -69,7 +69,7 @@ class AssetContracts(unittest.TestCase):
         self.assertEqual(hashlib.sha256(data).hexdigest(), manifest['sha256'][ICON_LIBRARY_FILENAME])
         self.assertLessEqual(len(data), (16 - ICON_LIBRARY_ID) * 32768)
         assets = PanelAssets()
-        for icon in (92, 93):
+        for icon in (55, 56):
             self.assertEqual(assets.icon(ICON_LIBRARY_ID, icon).size, (110, 100))
         with self.assertRaisesRegex(ValueError, 'Missing icon library 9'):
             assets.icon(9, 90)
@@ -87,4 +87,5 @@ class AssetContracts(unittest.TestCase):
         copies = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == 'copy_cache']
         self.assertEqual(len(copies), 1)
         self.assertEqual(copies[0].args[0].value, 0)  # Restore splash backing only.
+
 

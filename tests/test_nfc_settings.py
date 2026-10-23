@@ -420,7 +420,7 @@ class NFCSettingsTests(unittest.TestCase):
             view.pd.test_nfc_connection.assert_called_once_with(view._nfc_values)
             rows = view._draw_list_menu.call_args.args[1]
             self.assertEqual(rows[7][:3],
-                             ('Test connection', 165, ('Wait', True)))
+                             ('Test connection', 127, ('Wait', True)))
             self.assertEqual(rows[6][2][0], 'Busy')
             self.assertFalse(view._nfc_poll_test_connection())
             future.set_result(True)
@@ -517,3 +517,4 @@ class NFCSettingsTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
