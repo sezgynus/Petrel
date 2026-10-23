@@ -1,11 +1,11 @@
-# Native C broker denemesi
+# Native C broker kurulum ve kurtarma
 
 [Yardımcı UART](dwin-uart_TR.md) · [English](dwin-uart-c.md)
 
-`feature/dwin-aux-uart-c`, Python sürümünün `4edee47` commit'inden başlar. Asıl
-`feature/dwin-aux-uart` dalı korunur. Yalnız broker çalışma zamanı değişir:
-`/dev/ttyDWIN0`, takma adı, kernel modülü, ekran soketi handshake'i ve UART sınırları
-uyumlu kalır. Python referans uygulaması kaynak ağacında tutulur.
+`master` üzerindeki isteğe bağlı UART installer'ı native C broker'ı derleyip kurar.
+Python referans uygulaması kaynak ağacında korunur; güncel master'da seçilebilir
+bir çalışma zamanı değildir. TTY, takma ad, kernel modülü, ekran soketi handshake'i
+ve ortak bağlantı sınırları değişmez.
 
 ## Kurulum veya geçiş
 
@@ -14,7 +14,7 @@ Yardımcı UART kullanan programları kapatıp çalıştırın:
 ```bash
 cd ~/Petrel
 git fetch origin
-git switch feature/dwin-aux-uart-c
+git switch master
 git pull --ff-only
 ./configure.sh
 ```
@@ -41,18 +41,26 @@ systemctl is-active Petrel.service Petrel-dwin.service
 aynı ekran durumu ve trafik ile tekrarlayın. Karşılaştırma yapılmadan Pi'de ölçülmüş
 bellek kazancı iddia edilmez. Başka mimarideki CI bellek değeri bu ölçümün yerine geçmez.
 
-## Python'a geri dönme
+## Yardımcı transport'u kapatma
+
+Yardımcı UART uygulamalarını kapatıp çalıştırın:
 
 ```bash
 cd ~/Petrel
-git switch feature/dwin-aux-uart
 ./configure.sh
 ```
 
-Yardımcı UART açık kalsın ve uygulayın. Kurulum manifesti farklı olduğu için Python
-dalının installer'ı Python servis komutunu geri getirir. Yalnız Git dalını değiştirmek
-veya restart yapmak kurulu servis komutunu değiştirmez. Eski Python installer'ı artık
-kullanılmayan C binary'sini diskte bırakabilir; bu dosya çalıştırılmaz.
+**DWIN auxiliary UART as a Linux serial port** seçeneğinin işaretini kaldırın,
+kaydedin, çıkın ve uygulayın. Kaldırma, Petrel'in ekranla doğrudan haberleşmesini
+geri getirir ve yardımcı TTY'yi kaldırır. C transport'u yeniden kurmak için
+master üzerinde seçeneği tekrar etkinleştirin.
+
+Eski `feature/dwin-aux-uart` ve `feature/dwin-aux-uart-c` dalları tarihsel geliştirme
+kopyalarıdır. Bu dallara geçmek yeni NFC ve Maintenance özellikleri dahil bütün
+uygulamayı değiştirir; yalnız transport'u geri almak değildir. Başarısız installer
+geçişi ise önceki servis birimini ve yürütülebilir dosyayı otomatik geri yükler.
+Yeniden denemeden önce günlüğü inceleyin; güncel UART'ı açmak veya onarmak için
+dal değiştirmeyin.
 
 ## Doğrulama sınırı
 

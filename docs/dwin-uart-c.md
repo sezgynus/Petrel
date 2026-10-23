@@ -1,11 +1,11 @@
-# Native C broker trial
+# Native C broker installation and recovery
 
 [Auxiliary UART](dwin-uart.md) · [Türkçe](dwin-uart-c_TR.md)
 
-`feature/dwin-aux-uart-c` starts at Python commit `4edee47`. The original
-`feature/dwin-aux-uart` branch is preserved. Only the broker runtime changes:
-`/dev/ttyDWIN0`, its alias, the kernel module, display socket handshake and UART
-limits remain compatible. The Python reference implementation stays in the tree.
+The optional UART installer on `master` builds and installs the native C broker.
+The Python reference implementation remains in the source tree; it is not a
+selectable runtime on current master. The TTY, alias, kernel module, display
+socket handshake and shared-transport limits are unchanged.
 
 ## Install or migrate
 
@@ -14,7 +14,7 @@ Close auxiliary UART applications, then:
 ```bash
 cd ~/Petrel
 git fetch origin
-git switch feature/dwin-aux-uart-c
+git switch master
 git pull --ff-only
 ./configure.sh
 ```
@@ -42,18 +42,25 @@ for Python, with the same screen state and traffic. No measured Pi memory saving
 is claimed before that comparison. CI memory figures from another architecture
 are not a substitute.
 
-## Return to Python
+## Disable the auxiliary transport
+
+Close auxiliary applications, then run:
 
 ```bash
 cd ~/Petrel
-git switch feature/dwin-aux-uart
 ./configure.sh
 ```
 
-Keep auxiliary UART enabled and apply. The Python branch's installer restores its
-Python service command because the installation manifest differs. Switching Git
-branches or restarting alone does not change the installed service command. The
-older Python installer may retain the unused C binary on disk; it is not executed.
+Uncheck **DWIN auxiliary UART as a Linux serial port**, save, exit and apply.
+Removal restores direct Petrel display communication and removes the auxiliary
+TTY. Re-enable the option on master to install the C transport again.
+
+The old `feature/dwin-aux-uart` and `feature/dwin-aux-uart-c` branches are
+historical development snapshots. Switching to either changes the entire
+application, including newer NFC and Maintenance features; it is not a
+transport-only rollback. A failed installer transition instead restores its
+previous service unit and executable automatically. Inspect the journal before
+retrying; do not change branches merely to enable or repair the current UART.
 
 ## Validation boundary
 

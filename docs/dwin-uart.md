@@ -3,10 +3,10 @@
 [Documentation](README.md) · [Türkçe](dwin-uart_TR.md)
 
 The auxiliary port can be exposed as a Linux TTY. It is optional and **off by default**.
-This C variant is under development on `feature/dwin-aux-uart-c`, forked from the
-preserved Python branch `feature/dwin-aux-uart`. CI exercises the real TTY through
-the native broker in Linux 6.1 and 6.12 virtual machines; physical C-broker DWIN/Pi
-acceptance is pending. See the [C broker trial and rollback guide](dwin-uart-c.md).
+The native C broker is included in `master` and installed by the optional UART
+installer. CI exercises the real TTY through the native broker in Linux 6.1 and
+6.12 virtual machines; validate physical timing and recovery on your own DWIN/Pi.
+See the [C broker installation and recovery guide](dwin-uart-c.md).
 
 ## Locate the auxiliary port
 
@@ -36,7 +36,7 @@ restore the previous transport. Shared build dependencies are retained on remova
 DKMS rebuilds the module for later kernels when matching headers are available.
 Secure Boot systems may require their existing module-signing/key-enrollment process.
 
-On this branch it also compiles the C broker for the host architecture before
+The installer also compiles the C broker for the host architecture before
 stopping either service. The service runs a root-owned, versioned executable under
 `/usr/local/libexec/petrel-dwin/` as the installed user in `dialout`; the running
 broker needs no Python interpreter. Build failures leave the active transport in

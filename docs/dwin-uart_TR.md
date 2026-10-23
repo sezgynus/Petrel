@@ -3,10 +3,10 @@
 [Dokümantasyon](README_TR.md) · [English](dwin-uart.md)
 
 Yardımcı port Linux TTY aygıtı olarak sunulabilir. İsteğe bağlıdır ve **varsayılan kapalıdır**.
-Bu C varyantı, korunan Python dalı `feature/dwin-aux-uart` üzerinden açılan
-`feature/dwin-aux-uart-c` dalında geliştirilmektedir. CI, gerçek TTY arayüzünü native
-broker üzerinden Linux 6.1 ve 6.12 sanal makinelerinde sınar; C broker'ın fiziksel
-DWIN/Pi kabulü beklemektedir. [C broker deneme ve geri dönüş rehberine](dwin-uart-c_TR.md) bakın.
+Native C broker `master` içinde bulunur ve isteğe bağlı UART kurulumuyla yüklenir.
+CI, gerçek TTY arayüzünü native broker üzerinden Linux 6.1 ve 6.12 sanal makinelerinde
+sınar; fiziksel zamanlama ve toparlanmayı kendi DWIN/Pi donanımınızda doğrulayın.
+[C broker kurulum ve kurtarma rehberine](dwin-uart-c_TR.md) bakın.
 
 ## Yardımcı portun yeri
 
