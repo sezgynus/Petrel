@@ -640,9 +640,12 @@ detay sayfasına döndürür.
 NFC tamamlanma bildirimleri mevcut LCD sahibindeki, en fazla 32 olay türü tutan
 ayrı bir birleştirme kutusunu kullanır. Dolu enkoder kuyruğu bu bildirimleri
 kaybettirmez; aynı türün tekrarlı bildirimlerinde en son bekleyen durum korunur.
-Yeni NFC/Spoolman polling'i, donanım handle'ı veya worker eklenmez. Başlamış
-Spoolman işi, read worker durana kadar HTTP istemcisini korur; bu, uzaktaki
-DELETE/POST kart taşımasını atomik hâle getirmez.
+Yeni NFC/Spoolman polling'i, donanım handle'ı veya worker eklenmez. Aynı anda tek
+kart yazısı kabul edilir. Normal kapanış kuyruktaki işleri iptal eder ve başlamış
+kart yazısını en fazla 60 saniye bekler; HTTP istemcisi read worker durana kadar
+korunur. Süre dolarsa günlük Spoolman Tags bağlantılarını kontrol etmenizi ister.
+Bu, uzaktaki DELETE/POST taşımasını atomik yapmaz; sürecin zorla öldürülmesi
+sonrasında tamamlanma garantisi vermez.
 
 NFC örnekleri CI'da üretilip [ekran galerisine](screenshots_TR.md) yayımlanır.
 Mevcut tam doküman üretimi manuel kalır. Master'daki `docs(nfc):` commiti,

@@ -639,8 +639,11 @@ NFC completion wakeups use a separate coalesced mailbox on the existing LCD
 owner, bounded to 32 event kinds. A full encoder queue cannot discard these
 wakeups; repeated notifications of one kind retain the latest pending state.
 No additional NFC/Spoolman polling, hardware handle or worker is introduced.
-Started Spoolman work retains its HTTP client until its read worker has stopped;
-this does not make the remote DELETE/POST tag move atomic.
+Only one tag write is admitted at a time. Normal shutdown cancels queued work
+and waits up to 60 seconds for an already-started tag write, while retaining its
+HTTP client until the read worker stops. If that bound expires, the journal asks
+you to check Spoolman Tags. This does not make the remote DELETE/POST move atomic
+or guarantee completion after a forced process kill.
 
 NFC examples are generated in CI and published in the
 [screenshot gallery](screenshots.md). The existing full documentation render

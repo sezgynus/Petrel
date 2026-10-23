@@ -414,8 +414,15 @@ class PrinterData:
         from nfc_core import normalize_uid
         if core.global_action_uid('emergency_stop') == normalize_uid(uid):
             raise ValueError('Emergency tag cannot identify a spool')
-        return self._read_worker.submit(
+        # One accepted tag write at a time; leaving its screen cannot enqueue
+        # another move behind a still-running write.
+        pending = getattr(self, '_nfc_spool_write', None)
+        if isinstance(pending, Future) and not pending.done():
+            raise OSError('Wait for the current spool tag write')
+        future = self._read_worker.submit(
             lambda: SpoolmanTags(self.spoolman_client).assign(spool.id, uid, spool, approval))
+        self._nfc_spool_write = future
+        return future
 
     def test_nfc_connection(self, settings):
         """Queue a draft configuration probe through NFC Core."""
@@ -627,6 +634,17 @@ class PrinterData:
             trace.stop()
         self.subscription.close()
         self._read_worker.close()
+        # Read workers are daemon threads. Normal process exit must also wait
+        # for an already-started multi-request tag write, not merely retain its
+        # HTTP client. Queued work has been cancelled by close above.
+        write = getattr(self, '_nfc_spool_write', None)
+        if isinstance(write, Future) and write.running():
+            try:
+                write.result(timeout=60.0)
+            except TimeoutError:
+                logging.error('Spoolman tag write unfinished at shutdown; check Spoolman Tags')
+            except Exception:
+                logging.warning('Spoolman tag write failed during shutdown; check Spoolman Tags')
         self._maintenance_worker.close()
         self.maintenance_book.close()
         # A started tag move may span several HTTP calls. Keep its transport

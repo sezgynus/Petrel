@@ -98,3 +98,55 @@ class OverlayCompletionTests(unittest.TestCase):
         printer.spoolman_client.request('POST', '/server/spoolman/proxy', {})
         worker.finish()
         printer.spoolman_client.close.assert_called_once()
+
+    def test_normal_shutdown_waits_for_a_started_tag_write(self):
+        from threading import Event, Thread
+        entered = Event()
+        class StartedWrite(Future):
+            def result(self, timeout=None):
+                self.wait_timeout = timeout
+                entered.set()
+                return super().result(timeout)
+        class FinishingWorker:
+            def __init__(self):
+                self.callbacks = []
+            def close(self):
+                return False
+            def on_stopped(self, callback):
+                self.callbacks.append(callback)
+        printer = display(snapshot()).pd
+        worker = printer._read_worker = FinishingWorker()
+        write = printer._nfc_spool_write = StartedWrite()
+        write.set_running_or_notify_cancel()
+        printer.spoolman_client = Mock()
+        closing = Thread(target=printer.close)
+        closing.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            self.assertTrue(closing.is_alive())
+            self.assertEqual(write.wait_timeout, 60.0)
+            printer.spoolman_client.close.assert_not_called()
+        finally:
+            write.set_result('AA:BB')
+            closing.join(2)
+        self.assertFalse(closing.is_alive())
+        for callback in worker.callbacks:
+            callback()
+        printer.spoolman_client.close.assert_called_once()
+
+    def test_second_tag_write_is_rejected_until_first_finishes(self):
+        printer = display(snapshot()).pd
+        core = Mock()
+        core.global_action_uid.return_value = None
+        printer.get_nfc_core = Mock(return_value=core)
+        first = Future()
+        printer._read_worker.submit.return_value = first
+        selected = describe(spool())
+        self.assertIs(printer.nfc_assign_spool(selected, 'AA:BB'), first)
+        with self.assertRaisesRegex(OSError, 'Wait'):
+            printer.nfc_assign_spool(selected, 'CC:DD')
+        self.assertEqual(printer._read_worker.submit.call_count, 1)
+        first.set_result('AA:BB')
+        second = Future()
+        printer._read_worker.submit.return_value = second
+        self.assertIs(printer.nfc_assign_spool(selected, 'CC:DD'), second)
