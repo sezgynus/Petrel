@@ -20,7 +20,10 @@ class BuzzerViewMixin:
             self._buzzer_player.play(settings, kind)
 
     def _rfid_buzzer_feedback(self):
-        # Card acceptance beep ignores the UI sound-toggle and tone selection.
+        # NFC beep uses the hardware buzzer but respects the global On/Off.
+        # Its volume/tone remain deliberate independent notification defaults.
+        if not self._buzzer_enabled():
+            return
         if getattr(self, '_buzzer_player', None) is None:
             self._buzzer_player = Player()
         self._buzzer_player.play(Settings(enabled=True, volume=100, click=3), 'press', priority=True)

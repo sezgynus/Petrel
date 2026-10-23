@@ -214,9 +214,10 @@ class MigrationTests(unittest.TestCase):
             payload = struct.pack('>8sBBB1x', magic, 80, 5, 20)
             self.assertEqual(display_settings.decode(payload + struct.pack('>I', zlib.crc32(payload))),
                              (80, 5, 10 if magic.endswith(b'1') else 20))
-        setting = Settings(output='Buzzer', volume=70, click=3, encoder=1)
-        payload = b'KDWBZR01' + setting.encode()[8:-4]
-        self.assertEqual(Settings.decode(payload + struct.pack('>I', zlib.crc32(payload))), setting)
+        setting = Settings(enabled=True, volume=70, click=3, encoder=1)
+        body = (struct.pack('>8sBBB', b'KDWBZR01', 70, 3, 1) +
+                b'Buzzer\0').ljust(124, b'\0')
+        self.assertEqual(Settings.decode(body + struct.pack('>I', zlib.crc32(body))), setting)
 
     @patch('petrel_migration.subprocess.run')
     @patch('petrel_migration.shutil.chown')

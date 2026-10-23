@@ -8,11 +8,13 @@ from unittest.mock import Mock, patch
 import unittest
 import zlib
 
-from buzzer_control import Player, Settings, ADDRESS, RECORD_SIZE
+from buzzer_control import Player, ADDRESS, RECORD_SIZE
 from buzzer_pwm import HardwarePWM, PWM_PINS
 from test_capabilities import snapshot, display
 from test_regressions import ui
 from test_t5uic1_driver import driver
+# The UI fixture imports a separate mocked module instance in isolation.
+Settings = ui.BuzzerSettings
 
 
 class BuzzerSettingsTests(unittest.TestCase):

@@ -19,16 +19,21 @@ class AuditHotpathTests(unittest.TestCase):
         self.assertTrue(v._enqueue_input('rotate',1))
         self.assertEqual(v.pd._read('small',lambda:'ok'),'ok')
 
-    def test_buzzer_snapshot_has_only_pwm_configuration(self):
+    def test_buzzer_never_copies_moonraker_configuration(self):
+        from buzzer_control import Settings
         s=MoonrakerSubscription('http://localhost:7125',autostart=False)
-        s._state='ready';s._objects=['pwm_cycle_time Buzzer','extruder']
-        s._settings={'pwm_cycle_time buzzer':{'scale':1},'gcode_macro huge':{'gcode':'x'*10000}}
         s.snapshot=Mock(side_effect=AssertionError('full copy'))
-        p=Player(s)
+        s.notify_immediate=Mock(side_effect=AssertionError('Klipper buzzer'))
+        pwm=Mock()
+        p=Player(s, driver_factory=lambda: pwm)
         try:
-            self.assertEqual(p._snapshot()['objects'],['pwm_cycle_time Buzzer'])
-            self.assertEqual(tuple(p._snapshot()['settings']),('pwm_cycle_time buzzer',))
-        finally:p.close();s.close()
+            self.assertTrue(p.play(Settings(), 'press'))
+            p.cancel()
+        finally:
+            p.close()
+            s.close()
+        s.snapshot.assert_not_called()
+        s.notify_immediate.assert_not_called()
 
     def test_file_validation_sort_and_index_are_prepared_on_worker(self):
         p=printer(snapshot());worker=ReadWorker(timeout=.1);p._read_worker=worker

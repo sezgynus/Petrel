@@ -98,12 +98,27 @@ sed \
 # Provision BCM hardware PWM and service-only sysfs write permissions.
 # This also preserves a compatible pre-existing user PWM boot overlay.
 PWM_GPIO=$(sed -n 's/^PETREL_BUZZER_GPIO=["'\'']\?\([0-9]*\)["'\'']\?$/\1/p' "$ENV_FILE" | tail -n 1)
-PWM_GPIO=${PWM_GPIO:-19}
+if [[ -z "$PWM_GPIO" ]]; then
+    echo "Legacy Petrel GPIO configuration: PWM buzzer not installed. Run ./configure.sh to select a free hardware PWM GPIO."
+else
 if [[ ! "$PWM_GPIO" =~ ^(12|13|18|19)$ ]]; then
     echo "Invalid PETREL_BUZZER_GPIO: $PWM_GPIO" >&2
     exit 1
 fi
-sudo python3 "$REPO_DIR/tools/pwm_install.py" --install --repo "$REPO_DIR" --user "$INSTALL_USER" --pin "$PWM_GPIO"
+# Fail safely instead of stealing pins used by the encoder/button.
+ENCODER_PINS=$(sed -n 's/^PETREL_ENCODER_PINS="\(.*\)"$/\1/p' "$ENV_FILE" | tail -n 1)
+BUTTON_GPIO=$(sed -n 's/^PETREL_BUTTON_PIN=\([0-9]*\)$/\1/p' "$ENV_FILE" | tail -n 1)
+for pin in $ENCODER_PINS $BUTTON_GPIO; do
+    if [[ "$pin" == "$PWM_GPIO" ]]; then
+        echo "Buzzer GPIO$PWM_GPIO is used by encoder/button; PWM installation skipped. Run ./configure.sh." >&2
+        PWM_GPIO=
+        break
+    fi
+done
+if [[ -n "$PWM_GPIO" ]]; then
+    sudo python3 "$REPO_DIR/tools/pwm_install.py" --install --repo "$REPO_DIR" --user "$INSTALL_USER" --pin "$PWM_GPIO"
+fi
+fi
 sudo systemctl daemon-reload
 
 echo "Registering Moonraker Update Manager..."

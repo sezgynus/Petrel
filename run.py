@@ -47,8 +47,16 @@ def parse_args(argv=None):
         pins = args.encoder_pins + (args.button_pin,)
         if len(args.encoder_pins) != 2 or len(set(pins)) != 3 or any(pin < 0 or pin > 27 for pin in pins):
             raise ValueError('Use three distinct BCM pins in the range 0..27')
-        if args.buzzer_gpio not in (12, 13, 18, 19) or args.buzzer_gpio in pins:
-            raise ValueError('Buzzer GPIO must be PWM-capable (12, 13, 18 or 19) and distinct from encoder/button pins')
+        if args.buzzer_gpio not in (12, 13, 18, 19):
+            raise ValueError('Buzzer GPIO must support hardware PWM (12, 13, 18, 19)')
+        if args.buzzer_gpio in pins:
+            # Legacy installations may still have GPIO19 assigned to encoder B.
+            # Do not prevent the entire display UI from launching on an update.
+            os.environ['PETREL_BUZZER_DISABLED'] = '1'
+            logging.warning('Buzzer GPIO conflicts with encoder/button; run configure.sh '
+                            'and assign a free PWM pin before enabling sounds')
+        else:
+            os.environ.pop('PETREL_BUZZER_DISABLED', None)
         if not math.isfinite(args.request_timeout) or args.request_timeout <= 0:
             raise ValueError('Request timeout must be finite and positive')
         if not args.serial_port:

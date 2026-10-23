@@ -11,6 +11,8 @@ PWM_PINS = {12: (0, 4), 13: (1, 4), 18: (0, 2), 19: (1, 2)}
 
 
 def selected_gpio():
+    if os.environ.get('PETREL_BUZZER_DISABLED') == '1':
+        raise OSError('Hardware buzzer disabled until GPIOs are configured')
     value = int(os.environ.get('PETREL_BUZZER_GPIO', '19'))
     if value not in PWM_PINS:
         raise ValueError('Buzzer GPIO must be 12, 13, 18 or 19')
