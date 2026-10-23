@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 import unittest
 import time
 from dataclasses import replace
@@ -89,7 +90,7 @@ class LiveMMUViewTests(unittest.TestCase):
         view._mmu_selection = 2
         view.Draw_MMU_Menu()
         view.lcd.show_icon.assert_called_once_with(
-            3, 13, 6, 5, background=False, enhanced=True)
+            ICON_LIBRARY_ID, 13, 6, 5, background=False, enhanced=True)
         for call in view.lcd.draw_rectangle.call_args_list:
             if call.args[2:] == (4, 3, 27, 26):
                 continue  # Only the title-bar Back focus changed above the spools.

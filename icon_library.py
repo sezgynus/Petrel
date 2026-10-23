@@ -102,10 +102,17 @@ def pack_records(records):
     if DIRECTORY_SIZE + sum(len(record[3]) for record in records) > MAX_BLOCKS * USABLE_SIZE:
         raise ValueError(f'Icons exceed reserved Picture Flash slots {ICON_LIBRARY_ID}..15')
     baseline = _best_fit_layout(records)
-    candidate = _compact_layout(records, min(len(baseline), MAX_BLOCKS))
     layout = baseline
-    if candidate is not None and _layout_score(candidate) < _layout_score(baseline):
-        layout = candidate
+    total = DIRECTORY_SIZE + sum(len(record[3]) for record in records)
+    minimum = (total + USABLE_SIZE - 1) // USABLE_SIZE
+    # Adding a reserved slot must not make us consume it prematurely: best-fit
+    # may need more blocks than an exact per-block subset layout does.
+    for count in range(minimum, min(len(baseline), MAX_BLOCKS) + 1):
+        candidate = _compact_layout(records, count)
+        if candidate is not None:
+            if _layout_score(candidate) < _layout_score(layout):
+                layout = candidate
+            break
     if len(layout) > MAX_BLOCKS:
         raise ValueError(f'Icons exceed reserved Picture Flash slots {ICON_LIBRARY_ID}..15')
     blocks = [bytearray(BLOCK_SIZE) for _ in layout]

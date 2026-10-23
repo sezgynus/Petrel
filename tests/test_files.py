@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock, patch
@@ -344,7 +345,7 @@ class DirectoryBrowserTests(unittest.TestCase):
         view.Draw_Menu_Line.assert_called_once_with(0,False,'inner')
         from lcd_resources import ICON_FOLDER
         view.lcd.show_icon.assert_called_once_with(
-            3, ICON_FOLDER, 26, view.MBASE(0) - 7, background=False, enhanced=True)
+            ICON_LIBRARY_ID, ICON_FOLDER, 26, view.MBASE(0) - 7, background=False, enhanced=True)
         view.lcd.draw_rectangle.assert_not_called()
         view.Draw_SDItem(1,1)
         self.assertEqual(view.Draw_Menu_Line.call_args.args,(1,view.ICON_File,'A.gcode'))

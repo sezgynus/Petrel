@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 import unittest
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
@@ -16,7 +17,7 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23 67 CC 33 C3 3C')])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, 103)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_machine_host_software_headings_use_native_library_ids(self):
@@ -26,7 +27,7 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23') + bytes((icon,)) + result.lcd.TAIL])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, icon)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_clock_is_larger_right_aligned_and_deduplicated(self):
