@@ -213,7 +213,7 @@ SET_PIN PIN=Buzzer VALUE=0
 
 `VALUE`, doğrudan **fiziksel PWM duty oranıdır** (0–1); `scale` ayarlanmışsa değere ölçek uygulanır. `CYCLE_TIME` saniye cinsinden periyottur (0.00005–1 s); verilmezse yapılandırmadaki varsayılan kullanılır. UI'daki volume ayarının aksine `VALUE=0.5` tam %50 PWM duty üretir. Eski Jinja durum nesnesi isimleri için uyumluluk sağlamıyoruz.
 
-Klipper extra'sı komutları Petrel'in tek PWM işçisine, **özel yerel Unix datagram socket** üzerinden gönderir. Petrel çalışmıyorsa G-code akışını bloke etmez. LCD bildirimleri Klipper tonuna kısa süreli öncelik alabilir; acil durum NFC melodisi tüm tonları keserek özel öncelik kazanır. Klipper shutdown anında `shutdown_value` gönderilir; aktarım kaybolursa harici PWM için 30 saniyelik güvenlik zaman aşımı vardır. Özel socket erişimi için Petrel ve Klipper'ın aynı Linux kullanıcısı ile çalışması önerilir. Klipper shutdown durumundayken LCD bildirimleri bağımsızdır.
+Klipper extra'sı komutları Petrel'in tek PWM işçisine, **özel yerel Unix datagram socket** üzerinden gönderir. **Display → Buzzer Off** Klipper tonlarını da susturur; UI Volume ve ton ayarları Klipper'ın açıkça belirttiği VALUE değerini yeniden ölçeklemez. Petrel çalışmıyorsa G-code akışını bloke etmez. LCD bildirimleri Klipper tonuna kısa süreli öncelik alabilir; acil durum NFC melodisi tüm tonları keserek özel öncelik kazanır. Klipper shutdown anında `shutdown_value` gönderilir; aktarım kaybolursa harici PWM için 30 saniyelik güvenlik zaman aşımı vardır. Özel socket erişimi için Petrel ve Klipper'ın aynı Linux kullanıcısı ile çalışması önerilir. Klipper shutdown durumundayken LCD bildirimleri bağımsızdır.
 
 ### NFC okuyucu ayarları
 

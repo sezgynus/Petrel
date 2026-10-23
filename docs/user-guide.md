@@ -213,7 +213,7 @@ SET_PIN PIN=Buzzer VALUE=0
 
 The `VALUE` parameter is a **direct electrical PWM duty fraction** (0.0–1.0), optionally divided by `scale` if configured. `CYCLE_TIME` is seconds per PWM cycle (0.00005–1.0 s); omitting it uses the configured default. Unlike Petrel UI's volume scaling, `VALUE=0.5` generates exactly 50% PWM duty. This intentionally does **not** provide backward-compatible Jinja status names.
 
-Klipper's extra transfers events over a **private AF_UNIX datagram socket** to the single Petrel PWM owner, without GPIO access or blocking the G-code queue when Petrel is offline. Ordinary LCD tones may temporarily overlay a Klipper tone, and emergency-tag melody takes exclusive priority. On Klipper shutdown the extra sends `shutdown_value`; if that notification is lost, a nonzero external duty has a 30-second safety cutoff. Petrel and Klipper should normally run under the same OS account for private-socket access. The UI remains usable even when Klipper is in shutdown.
+Klipper's extra transfers events over a **private AF_UNIX datagram socket** to the single Petrel PWM owner, without GPIO access or blocking the G-code queue when Petrel is offline. The master **Display → Buzzer Off** mutes Klipper-driven tones as well; UI Volume and tone settings do not rescale the explicit Klipper VALUE. Ordinary LCD tones may temporarily overlay a Klipper tone, and emergency-tag melody takes exclusive priority. On Klipper shutdown the extra sends `shutdown_value`; if that notification is lost, a nonzero external duty has a 30-second safety cutoff. Petrel and Klipper should normally run under the same OS account for private-socket access. The UI remains usable even when Klipper is in shutdown.
 
 ### NFC reader settings
 
