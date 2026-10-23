@@ -61,6 +61,10 @@ class SharedArtworkTests(unittest.TestCase):
     def test_ico_no_longer_contains_qr_and_reserved_flash_ranges_do_not_overlap(self):
         from icon_library import build_library, METADATA_ADDRESS
         import boot_artwork
-        self.assertFalse(any(build_library()[155*16:156*16]))
+        # Former QR ID 155 is reused by a small communication glyph.
+        # A 20x20 directory entry cannot contain the former full QR image.
+        entry = build_library()[155*16:156*16]
+        self.assertEqual((int.from_bytes(entry[:2], 'big'),
+                          int.from_bytes(entry[2:4], 'big')), (20, 20))
         self.assertGreaterEqual(artwork.ADDRESS, boot_artwork.ADDRESS + boot_artwork.SIZE)
         self.assertLessEqual(artwork.ADDRESS + artwork.SIZE, METADATA_ADDRESS)
