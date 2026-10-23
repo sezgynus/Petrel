@@ -6,6 +6,8 @@ from spool_view import SpoolView
 from mmu_filament_view import MMUFilamentView, filament_color
 from mmu_control import MMUState
 from display_numbers import fixed, compact
+from graphite_theme import show_icon as show_theme_icon
+from lcd_resources import ICON_LIBRARY_ID
 
 class MMUViewMixin:
     def _mmu_temperature_text(self):
@@ -601,7 +603,12 @@ class MMUViewMixin:
         items = self._mmu_items(m, snapshot=snapshot)
         self._mmu_drawn_keys = tuple(item[0] for item in items)
         self._mmu_selection = min(self._mmu_selection, len(items))
-        self._mmu_text('back', '<', 8, 5, 2, bg=0x19E9 if self._mmu_selection == 0 else 0x2966)
+        back_selected = self._mmu_selection == 0
+        if self._mmu_render.get('back') != back_selected:
+            self._mmu_render['back'] = back_selected
+            self.lcd.draw_rectangle(1, 0x19E9 if back_selected else 0x2966,
+                                    4, 3, 27, 26)
+            show_theme_icon(self.lcd, ICON_LIBRARY_ID, self.ICON_Back, 6, 5)
         title = self.MMU_TITLES[page]
         if page in ('gate', 'filament', 'spool'):
             title += ' / ' + self._mmu_gate_label(self._mmu_gate)
