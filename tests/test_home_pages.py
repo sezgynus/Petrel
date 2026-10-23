@@ -26,7 +26,7 @@ class HomePageTests(unittest.TestCase):
             self.assertEqual(view.select_page.now,index)
         view.lcd.reset_mock();view._draw_home_page()
         icons=[c.args[1:] for c in view.lcd.show_icon.call_args_list]
-        self.assertEqual(icons,[(109,17,130),(59,145,130),(view.ICON_Maintenance_0,17,246),(ICON_RFID_HOME_NORMAL,145,246)])
+        self.assertEqual(icons,[(99,17,130),(56,145,130),(view.ICON_Maintenance_0,17,246),(ICON_RFID_HOME_NORMAL,145,246)])
         self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,5)
         self.step(view,view.ENCODER_DIFF_CW)
@@ -71,8 +71,8 @@ class HomePageTests(unittest.TestCase):
             entries = view._home_entries()
             self.assertEqual(entries[-3][0], 'MAINTENANCE')
             self.assertEqual(entries[-1][0], 'INFO')
-            self.assertEqual(entries[-3][2:], (41, 42))
-            self.assertEqual(entries[-1][2:], (43, 44))
+            self.assertEqual(entries[-3][2:], (38, 39))
+            self.assertEqual(entries[-1][2:], (40, 41))
             index = len(entries) - 3
             view.select_page.set(index)
             self.step(view, view.ENCODER_DIFF_ENTER)

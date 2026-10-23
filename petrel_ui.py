@@ -211,47 +211,45 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     ICON_Back = 13
     ICON_File = 14
     ICON_PrintTime = 15
-    ICON_Bar = 16
-    ICON_More = 17
+    ICON_More = 16
 
-    ICON_Axis = 18
+    ICON_Axis = 17
     ICON_CloseMotor = ICON_MOTOR_OFF
-    ICON_Homing = 19
-    ICON_SetHome = 20
+    ICON_Homing = 18
+    ICON_SetHome = 19
     ICON_PLAPreheat = ICON_PREHEAT_PROFILE
-    ICON_ABSPreheat = 21
-    ICON_Cool = 22
+    ICON_Cool = 20
 
-    ICON_MoveX = 23
-    ICON_MoveY = 24
-    ICON_MoveZ = 25
-    ICON_Extruder = 26
+    ICON_MoveX = 21
+    ICON_MoveY = 22
+    ICON_MoveZ = 23
+    ICON_Extruder = 24
 
-    ICON_Temperature = 28
+    ICON_Temperature = 26
     ICON_Motion = ICON_MOTION
-    ICON_WriteEEPROM = 29
-    ICON_ReadEEPROM = 30
-    ICON_Info = 31
+    ICON_WriteEEPROM = 27
+    ICON_ReadEEPROM = 28
+    ICON_Info = 29
     ICON_CaseLight = ICON_LIGHT
 
-    ICON_FanSpeed = 32
+    ICON_FanSpeed = 30
 
-    ICON_StockConfiguraton = 33
+    ICON_StockConfiguraton = 28
     ICON_MaxSpeedX = ICON_MoveX
     ICON_MaxSpeedY = ICON_MoveY
     ICON_MaxSpeedZ = ICON_MoveZ
     ICON_StepE = ICON_FLOW
-    ICON_BLTouch = 34
-    ICON_TempTooLow = 35
-    ICON_NoTips_C = 36
-    ICON_NoTips_E = 37
-    ICON_Continue_C = 38
-    ICON_Cancel_C = 39
-    ICON_Confirm_C = 40
-    ICON_Maintenance_0 = 41
-    ICON_Maintenance_1 = 42
-    ICON_Info_0 = 43
-    ICON_Info_1 = 44
+    ICON_BLTouch = 31
+    ICON_TempTooLow = 32
+    ICON_NoTips_C = 33
+    ICON_NoTips_E = 34
+    ICON_Continue_C = 35
+    ICON_Cancel_C = 36
+    ICON_Confirm_C = 37
+    ICON_Maintenance_0 = 38
+    ICON_Maintenance_1 = 39
+    ICON_Info_0 = 40
+    ICON_Info_1 = 41
 
     MENU_CHAR_LIMIT = 24
     STATUS_Y = 360
@@ -1700,20 +1698,6 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
 
     def MBASE(self, L):
         return 49 + self.MLINE * L
-
-    def HMI_ShowBoot(self, mesg=None):
-        if mesg:
-            self.lcd.draw_text(
-                False, False, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                10, 50,
-                mesg
-            )
-        for t in range(0, 100, 2):
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Bar, 15, 260)
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 15 + t * 242 / 100, 260, 257, 280)
-            self.lcd.update()
-            time.sleep(.020)
 
     def _present_print_state(self):
         status = self.pd.status
@@ -3810,10 +3794,6 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def Item_Prepare_PLA(self, row):
         self._draw_menu_text('Preheat PLA', self.LBLX, self.MBASE(row))
         self.Draw_Menu_Line(row, self.ICON_PLAPreheat)
-
-    def Item_Prepare_ABS(self, row):
-        self._draw_menu_text('Preheat ABS', self.LBLX, self.MBASE(row))
-        self.Draw_Menu_Line(row, self.ICON_ABSPreheat)
 
     def Item_Prepare_Cool(self, row):
         self._draw_menu_text('Cooldown', self.LBLX, self.MBASE(row))  # "Cooldown"

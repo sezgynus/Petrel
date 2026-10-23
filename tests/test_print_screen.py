@@ -15,7 +15,7 @@ class PrintScreenTests(unittest.TestCase):
             ui.PetrelDisplay.Draw_Print_ProgressBar(result, percentage)
             rectangles = [f for f in result.lcd.serial.frames if f[1] == 0x05]
             fills = [f for f in rectangles if int.from_bytes(f[3:5], 'big') == 0x063B]
-            icons = [f for f in result.lcd.serial.frames if f[1] == 0x23 and f[-5] == 105]
+            icons = [f for f in result.lcd.serial.frames if f[1] == 0x23 and f[-5] == 95]
             self.assertEqual(bool(icons), percentage > 0)
             self.assertFalse(any(f[1] == 0x08 for f in result.lcd.serial.frames))
             for f in fills:
