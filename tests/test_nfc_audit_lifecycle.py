@@ -140,6 +140,7 @@ class OverlayCompletionTests(unittest.TestCase):
         core.global_action_uid.return_value = None
         printer.get_nfc_core = Mock(return_value=core)
         first = Future()
+        printer._read_worker = Mock()
         printer._read_worker.submit.return_value = first
         selected = describe(spool())
         self.assertIs(printer.nfc_assign_spool(selected, 'AA:BB'), first)
