@@ -100,7 +100,7 @@ class GateUITests(unittest.TestCase):
             self.assertEqual(view.checkkey, view.NFCGateMenu)
             self.assertEqual(view._nfc_gate_popup['origin'], getattr(view, origin))
             texts = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
-            self.assertTrue(any('Spool #17' in text for text in texts))
+            self.assertTrue(any('ASSIGN FILAMENT' in text for text in texts))
             self.assertEqual(len(view._nfc_gate_popup['operations']), 5)
             view.pd.subscription.request.assert_not_called()
             view.pd.sendGCode.assert_not_called()
@@ -127,6 +127,9 @@ class GateUITests(unittest.TestCase):
         view.lcd.reset_mock()
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         self.assertEqual(popup['selection'], 1)
+        # Back->G0 only changes focus: the reel already hovers above G0.
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        self.assertEqual(popup['selection'], 2)
         self.assertIn('motion', popup)
         view.Clear_Popup_Area = Mock()
         view._nfc_gate_draw = Mock()
@@ -144,19 +147,20 @@ class GateUITests(unittest.TestCase):
         # Retarget mid-flight; no jumps or catch-up redraw.
         midway = popup['sprite_x']
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
-        self.assertEqual(popup['selection'], 2)
+        self.assertEqual(popup['selection'], 3)
         self.assertEqual(popup['sprite_x'], midway)
         view.lcd.reset_mock()
         next_motion = popup['motion']
         view._nfc_gate_motion_tick(popup, now=next_motion['start'] + .35)
-        self.assertEqual(popup['sprite_x'], popup['positions'][2])
+        self.assertEqual(popup['sprite_x'], popup['positions'][3])
         self.assertFalse(view.lcd.show_icon.called)
         view.pd.subscription.request.assert_not_called()
 
     def test_gif_easing_and_timing_match_sampled_motions(self):
         from ui_nfc_gate import NFCGateViewMixin
         ease = NFCGateViewMixin._nfc_gate_ease
-        self.assertEqual((ease(0), ease(.5), ease(1)), (0, .5, 1))
+        for phase, expected in ((0, 0), (.5, .5), (1, 1)):
+            self.assertAlmostEqual(ease(phase), expected, places=9)
         self.assertAlmostEqual(ease(.25), .1464466094, places=8)
         self.assertAlmostEqual(ease(.75), .8535533906, places=8)
         self.assertAlmostEqual(ease(-1), 0)
@@ -169,6 +173,7 @@ class GateUITests(unittest.TestCase):
         view, _ = self.make()
         view._nfc_gate_result()
         popup = view._nfc_gate_popup
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .35)
         popup['operation'] = popup['operations'][1]
