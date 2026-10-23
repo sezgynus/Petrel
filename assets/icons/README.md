@@ -94,4 +94,9 @@ Spool tag enrollment now displays an NFC-share-style popup with the existing twe
 
 ## Card approach animation
 
-Generic card enrollment uses twelve opaque **160×160** frames **94–105**, native channel **3**, 200 ms/frame (2.4 seconds/loop). Emergency Assign/Replace tag displays this popup; reading stops it before UID confirmation, clicking cancels, and failure/window replacement/power/UART lifecycle follows the spool popup. The common `_draw_tag_capture_popup` selects card or spool artwork without host frame timers. Regenerate with `python assets/icon-source/nfc-card/render.py`: baseline 4:2:0, quality 65, optimized Huffman tables. Existing icon JPEG payloads are unchanged; moved editable SVG sources retain their artwork. Four IDs remain free: 163, 208, 209, 255. The current 14-slot pack has **813 usable bytes free**.
+Generic card enrollment uses twelve opaque **160×160** frames **94–105**, native channel **3**, 200 ms/frame (2.4 seconds/loop). Emergency Assign/Replace tag displays this popup; reading stops it before UID confirmation, clicking cancels, and failure/window replacement/power/UART lifecycle follows the spool popup. The common `_draw_tag_capture_popup` selects card or spool artwork without host frame timers. Regenerate with `python assets/icon-source/nfc-card/render.py`: baseline 4:2:0, quality 65, optimized Huffman tables. Existing icon JPEG payloads are unchanged; moved editable SVG sources retain their artwork. After the unused-resource cleanup, 212 icons remain. IDs are unchanged in this cleanup; 44 IDs are free. Removed JPEG payloads total 44,535 bytes. The pack uses 13 slots; the full 14-slot reservation has **45,348 usable bytes free**.
+
+
+## Unused-resource cleanup
+
+Removed 40 unreferenced JPEGs, their editable SVGs and unused legacy constants. Surviving IDs and JPEG bytes are unchanged. The reference ICO is rebuilt from the remaining 212 sources; normal checkpointed synchronization updates the panel automatically. No SD update or settings/tag-data migration is needed.

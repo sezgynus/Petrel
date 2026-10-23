@@ -153,7 +153,7 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertEqual(image.getpixel((0, 0)), (0, 0, 255))
 
     def test_stock_icon_directory_including_sparse_ids(self):
-        for icon in (0, 1, 15, 205, 254):
+        for icon in (0, 1, 15, 204, 254):
             image = self.assets.icon(ICON_LIBRARY_ID, icon)
             self.lcd.show_icon(ICON_LIBRARY_ID, icon, 0, 0, background=True)
             self.lcd.update(); frame, _ = self.model.snapshot()
@@ -310,3 +310,4 @@ class EmulatorSocketPathTests(unittest.TestCase):
                 service = default_socket()
         self.assertEqual(ssh, service)
         self.assertEqual(ssh, Path.home() / '.cache/Petrel-emulator/control.sock')
+

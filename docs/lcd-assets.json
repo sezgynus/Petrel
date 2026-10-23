@@ -18,7 +18,7 @@
     "T5UIC1.CFG": "e1c573639bfa2b3a06c2fa7ad3cab483653dd3dc383217ff653fab3145458095",
     "1_English.jpg": "854dcc7ad264f7e4fcaf08010e86a15822cd918651b266c39d40a2ffdef9727d",
     "0T5UIC1.HZK": "c0a8d043d5f88d5400027d7df880793612b5cf5b1549144a82ca749f12ee682f",
-    "2.ICO": "b54b7edfee9026f9916b63231ed23465850c511ec791bf3fc5030c5c0f388958"
+    "2.ICO": "e6d76ff94e9a15c0f8876b099b720383b912a932f13f8b721834b6c83457235d"
   },
   "icons": {
     "ICON_LOGO": {
@@ -98,11 +98,6 @@
     },
     "ICON_PrintTime": {
       "id": 15,
-      "width": 24,
-      "height": 24
-    },
-    "ICON_RemainTime": {
-      "id": 16,
       "width": 24,
       "height": 24
     },
@@ -191,11 +186,6 @@
       "width": 20,
       "height": 20
     },
-    "ICON_Language": {
-      "id": 34,
-      "width": 20,
-      "height": 20
-    },
     "ICON_MoveX": {
       "id": 35,
       "width": 20,
@@ -236,73 +226,13 @@
       "width": 20,
       "height": 20
     },
-    "ICON_ResumeEEPROM": {
-      "id": 44,
-      "width": 20,
-      "height": 20
-    },
     "ICON_Info": {
       "id": 45,
       "width": 20,
       "height": 20
     },
-    "ICON_SetEndTemp": {
-      "id": 46,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_SetBedTemp": {
-      "id": 47,
-      "width": 20,
-      "height": 20
-    },
     "ICON_FanSpeed": {
       "id": 48,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_SetPLAPreheat": {
-      "id": 49,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_SetABSPreheat": {
-      "id": 50,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeed": {
-      "id": 51,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxAccelerated": {
-      "id": 52,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxJerk": {
-      "id": 53,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_Step": {
-      "id": 54,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_PrintSize": {
-      "id": 55,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_Version": {
-      "id": 56,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_Contact": {
-      "id": 57,
       "width": 20,
       "height": 20
     },
@@ -326,85 +256,10 @@
       "width": 20,
       "height": 20
     },
-    "ICON_MaxSpeedE": {
-      "id": 62,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxAccX": {
-      "id": 63,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxAccY": {
-      "id": 64,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxAccZ": {
-      "id": 65,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxAccE": {
-      "id": 66,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeedJerkX": {
-      "id": 67,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeedJerkY": {
-      "id": 68,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeedJerkZ": {
-      "id": 69,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeedJerkE": {
-      "id": 70,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_StepX": {
-      "id": 71,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_StepY": {
-      "id": 72,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_StepZ": {
-      "id": 73,
-      "width": 20,
-      "height": 20
-    },
     "ICON_StepE": {
       "id": 232,
       "width": 20,
       "height": 20
-    },
-    "ICON_Setspeed": {
-      "id": 75,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_SetZOffset": {
-      "id": 76,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_Rectangle": {
-      "id": 77,
-      "width": 14,
-      "height": 52
     },
     "ICON_BLTouch": {
       "id": 78,
@@ -413,16 +268,6 @@
     },
     "ICON_TempTooLow": {
       "id": 79,
-      "width": 73,
-      "height": 66
-    },
-    "ICON_AutoLeveling": {
-      "id": 80,
-      "width": 73,
-      "height": 66
-    },
-    "ICON_TempTooHigh": {
-      "id": 81,
       "width": 73,
       "height": 66
     },
@@ -441,18 +286,8 @@
       "width": 100,
       "height": 38
     },
-    "ICON_Continue_E": {
-      "id": 85,
-      "width": 100,
-      "height": 38
-    },
     "ICON_Cancel_C": {
       "id": 86,
-      "width": 100,
-      "height": 38
-    },
-    "ICON_Cancel_E": {
-      "id": 87,
       "width": 100,
       "height": 38
     },

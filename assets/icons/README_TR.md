@@ -94,4 +94,9 @@ Makara etiketi atama artık NFC paylaşımı tarzında popup içinde mevcut on i
 
 ## Kart yaklaştırma animasyonu
 
-Genel kart atama on iki opak **160×160** kareyi, **94–105** ID’lerini, native kanal **3** ve 200 ms/kare (2,4 saniye/döngü) kullanır. Emergency Assign/Replace tag bu popup’ı açar; kart okununca UID onayından önce animasyon durur, tıklama iptal eder. Hata/pencere değişimi/güç/UART yaşam döngüsü spool popup’ıyla ortaktır. `_draw_tag_capture_popup`, sunucuda kare zamanlayıcısı olmadan kart veya spool görsellerini seçer. Yeniden üretim: `python assets/icon-source/nfc-card/render.py`; baseline 4:2:0, kalite 65, optimize Huffman tabloları. Mevcut ikonların JPEG baytları değişmedi; taşınan SVG kaynaklarının çizimleri korundu. Boş kalan dört ID: 163, 208, 209, 255. Mevcut 14 slotluk pakette **813 kullanılabilir bayt boşluk** kaldı.
+Genel kart atama on iki opak **160×160** kareyi, **94–105** ID’lerini, native kanal **3** ve 200 ms/kare (2,4 saniye/döngü) kullanır. Emergency Assign/Replace tag bu popup’ı açar; kart okununca UID onayından önce animasyon durur, tıklama iptal eder. Hata/pencere değişimi/güç/UART yaşam döngüsü spool popup’ıyla ortaktır. `_draw_tag_capture_popup`, sunucuda kare zamanlayıcısı olmadan kart veya spool görsellerini seçer. Yeniden üretim: `python assets/icon-source/nfc-card/render.py`; baseline 4:2:0, kalite 65, optimize Huffman tabloları. Mevcut ikonların JPEG baytları değişmedi; taşınan SVG kaynaklarının çizimleri korundu. Temizlik sonrası 212 ikon ve 45 boş ID vardır. Paket 13 slot kullanır; ayrılmış 14 slotun toplam kullanılabilir boşluğu **45.348 bayttır**.
+
+
+## Kullanılmayan kaynakların temizlenmesi
+
+Referansı olmayan 40 JPEG, bunların düzenlenebilir SVG kaynakları ve kullanılmayan eski sabitleri kaldırıldı. Kalan ID’ler ve JPEG baytları değişmedi. Referans ICO kalan 212 kaynaktan yeniden oluşturulur; normal kontrol noktalı eşitleme paneli otomatik günceller. SD güncellemesi veya ayar/etiket verisi taşıması gerekmez.
