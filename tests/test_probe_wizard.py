@@ -324,7 +324,7 @@ class ProbeCenterSafetyTests(unittest.TestCase):
         self.assertEqual(result.subscription.request.call_args.args[1], {'script':'G28'})
         view = display(data()); view.pd = result
         result.probe_wizard.pending = None; result.probe_wizard.phase = 'error'
-        self.assertEqual([label for label,_ in view._probe_options()], ['Retry','Back'])
+        self.assertEqual([label for label,_ in view._probe_options()], ['Back','Retry'])
 
     def test_homing_completion_requires_referenced_axes_before_center_move(self):
         result = self.printer(); source = data()

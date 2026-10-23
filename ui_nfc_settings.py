@@ -225,9 +225,7 @@ class NFCSettingsViewMixin:
         self._nfc_choice_options = options
         current = getattr(value, field)
         confirmed = getattr(self, '_nfc_confirmed', {})
-        self._nfc_choice_selection = (
-            options.index(current) + 1 if current in options and
-            (field == 'speed' or confirmed.get(field, False)) else 0)
+        self._nfc_choice_selection = 0
         self.checkkey = self.NFCChoiceMenu
         if serial:
             self._nfc_port_future = self.pd.discover_nfc_devices(value.model, value.interface)
@@ -259,10 +257,7 @@ class NFCSettingsViewMixin:
             self.lcd.update()
             return True
         self._nfc_choice_options = options
-        self._nfc_choice_selection = (
-            options.index(value.port) + 1 if
-            value.port in options and self._nfc_confirmed.get('port', False)
-            else 0)
+        self._nfc_choice_selection = 0
         self.Draw_NFC_Choice_Menu()
         self.lcd.update()
         return True

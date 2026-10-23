@@ -123,16 +123,16 @@ def _bar(v,key,item,x,y,width):
 
 def _home(v,screen):
     choices=screen.choices
-    _row(v,'back',choices[0],0,31,52,13)
-    _cursor(v,'care',88,112,v._maintenance_selection==1)
+    v._draw_header_back(v._maintenance_selection == 0)
+    _cursor(v,'care',36,112,v._maintenance_selection==1)
     if _cached(v,'care_icon',ICON_MAINTENANCE_CARE):
-        show_icon(v.lcd,ICON_LIBRARY_ID,ICON_MAINTENANCE_CARE,24,91)
-    _text(v,'care_label','Care schedule',50,92,25)
-    _text(v,'care_summary',screen.heading,24,114,39,True,
+        show_icon(v.lcd,ICON_LIBRARY_ID,ICON_MAINTENANCE_CARE,24,39)
+    _text(v,'care_label','Care schedule',50,40,25)
+    _text(v,'care_summary',screen.heading,24,62,39,True,
           WARNING if v._maintenance_storage_errors() or v._maintenance_records_failed else MUTED)
     items=screen.care
     for i in range(2):
-        y=137+i*32
+        y=85+i*32
         if i<len(items):
             item=items[i]
             _text(v,('care_name',i),item.label,24,y,24,True)
@@ -147,29 +147,29 @@ def _home(v,screen):
             _text(v,('care_status',i),'',174,y,13,True)
             if _cached(v,('bar',('home',i)),('empty',y)):
                 v.lcd.draw_rectangle(1,BG,24,y+17,256,y+20)
-    for index,y in ((2,204),(3,256),(4,308)):
+    for index,y in ((2,152),(3,204),(4,256)):
         _row(v,('root',index),choices[index],index,y,48,icon_for(choices[index]))
 
 
 def _list(v,screen):
     choices=screen.choices
-    _row(v,'back',choices[0],0,31,52,13)
+    v._draw_header_back(v._maintenance_selection == 0)
     count=len(choices)-1
     care=screen.kind=='care'
-    visible=3 if care else 5
-    height=82 if care else 52
+    visible=4 if care else 6
+    height=80 if care else 52
     selection=v._maintenance_selection
     old_start=getattr(v,'_maintenance_scroll',0)
     start=old_start
     if selection>0:
         start=max(0,min(start,selection-1),selection-visible)
     start=min(start,max(0,count-visible))
-    _move_viewport(v,'entry',old_start,start,visible,height,86)
+    _move_viewport(v,'entry',old_start,start,visible,height,34)
     v._maintenance_scroll=start
     items={(item.policy.task_id,item.policy.device):item for item in screen.care}
     for slot in range(visible):
         index=start+slot+1
-        y=86+slot*height
+        y=34+slot*height
         key=('entry',index)
         if index>=len(choices):
             if _cached(v,('empty',slot),(index,count)):
@@ -199,22 +199,22 @@ def _list(v,screen):
                 _cursor(v,key,y,height-2,selection==index)
                 continue
         _row(v,key,choice,index,y,height,icon_for(choice))
-    _scroll(v,start,count,visible)
+    _scroll(v,start,count,visible,34,visible*height)
 
 
 def _detail(v,screen):
     choices=screen.choices
     pinned=bool(choices and choices[0].action in ('back','home','result_back'))
     if pinned:
-        _row(v,'back',choices[0],0,31,52,13)
-    top=93 if pinned else 45
+        v._draw_header_back(v._maintenance_selection == 0)
+    top=45
     for i,part in enumerate((textwrap.wrap(screen.heading,30)+['',''])[:2]):
         _text(v,('heading',i),part,12,top+i*18,31,
               color=WARNING if screen.tone in ('attention','danger') else INK)
     lines=[line for value in screen.lines for line in (textwrap.wrap(str(value),39) or [''])]
     if v._maintenance_notice:
         lines=textwrap.wrap(v._maintenance_notice.replace('_',' '),39)[:2]+lines
-    visible_lines=5 if pinned else 7
+    visible_lines=7
     for i in range(visible_lines):
         _text(v,('line',i),lines[i] if i<len(lines) else '',12,top+41+i*18,40,True,MUTED)
     first=1 if pinned else 0
@@ -247,15 +247,15 @@ def _report(v,screen):
                                     REPORT_VISIBLE_ROWS)
     choices=screen.choices
     if choices:
-        _row(v,'back',choices[0],0,31,52,13)
+        v._draw_header_back(v._maintenance_selection == 0)
     color=WARNING if screen.tone in ('attention','danger') else ACCENT
     icon=screen.report_icon
     if _cached(v,'report_icon',icon):
-        v.lcd.draw_rectangle(1,BG,20,92,43,115)
-        if icon is not None: show_icon(v.lcd,ICON_LIBRARY_ID,icon,20,92)
-    _text(v,'report_badge',screen.badge,50,92,26,True,color)
+        v.lcd.draw_rectangle(1,BG,20,40,43,63)
+        if icon is not None: show_icon(v.lcd,ICON_LIBRARY_ID,icon,20,40)
+    _text(v,'report_badge',screen.badge,50,40,26,True,color)
     for i,line in enumerate((textwrap.wrap(screen.heading,25)+['',''])[:2]):
-        _text(v,('report_heading',i),line,50,109+i*17,25)
+        _text(v,('report_heading',i),line,50,57+i*17,25)
     rows=cached_report_rows(v,screen)
     visible,height=REPORT_VISIBLE_ROWS,REPORT_ROW_HEIGHT
     start=max(0,min(screen.report_offset,max(0,len(rows)-visible)))
@@ -304,7 +304,7 @@ def draw_maintenance(v,screen):
         v.Clear_Title_Bar()
         # Maintenance owns only the body; never cover the title color band.
         v.lcd.draw_rectangle(1,BG,0,31,271,359)
-        v.Draw_Title(screen.title)
+        v.Draw_Title(screen.title, back=pinned)
     v._maintenance_drawn_choices=tuple((c.action,c.value) for c in screen.choices)
     if screen.kind=='report':
         _report(v,screen)

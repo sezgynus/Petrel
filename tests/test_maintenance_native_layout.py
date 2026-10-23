@@ -92,7 +92,7 @@ class NativeMaintenanceLayout(unittest.TestCase):
         self.assertNotIn((1,0x2125,0,0,271,359),rectangles)
         d.lcd.draw_text.assert_any_call(
             False,False,d.lcd.font8x16,d.lcd.Color_White,
-            d.lcd.Color_Bg_Blue,14,6,'Maintenance')
+            d.lcd.Color_Bg_Blue,34,6,'Maintenance')
         d.lcd.reset_mock()
         d._maintenance_selection=2
         d.Draw_Maintenance_Menu()
@@ -104,7 +104,7 @@ class NativeMaintenanceLayout(unittest.TestCase):
             for call in d.lcd.draw_text.call_args_list))
 
     def test_focus_changes_only_cursor_strips_and_preserves_dashboard(self):
-        d=self.view();d.Draw_Maintenance_Menu();d.lcd.reset_mock()
+        d=self.view();d._maintenance_selection=2;d.Draw_Maintenance_Menu();d.lcd.reset_mock()
         d._maintenance_selection=3;d.Draw_Maintenance_Menu()
         d.lcd.draw_text.assert_not_called();d.lcd.show_icon.assert_not_called()
         for call in d.lcd.draw_rectangle.call_args_list:

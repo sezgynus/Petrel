@@ -22,9 +22,9 @@ class InfoIncrementalTests(unittest.TestCase):
         view.lcd.move_area.assert_not_called()
         view.lcd.copy_cache1.assert_not_called()
         view.lcd.draw_text.assert_called_once()
-        self.assertEqual(view.lcd.draw_text.call_args.args[-3:], (120, 140, 'Offline'))
+        self.assertEqual(view.lcd.draw_text.call_args.args[-3:], (120, 86, 'Offline'))
         view.lcd.draw_rectangle.assert_called_once_with(
-            1, view.lcd.Color_Bg_Black, 120, 140, 255, 155)
+            1, view.lcd.Color_Bg_Black, 120, 86, 255, 101)
 
     def test_rounded_hidden_and_truncated_changes_send_no_drawing(self):
         view = self.view()
@@ -53,7 +53,7 @@ class InfoIncrementalTests(unittest.TestCase):
         self.assertEqual(view.lcd.move_area.call_count, 1)
         self.assertEqual(view.lcd.move_area.call_args.args[2], 72)
         view.lcd.reset_mock()
-        view._info_scroll = len(view._info_items()) + extra_info_rows() - 11
+        view._info_scroll = len(view._info_items()) + extra_info_rows() - 13
         view.Draw_Info_Menu()
         view.lcd.move_area.assert_not_called()
         view.lcd.reset_mock()
@@ -66,7 +66,7 @@ class InfoIncrementalTests(unittest.TestCase):
         from tools.render_docs_screenshots import canvas
         from PIL import ImageChops
         view, reference = canvas(), canvas()
-        maximum = len(view._info_items()) + extra_info_rows() - 11
+        maximum = len(view._info_items()) + extra_info_rows() - 13
         sequence = [0, 3, 1, 7, 4, maximum, maximum-3, maximum,
                     maximum-2, maximum, 0, 2, 2]
         for step, scroll in enumerate(sequence):
@@ -79,21 +79,21 @@ class InfoIncrementalTests(unittest.TestCase):
             reference._info_render_scroll = None
             view.Draw_Info_Menu(); view.lcd.update()
             reference.Draw_Info_Menu(); reference.lcd.update()
-            actual = view.framebuffer.snapshot()[0].crop((0, 90, 272, 356))
-            expected = reference.framebuffer.snapshot()[0].crop((0, 90, 272, 356))
+            actual = view.framebuffer.snapshot()[0].crop((0, 36, 272, 356))
+            expected = reference.framebuffer.snapshot()[0].crop((0, 36, 272, 356))
             self.assertIsNone(ImageChops.difference(actual, expected).getbbox(),
                               (step, scroll))
 
     def test_scrollbar_matches_maintenance_and_stays_outside_moving_content(self):
         from graphite_theme import draw_scrollbar
         view = self.view()
-        maximum = len(view._info_items()) + extra_info_rows() - 11
+        maximum = len(view._info_items()) + extra_info_rows() - 13
         for scroll in (0, maximum // 2, maximum, 0):
             view.lcd.reset_mock()
             view._info_scroll = scroll
             view.Draw_Info_Menu()
             expected = Mock()
-            draw_scrollbar(expected, scroll, maximum + 11, 11)
+            draw_scrollbar(expected, scroll, maximum + 13, 13, y=36, height=303)
             for call in expected.draw_rectangle.call_args_list:
                 self.assertIn(call, view.lcd.draw_rectangle.call_args_list)
             if view.lcd.move_area.called:
@@ -112,14 +112,14 @@ class InfoIncrementalTests(unittest.TestCase):
         for scroll in (1, 3, 2, 0):
             # Simulate stale pixels in both previously unmaintained strips.
             for left, right in ((256, 263), (269, 271)):
-                view.lcd.draw_rectangle(1, 0xF800, left, 92, right, 359)
+                view.lcd.draw_rectangle(1, 0xF800, left, 38, right, 359)
             view.lcd.update()
             view._info_scroll = reference._info_scroll = scroll
             reference._info_render_scroll = None
             view.Draw_Info_Menu(); view.lcd.update()
             reference.Draw_Info_Menu(); reference.lcd.update()
-            actual = view.framebuffer.snapshot()[0].crop((256, 90, 272, 360))
-            expected = reference.framebuffer.snapshot()[0].crop((256, 90, 272, 360))
+            actual = view.framebuffer.snapshot()[0].crop((256, 36, 272, 360))
+            expected = reference.framebuffer.snapshot()[0].crop((256, 36, 272, 360))
             self.assertIsNone(ImageChops.difference(actual, expected).getbbox(), scroll)
 
     def test_new_lcd_forces_complete_render(self):

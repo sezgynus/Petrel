@@ -1186,23 +1186,29 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return draw
 
     def _draw_list_menu(self, title, entries, selection, start=None):
+        # Keep logical return index 0 for controllers; render it in the header.
+        header_back = bool(entries and entries[0][0] == 'Back')
+        first = 1 if header_back else 0
         # Entries: label, icon, displayed value signature, optional row painter.
         frame = (id(self.lcd), title, tuple((e[0], e[1]) for e in entries))
         old = getattr(self, '_list_render', None)
         valid = old is not None and old['frame'] == frame
         if start is None:
-            start = old['start'] if valid else 0
+            start = old['start'] if valid else first
             if selection is not None:
-                start = max(0, min(start, selection), selection - self.MROWS)
+                start = max(first, min(start, max(first, selection)), selection - self.MROWS)
+        start = max(first, start)
+        if selection is not None and selection >= first:
+            start = max(first, min(start, selection), selection - self.MROWS)
         visible = range(start, min(len(entries), start + self.TROWS))
         previous_values = old['values'] if valid else {}
         delta = start - old['start'] if valid else 0
         if not valid or abs(delta) >= self.TROWS:
             self.Clear_Main_Window()
-            self.Draw_Title(title)
+            self.Draw_Title(title, back=header_back)
             previous_values = {}
         elif old['selection'] != selection or delta:
-            if old['selection'] is not None:
+            if old['selection'] is not None and old['selection'] >= first:
                 self.Erase_Menu_Cursor(old['selection'] - old['start'])
             if delta:
                 self.lcd.move_area(1,
@@ -1226,8 +1232,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 if painter is not None:
                     painter(row)
         if not valid or delta or old['selection'] != selection:
-            if selection is not None:
+            if selection is not None and selection >= first:
                 self.Draw_Menu_Cursor(selection - start)
+        if header_back:
+            self._draw_header_back(selection == 0)
         self._list_render = dict(frame=frame, start=start, selection=selection, values=values)
 
     def _draw_capability_menu(self, name, selection, bottom=None, profile=None):
@@ -1256,6 +1264,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                         self.MENU_NARROW_CELLS)
             entries.append((label, icon, value, painter))
         self._draw_list_menu(title, entries, selection.now, max(0, (bottom or self.MROWS) - self.MROWS))
+
+    def _menu_row(self, logical):
+        render = getattr(self, '_list_render', None)
+        return logical - (render['start'] if render else 1)
 
     def _invalidate_list_row(self, row):
         """A direct editor write replaces the normal cached viewport row."""
@@ -2197,7 +2209,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if event == self.ENCODER_DIFF_NO:
             return
         items = self._info_items()
-        max_scroll = max(0, len(items) + extra_info_rows() - 11)
+        max_scroll = max(0, len(items) + extra_info_rows() - 13)
         current = getattr(self, '_info_scroll', 0)
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             self._software_updater().cancel_confirmation()
@@ -2262,10 +2274,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.encoderRate = True
             self._action("Print speed", lambda: self.pd.set_feedrate(self.pd.HMI_ValueStruct.print_speed), silent=True)
 
-        self._invalidate_list_row(self.select_tune.now + self.MROWS - self.index_tune)
+        self._invalidate_list_row(self._menu_row(self.select_tune.now))
         self._draw_menu_value(
             str(self.pd.HMI_ValueStruct.print_speed),
-            self.MBASE(self.select_tune.now + self.MROWS - self.index_tune),
+            self.MBASE(self._menu_row(self.select_tune.now)),
             self.lcd.Color_Bg_Black, self.MENU_NARROW_CELLS)
 
     def HMI_AxisMove(self):
@@ -2298,19 +2310,19 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
 
             elif self.select_axis.now == 1:  # axis move
                 self.checkkey = self.Move_X
-                self._invalidate_list_row(1)
+                self._invalidate_list_row(self._menu_row(1))
                 self.pd.HMI_ValueStruct.Move_X_scale = self.pd.state.status['gcode_move']['position'][0] * self.MINUNITMULT
-                self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Select_Color)
+                self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(self._menu_row(1)),self.lcd.Select_Color)
             elif self.select_axis.now == 2:  # Y axis move
                 self.checkkey = self.Move_Y
-                self._invalidate_list_row(2)
+                self._invalidate_list_row(self._menu_row(2))
                 self.pd.HMI_ValueStruct.Move_Y_scale = self.pd.state.status['gcode_move']['position'][1] * self.MINUNITMULT
-                self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Select_Color)
+                self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(self._menu_row(2)),self.lcd.Select_Color)
             elif self.select_axis.now == 3:  # Z axis move
                 self.checkkey = self.Move_Z
-                self._invalidate_list_row(3)
+                self._invalidate_list_row(self._menu_row(3))
                 self.pd.HMI_ValueStruct.Move_Z_scale = self.pd.state.status['gcode_move']['position'][2] * self.MINUNITMULT
-                self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Select_Color)
+                self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(self._menu_row(3)),self.lcd.Select_Color)
             elif self.select_axis.now == 4 and self.pd.HAS_HOTEND:  # Extruder
                 # window tips
                 if self.pd.PREVENT_COLD_EXTRUSION:
@@ -2320,11 +2332,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                         self.lcd.update()
                         return
                 self.checkkey = self.Extruder
-                self._invalidate_list_row(4)
+                self._invalidate_list_row(self._menu_row(4))
                 self.pd.last_E_scale = self.pd.state.status['gcode_move']['position'][3] * self.MINUNITMULT
                 self.pd.HMI_ValueStruct.Move_E_scale = self.pd.state.status['gcode_move']['position'][3] * self.MINUNITMULT
                 self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
-                                      self.MBASE(4), self.lcd.Select_Color)
+                                      self.MBASE(self._menu_row(4)), self.lcd.Select_Color)
             elif self.select_axis.now == live_index:
                 self._live_jog = not getattr(self, '_live_jog', False)
                 self.Draw_Move_Menu()
@@ -2337,7 +2349,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Color_Bg_Black)
+            self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(self._menu_row(1)),self.lcd.Color_Bg_Black)
             if not getattr(self, '_live_jog', False):
                 self._action("Jog X", lambda: self.pd.moveAbsolute('X', self.pd.HMI_ValueStruct.Move_X_scale / self.MINUNITMULT, 5000), silent=True)
             self.lcd.update()
@@ -2357,7 +2369,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             applied = (self.pd.HMI_ValueStruct.Move_X_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('X', applied, self._live_jog_speed('X'))
-        self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(1),self.lcd.Select_Color)
+        self._draw_axis_value(0,self.pd.HMI_ValueStruct.Move_X_scale,self.MBASE(self._menu_row(1)),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_Y(self):
@@ -2367,7 +2379,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Color_Bg_Black)
+            self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(self._menu_row(2)),self.lcd.Color_Bg_Black)
 
             if not self._live_jog:
                 self._action("Jog Y", lambda: self.pd.moveAbsolute('Y', self.pd.HMI_ValueStruct.Move_Y_scale / self.MINUNITMULT, 5000), silent=True)
@@ -2388,7 +2400,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             applied = (self.pd.HMI_ValueStruct.Move_Y_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('Y', applied, self._live_jog_speed('Y'))
-        self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(2),self.lcd.Select_Color)
+        self._draw_axis_value(1,self.pd.HMI_ValueStruct.Move_Y_scale,self.MBASE(self._menu_row(2)),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_Z(self):
@@ -2398,7 +2410,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
-            self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Color_Bg_Black)
+            self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(self._menu_row(3)),self.lcd.Color_Bg_Black)
             if not self._live_jog:
                 self._action("Jog Z", lambda: self.pd.moveAbsolute('Z', self.pd.HMI_ValueStruct.Move_Z_scale / self.MINUNITMULT, 600), silent=True)
             self.lcd.update()
@@ -2418,7 +2430,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             applied = (self.pd.HMI_ValueStruct.Move_Z_scale - previous_scale) / self.MINUNITMULT
             if applied:
                 self._queue_live_jog('Z', applied, self._live_jog_speed('Z'))
-        self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(3),self.lcd.Select_Color)
+        self._draw_axis_value(2,self.pd.HMI_ValueStruct.Move_Z_scale,self.MBASE(self._menu_row(3)),self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Move_E(self):
@@ -2430,7 +2442,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.AxisMove
             self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
-                                  self.MBASE(4), self.lcd.Color_Bg_Black)
+                                  self.MBASE(self._menu_row(4)), self.lcd.Color_Bg_Black)
             if not self._live_jog:
                 self._action("Jog E", lambda: self.pd.moveAbsolute('E', self.pd.HMI_ValueStruct.Move_E_scale / self.MINUNITMULT, 300), silent=True)
             self.lcd.update()
@@ -2449,7 +2461,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             if applied:
                 self._queue_live_jog('E', applied, self._live_jog_speed('E'))
         self._draw_axis_value(3, self.pd.HMI_ValueStruct.Move_E_scale,
-                              self.MBASE(4), self.lcd.Select_Color)
+                              self.MBASE(self._menu_row(4)), self.lcd.Select_Color)
         self.lcd.update()
 
     def HMI_Temperature(self):
@@ -2687,11 +2699,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return (('Save', wizard.save), ('Continue', self._leave_probe))
         if wizard.phase in ('error', 'interrupted'):
             if self.pd.state.ready and not self.pd.connection_error and not wizard.active():
-                return (('Retry', wizard.start), ('Back', self._leave_probe))
+                return (('Back', self._leave_probe), ('Retry', wizard.start))
             return (('Back', self._leave_probe),)
         if wizard.phase == 'saved':
             return (('Back', self._leave_probe),)
-        return (('Start', wizard.start), ('Back', self._leave_probe))
+        return (('Back', self._leave_probe), ('Start', wizard.start))
 
     def _leave_probe(self):
         self._drawn_probe_wizard = None
@@ -2724,7 +2736,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         full = previous is None or previous[0] != layout
         if full:
             self.Clear_Main_Window()
-            self.Draw_Title('Probe calibration')
+            self.Draw_Title('Probe calibration', back=any(label == 'Back' for label, _ in options))
         if layout == 'active':
             if full or previous[1] != values:
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 72, 263, 148)
@@ -2750,6 +2762,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
                                    self.lcd.Color_Bg_Black, (272-len(label)*8)//2, 110, label)
         for index, (label, _) in enumerate(options):
+            if label == 'Back':
+                self._draw_header_back(index == selected)
+                continue
             if full or selected != previous[2] and index in (selected, previous[2]):
                 self._probe_button(label, boxes[index], index == selected)
         if error:
@@ -2783,6 +2798,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.Draw_Probe_Wizard()
 
     def _open_zoffset(self, mode, row):
+        row = self._menu_row(self.PREPARE_CASE_ZOFF if mode == -4 else self.TUNE_CASE_ZOFF)
         self._zoffset_edit_row = self._invalidate_list_row(row)
         self.checkkey = self.Homeoffset
         self.pd.HMI_ValueStruct.show_mode = mode
@@ -3072,17 +3088,29 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self._draw_dashboard_value(fixed(position,2),xpos,y3)
 
     def _invalidate_header(self):
+        self._header_back_render = None
         self._header_clock_drawn = None
         self._header_wifi_drawn = None
         self._header_klipper_drawn = None
 
-    def Draw_Title(self, title):
+    def _draw_header_back(self, selected=True):
+        """Fixed return control, independent of the scrolling body."""
+        state = (id(self.lcd), bool(selected))
+        if getattr(self, '_header_back_render', None) == state:
+            return
+        self._header_back_render = state
+        self.lcd.draw_rectangle(1, 0x19E9 if selected else self.lcd.Color_Bg_Blue,
+                                4, 3, 27, 26)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_Back, 6, 5)
+
+    def Draw_Title(self, title, back=False):
         # Wi-Fi begins at x=193; an 8x16 title gets at most 22 cells,
         # leaving a three-pixel gap before the status cluster.
         title = T5UIC1Display._panel_text(str(title))
-        if len(title)>22:
-            title = title[:19]+'...'
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
+        cells = 19 if back else 22
+        if len(title)>cells:
+            title = title[:cells-3]+'...'
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 34 if back else 14, 6, title)
         self._draw_header_clock()
 
     def _draw_wifi_signal(self):
@@ -3157,17 +3185,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.Draw_Menu_Icon(line, icon)
         self.lcd.draw_line(self.lcd.Line_Color, 16, self.MBASE(line) + 33, 256, self.MBASE(line) + 34)
 
-    # The "Back" label is always on the first line
-    def Draw_Back_Label(self):
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
-                             self.lcd.Color_Bg_Black, self.LBLX, self.MBASE(0), 'Back')
-
-    # Draw "Back" line at the top
     def Draw_Back_First(self, is_sel=True):
-        self.Draw_Menu_Line(0, self.ICON_Back)
-        self.Draw_Back_Label()
-        if (is_sel):
-            self.Draw_Menu_Cursor(0)
+        self._draw_header_back(is_sel)
 
     def _draw_menu_text(self, text, x, y):
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
@@ -3313,7 +3332,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if getattr(self, '_info_update_message', None) == (y, message):
             return
         self._info_update_message = (y, message)
-        if y - 48 >= 92:
+        if y - 48 >= 38:
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
                                     23, y - 48, 249, y - 8)
         if not updater.message or updater.phase in ('checking', 'updating', 'restarting', 'recovering'):
@@ -3324,7 +3343,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         first_y = y - (40 if len(lines) > 1 else 32)
         for index, text in enumerate(lines):
             line_y = first_y + index * 16
-            if line_y >= 92:
+            if line_y >= 38:
                 self.lcd.draw_text(False, False, self.lcd.font8x16, color,
                                    self.lcd.Color_Bg_Black,
                                    (272 - len(text) * 8) // 2, line_y, text)
@@ -3334,11 +3353,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         for index, (kind, _, _) in enumerate(items):
             if kind != 'update':
                 continue
-            y = 92 + (index + extra_info_rows() - getattr(self, '_info_scroll', 0)) * 24
-            if 92 <= y < 356:
+            y = 38 + (index + extra_info_rows() - getattr(self, '_info_scroll', 0)) * 24
+            if 38 <= y < 350:
                 self._draw_info_update_button(
                     y, getattr(self, '_info_scroll', 0)
-                    == max(0, len(items) + extra_info_rows() - 11))
+                    == max(0, len(items) + extra_info_rows() - 13))
                 self.lcd.update()
             break
 
@@ -3451,7 +3470,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self.lcd.ensure_cached_picture(SHARED_PICTURE_ID)
         self.pd.refresh_system_info()
         items = self._info_items()
-        max_scroll = max(0, len(items) + extra_info_rows() - 11)
+        max_scroll = max(0, len(items) + extra_info_rows() - 13)
         self._info_scroll = max(0, min(getattr(self, '_info_scroll', 0), max_scroll))
         previous = getattr(self, '_info_render_scroll', None)
         delta = self._info_scroll - previous if previous is not None else 0
@@ -3469,7 +3488,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         distance = abs(delta) * 24
         incremental = same_layout and 0 < distance < 266
         stationary = same_layout and delta == 0
-        band = (356 - distance, 356) if delta > 0 else (90, 90 + distance)
+        band = (350 - distance, 350) if delta > 0 else (36, 36 + distance)
         if not stationary:
             self._nfc_share_component()._render = None
         if incremental:
@@ -3479,37 +3498,35 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._info_update_render = None
             self._info_update_message = None
             self.lcd.move_area(1, self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
-                               distance, self.lcd.Color_Bg_Black, 0, 90, 255, 355)
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 90, 255, 91)
+                               distance, self.lcd.Color_Bg_Black, 0, 36, 255, 349)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 36, 255, 37)
             # Scroll indicators belong to the fixed frame, not the moving list.
             if (previous == max_scroll or old_share_selected) != (
                     self._info_scroll == max_scroll or share_selected):
-                self.Erase_Menu_Cursor(0)
-                if self._info_scroll < max_scroll and not share_selected:
-                    self.Draw_Menu_Cursor(0)
+                self._draw_header_back(self._info_scroll < max_scroll and not share_selected)
         elif not stationary:
             self.Clear_Main_Window()
             self._info_update_render = None
             self._info_update_message = None
-            self.Draw_Title('Info')
+            self.Draw_Title('Info', back=True)
             self.Draw_Back_First(self._info_scroll < max_scroll and not share_selected)
         for index, (kind, label, value) in enumerate(items):
             if stationary or kind != 'qr':
                 continue
-            y = 92 + (index - self._info_scroll) * 24
+            y = 38 + (index - self._info_scroll) * 24
             qr_top = y + 24
             draw_project_qr(self.lcd, qr_top,
-                            top=max(92, band[0]) if incremental else 92,
-                            bottom=min(356, band[1]) if incremental else 356)
+                            top=max(38, band[0]) if incremental else 38,
+                            bottom=min(350, band[1]) if incremental else 350)
         for index, (kind, label, value) in enumerate(items):
             offset = extra_info_rows() if kind == 'update' else 0
-            y = 92 + (index + offset - self._info_scroll) * 24
-            if not 92 <= y < 356:
-                if incremental and kind == 'update' and y == 356:
-                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 352, 239, 355)
+            y = 38 + (index + offset - self._info_scroll) * 24
+            if not 38 <= y < 350:
+                if incremental and kind == 'update' and y == 350:
+                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 352, 239, 349)
                 continue
             exposed = incremental and (band[0] <= y < band[1] or
-                                       (kind == 'section' and y == 92))
+                                       (kind == 'section' and y == 38))
             if (stationary or (incremental and not exposed)) and kind not in ('update', 'nfc_share'):
                 if (kind == 'row' and
                         T5UIC1Display._panel_text(value)[:17] !=
@@ -3533,17 +3550,17 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             else:
                 self._draw_info_row(label, value, y)
         if not stationary:
-            # The list ends at 355; the dashboard starts at STATUS_Y (360).
+            # The list ends at 349; the dashboard starts at STATUS_Y (360).
             # Pixels in this fixed gutter never participate in move_area.
             # Clear old QR fragments here, including those from earlier renders.
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                                    0, 356, 255, self.STATUS_Y - 1)
+                                    0, 350, 255, self.STATUS_Y - 1)
         if not stationary:
             # The fixed gutter is wider than the scrollbar itself. Remove
             # edge fragments without touching retained content or dashboard.
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                                    256, 90, 271, self.STATUS_Y - 1)
-            draw_scrollbar(self.lcd, self._info_scroll, max_scroll + 11, 11)
+                                    256, 36, 271, self.STATUS_Y - 1)
+            draw_scrollbar(self.lcd, self._info_scroll, max_scroll + 13, 13, y=36, height=303)
         self._info_render_scroll = self._info_scroll
         self._info_render_items = items
         self._info_render_lcd = self.lcd

@@ -32,9 +32,9 @@ def section_from_lines(title, lines):
 def _wrap(value,width):
     return tuple(textwrap.wrap(str(value),width,replace_whitespace=True) or ('',))
 
-REPORT_TOP = 148
+REPORT_TOP = 96
 REPORT_ROW_HEIGHT = 24
-REPORT_VISIBLE_ROWS = 8
+REPORT_VISIBLE_ROWS = 10
 
 
 @dataclass(frozen=True, slots=True)

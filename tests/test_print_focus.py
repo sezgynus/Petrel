@@ -64,7 +64,7 @@ class PrintFocusTests(unittest.TestCase):
         with patch('t5uic1_driver.time.sleep'):
             v._focus_tune_open()
             self.assertFalse(any(frame[1] == 0x08 for frame in v.lcd.serial.frames))
-            self.assertTrue(any(frame[1] == 0x23 and frame[-5] == ICON_TUNE_BACK_SELECTED
+            self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 13
                                 for frame in v.lcd.serial.frames))
             v.lcd.serial.frames.clear()
             v.select_tune.set(1)
@@ -175,7 +175,7 @@ class PrintFocusTests(unittest.TestCase):
         self.assertTrue(view.pd.HMI_flag.select_flag)
         self.assertEqual(view.lcd.show_icon.call_count, 2)
         view.lcd.draw_bitmap.assert_not_called()
-        self.assertEqual(view.lcd.draw_text.call_count, 2)
+        self.assertEqual(view.lcd.draw_text.call_count, 1)
         view.Clear_Main_Window.assert_not_called()
         view.lcd.reset_mock()
         view._focus_stop_input()
@@ -282,6 +282,8 @@ class PrintFocusTests(unittest.TestCase):
                                      reason_for_pause='Toolhead sensor is active. ' * 30)
         v.pd.update_variable()
         v._focus_error_open()
+        v._focus_error_choice = 0
+        v._focus_error_draw(buttons_only=True)
         v.Clear_Popup_Area = Mock()
         v.Draw_Title = Mock()
         v.lcd.reset_mock()
@@ -297,8 +299,8 @@ class PrintFocusTests(unittest.TestCase):
         v._focus_error_scroll = max(0, len(v._focus_error_lines) - 15)
         v.get_encoder_state.return_value = v.ENCODER_DIFF_CW
         v._focus_error_input()
-        self.assertEqual(v._focus_error_choice, 1)
-        self.assertEqual(v.lcd.show_icon.call_count, 2)
+        self.assertEqual(v._focus_error_choice, 0)
+        v.lcd.show_icon.assert_not_called()
         v.lcd.draw_bitmap.assert_not_called()
         v.lcd.reset_mock()
         v._focus_error_input()
@@ -311,6 +313,9 @@ class PrintFocusTests(unittest.TestCase):
         data['status']['mmu'].update(print_state='pause_locked',reason_for_pause='Toolhead sensor is still active. '*30)
         v.pd.update_variable();self.assertEqual(v._focus_buttons()[1][0],'MMU')
         v._focus_error_open();self.assertGreater(len(v._focus_error_lines),15)
+        v.get_encoder_state.return_value=v.ENCODER_DIFF_CW
+        v._focus_error_input()
+        v.get_encoder_state.return_value=v.ENCODER_DIFF_ENTER
         v._focus_error_input();self.assertEqual(v.checkkey,v.MMUMenu)
         self.assertEqual(v._mmu_page,'recover');self.assertTrue(v._mmu_return_print)
         v.Goto_PrintProcess=Mock();v._mmu_history=[];v.pd.mmu_session.pending=None;v._mmu_back()

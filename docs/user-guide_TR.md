@@ -9,7 +9,7 @@
   <img src="assets/screens/framed/home-page-2.png" width="360" alt="Ana ekran, ikinci sayfa">
 </p>
 
-Seçimi taşımak için çevirin; seçmek için basın. Sayısal değere basın, düzenlemek için çevirin ve uygulamak için tekrar basın. **Back** önceki ekrana döner. Ana ekran her sayfada dört ikon gösterir; sayfa değiştirmek için çevirmeye devam edin. Noktalar aktif sayfayı belirtir. İsteğe bağlı öğeler yazıcınızın yapılandırmasına bağlıdır.
+Seçimi taşımak için çevirin; seçmek için basın. Sayısal değere basın, düzenlemek için çevirin ve uygulamak için tekrar basın. Üst bardaki sabit **geri oku**, önceki ekrana döner. Menüler ve alt menüleri bu ok seçili açılır; tekrar basarak hemen geri dönebilirsiniz. Back hiçbir içerik satırını kaplamaz. İlk içerik işlemine ulaşmak için saat yönünde çevirin; kaydırmada yalnız içerik hareket eder. Cancel gibi onay işlemleri açık güvenlik seçenekleri olarak korunur. Ana ekran her sayfada dört ikon gösterir; sayfa değiştirmek için çevirmeye devam edin. Noktalar aktif sayfayı belirtir. İsteğe bağlı öğeler yazıcınızın yapılandırmasına bağlıdır.
 
 Alt durum alanının üç satırı aşağıdadır. Hız/akış alanları iki saniyede bir çarpan ile anlık ölçüm arasında değişir. Tune, sayı düzenleyicisi, tam hata okuyucusu ve MMU sayfalarında bu alan görünmez.
 

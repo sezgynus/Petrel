@@ -63,7 +63,7 @@ class NFCShareUITests(unittest.TestCase):
         self.assertEqual(items[index + 1][1], 'Klipper')
         view._info_scroll = index - 1
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(3, 187, 92, 114,
+        view.lcd.show_icon.assert_any_call(3, 187, 92, 60,
                                            background=False, enhanced=True)
         self.assertFalse(any(c.args[-1] == 'Share via NFC'
                              for c in view.lcd.draw_text.call_args_list))
@@ -79,11 +79,11 @@ class NFCShareUITests(unittest.TestCase):
         index = next(i for i, item in enumerate(items) if item[0] == 'nfc_share')
         view._info_scroll = index - 2
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(3, 186, 92, 138,
+        view.lcd.show_icon.assert_any_call(3, 186, 92, 84,
                                            background=False, enhanced=True)
         view._info_scroll = index - 1
         view.Draw_Info_Menu()
-        view.lcd.show_icon.assert_any_call(3, 187, 92, 114,
+        view.lcd.show_icon.assert_any_call(3, 187, 92, 60,
                                            background=False, enhanced=True)
         core.get_capabilities.return_value = {'ndef_uri_emulation': False}
         view.pd.sync_nfc_event = Mock(return_value=False)
@@ -175,7 +175,7 @@ class NFCShareUITests(unittest.TestCase):
                 view.HMI_Info()
                 self.assertEqual(view._info_scroll, stop)
                 view.lcd.show_icon.assert_any_call(
-                    3, 187, 92, 114, background=False, enhanced=True)
+                    3, 187, 92, 60, background=False, enhanced=True)
                 view.get_encoder_state.return_value = view.ENCODER_DIFF_ENTER
                 view.HMI_Info()
                 core.share_ndef_uri.assert_called_once_with(PROJECT_URL)

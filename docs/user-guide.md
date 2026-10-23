@@ -9,7 +9,7 @@
   <img src="assets/screens/framed/home-page-2.png" width="360" alt="Home, second page">
 </p>
 
-Rotate to move the highlight; press to select. Press a numeric value, rotate to edit it and press again to apply it. **Back** returns to the previous screen. Home shows four icons per page; continue rotating to change pages. Dots indicate the active page. Optional entries depend on your printer's configuration.
+Rotate to move the highlight; press to select. Press a numeric value, rotate to edit it and press again to apply it. The fixed **Back arrow in the title bar** returns to the previous screen. Menus and submenus open with this arrow selected; press again to return immediately. Back never occupies a content row. Turn clockwise to reach the first content action; scrolling moves only the body. Confirmation actions such as Cancel remain explicit safety choices. Home shows four icons per page; continue rotating to change pages. Dots indicate the active page. Optional entries depend on your printer's configuration.
 
 The three dashboard rows are shown below. Speed/flow fields alternate every two seconds between an override and instantaneous telemetry. Tune, its numeric editor, the full error reader and MMU pages omit this dashboard.
 

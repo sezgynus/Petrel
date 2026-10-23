@@ -20,7 +20,7 @@ def show_icon(lcd, library, icons, x, y):
 
 def draw_scrollbar(lcd, start, total, visible, y=90, height=253):
     """Draw the fixed right gutter shared by scrollable Graphite screens."""
-    lcd.draw_rectangle(1, BACKGROUND_COLOR, 264, 84, 268, 355)
+    lcd.draw_rectangle(1, BACKGROUND_COLOR, 264, max(31, y - 6), 268, min(355, y + height + 12))
     if total > visible:
         thumb = max(10, height * visible // total)
         top = y + (height - thumb) * start // (total - visible)

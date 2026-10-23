@@ -428,7 +428,7 @@ class MMUViewMixin:
                          (m.materials[gate] or '--') if m and gate < m.num_gates else '--',
                          (m.colors[gate] or '--') if m and gate < m.num_gates else '--'),
                          'IN' if group == self._mmu_group else 'OUT', writable)
-                        for gate, group in enumerate(groups)] + [(('cancel',), 'Back', '', True)]
+                        for gate, group in enumerate(groups)]
             ids = sorted({g for g in groups if g is not None})
             changed = (draft['enabled'], tuple(groups)) != self._mmu_endless_original
             return [(('endless_toggle',), 'Enabled', {True: 'ON', False: 'OFF', None: '--'}[draft['enabled']], writable)] + [

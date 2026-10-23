@@ -254,14 +254,14 @@ class BedMeshMixin:
         self.Clear_Main_Window()
         title = ('Mesh: ' + session.mesh.name) if session.phase == 'viewing' and session.mesh else 'Mesh Viewer'
         if session.phase in ('measuring', 'stopping'): title = 'Bed Mesh Calibrate'
-        self.Draw_Title(T5UIC1Display._panel_text(title)[:24])
+        self.Draw_Title(T5UIC1Display._panel_text(title)[:24], back=bool(getattr(self, '_mesh_confirmation', None)))
         confirmation = getattr(self, '_mesh_confirmation', None)
         if confirmation:
             self._mesh_text('Stop probing?' if confirmation == 'cancel' else 'Save mesh profile?', 100)
             self._mesh_text('Klipper will shut down' if confirmation == 'cancel' else session.profile_name, 135)
             self._mesh_text('Restart with FIRMWARE_RESTART' if confirmation == 'cancel' else 'Klipper will restart', 165, size=6)
             choice = getattr(self, '_mesh_button_selection', 0)
-            self._mesh_button('Back', 26, choice == 0)
+            self._draw_header_back(choice == 0)
             self._mesh_button('Stop' if confirmation == 'cancel' else 'Save', 146, choice == 1)
         elif session.mesh:
             mesh = session.mesh
@@ -315,6 +315,7 @@ class BedMeshMixin:
         except ValueError as error:
             self._show_message(str(error))
             return
+        self._mesh_profile_selection = 0
         self._mesh_after_refresh = (view_after, selected)
         self._mesh_confirmation = None
         self.checkkey = self.MeshProfiles
@@ -387,6 +388,12 @@ class BedMeshMixin:
             selected = 1 if event == self.ENCODER_DIFF_CW else 0
             if selected != previous:
                 self._mesh_button_selection = selected
+                if confirmation:
+                    self._draw_header_back(selected == 0)
+                    self.lcd.draw_rectangle(0, self.lcd.Color_White if selected else self.lcd.Color_Bg_Black,
+                                            144, 303, 247, 345)
+                    self.lcd.update()
+                    return
                 old_x, new_x = (26, 146)[previous], (26, 146)[selected]
                 self.lcd.draw_rectangle(0, self.lcd.Color_Bg_Black,
                                         old_x-2, 303, old_x+101, 345)

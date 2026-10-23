@@ -320,13 +320,13 @@ class PrintFocusMixin:
     def _focus_tune_open(self):
         self.checkkey=self.Tune
         self._sync_fan_animation(False)
-        self.Clear_Popup_Area();self.Draw_Title('Tune')
+        self.Clear_Popup_Area();self.Draw_Title('Tune', back=True)
         self._focus_tune_render={};self._focus_tune_shape=None
         self._focus_tune_tick()
 
     def _focus_tune_rows(self):
-        rows=[(None,38)]
-        group=None;y=64
+        rows=[(None,0)]
+        group=None;y=31
         for s in self.pd.print_settings():
             if s.group!=group: group=s.group;y+=14
             rows.append((s,y));y+=20
@@ -353,13 +353,17 @@ class PrintFocusMixin:
             red=start is not None and int((now-start)/.2)%2==0
             token=(selected,value,red)
             key=s.key if s else 'back'
+            if s is None:
+                self._draw_header_back(selected)
+                cache[key]=token
+                continue
             if cache.get(key)==token:continue
             self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,10,y,261,y+23 if s is None else y+19)
             if selected:
                 show_icon(self.lcd, self.ICON,
                           ICON_TUNE_BACK_SELECTED if s is None else ICON_TUNE_ROW_SELECTED,
                           10, y)
-            self._focus_text(s.label if s else '< Back',18,y+2)
+            self._focus_text(s.label,18,y+2)
             if s:
                 color=0xFBCB if red else 0x063B
                 if s.toggle:
@@ -420,13 +424,13 @@ class PrintFocusMixin:
 
     def _focus_error_open(self):
         self._focus_full_error=self._focus_error()
-        self._focus_error_scroll=0;self._focus_error_choice=0;self.checkkey=self.PrintErrorDetails
+        self._focus_error_scroll=0;self._focus_error_choice=1;self.checkkey=self.PrintErrorDetails
         self._focus_error_draw()
 
     def _focus_error_draw(self, *, viewport_only=False, buttons_only=False):
         if not viewport_only and not buttons_only:
             self.Clear_Popup_Area()
-            self.Draw_Title('MMU error')
+            self.Draw_Title('MMU error', back=True)
             self._focus_error_lines = textwrap.wrap(self._focus_full_error, 30) or ['MMU needs attention']
             self._focus_text('Turn: scroll full error', 14, 376,
                              self.lcd.font6x12, color=0xADB5)
@@ -438,7 +442,8 @@ class PrintFocusMixin:
                     self._focus_error_scroll:self._focus_error_scroll + 15]):
                 self._focus_text(line, 14, 48 + i * 20)
         if not viewport_only:
-            for i, label in enumerate(('MMU recovery', 'Back')):
+            self._draw_header_back(bool(self._focus_error_choice))
+            for i, label in enumerate(('MMU recovery',)):
                 y = 410 + i * 34
                 icon = ICON_MMU_ERROR_SELECTED if self._focus_error_choice == i else ICON_MMU_ERROR_NORMAL
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 14, y, 257, y+29)
@@ -452,15 +457,15 @@ class PrintFocusMixin:
         previous_choice = self._focus_error_choice
         maximum = max(0, len(self._focus_error_lines) - 15)
         if event == self.ENCODER_DIFF_CW:
+            self._focus_error_choice = 0
             target = self._focus_error_scroll + getattr(self,'_rotation_steps',1)
             self._focus_error_scroll = min(maximum,target)
-            if target > maximum: self._focus_error_choice = 1
         elif event == self.ENCODER_DIFF_CCW:
             steps = getattr(self,'_rotation_steps',1)
-            if self._focus_error_choice:
-                self._focus_error_choice = 0
-                steps -= 1
-            self._focus_error_scroll = max(0,self._focus_error_scroll-steps)
+            target = self._focus_error_scroll - steps
+            self._focus_error_scroll = max(0, target)
+            if target < 0:
+                self._focus_error_choice = 1
         elif event == self.ENCODER_DIFF_ENTER:
             if self._focus_error_choice:
                 self.Goto_PrintProcess()
@@ -478,11 +483,12 @@ class PrintFocusMixin:
     def _focus_stop_draw(self, buttons_only=False):
         if not buttons_only:
             self.Clear_Main_Window()
-            self.Draw_Title('Stop print')
+            self.Draw_Title('Stop print', back=True)
             show_icon(self.lcd, self.ICON, ICON_STOP_PANEL, 14, 106)
             self._focus_text('Cancel this print?',36,132,self.lcd.font10x20)
             self._focus_text('The print cannot resume.',40,184)
-        for yes,label,x in ((False,'Back',26),(True,'Stop',142)):
+        self._draw_header_back(not bool(self.pd.HMI_flag.select_flag))
+        for yes,label,x in ((True,'Stop',86),):
             selected=bool(self.pd.HMI_flag.select_flag)==yes
             icon = ICON_STOP_BUTTON_DANGER if yes and selected else (
                 ICON_STOP_BUTTON_SELECTED if selected else ICON_STOP_BUTTON_NORMAL)
