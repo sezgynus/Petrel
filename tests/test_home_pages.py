@@ -26,7 +26,7 @@ class HomePageTests(unittest.TestCase):
             self.assertEqual(view.select_page.now,index)
         view.lcd.reset_mock();view._draw_home_page()
         icons=[c.args[1:] for c in view.lcd.show_icon.call_args_list]
-        self.assertEqual(icons,[(101,17,130),(108,145,130),(view.ICON_Maintenance_0,17,246),(ICON_RFID_HOME_NORMAL,145,246)])
+        self.assertEqual(icons,[(158,17,130),(108,145,130),(view.ICON_Maintenance_0,17,246),(ICON_RFID_HOME_NORMAL,145,246)])
         self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,5)
         self.step(view,view.ENCODER_DIFF_CW)

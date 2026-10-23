@@ -2,6 +2,7 @@
 import textwrap
 
 from lcd_resources import (ICON_LIBRARY_ID, ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
+                           ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST,
                            ICON_SPOOL, ICON_ASSIGN_TAG, ICON_NEXT_PAGE, ICON_RETRY,
                            ICON_NFC_INTERFACE, ICON_SAVE_PROFILE)
 from spoolman_tags import PAGE_SIZE, BindingConflict
@@ -12,25 +13,32 @@ class SpoolTagViewMixin:
         lcd = getattr(self, '_spool_scan_lcd', None)
         self._spool_scan_lcd = None
         if lcd is not None and getattr(lcd, '_closed', False) is not True:
+            first, last = self._spool_scan_range
             lcd.configure_animation(3, False, ICON_LIBRARY_ID,
-                                    ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
-                                    56, 116, 20)
+                                    first, last, 56, 116, 20)
 
     def _spool_draw_scan_popup(self):
+        self._draw_tag_capture_popup('spool', 'Spool #%d' % self._spool_selected.id,
+            ('Assign spool tag', 'Hold spool near reader', 'Press to cancel'))
+
+    def _draw_tag_capture_popup(self, kind, title, lines):
+        """Reusable event-driven capture popup; one native channel, no frame timer."""
         lcd = self.lcd
-        if getattr(self, '_spool_scan_lcd', None) is lcd:
-            return  # Card/status events must not restart the native animation.
+        if (getattr(self, '_spool_scan_lcd', None) is lcd
+                and getattr(self, '_spool_scan_kind', None) == kind):
+            return
         self.Clear_Popup_Area()
-        self.Draw_Title('Spool #%d' % self._spool_selected.id)
+        self.Draw_Title(title)
         lcd.draw_rectangle(1, lcd.Color_Bg_Window, 14, 72, 258, 361)
         lcd.draw_rectangle(0, lcd.Line_Color, 14, 72, 258, 361)
-        lines = ('Assign spool tag', 'Hold spool near reader', 'Press to cancel')
         for y, label in zip((88, 291, 329), lines):
             lcd.draw_text(False, False, lcd.font8x16, lcd.Popup_Text_Color,
                           lcd.Color_Bg_Window, (272 - len(label) * 8) // 2, y, label)
-        lcd.configure_animation(3, True, ICON_LIBRARY_ID,
-                                ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
-                                56, 116, 20)
+        first, last = ((ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST) if kind == 'card'
+                       else (ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST))
+        self._spool_scan_range = (first, last)
+        self._spool_scan_kind = kind
+        lcd.configure_animation(3, True, ICON_LIBRARY_ID, first, last, 56, 116, 20)
         self._spool_scan_lcd = lcd
 
     def _spool_load(self, offset=0):

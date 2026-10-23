@@ -32,7 +32,7 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.model.sram[:] = block
             self.model.feed(b'\xaa\x33\x5a\xa5' + bytes((ICON_LIBRARY_ID + index,)) + self.model.TAIL)
             self.assertEqual(self.model.flash_blocks[ICON_LIBRARY_ID + index], block)
-        self.lcd.show_icon(ICON_LIBRARY_ID, 101, 17, 130)
+        self.lcd.show_icon(ICON_LIBRARY_ID, 158, 17, 130)
         self.lcd.update()
         self.assertEqual(self.model.snapshot()[0].size, (272, 480))
         self.assertFalse(self.model.errors)
@@ -159,7 +159,7 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.lcd.update(); frame, _ = self.model.snapshot()
             self.assertEqual(frame.crop((0, 0, image.width, image.height)).tobytes(), image.tobytes())
         with self.assertRaises(ValueError):
-            self.assets.icon(ICON_LIBRARY_ID, 94)
+            self.assets.icon(ICON_LIBRARY_ID, 163)
 
     def test_move_area_translation_and_wrap_leave_surroundings_unchanged(self):
         for direction, target in ((0, (8, 10)), (1, (12, 10)), (2, (10, 8)), (3, (10, 12))):

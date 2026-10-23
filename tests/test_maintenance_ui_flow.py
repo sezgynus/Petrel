@@ -215,7 +215,7 @@ class MaintenanceUIFlows(unittest.TestCase):
         for index in (155, 156):
             with Image.open(root / f'assets/icons/{index}.jpg') as icon:
                 self.assertEqual(icon.size, (20, 20))
-        for index in range(157,164):
+        for index in (163,):
             self.assertFalse((root/('assets/icons/%d.jpg'%index)).exists())
         for index in (13,45,218):
             self.assertTrue((root/('assets/icons/%03d.jpg'%index)).exists())

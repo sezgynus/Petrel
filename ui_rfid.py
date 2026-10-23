@@ -42,6 +42,7 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
         if future is None or not future.done():
             return
         self._rfid_assignment = None
+        self._spool_stop_scan_animation()
         try:
             self._rfid_candidate = future.result()
         except Exception:
@@ -59,16 +60,17 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
         if mode.startswith('spool_'):
             self._spool_draw()
             return
+        if mode == 'waiting':
+            self._draw_tag_capture_popup('card', 'Emergency stop tag',
+                ('Assign emergency tag', 'Hold card near reader', 'Press to cancel'))
+            return
+        self._spool_stop_scan_animation()
         if mode == 'info':
             self._draw_rfid_info(full)
             return
         core = self.pd.get_nfc_core()
         uid = core.global_action_uid('emergency_stop') if core else None
-        if mode == 'waiting':
-            self._draw_list_menu('Emergency stop tag',
-                [('Cancel', self.ICON_Back, None, None)], 0)
-            details = ('Present a new tag', 'Remove and tap card')
-        elif mode == 'confirm':
+        if mode == 'confirm':
             self._draw_list_menu('Save emergency tag?', [
                 ('Cancel', self.ICON_Back, None, None),
                 ('Save tag', ICON_SAVE_PROFILE, None, None)],

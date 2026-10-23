@@ -642,8 +642,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                                  handshake_attempts=1, **options)
             if getattr(self, '_spool_scan_reconnect_stop', False):
                 from lcd_resources import ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST
-                self.lcd.configure_animation(3, False, self.ICON,
-                    ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST, 56, 116, 20)
+                first, last = getattr(self, '_spool_scan_range',
+                    (ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST))
+                self.lcd.configure_animation(3, False, self.ICON, first, last, 56, 116, 20)
                 self._spool_scan_reconnect_stop = False
             async_flash = (getattr(self.lcd, 'SUPPORTS_NONBLOCKING_FLASH',
                                    None) is True)

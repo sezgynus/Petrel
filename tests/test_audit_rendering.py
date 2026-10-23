@@ -17,12 +17,12 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, 103)) + result.lcd.TAIL])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A') + bytes((0x20 | ICON_LIBRARY_ID, 160)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_machine_host_software_headings_use_native_library_ids(self):
         result = self.screen()
-        for label, icon in (('Machine', 104), ('Host', 105), ('Software', 106)):
+        for label, icon in (('Machine', 161), ('Host', 162), ('Software', 106)):
             with self.subTest(label=label):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)

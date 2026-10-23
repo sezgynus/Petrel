@@ -18,7 +18,7 @@ python tools/pack_icon_library.py assets/icons /tmp/2.ICO --library 2
 
 The emulator uses these same JPEG sources. `assets/emulator/2.ICO` is a reference export, not the source for automatic updates.
 
-Custom UI icons use IDs 100–109 and 124. MMU uses 100/101 and Display uses 108/109 for normal/selected 110×100 home tiles, using the established native tile footprint. The empty spool uses ID 124. Metal spool flanges use IDs 110–123 for widths 1–7, so compact lanes need no separate complete spool artwork. The symbolic mapping is in `lcd_resources.py`. All UI icons render directly through library 2.
+MMU normal/selected home tiles use **157/158** (110×100), folder **159** (20×18), MCU **160**, machine **161**, host **162**, software **106**, power **107**, Display **108/109** and empty spool **124**. Flange widths 1–7 retain **110–123**. The six former IDs 100–105 moved byte-for-byte to 157–162 to reserve the contiguous 94–105 card-animation range. Symbolic bindings in `lcd_resources.py` drive production drawing; all icons use library 2.
 
 After reinstalling panel resources, force a reload because stored metadata may still describe the previous installation:
 
@@ -48,7 +48,7 @@ The current reference pack occupies **14×32 KiB = 448 KiB**, slots **2–15**, 
 
 All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: subsampling=2`). Render directly from SVG using `tools/render_icon_sources.py`; do not repeatedly recompress JPEGs. Physical T5UIC1 tests reproduced damaged selected home tiles and homing artwork with 4:4:4 from both Flash and byte-verified SRAM; 4:2:0 rendered correctly. A clean emulator preview cannot validate the panel JPEG decoder. The source loader rejects other sampling formats before any panel access, and CI checks every shipped icon and the exported ICO against its sources. Check selected/unselected home tiles, homing, small menu/status icons and animation on hardware after artwork updates.
 
-Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 157–163 are retired; they are not shipped or referenced by the UI.
+Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 163 is retired; they are not shipped or referenced by the UI.
 
 Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 13×32 KiB.
 
@@ -91,3 +91,7 @@ Manual diagnostic uploads invalidate and verify the old metadata before overwrit
 Small 20×20 Graphite icons: emergency tag **39**, spool **82**, assign tag **83**, remove tag **84**, next page **86**, retry **88**. Save reuses **228** and transfer reuses **155**; previous/back uses **13**. NFC, emergency-tag, Spoolman inventory/detail/confirmation and gate-choice menus share these semantic glyphs. Sources: `assets/icon-source/rfid/render.py` and the matching SVGs; baseline 4:2:0 JPEG, quality 94, optimized Huffman tables.
 
 Spool tag enrollment now displays an NFC-share-style popup with the existing twelve 160×160 frames **188–199**, native animation channel **3**, 200 ms/frame. Only one capture is started; redraws and encoder rotation do not restart the animation. Clicking cancels. Arrival stops the animation and opens explicit UID/save confirmation; no Spoolman write occurs on scan alone. Cancellation, failure, window replacement, power overlays and disconnect/close stop or clear the animation; a retained capture resumes or completes correctly when the origin screen returns.
+
+## Card approach animation
+
+Generic card enrollment uses twelve opaque **160×160** frames **94–105**, native channel **3**, 200 ms/frame (2.4 seconds/loop). Emergency Assign/Replace tag displays this popup; reading stops it before UID confirmation, clicking cancels, and failure/window replacement/power/UART lifecycle follows the spool popup. The common `_draw_tag_capture_popup` selects card or spool artwork without host frame timers. Regenerate with `python assets/icon-source/nfc-card/render.py`: baseline 4:2:0, quality 65, optimized Huffman tables. Existing icon JPEG payloads are unchanged; moved editable SVG sources retain their artwork. Four IDs remain free: 163, 208, 209, 255. The current 14-slot pack has **813 usable bytes free**.

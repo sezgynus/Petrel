@@ -64,7 +64,7 @@ class GraphiteContracts(unittest.TestCase):
         v.Draw_Case_Light_Menu()
         rows = v._draw_list_menu.call_args.args[1]
         self.assertEqual([r[1] for r in rows[1:]], [210, 211])
-        self.assertNotEqual(v.ICON_CloseMotor, 103)  # Motor-off is not an MCU chip.
+        self.assertNotEqual(v.ICON_CloseMotor, 160)  # Motor-off is not an MCU chip.
         self.assertNotEqual(v.ICON_Motion, v.ICON_CaseLight)
 
     def test_metadata_for_all_reserved_slots_stays_before_buzzer_record(self):

@@ -18,7 +18,7 @@ python tools/pack_icon_library.py assets/icons /tmp/2.ICO --library 2
 
 Emülatör de bu JPEG kaynaklarını kullanır. `assets/emulator/2.ICO` referans çıktıdır; otomatik güncellemenin kaynağı değildir.
 
-Özel UI ikonları 100–109 ve 124 ID'lerini kullanır. MMU 100/101, Display 108/109 ID'leriyle seçili olmayan/seçili 110×100 ana menü ikonlarını kullanır; boyutlar mevcut ana menü yerleşimine uyar; normal ve seçili Graphite yüzeyleri farklıdır. Boş makara 124 ID’sini kullanır. Metal makara yan parçaları 1–7 genişlikleri için 110–123 ID'lerini kullanır; dar alanlarda ayrı tam makara görselleri gerekmez. Sembolik eşleştirme `lcd_resources.py` içindedir. Tüm UI ikonları doğrudan kütüphane 2'den çizilir.
+MMU normal/seçili ana menü ikonları **157/158** (110×100), klasör **159** (20×18), MCU **160**, makine **161**, host **162**, yazılım **106**, güç **107**, Display **108/109**, boş makara **124** kullanır. 1–7 genişlikleri için kenar parçaları **110–123** kalır. Önceki 100–105 ID’li altı ikon, kart animasyonuna ardışık 94–105 aralığı açmak için baytları değiştirilmeden 157–162’ye taşındı. Üretim çizimi `lcd_resources.py` sembolik eşleştirmelerini ve kütüphane 2’yi kullanır.
 
 Panel kaynaklarını yeniden yüklediğinizde, kayıt eski kurulumu tarif ediyor olabileceğinden zorla yeniden yükleyin:
 
@@ -48,7 +48,7 @@ Mevcut referans paket **14×32 KiB = 448 KiB**, yani **2–15** slotlarını kul
 
 Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanmalıdır (`Pillow: subsampling=2`). `tools/render_icon_sources.py` ile doğrudan SVG’den üretin; JPEG’leri tekrar tekrar sıkıştırmayın. Fiziksel T5UIC1 testinde 4:4:4, hem Flash hem baytları geri okunarak doğrulanmış SRAM üzerinden seçili ana menü kartlarını ve homing görselini bozdu; 4:2:0 düzgün çizildi. Temiz emülatör görüntüsü panelin JPEG çözücüsünü doğrulamaz. Kaynak yükleyici diğer örnekleme biçimlerini panele erişmeden reddeder; CI tüm ikonların biçimini ve ICO’nun kaynaklarla eşleşmesini kontrol eder. Görsel güncellemelerden sonra seçili/seçili olmayan ana menü kartlarını, homing’i, küçük menü/durum ikonlarını ve animasyonu fiziksel panelde kontrol edin.
 
-Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 157–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
+Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
 Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 13×32 KiB yer kaplar.
 
@@ -91,3 +91,7 @@ Elle tanısal yükleme, Picture Flash yazımından önce eski metadata kaydını
 Küçük 20×20 Graphite ikonları: acil durdurma etiketi **39**, makara **82**, etiket atama **83**, etiket silme **84**, sonraki sayfa **86**, yeniden deneme **88**. Kaydet mevcut **228**, taşıma **155**, önceki/geri **13** ikonunu kullanır. NFC, acil durdurma etiketi, Spoolman envanter/detay/onay ve gate seçimi menüleri bu amaca uygun ikonları paylaşır. Kaynaklar `assets/icon-source/rfid/render.py` ve ilgili SVG dosyalarıdır; baseline 4:2:0 JPEG, kalite 94 ve optimize Huffman tabloları kullanılır.
 
 Makara etiketi atama artık NFC paylaşımı tarzında popup içinde mevcut on iki 160×160 **188–199** karesini, native animasyon kanalı **3** ve 200 ms/kare ile gösterir. Tek yakalama işlemi başlatılır; yeniden çizim ve encoder dönüşü animasyonu yeniden başlatmaz. Tıklama iptal eder. Kart gelince animasyon durur ve açık UID/kaydet onayı açılır; yalnız okutmayla Spoolman kaydı yazılmaz. İptal, hata, pencere değişimi, güç popup’ı ve bağlantı kesilmesi/kapanış animasyonu durdurur veya kaydını temizler; korunan yakalama, kaynak ekrana dönünce doğru biçimde sürer ya da tamamlanır.
+
+## Kart yaklaştırma animasyonu
+
+Genel kart atama on iki opak **160×160** kareyi, **94–105** ID’lerini, native kanal **3** ve 200 ms/kare (2,4 saniye/döngü) kullanır. Emergency Assign/Replace tag bu popup’ı açar; kart okununca UID onayından önce animasyon durur, tıklama iptal eder. Hata/pencere değişimi/güç/UART yaşam döngüsü spool popup’ıyla ortaktır. `_draw_tag_capture_popup`, sunucuda kare zamanlayıcısı olmadan kart veya spool görsellerini seçer. Yeniden üretim: `python assets/icon-source/nfc-card/render.py`; baseline 4:2:0, kalite 65, optimize Huffman tabloları. Mevcut ikonların JPEG baytları değişmedi; taşınan SVG kaynaklarının çizimleri korundu. Boş kalan dört ID: 163, 208, 209, 255. Mevcut 14 slotluk pakette **813 kullanılabilir bayt boşluk** kaldı.
