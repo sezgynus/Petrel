@@ -1,4 +1,5 @@
 """Global NFC spool-to-gate prompt, using the existing guarded MMU session."""
+from lcd_resources import ICON_SPOOL
 from spool_view import SpoolView
 import time
 
