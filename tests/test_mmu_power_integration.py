@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock
 import test_mmu_ui as mmu_fixtures
-from lcd_resources import ICON_POWER
+from lcd_resources import ICON_POWER, ICON_WIFI_STRONG
 
 
 class MMUPowerIntegrationTests(unittest.TestCase):
@@ -26,6 +26,7 @@ class MMUPowerIntegrationTests(unittest.TestCase):
         v, _ = self.view()
         v._mmu_open('more')
         mmu_fixtures.MMUUITests().press(v, 2)
+        v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
         for page in v.MMU_TITLES:
             with self.subTest(page=page):
                 v._mmu_page, v._mmu_canvas_page = page, None
@@ -33,8 +34,13 @@ class MMUPowerIntegrationTests(unittest.TestCase):
                 v.Draw_MMU_Menu()
                 power_copies = [c for c in v.lcd.show_icon.call_args_list if c.args[1] == ICON_POWER]
                 self.assertEqual([c.args for c in power_copies], [])
+                self.assertEqual(
+                    [c.args for c in v.lcd.show_icon.call_args_list if c.args[1] == ICON_WIFI_STRONG],
+                    [(v.ICON, ICON_WIFI_STRONG, 193, 4)])
+                self.assertTrue(any(c.args[2:] == (260, 12, 263, 15)
+                                    for c in v.lcd.draw_rectangle.call_args_list))
                 title = v._mmu_render['title']
-                self.assertLessEqual(title[1] + title[3] * 8, 241)
+                self.assertLessEqual(title[1] + title[3] * 8, 193)
                 v.lcd.reset_mock()
                 v.Draw_MMU_Menu()
                 v.lcd.show_icon.assert_not_called()
