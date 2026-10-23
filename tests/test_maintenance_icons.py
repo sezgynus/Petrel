@@ -12,7 +12,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
     def test_fixed_destinations_have_different_purpose_icons(self):
         choices=(Choice('Check','open','groups'),Choice('Data','open','diagnostic_groups'),
             Choice('Advice','findings'),Choice('Care','service'))
-        self.assertEqual(tuple(map(icon_for,choices)),(126,127,128,129))
+        self.assertEqual(tuple(map(icon_for,choices)),(123,124,125,126))
 
     def test_sensor_diagnostics_row_has_existing_sensor_icon(self):
         # The generic Sensors destination uses the library's endstop/switch icon.
@@ -29,8 +29,8 @@ class MaintenanceSemanticIcons(unittest.TestCase):
         self.assertEqual(feature_icon('H01','extruder'),9)
         self.assertEqual(feature_icon('F02','fan'),40)
         self.assertEqual(feature_icon('M03','stepper_x'),27)
-        self.assertEqual(feature_icon('P03','probe'),181)
-        self.assertEqual(feature_icon('S18','buzzer'),171)
+        self.assertEqual(feature_icon('P03','probe'),178)
+        self.assertEqual(feature_icon('S18','buzzer'),168)
         self.assertNotIn(39,TOPICS.values())
 
     def test_unknown_and_data_rows_do_not_get_an_info_fallback(self):
@@ -40,7 +40,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
 
     def test_policy_task_uses_its_function(self):
         p=NS(task_id='lubricate')
-        self.assertEqual(icon_for(Choice('Care','service_task',(p,None,'unknown'))),183)
+        self.assertEqual(icon_for(Choice('Care','service_task',(p,None,'unknown'))),180)
         p.task_id='nozzle_inspect'
         self.assertEqual(icon_for(Choice('Care','service_task',(p,None,'unknown'))),34)
 
@@ -49,7 +49,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
         from PIL import Image,JpegImagePlugin
         from dwin_emulator.assets import PanelAssets
         root=Path(__file__).resolve().parents[1];assets=PanelAssets()
-        for icon in (126,127,128,129):
+        for icon in (123,124,125,126):
             with Image.open(root/('assets/icons/%03d.jpg'%icon)) as im:
                 self.assertEqual(im.size,(20,20))
                 self.assertEqual(JpegImagePlugin.get_sampling(im),2)
@@ -62,7 +62,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
         d._maintenance_selection=2
         d.Draw_Maintenance_Menu()
         shown={c.args[1] for c in d.lcd.show_icon.call_args_list}
-        self.assertTrue({126,127,128,129}<=shown)
+        self.assertTrue({123,124,125,126}<=shown)
         d.lcd.reset_mock();d._maintenance_selection=3;d.Draw_Maintenance_Menu()
         d.lcd.show_icon.assert_not_called()
 

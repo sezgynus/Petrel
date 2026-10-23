@@ -284,8 +284,8 @@ generate the same `0x11` text rendering used before the migration.
 
 The native `0x14` implementation is available separately as `draw_number()`.
 The original migration kept UI behavior unchanged; the current UI now uses
-native animation channel **0** for boot icons **207–211** and channel **1** for
-dashboard fan frames **192–199**. Fan intervals follow the percentage in 10 ms
+native animation channel **0** for boot icons **204–208** and channel **1** for
+dashboard fan frames **189–196**. Fan intervals follow the percentage in 10 ms
 units; unchanged intervals send no new command and 0% stops animation. The
 boot animation is stopped during actual icon uploads and restarted by the next
 boot stage. Info uses virtual Area 1 for the shared slot-1 JPEG: `0x25` decodes it once, and `0x26` copies clipped QR regions while scrolling. EAN-13 and extended UART remain available protocol APIs; availability alone does not imply a current UI feature.

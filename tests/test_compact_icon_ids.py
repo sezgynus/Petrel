@@ -1,4 +1,4 @@
-"""Dense managed IDs and safe same-slot migration from PETICO01."""
+"""Dense managed IDs and safe same-slot migration from PETICO01/PETICO02."""
 import hashlib
 import json
 from pathlib import Path
@@ -14,9 +14,9 @@ import test_managed_icon_library as managed
 
 
 class CompactIconIDs(TestCase):
-    def legacy_record(self, hashes):
+    def legacy_record(self, hashes, version=b'PETICO02'):
         raw = bytearray(icons.metadata(hashes))
-        raw[:8] = b'PETICO01'
+        raw[:8] = version
         raw[-4:] = zlib.crc32(raw[:-4]).to_bytes(4, 'big')
         return bytes(raw)
 
@@ -27,11 +27,21 @@ class CompactIconIDs(TestCase):
         data = (root / 'assets/emulator/2.ICO').read_bytes()
         packed_ids = sorted(n for n, _, _, _ in entries(data))
         self.assertEqual(packed_ids, source_ids)
-        migration = json.loads((root / 'assets/icons/id-migration.json').read_text())['mapping']
-        self.assertEqual(len(set(migration.values())), len(migration))
+        record = json.loads((root / 'assets/icons/id-deduplication.json').read_text())
+        migration = record['mapping']
+        physical = [v for k, v in migration.items() if k not in record['aliases']]
+        self.assertEqual(len(set(physical)), len(physical))
         self.assertLessEqual(set(migration.values()), set(source_ids))
         for index in range(len(source_ids), 256):
             self.assertFalse(any(data[index*16:(index+1)*16]))
+
+    def test_dashboard_and_move_menu_share_identical_axis_ids(self):
+        from test_regressions import ui
+        PetrelDisplay = ui.PetrelDisplay
+        self.assertEqual((PetrelDisplay.ICON_MaxSpeedX, PetrelDisplay.ICON_MaxSpeedY,
+                          PetrelDisplay.ICON_MaxSpeedZ),
+                         (PetrelDisplay.ICON_MoveX, PetrelDisplay.ICON_MoveY,
+                          PetrelDisplay.ICON_MoveZ))
 
     def test_old_id_meanings_cannot_start_new_boot_frames_before_upload(self):
         display = object.__new__(T5UIC1Display)
@@ -56,7 +66,7 @@ class CompactIconIDs(TestCase):
         self.assertTrue(any(frame[1] == 0x28 for frame in view.lcd.serial.frames))
 
     @patch('icon_library.time.sleep')
-    def test_v1_same_slot_hashes_force_upload_then_v2_reconnect_is_unchanged(self, _):
+    def test_v2_same_slot_hashes_force_upload_then_v3_reconnect_is_unchanged(self, _):
         icons._ATTEMPTS.clear()
         self.addCleanup(icons._ATTEMPTS.clear)
         data = icons.pack_records([(1, 20, 20, b'x'*30000), (2, 20, 20, b'y'*1000)])

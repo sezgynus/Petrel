@@ -32,7 +32,7 @@ The empty-evidence root does not build an assessment report or controller plan. 
 
 ## Diagnostic presentation and shared artwork
 
-Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Maintenance uses shared master icons 13, 39 and 175 after the dense ID migration. The current library/export has 212 icons and 13 blocks (416 KiB); see the managed icon inventory for the complete mapping.
+Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Maintenance uses shared master icons 13, 39 and 172 after the dense ID migration. The current library/export has 209 icons and 13 blocks (416 KiB); see the managed icon inventory for the complete mapping.
 
 ## Incremental updates across all submenus
 

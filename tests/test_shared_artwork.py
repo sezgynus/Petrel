@@ -63,7 +63,7 @@ class SharedArtworkTests(unittest.TestCase):
         import boot_artwork
         # NFC interface ID 118 is a small communication glyph, not QR artwork.
         # A 20x20 directory entry cannot contain the former full QR image.
-        entry = build_library()[118*16:119*16]
+        entry = build_library()[115*16:116*16]
         self.assertEqual((int.from_bytes(entry[:2], 'big'),
                           int.from_bytes(entry[2:4], 'big')), (20, 20))
         self.assertGreaterEqual(artwork.ADDRESS, boot_artwork.ADDRESS + boot_artwork.SIZE)

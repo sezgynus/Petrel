@@ -32,7 +32,7 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.model.sram[:] = block
             self.model.feed(b'\xaa\x33\x5a\xa5' + bytes((ICON_LIBRARY_ID + index,)) + self.model.TAIL)
             self.assertEqual(self.model.flash_blocks[ICON_LIBRARY_ID + index], block)
-        self.lcd.show_icon(ICON_LIBRARY_ID, 121, 17, 130)
+        self.lcd.show_icon(ICON_LIBRARY_ID, 118, 17, 130)
         self.lcd.update()
         self.assertEqual(self.model.snapshot()[0].size, (272, 480))
         self.assertFalse(self.model.errors)
@@ -71,20 +71,20 @@ class EmulatorRenderingTests(unittest.TestCase):
     def test_native_animation_capture_advances_stops_and_moves_without_traces(self):
         with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100):
             self.lcd.clear(0)
-            self.lcd.configure_animation(0, True, ICON_LIBRARY_ID, 207, 211, 12, 40, 10)
+            self.lcd.configure_animation(0, True, ICON_LIBRARY_ID, 204, 208, 12, 40, 10)
             self.lcd.update()
             first, _ = self.model.snapshot()
         with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100.11):
             second, _ = self.model.snapshot()
             self.assertNotEqual(first.tobytes(), second.tobytes())
-            self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 207, 211, 12, 40, 10)
+            self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 204, 208, 12, 40, 10)
             self.lcd.clear(0)
-            self.lcd.configure_animation(0, True, ICON_LIBRARY_ID, 207, 211, 70, 40, 10)
+            self.lcd.configure_animation(0, True, ICON_LIBRARY_ID, 204, 208, 70, 40, 10)
             self.lcd.update()
             moved, _ = self.model.snapshot()
-            width, height = self.assets.icon(ICON_LIBRARY_ID, 207).size
+            width, height = self.assets.icon(ICON_LIBRARY_ID, 204).size
             self.assertIsNone(moved.crop((12, 40, 12+width, 40+height)).getbbox())
-            self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 207, 211, 70, 40, 10)
+            self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 204, 208, 70, 40, 10)
             self.lcd.update()
             stopped, _ = self.model.snapshot()
         with patch('dwin_emulator.framebuffer.time.monotonic', return_value=200):
@@ -92,7 +92,7 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertFalse(self.model.errors)
 
     def test_animation_mask_disables_configured_animation(self):
-        self.lcd.configure_animation(2, True, ICON_LIBRARY_ID, 207, 211, 10, 10, 10)
+        self.lcd.configure_animation(2, True, ICON_LIBRARY_ID, 204, 208, 10, 10, 10)
         self.assertIn(2, self.model.animations)
         self.lcd.set_animation_mask(0)
         self.assertFalse(self.model.animations)
@@ -153,13 +153,13 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertEqual(image.getpixel((0, 0)), (0, 0, 255))
 
     def test_managed_icon_directory_and_unused_tail(self):
-        for icon in (0, 1, 15, 166, 211):
+        for icon in (0, 1, 15, 163, 208):
             image = self.assets.icon(ICON_LIBRARY_ID, icon)
             self.lcd.show_icon(ICON_LIBRARY_ID, icon, 0, 0, background=True)
             self.lcd.update(); frame, _ = self.model.snapshot()
             self.assertEqual(frame.crop((0, 0, image.width, image.height)).tobytes(), image.tobytes())
         with self.assertRaises(ValueError):
-            self.assets.icon(ICON_LIBRARY_ID, 212)
+            self.assets.icon(ICON_LIBRARY_ID, 209)
 
     def test_move_area_translation_and_wrap_leave_surroundings_unchanged(self):
         for direction, target in ((0, (8, 10)), (1, (12, 10)), (2, (10, 8)), (3, (10, 12))):

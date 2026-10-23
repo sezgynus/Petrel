@@ -31,10 +31,10 @@ def device_icon(device):
 
 def feature_icon(feature,device=None):
     specific={'M01':28,'M03':27,'M07':ICON_MCU,'M10':ICON_MCU,'M12':28,
-        'S01':ICON_HOST,'S02':166,'S03':ICON_POWER,'S04':14,'S05':ICON_HOST,
+        'S01':ICON_HOST,'S02':163,'S03':ICON_POWER,'S04':14,'S05':ICON_HOST,
         'S06':ICON_MCU,'S07':ICON_MCU,'S08':ICON_SOFTWARE,'S09':14,'S10':15,
         'S11':15,'S12':15,'S13':26,'S14':ICON_SOFTWARE,'S15':ICON_ENCODER_TONE,
-        'S16':ICON_MAINTENANCE_DIAGNOSTICS,'S17':168,'S18':ICON_BUZZER,
+        'S16':ICON_MAINTENANCE_DIAGNOSTICS,'S17':165,'S18':ICON_BUZZER,
         'S19':ICON_SOFTWARE,'S20':14,'O04':ICON_LIGHT}
     if feature in specific: return specific[feature]
     if feature in ('H02','H03','H04'): return 41
@@ -67,6 +67,6 @@ def icon_for(choice):
     if action in ('trace','export','instructions'): return 14
     if action=='leveling': return ICON_PROBE_CALIBRATION
     if action=='details': return 39
-    if action in ('reference','reference_limit','reference_confirm'): return 164
+    if action in ('reference','reference_limit','reference_confirm'): return 161
     if action in ('service_save','service_complete'): return ICON_SAVE_PROFILE
     return None

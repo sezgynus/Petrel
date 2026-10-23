@@ -18,7 +18,7 @@
     "T5UIC1.CFG": "e1c573639bfa2b3a06c2fa7ad3cab483653dd3dc383217ff653fab3145458095",
     "1_English.jpg": "854dcc7ad264f7e4fcaf08010e86a15822cd918651b266c39d40a2ffdef9727d",
     "0T5UIC1.HZK": "c0a8d043d5f88d5400027d7df880793612b5cf5b1549144a82ca749f12ee682f",
-    "2.ICO": "787b8bd58df0761f5a756da7717cc6e42e96da8841bda48ff3740824bae855e5"
+    "2.ICO": "c393fff46a74b6efc01ca3c1663d51cd13e12759eba67fcf92240548984bcf19"
   },
   "icons": {
     "ICON_LOGO": {
@@ -157,7 +157,7 @@
       "height": 20
     },
     "ICON_CloseMotor": {
-      "id": 176,
+      "id": 173,
       "width": 20,
       "height": 20
     },
@@ -172,7 +172,7 @@
       "height": 20
     },
     "ICON_PLAPreheat": {
-      "id": 187,
+      "id": 184,
       "width": 20,
       "height": 20
     },
@@ -212,7 +212,7 @@
       "height": 20
     },
     "ICON_Motion": {
-      "id": 175,
+      "id": 172,
       "width": 20,
       "height": 20
     },
@@ -242,82 +242,82 @@
       "height": 20
     },
     "ICON_MaxSpeedX": {
-      "id": 42,
+      "id": 31,
       "width": 20,
       "height": 20
     },
     "ICON_MaxSpeedY": {
-      "id": 43,
+      "id": 32,
       "width": 20,
       "height": 20
     },
     "ICON_MaxSpeedZ": {
-      "id": 44,
+      "id": 33,
       "width": 20,
       "height": 20
     },
     "ICON_StepE": {
-      "id": 189,
+      "id": 186,
       "width": 20,
       "height": 20
     },
     "ICON_BLTouch": {
-      "id": 45,
+      "id": 42,
       "width": 73,
       "height": 66
     },
     "ICON_TempTooLow": {
-      "id": 46,
+      "id": 43,
       "width": 73,
       "height": 66
     },
     "ICON_NoTips_C": {
-      "id": 47,
+      "id": 44,
       "width": 100,
       "height": 38
     },
     "ICON_NoTips_E": {
-      "id": 48,
+      "id": 45,
       "width": 100,
       "height": 38
     },
     "ICON_Continue_C": {
-      "id": 49,
+      "id": 46,
       "width": 100,
       "height": 38
     },
     "ICON_Cancel_C": {
-      "id": 50,
+      "id": 47,
       "width": 100,
       "height": 38
     },
     "ICON_Confirm_C": {
-      "id": 51,
+      "id": 48,
       "width": 100,
       "height": 38
     },
     "ICON_Confirm_E": {
-      "id": 52,
+      "id": 49,
       "width": 100,
       "height": 38
     },
     "ICON_Maintenance_0": {
-      "id": 53,
+      "id": 50,
       "width": 110,
       "height": 100
     },
     "ICON_Maintenance_1": {
-      "id": 54,
+      "id": 51,
       "width": 110,
       "height": 100
     },
     "ICON_Info_0": {
-      "id": 55,
+      "id": 52,
       "width": 110,
       "height": 100
     },
     "ICON_Info_1": {
-      "id": 56,
+      "id": 53,
       "width": 110,
       "height": 100
     }

@@ -245,22 +245,22 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     ICON_FanSpeed = 40
 
     ICON_StockConfiguraton = 41
-    ICON_MaxSpeedX = 42
-    ICON_MaxSpeedY = 43
-    ICON_MaxSpeedZ = 44
+    ICON_MaxSpeedX = ICON_MoveX
+    ICON_MaxSpeedY = ICON_MoveY
+    ICON_MaxSpeedZ = ICON_MoveZ
     ICON_StepE = ICON_FLOW
-    ICON_BLTouch = 45
-    ICON_TempTooLow = 46
-    ICON_NoTips_C = 47
-    ICON_NoTips_E = 48
-    ICON_Continue_C = 49
-    ICON_Cancel_C = 50
-    ICON_Confirm_C = 51
-    ICON_Confirm_E = 52
-    ICON_Maintenance_0 = 53
-    ICON_Maintenance_1 = 54
-    ICON_Info_0 = 55
-    ICON_Info_1 = 56
+    ICON_BLTouch = 42
+    ICON_TempTooLow = 43
+    ICON_NoTips_C = 44
+    ICON_NoTips_E = 45
+    ICON_Continue_C = 46
+    ICON_Cancel_C = 47
+    ICON_Confirm_C = 48
+    ICON_Confirm_E = 49
+    ICON_Maintenance_0 = 50
+    ICON_Maintenance_1 = 51
+    ICON_Info_0 = 52
+    ICON_Info_1 = 53
 
     MENU_CHAR_LIMIT = 24
     STATUS_Y = 360

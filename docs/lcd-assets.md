@@ -61,4 +61,4 @@ The [stock inventory](lcd-assets.json) records the resources previously audited 
 
 ## Compact managed IDs
 
-The current library has 212 icons at IDs 0–211; 212–255 are free. The PETICO02 metadata version prevents old resident IDs from starting new boot frames before synchronization. JPEG bytes and UI behavior are preserved. See the [current icon inventory](../assets/icons/README.md).
+The current library has 209 icons at IDs 0–208; 209–255 are free. The PETICO03 metadata version prevents old resident IDs from starting new boot frames before synchronization. JPEG bytes and UI behavior are preserved. See the [current icon inventory](../assets/icons/README.md).

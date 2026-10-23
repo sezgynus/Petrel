@@ -61,4 +61,4 @@ Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO --libr
 
 ## Ardışık yönetilen ID’ler
 
-Güncel kütüphanede 0–211 ID’lerinde 212 ikon vardır; 212–255 boştur. PETICO02 metadata sürümü, eşitleme öncesinde eski yerleşik ID’lerle yeni açılış karelerinin başlatılmasını önler. JPEG baytları ve UI davranışları korunur. [Güncel ikon envanterine](../assets/icons/README_TR.md) bakın.
+Güncel kütüphanede 0–208 ID’lerinde 209 ikon vardır; 209–255 boştur. PETICO03 metadata sürümü, eşitleme öncesinde eski yerleşik ID’lerle yeni açılış karelerinin başlatılmasını önler. JPEG baytları ve UI davranışları korunur. [Güncel ikon envanterine](../assets/icons/README_TR.md) bakın.

@@ -20,7 +20,7 @@ SOURCE_DIRECTORY = Path(__file__).resolve().parent / 'assets/icons'
 METADATA_ADDRESS = 0x0200
 METADATA_SIZE = 512
 # ID meaning changed: old metadata must not start the new boot range.
-MAGIC = b'PETICO02'
+MAGIC = b'PETICO03'
 MAX_BLOCKS = 16 - ICON_LIBRARY_ID
 _ATTEMPTS = set()
 

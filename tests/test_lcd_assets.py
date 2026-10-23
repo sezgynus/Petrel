@@ -56,7 +56,12 @@ class AssetContracts(unittest.TestCase):
         for name, entry in manifest['icons'].items():
             binding = next(n.value for n in cls.body if isinstance(n, ast.Assign)
                            and any(isinstance(t, ast.Name) and t.id == name for t in n.targets))
-            actual = binding.value if isinstance(binding, ast.Constant) else getattr(lcd_resources, binding.id)
+            if isinstance(binding, ast.Constant):
+                actual = binding.value
+            elif binding.id in constants:
+                actual = constants[binding.id]  # Dashboard aliases the Move axis IDs.
+            else:
+                actual = getattr(lcd_resources, binding.id)
             self.assertEqual(actual, entry['id'], name)
             self.assertGreater(entry['width'], 0)
             self.assertGreater(entry['height'], 0)
@@ -69,7 +74,7 @@ class AssetContracts(unittest.TestCase):
         self.assertEqual(hashlib.sha256(data).hexdigest(), manifest['sha256'][ICON_LIBRARY_FILENAME])
         self.assertLessEqual(len(data), (16 - ICON_LIBRARY_ID) * 32768)
         assets = PanelAssets()
-        for icon in (55, 56):
+        for icon in (52, 53):
             self.assertEqual(assets.icon(ICON_LIBRARY_ID, icon).size, (110, 100))
         with self.assertRaisesRegex(ValueError, 'Missing icon library 9'):
             assets.icon(9, 90)

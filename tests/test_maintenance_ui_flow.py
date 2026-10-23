@@ -212,11 +212,11 @@ class MaintenanceUIFlows(unittest.TestCase):
         # IDs 118/119 hold small NFC interface/port glyphs, not the
         # obsolete large Maintenance tiles. Keep their footprint explicit.
         from PIL import Image
-        for index in (118, 119):
+        for index in (115, 116):
             with Image.open(root / f'assets/icons/{index:03d}.jpg') as icon:
                 self.assertEqual(icon.size, (20, 20))
-        for index in (212,):
+        for index in (209,):
             self.assertFalse((root/('assets/icons/%03d.jpg'%index)).exists())
-        for index in (13, 39, 175):
+        for index in (13, 39, 172):
             self.assertTrue((root/('assets/icons/%03d.jpg'%index)).exists())
 
