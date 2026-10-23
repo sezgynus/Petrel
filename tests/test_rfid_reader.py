@@ -130,7 +130,8 @@ class RFIDTests(unittest.TestCase):
         view._loop.set_interval.assert_called_with(.5)
         view.pd.refresh_rfid.assert_not_called()
         view._queue_nfc_ui_event('nfc_card')
-        posted = view._loop.post.call_args.args[0]
+        posted = view._loop.post_coalesced.call_args.args[0]
+        view._loop.post.assert_not_called()
         self.assertEqual(posted.kind, 'nfc_card')
         view.pd.sync_nfc_event = Mock(return_value=True)
         view._rfid_buzzer_feedback = Mock()
