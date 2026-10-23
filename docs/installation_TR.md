@@ -15,8 +15,9 @@ Uyumlu DWIN T5UIC1 panel, UART/GPIO erişimli Linux SBC, Python 3.11+ ve çalı�
 | RX | GPIO14 / UART TX |
 | TX | GPIO15 / UART RX |
 | Encoder A | GPIO21 |
-| Encoder B | GPIO19 |
+| Encoder B | GPIO16 |
 | Encoder düğmesi | GPIO20 |
+| Donanımsal PWM buzzer | GPIO19 / fiziksel pin 35 (uygun sürücü ile) |
 | VCC | 5 V |
 | GND | GND |
 
@@ -43,7 +44,7 @@ cd ~/Petrel
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
-| Encoder A/B | `21 19` |
+| Encoder A/B | `21 16` |
 | Encoder düğmesi | `20` |
 | Moonraker güç aygıtı | `Printer` |
 | Güç açma basılı tutma süresi | `2000` ms (2 saniye) |
@@ -70,6 +71,12 @@ Açıldığında `klippy/extras/petrel_axis_travel.py`, Petrel deposundaki extra
 **Açtıktan veya kapattıktan sonra yazıcı boştayken Klipper'ı yeniden başlatın**, ardından keşfi yenilemek için Petrel'i yeniden başlatın. Yapılandırıcı Klipper'ı otomatik yeniden başlatmaz. X/Y/Z mesafe cihazları ve **Recorded travel (metres)** hatırlatıcıları yalnız extra gerçekten yüklüyse sunulur. Ölçüm sınırları ve kaynak bütçesi için [kullanım takibine](maintenance-usage_TR.md) bakın.
 
 Kapatmak için `./configure.sh` çalıştırın, sayaç seçeneğinin işaretini kaldırıp kaydedin ve uygulayın. Yalnız Petrel'in yönettiği config parçası/include, symlink ve kendisinin eklediği Git istisnası kaldırılır. Sayaçlar ve bakım geçmişi korunur; kayıtlı mesafe hatırlatıcıları duraklar. Aynı şekilde boşta Klipper restart uygulayın. Symlink sayesinde extra Petrel ile güncellenir; çalışan Klipper yeni kodu sonraki restart sırasında yükler. Klipper yeniden kurulumu/sert kurtarma bağlantıyı silebilir: onarmak için `configure.sh` tekrar çalıştırılır.
+
+## Donanımsal PWM buzzer
+
+Kconfig **Buzzer hardware PWM** menüsü GPIO12/13/18/19 arasından seçim yapar; varsayılan buzzer GPIO19, encoder B GPIO16'dır. Kurucu uygun device-tree PWM overlay'i yazar veya mevcut uyumlu overlay'i korur; çakışan analog PWM sesini kapatır. Root yetkili systemd ön hazırlık adımı, yalnız ilgili PWM kanalına Petrel kullanıcısının erişmesini sağlar. Boot overlay'i değişirse Pi reboot gereklidir; Klipper restart gerekmez.
+
+GPIO19'u encoder B için kullanan eski kurulumlar korunur: `./configure.sh` ile çakışmayan pinler seçilene kadar otomatik PWM kurulumu atlanır. Eski pin çakışması UI'ı durdurmaz, yalnız buzzer susturulur. Akım Pi GPIO sınırını aşıyorsa transistörlü buzzer sürücüsü kullanın.
 
 ## LCD kaynakları ve ilk açılış
 
@@ -110,6 +117,7 @@ Menüde bulunmayan ayarlar için harici ortam dosyasını düzenleyin. `export` 
 | `PETREL_SERIAL_PORT` | Yapılandırılmış UART / kurulum `/dev/ttyS0` önerir |
 | `PETREL_ENCODER_PINS` | BCM numaralarıyla encoder A/B / `21 19` |
 | `PETREL_BUTTON_PIN` | BCM numarasıyla encoder düğmesi / `20` |
+| `PETREL_BUZZER_GPIO` | Donanımsal PWM buzzer GPIO12/13/18/19, varsayılan `19` |
 | `PETREL_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Moonraker güç aygıtınızın adı / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Milisaniye cinsinden güç açma süresi / `2000`; `0` anında açar |

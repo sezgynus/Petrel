@@ -144,7 +144,7 @@ class PowerShortcutTests(unittest.TestCase):
 
     def test_hold_release_consumes_enter_on_every_representative_screen(self):
         for name in ('Control', 'MainMenu', 'FilePreview', 'MotionValue', 'Move_X',
-                     'DisplayMenu', 'BuzzerMenu', 'MMUMenu', 'ProbeWizardID', 'PrintProcess'):
+                     'DisplayMenu', 'MMUMenu', 'ProbeWizardID', 'PrintProcess'):
             with self.subTest(screen=name):
                 v = self.view();v.checkkey = getattr(v,name)
                 before = v.checkkey

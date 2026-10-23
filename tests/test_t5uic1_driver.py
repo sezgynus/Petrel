@@ -204,7 +204,7 @@ class T5UIC1DriverPackets(unittest.TestCase):
         from buzzer_control import ADDRESS, Settings
         lcd = driver()
         self.assertEqual(lcd.BUZZER_SETTINGS_ADDRESS, ADDRESS)
-        value = Settings('Buzzer', 70, 4, 1).encode()
+        value = Settings(True, 70, 4, 1).encode()
         future = lcd.begin_flash_write_verified(lcd.BUZZER_SETTINGS_ADDRESS, value)
         lcd.poll_flash_tasks()
         self.assertEqual(int.from_bytes(lcd.serial.frames[-1][3:5], 'big'), ADDRESS)

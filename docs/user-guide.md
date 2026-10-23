@@ -185,15 +185,9 @@ The first encoder movement or click after idle dimming wakes the display without
 
 ### Buzzer and button sounds
 
-<p align="center">
-  <img src="assets/screens/framed/buzzer.png" width="360" alt="Choose the buzzer output">
-  <img src="assets/screens/framed/display-sound-settings.png" width="360" alt="Sound options under Display">
-  <img src="assets/screens/framed/display-volume-edit.png" width="360" alt="Edit the volume">
-</p>
+**Display → Buzzer** now switches the buzzer **On/Off** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
 
-Open **Display → Buzzer** to choose one of the configured `[pwm_cycle_time name]` outputs, or **Disabled**. Pressing a choice saves it and returns to Display. With an available output selected, **Volume**, **Click tone** and **Encoder tone** appear below Buzzer in Display.
-
-Press an audio setting, rotate to adjust it and press again to save. Volume uses 10% steps from 0 to 100%. Tones include Off, Tick, Short beep, Low, High and Double. Output and sound preferences survive restarts. Sounds play in the background; rapid rotations do not build a sound queue. If the selected section is removed from Klipper configuration, sound controls are hidden until an available output is chosen.
+The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses a special 700 Hz beep at full volume but respects master Buzzer On/Off. Clicks never accumulate an unbounded sound queue.
 
 ### NFC reader settings
 
@@ -538,8 +532,7 @@ performs radio scans; there is no PN532 unsolicited UART event mode yet.
 
 The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
 live; the identity remains after removal. Each card presentation plays a short
-700 Hz beep at 100% volume on the selected available buzzer (or the first available
-output when disabled), independently of Display sound preferences. A held card
+700 Hz beep at 100% volume on the configured native hardware PWM buzzer when Buzzer is On, independently of the configured click/encoder tone settings. A held card
 beeps once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
 prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
 written or persisted. Scanning continues after leaving the page, and shutdown

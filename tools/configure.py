@@ -26,11 +26,14 @@ BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_U
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
+BUZZER_GPIO_CHOICES = {'PETREL_BUZZER_GPIO12': 12, 'PETREL_BUZZER_GPIO13': 13,
+                       'PETREL_BUZZER_GPIO18': 18, 'PETREL_BUZZER_GPIO19': 19}
 INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
         'PETREL_BUTTON_PIN': (0, 65535), 'PETREL_POWER_ON_HOLD_MS': (0, 2147483647),
         'PETREL_REMOTE_PORT': (1, 65535)}
-SYMBOLS = BOOLS | STRINGS | INTS.keys()
-RUNTIME = SYMBOLS - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}
+SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
+RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
+           - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
 MANAGED = RUNTIME | {'PETREL_ENCODER_PINS'}
 ASSIGNMENT = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$', re.DOTALL)
 
@@ -80,7 +83,7 @@ def decode_env(value):
 def defaults(home):
     return dict(MOONRAKER_URL='http://127.0.0.1:7125', PETREL_REQUEST_TIMEOUT='5',
                 PETREL_SERIAL_PORT='/dev/ttyS0', PETREL_POWER_DEVICE='Printer',
-                PETREL_POWER_ON_HOLD_MS='2000', ENCODER_A_GPIO='21', ENCODER_B_GPIO='19',
+                PETREL_POWER_ON_HOLD_MS='2000', ENCODER_A_GPIO='21', ENCODER_B_GPIO='16', PETREL_BUZZER_GPIO='19',
                 PETREL_BUTTON_PIN='20', PETREL_SETTINGS_FILE=str(home / '.config/Petrel/presets.json'),
                 PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
@@ -114,9 +117,16 @@ def read_settings(home, text):
 
 def collect(kconf):
     # user_value retains hidden paths/ports when their parent option is disabled.
-    return {name: (kconf.syms[name].str_value if name in BOOLS else
-                   str(kconf.syms[name].user_value) if kconf.syms[name].user_value is not None
-                   else kconf.syms[name].str_value) for name in SYMBOLS}
+    values = {name: (kconf.syms[name].str_value if name in BOOLS else
+                     str(kconf.syms[name].user_value) if kconf.syms[name].user_value is not None
+                     else kconf.syms[name].str_value)
+              for name in SYMBOLS if name not in BUZZER_GPIO_CHOICES}
+    selected = [pin for name, pin in BUZZER_GPIO_CHOICES.items()
+                if kconf.syms[name].str_value == 'y']
+    if len(selected) != 1:
+        raise ValueError('Choose one hardware PWM buzzer GPIO')
+    values['PETREL_BUZZER_GPIO'] = str(selected[0])
+    return values
 
 
 class Configuration(kconfiglib.Kconfig):
@@ -126,8 +136,15 @@ class Configuration(kconfiglib.Kconfig):
         self.warn_assign_override = False
         self.warn_assign_redun = False
         for name, value in values.items():
+            if name == 'PETREL_BUZZER_GPIO':
+                continue
             if not self.syms[name].set_value(value):
                 raise ValueError('Invalid existing setting: ' + name)
+        pin = int(values['PETREL_BUZZER_GPIO'])
+        matching = [name for name, candidate in BUZZER_GPIO_CHOICES.items()
+                    if candidate == pin]
+        if len(matching) != 1 or not self.syms[matching[0]].set_value('y'):
+            raise ValueError('Unsupported hardware PWM buzzer GPIO')
 
     def write_config(self, filename=None, header=None, save_old=True, verbose=None):
         result = super().write_config(filename, header, save_old, verbose)
@@ -139,7 +156,7 @@ def config_text(values):
     """Full seed includes hidden preferences so toggling their parent restores them."""
     lines = []
     for name in sorted(SYMBOLS):
-        value = values[name]
+        value = ('y' if int(values['PETREL_BUZZER_GPIO']) == BUZZER_GPIO_CHOICES[name] else 'n') if name in BUZZER_GPIO_CHOICES else values[name]
         if name in STRINGS:
             value = '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
         lines.append('CONFIG_' + name + '=' + value + '\n')
@@ -159,6 +176,11 @@ def validate(values):
     pins = [values[k] for k in ('ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'PETREL_BUTTON_PIN')]
     if len(set(map(int, pins))) != 3:
         raise ValueError('Encoder A, B and button GPIOs must differ')
+    if (not re.fullmatch(r'[0-9]+', values['PETREL_BUZZER_GPIO']) or
+            int(values['PETREL_BUZZER_GPIO']) not in BUZZER_GPIO_CHOICES.values()):
+        raise ValueError('Buzzer GPIO must support hardware PWM: 12, 13, 18 or 19')
+    if int(values['PETREL_BUZZER_GPIO']) in set(map(int, pins)):
+        raise ValueError('Buzzer GPIO must differ from encoder A/B and button GPIOs')
     url = urlsplit(values['MOONRAKER_URL'])
     if url.scheme not in ('http', 'https') or not url.hostname:
         raise ValueError('Moonraker URL must be an HTTP(S) address')
@@ -183,7 +205,7 @@ def render_env(values, original):
         value = values[name]
         if name in BOOLS:
             encoded = '1' if value == 'y' else '0'
-        elif name in INTS:
+        elif name in INTS or name == 'PETREL_BUZZER_GPIO':
             encoded = value
         else:
             encoded = '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
@@ -228,8 +250,15 @@ def nfc_install(repo, enabled):
         print(result.stdout, end='')
 
 
+def pwm_install(repo, user, pin):
+    result = command('sudo', 'python3', repo / 'tools/pwm_install.py',
+                     '--install', '--repo', repo, '--user', user, '--pin', pin)
+    if result.stdout:
+        print(result.stdout, end='')
+
+
 def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_install,
-          nfc=nfc_install, writer=atomic_private,
+          nfc=nfc_install, pwm=None, writer=atomic_private,
           dwin_manifest=Path('/var/lib/Petrel/dwin-uart.json'),
           nfc_manifest=Path('/var/lib/Petrel/nfc.json')):
     validate(values)
@@ -241,7 +270,7 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
     old_axis = json.loads(axis_manifest.read_text()) if axis_manifest.exists() else None
     old_dwin = json.loads(dwin_manifest.read_text()) if dwin_manifest.exists() else None
     old_nfc = json.loads(nfc_manifest.read_text()) if nfc_manifest.exists() else None
-    axis_done = dwin_done = nfc_done = False
+    axis_done = dwin_done = nfc_done = pwm_done = False
     try:
         changed = axis(values['PETREL_AXIS_TRAVEL'] == 'y', repo=repo,
                        klipper=values['PETREL_KLIPPER_DIR'], printer_config=values['PETREL_PRINTER_CONFIG'],
@@ -253,9 +282,17 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
         if values['PETREL_NFC'] == 'y' or previous['PETREL_NFC'] == 'y' or old_nfc:
             nfc(repo, values['PETREL_NFC'] == 'y')
             nfc_done = True
+        if pwm is not None:
+            pwm(repo, user, values['PETREL_BUZZER_GPIO'])
+            pwm_done = True
         writer(env_file, render_env(values, original))
     except Exception:
         # Each installer rolls its own failure back; undo earlier successful steps.
+        if pwm_done:
+            try:
+                pwm(repo, user, previous['PETREL_BUZZER_GPIO'])
+            except Exception as error:
+                print('PWM rollback needs attention: ' + str(error), file=sys.stderr)
         if dwin_done:
             try:
                 dwin(repo, home, user, bool(old_dwin), old_dwin['port'] if old_dwin else previous['PETREL_SERIAL_PORT'])
@@ -353,7 +390,8 @@ def main():
         config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         with (config_dir / 'configure.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            apply(selected, repo=args.repo, home=args.home, user=args.user, original=original)
+            apply(selected, repo=args.repo, home=args.home, user=args.user,
+                  original=original, pwm=pwm_install)
         if not args.no_restart and selected['RESTART_PETREL'] == 'y':
             active = subprocess.run(['systemctl', 'is-active', '--quiet', 'Petrel.service'], capture_output=True)
             if active.returncode == 0:

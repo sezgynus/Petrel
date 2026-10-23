@@ -18,7 +18,7 @@ and installation. Menu labels remain in English in both language guides.
 
 Use arrows and Enter to navigate/edit, Space to toggle, `?` for help, `S` to save,
 and `Q` to exit. The menu contains connections/power, encoder/presets, maintenance
-counters, display tools, DWIN auxiliary UART and apply options. Settings that depend
+counters, hardware PWM buzzer, display tools, DWIN auxiliary UART and apply options. Settings that depend
 on a disabled feature are hidden; their saved values are retained for re-enabling.
 
 Existing settings are read from `~/.config/Petrel/Petrel.env`. Saving in menuconfig
@@ -49,6 +49,10 @@ Set the encoder A/B and button GPIOs in BCM numbering, plus the external preset 
 path. Use the actual pin assignments of your wiring.
 
 ![Encoder GPIO and preset file settings](assets/configuration/encoder-presets.png)
+
+### Buzzer hardware PWM
+
+Select the buzzer pin only among GPIO12 (PWM0), 13 (PWM1), 18 (PWM0), or 19 (PWM1), default GPIO19. The pin cannot conflict with encoder A/B or button. Kconfig configures the physical pin and boot overlay; the LCD controls On/Off, volume and tones only. Reboot after changing boot overlay. No Klipper output pin is required.
 
 ### Maintenance usage counters
 

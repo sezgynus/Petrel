@@ -48,9 +48,8 @@ def scene(name, group, english, turkish):
 def sample(mmu=False, **changes):
     data = mesh_snapshot()
     data['settings'].update(screw_snapshot()['settings'])
-    data['objects'] += ['screws_tilt_adjust', 'manual_probe', 'output_pin case_light', 'pwm_cycle_time Buzzer']
+    data['objects'] += ['screws_tilt_adjust', 'manual_probe', 'output_pin case_light']
     data['settings']['output_pin case_light'] = {'pwm': True, 'value': .65}
-    data['settings']['pwm_cycle_time buzzer'] = {'value': 0, 'cycle_time': .001}
     data['status'].update(manual_probe={'is_active': False},
                           **{'screws_tilt_adjust': {'results': {}}, 'output_pin case_light': {'value': .65}})
     data['status']['toolhead'].update(position=[125, 125, 5, 0], max_velocity=300,
@@ -193,23 +192,23 @@ def case_light_off():
     return menu('Draw_Case_Light_Menu', configure=lambda v: setattr(v, '_case_light_on', False))
 
 
-@scene('buzzer', 'controls', 'Choose the buzzer output', 'Buzzer çıkışını seçme')
+@scene('buzzer', 'controls', 'Buzzer on/off', 'Buzzer aç/kapat')
 def buzzer():
-    v = canvas(); v._buzzer_values = BuzzerSettings('Buzzer', 60, 2, 1)
-    v._buzzer_selection = 2; v.Draw_Buzzer_Menu()
+    v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
+    v._display_selection = 4; v.Draw_Display_Menu()
     return finish(v)
 
 
 @scene('display-sound-settings', 'controls', 'Volume, click and encoder tones', 'Ses seviyesi, tıklama ve enkoder tonları')
 def sound():
-    v = canvas(); v._buzzer_values = BuzzerSettings('Buzzer', 60, 2, 1)
+    v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
     v._display_selection = 7; v.Draw_Display_Menu()
     return finish(v)
 
 
 @scene('display-volume-edit', 'controls', 'Editing sound volume', 'Ses seviyesini düzenleme')
 def volume():
-    v = canvas(); v._buzzer_values = BuzzerSettings('Buzzer', 60, 2, 1)
+    v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
     v._display_selection = 5; v._display_edit = True; v.Draw_Display_Menu()
     return finish(v)
 

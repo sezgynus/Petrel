@@ -15,8 +15,9 @@ Use a compatible DWIN T5UIC1 panel, a Linux SBC with UART/GPIO, Python 3.11+ and
 | RX | GPIO14 / UART TX |
 | TX | GPIO15 / UART RX |
 | Encoder A | GPIO21 |
-| Encoder B | GPIO19 |
+| Encoder B | GPIO16 |
 | Encoder button | GPIO20 |
+| Hardware PWM buzzer | GPIO19 / physical pin 35 (via suitable driver) |
 | VCC | 5 V |
 | GND | GND |
 
@@ -43,7 +44,7 @@ The first installation opens the Kconfig menu. Review these defaults, then save,
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
-| Encoder A/B | `21 19` |
+| Encoder A/B | `21 16` |
 | Encoder button | `20` |
 | Moonraker power device | `Printer` |
 | Power-on hold | `2000` ms (2 seconds) |
@@ -70,6 +71,12 @@ Enabling creates `klippy/extras/petrel_axis_travel.py` as a symlink to the extra
 **Restart Klipper while idle after enabling or disabling**, then restart Petrel to refresh discovery. The configurator never restarts Klipper automatically. Petrel offers X/Y/Z travel devices and **Recorded travel (metres)** reminders only when the extra is actually loaded. See [usage tracking](maintenance-usage.md) for measurement limits and resource bounds.
 
 Run `./configure.sh` again, uncheck the counters option, save and apply to disable. This removes only Petrel's managed config fragment/include, symlink and its own added Git exclusion. Counters and maintenance history remain; saved distance reminders pause. Apply the same idle Klipper restart. The extra follows Petrel updates through the symlink; running Klipper loads the updated module on its next restart. A Klipper reinstall/hard recovery may remove the link: rerun `configure.sh` to repair it.
+
+## Hardware PWM buzzer
+
+The Kconfig **Buzzer hardware PWM** menu selects one of GPIO12/13/18/19, default GPIO19 (encoder B defaults to GPIO16). The installer writes a compatible device-tree PWM overlay or reuses an existing compatible one, disables the conflicting analogue PWM audio and installs a privileged systemd pre-start helper granting the unprivileged UI process access to its PWM channel. Reboot the Pi if the boot overlay changes; Klipper need not restart.
+
+Legacy installations with encoder B on GPIO19 are preserved: automatic PWM provisioning is skipped until `./configure.sh` selects nonconflicting GPIOs. A legacy pin conflict silences the buzzer rather than preventing the UI from starting. Use a transistor buzzer driver if the buzzer current exceeds Pi GPIO limits.
 
 ## LCD resources and first start
 
@@ -110,6 +117,7 @@ For settings not listed in the menu, edit the external environment file. Use pla
 | `PETREL_SERIAL_PORT` | Configured UART / installer suggests `/dev/ttyS0` |
 | `PETREL_ENCODER_PINS` | Encoder A/B in BCM numbering / `21 19` |
 | `PETREL_BUTTON_PIN` | Encoder button in BCM numbering / `20` |
+| `PETREL_BUZZER_GPIO` | Native Pi PWM buzzer GPIO12/13/18/19, default `19` |
 | `PETREL_SETTINGS_FILE` | Local preset fallback / `~/.config/Petrel/presets.json` |
 | `PETREL_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
 | `PETREL_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |

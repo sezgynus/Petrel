@@ -162,22 +162,20 @@ class RFIDTests(unittest.TestCase):
         reader._observe_card((1, 1), dict(card, uid='03:04'))
         self.assertTrue(reader.take_card_event())
 
-    def test_card_beep_ignores_disabled_output_zero_volume_and_off_tones(self):
-        from buzzer_control import Settings
+    def test_card_beep_respects_master_enable_but_ignores_volume_and_tone(self):
+        from test_regressions import ui
+        Settings = ui.BuzzerSettings
         view = display(snapshot())
-        view._buzzer_outputs = Mock(return_value=('buzzer',))
-        view._buzzer_values = Settings(output='', volume=0, click=0, encoder=0)
+        view._buzzer_values = Settings(enabled=False, volume=0, click=0, encoder=0)
         view._buzzer_player = Mock()
         view._rfid_buzzer_feedback()
-        settings, kind = view._buzzer_player.play.call_args.args
-        self.assertEqual((settings.output, settings.volume, settings.click, kind),
-                         ('buzzer', 100, 3, 'press'))
-        self.assertTrue(view._buzzer_player.play.call_args.kwargs['priority'])
-        self.assertEqual(view._buzzer_values.volume, 0)
-        view._buzzer_outputs.return_value = ()
-        view._buzzer_player.reset_mock()
-        view._rfid_buzzer_feedback()
         view._buzzer_player.play.assert_not_called()
+        view._buzzer_values = Settings(enabled=True, volume=0, click=0, encoder=0)
+        view._rfid_buzzer_feedback()
+        settings, kind = view._buzzer_player.play.call_args.args
+        self.assertEqual((settings.enabled, settings.volume, settings.click, kind),
+                         (True, 100, 3, 'press'))
+        self.assertTrue(view._buzzer_player.play.call_args.kwargs['priority'])
 
     def test_card_beep_can_queue_behind_busy_click_player(self):
         from buzzer_control import Player, Settings
@@ -189,7 +187,7 @@ class RFIDTests(unittest.TestCase):
         with patch('buzzer_control.Thread'):
             player = Player(subscription)
         player.busy = True
-        settings = Settings(output='buzzer', volume=100, click=3)
+        settings = Settings(enabled=True, volume=100, click=3)
         self.assertFalse(player.play(settings, 'press'))
         self.assertTrue(player.play(settings, 'press', priority=True))
         self.assertEqual(player.pending[1], 3)

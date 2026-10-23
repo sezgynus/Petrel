@@ -19,7 +19,7 @@ ve kurulumunuza uygun değerleri seçin. Menü etiketleri her iki dildeki rehber
 
 Oklar ve Enter ile gezinin/düzenleyin, Space ile seçenek değiştirin, `?` ile yardımı
 açın, `S` ile kaydedin, `Q` ile çıkın. Bağlantı/güç, enkoder/preset, bakım sayaçları,
-ekran araçları, DWIN yardımcı UART ve uygulama seçenekleri menüleri bulunur.
+donanımsal PWM buzzer, ekran araçları, DWIN yardımcı UART ve uygulama seçenekleri menüleri bulunur.
 Kapalı özelliğe bağlı ayarlar gizlenir; tekrar açıldıklarında kayıtlı değerleri korunur.
 
 Mevcut ayarlar `~/.config/Petrel/Petrel.env` dosyasından alınır. Menuconfig içinde
@@ -50,6 +50,10 @@ Enkoder A/B ve düğme GPIO'larını BCM numaralandırmasıyla, harici preset JS
 yolunu ise kendi kurulumunuza göre ayarlayın. Gerçek kablolamanızdaki pinleri kullanın.
 
 ![Enkoder GPIO ve preset dosyası ayarları](assets/configuration/encoder-presets.png)
+
+### Buzzer hardware PWM
+
+Buzzer pinini yalnızca GPIO12 (PWM0), 13 (PWM1), 18 (PWM0) veya 19 (PWM1) arasından seçin; varsayılan GPIO19. Enkoder A/B veya butonla çakışamaz. Fiziksel pini ve boot overlay'ini Kconfig ayarlar; LCD'de yalnız On/Off, volume ve tonlar değişir. Boot overlay'i değişmişse reboot gereklidir. Klipper output pin kullanılmaz.
 
 ### Maintenance usage counters
 
