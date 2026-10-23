@@ -162,7 +162,7 @@ class ManagedIconTests(unittest.TestCase):
                     int.from_bytes(entry[2:4], 'big'), payload)
                    for index, entry, offset, payload in entries(original)]
         # ID 255 is unused; this payload exceeded the old largest 1172-byte hole.
-        added = b'\\xff\\xd8' + bytes(1996) + b'\\xff\\xd9'
+        added = bytes.fromhex('ffd8') + bytes(1996) + bytes.fromhex('ffd9')
         expanded = icons.pack_records(records + [(255, 20, 20, added)])
         self.assertEqual(len(expanded), len(original))
         self.assertEqual({index: payload for index, entry, offset, payload
