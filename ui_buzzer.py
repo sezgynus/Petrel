@@ -28,6 +28,22 @@ class BuzzerViewMixin:
             self._buzzer_player = Player()
         self._buzzer_player.play(Settings(enabled=True, volume=100, click=3), 'press', priority=True)
 
+    def _emergency_buzzer_feedback(self):
+        # Called directly by NFC Core's global emergency event, not the LCD
+        # queue, so Klipper shutdown and an offline display cannot delay it.
+        # Emergency is full-volume and preempts clicks/card beeps; the explicit
+        # master Buzzer Off preference is still respected.
+        if not self._buzzer_enabled():
+            return
+        if getattr(self, '_buzzer_player', None) is None:
+            self._buzzer_player = Player()
+        self._buzzer_player.play_emergency()
+
+    def _subscribe_emergency_buzzer(self, core):
+        return core.subscribe('action.emergency_stop',
+                              lambda event: self._emergency_buzzer_feedback(),
+                              priority=100)
+
     def _save_buzzer(self, values):
         if getattr(self, '_buzzer_save_future', None) is not None:
             raise RuntimeError('Buzzer save already pending')
