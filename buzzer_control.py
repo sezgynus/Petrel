@@ -65,6 +65,7 @@ class Player:
         self.busy = False
         self.stopped = False
         self.generation = 0
+        self.last_error = None
         self.thread = Thread(target=self._run, name='petrel-buzzer', daemon=True)
         self.thread.start()
 
@@ -102,6 +103,7 @@ class Player:
                 try:
                     if driver is None:
                         driver = self.driver_factory()
+                    self.last_error = None
                     for frequency, duration in PATTERNS[tone]:
                         with self.condition:
                             if self.stopped or generation != self.generation:
@@ -117,7 +119,10 @@ class Player:
                         driver.off()
                 except (OSError, ValueError) as error:
                     # A missing overlay/permission must not block printer UI.
-                    logging.warning('Hardware buzzer unavailable: %s', error)
+                    message = str(error)
+                    if message != self.last_error:
+                        logging.warning('Hardware buzzer unavailable: %s', message)
+                        self.last_error = message
                     driver = None
                 finally:
                     if driver is not None:

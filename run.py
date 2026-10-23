@@ -81,6 +81,8 @@ def main():
     if bootstrap():
         return  # The independent migration job starts Petrel with its new paths.
     args = parse_args()
+    # Keep explicit CLI overrides in sync with the hardware PWM worker.
+    os.environ['PETREL_BUZZER_GPIO'] = str(args.buzzer_gpio)
     from petrel_ui import PetrelDisplay
     display = PetrelDisplay(args.serial_port, tuple(args.encoder_pins), args.button_pin,
              os.environ.get('MOONRAKER_API_KEY', ''),
