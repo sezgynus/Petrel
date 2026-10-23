@@ -470,7 +470,7 @@ partial support. Transport failures reconnect with a two-second backoff.
 
 The NFC Backend detects ISO14443A target support and target-mode baud rates
 from the connected libnfc device; it advertises `ndef_uri_emulation` as
-true/false/unknown through the Core, and Info shows **NDEF URI share**. Unknown,
+true/false/unknown through the Core, and Info shows **NFC Sharing**. Unknown,
 unsupported and disconnected readers must not expose a URI-sharing action.
 Device enumeration for USB/PCSC/NCI is serialized by the NFC Backend worker;
 the NFC Settings UI only consumes an asynchronous discovery result.

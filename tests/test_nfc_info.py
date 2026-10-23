@@ -69,6 +69,6 @@ class NFCInfoTests(unittest.TestCase):
         self.assertIn(('section', 'NFC', None), items)
         self.assertIn(('row', 'Model', 'PN532'), items)
         self.assertIn(('row', 'Firmware', '1.6'), items)
-        self.assertIn(('row', 'NDEF URI share', 'Yes'), items)
+        self.assertIn(('row', 'NFC Sharing', 'Yes'), items)
         view.pd.system_info['nfc'] = {'status': 'Unavailable'}
         self.assertNotIn(('row', 'Firmware', '1.6'), view._info_items())

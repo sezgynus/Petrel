@@ -471,7 +471,7 @@ Bağlantı hatasında iki saniye beklenip yeniden bağlanılır.
 
 NFC Backend bağlı libnfc aygıtının ISO14443A Target Mode ve desteklenen
 target bit hızlarını sorgular; `ndef_uri_emulation` özelliğini Core üzerinden
-evet/hayır/bilinmiyor olarak sunar. Info bölümünde **NDEF URI share** görünür.
+evet/hayır/bilinmiyor olarak sunar. Info bölümünde **NFC Sharing** görünür.
 Desteklenmeyen, durumu bilinmeyen veya bağlantısı olmayan donanımda URI
 paylaşım eylemi gösterilmemelidir. USB/PCSC/NCI cihaz keşfi NFC Backend'in
 tek donanım worker'ında sıralanır; NFC Settings arayüzü yalnız asenkron keşif

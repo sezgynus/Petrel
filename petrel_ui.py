@@ -3433,7 +3433,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             for label, key in (('Model', 'model'), ('Firmware', 'firmware'),
                                ('Hardware', 'hardware'), ('libnfc', 'library'),
                                ('ISO14443A', 'iso_a'), ('ISO14443B', 'iso_b'),
-                               ('FeliCa', 'felica'), ('NDEF URI share', 'ndef_uri')):
+                               ('FeliCa', 'felica'), ('NFC Sharing', 'ndef_uri')):
                 items.append(('row', label, nfc.get(key, 'Unavailable')))
         items.extend([
             ('section', 'Software', None),
