@@ -361,7 +361,7 @@ class InstallationContracts(unittest.TestCase):
             env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp)
             selection = home / 'selection.config'
             for enabled in ('y', 'n'):
-                selection.write_text('CONFIG_PETREL_AXIS_TRAVEL=n\nCONFIG_PETREL_AUX_UART=' + enabled + '\n')
+                selection.write_text('CONFIG_PETREL_AXIS_TRAVEL=n\nCONFIG_PETREL_KLIPPER_BUZZER=n\nCONFIG_PETREL_AUX_UART=' + enabled + '\n')
                 result = subprocess.run([sys.executable, str(ROOT / 'tools/configure.py'),
                     '--home', tmp, '--user', 'user', '--apply-config', str(selection), '--no-restart'],
                     text=True, env=env, capture_output=True)
