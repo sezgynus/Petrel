@@ -175,7 +175,8 @@ class GateUITests(unittest.TestCase):
         popup = view._nfc_gate_popup
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
-        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .35)
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .36)
+        self.assertNotIn('motion', popup)
         popup['operation'] = popup['operations'][1]
         popup['phase'] = 'writing'
         popup['message'] = 'Assigning to G0'
