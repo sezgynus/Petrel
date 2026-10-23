@@ -3093,12 +3093,13 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         key = (id(self.lcd), connection, error, icon)
         if key == getattr(self, '_header_klipper_drawn', None):
             return False
-        # Wi-Fi ends at x=212; clock x=214..253; cap x=256..263.
-        # The 8x8 artwork has rounded edges and preserves the 8px right margin.
+        # Wi-Fi ends at x=212; clock stays x=214..253; cap x=259..266.
+        # The 8x8 artwork is centered between the clock and the right edge.
+        # Clock y=6..21 and cap y=10..17 share the same vertical center.
         # Clear before changing caps: enhanced JPEG drawing leaves black
         # background pixels transparent and must not retain the previous state.
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 256, 10, 263, 17)
-        show_theme_icon(self.lcd, self.ICON, icon, 256, 10)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 259, 10, 266, 17)
+        show_theme_icon(self.lcd, self.ICON, icon, 259, 10)
         self._header_klipper_drawn = key
         return True
 

@@ -139,7 +139,7 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.lcd.show_icon.assert_any_call(
             v.ICON, ICON_WIFI_STRONG, 193, 4, background=False, enhanced=True)
         v.lcd.show_icon.assert_any_call(
-            v.ICON, ICON_PROGRESS_FILL, 256, 10, background=False, enhanced=True)
+            v.ICON, ICON_PROGRESS_FILL, 259, 10, background=False, enhanced=True)
         self.assertEqual(v.lcd.show_icon.call_count, 2)
         v.lcd.reset_mock()
         self.assertFalse(v._draw_header_clock())
