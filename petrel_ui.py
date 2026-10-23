@@ -3523,7 +3523,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             y = 38 + (index + offset - self._info_scroll) * 24
             if not 38 <= y < 350:
                 if incremental and kind == 'update' and y == 350:
-                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 352, 239, 349)
+                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 32, 346, 239, 349)
                 continue
             exposed = incremental and (band[0] <= y < band[1] or
                                        (kind == 'section' and y == 38))

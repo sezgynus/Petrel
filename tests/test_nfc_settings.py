@@ -276,7 +276,7 @@ class NFCSettingsTests(unittest.TestCase):
             view.HMI_NFC_Settings_Menu()
             view.Draw_Menu_Cursor.assert_not_called()
             view.HMI_NFC_Settings_Menu()
-            view.Draw_Menu_Cursor.assert_called_once_with(2)
+            view.Draw_Menu_Cursor.assert_called_once_with(1)
             view.Draw_Menu_Cursor.reset_mock()
             # All following settings are disabled; scrolling still reveals
             # the final test row, without drawing a cursor offscreen.
