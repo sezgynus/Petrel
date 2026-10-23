@@ -44,7 +44,7 @@ class NFCURIShareComponent:
 
     def stop_animation(self):
         lcd, self._animation_lcd = self._animation_lcd, None
-        if lcd is not None and not getattr(lcd, "_closed", False):
+        if lcd is not None and getattr(lcd, "_closed", False) is not True:
             lcd.configure_animation(2, False, ICON_LIBRARY_ID,
                                     ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST,
                                     56, 116, 20)
