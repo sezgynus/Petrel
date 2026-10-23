@@ -14,6 +14,9 @@ import sys
 import tempfile
 import time
 
+# Executed as a script under sudo, outside Petrel's package import path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 PINS = {12: (0, 4), 13: (1, 4), 18: (0, 2), 19: (1, 2)}
 BEGIN = '# BEGIN PETREL HARDWARE PWM'
 END = '# END PETREL HARDWARE PWM'

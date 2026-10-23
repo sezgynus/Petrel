@@ -33,6 +33,25 @@ class KconfigConfigurationTests(unittest.TestCase):
         self.assertEqual(config.syms['PETREL_REMOTE_PORT'].str_value, '8099')
         self.assertEqual(config.syms['PETREL_BUTTON_PIN'].str_value, '13')
 
+    def test_pwm_gpio_choice_excludes_nonhardware_pins_and_is_distinct(self):
+        values = self.values(Path('/home/printer'))
+        self.assertEqual(values['ENCODER_B_GPIO'], '16')
+        self.assertEqual(values['PETREL_BUZZER_GPIO'], '19')
+        kconf = Configuration(ROOT, values)
+        self.assertEqual(collect(kconf)['PETREL_BUZZER_GPIO'], '19')
+        kconf.syms['PETREL_BUZZER_GPIO12'].set_value('y')
+        self.assertEqual(collect(kconf)['PETREL_BUZZER_GPIO'], '12')
+        values['PETREL_BUZZER_GPIO'] = '14'
+        with self.assertRaisesRegex(ValueError, 'hardware PWM'):
+            validate(values)
+        values['PETREL_BUZZER_GPIO'] = '16'
+        with self.assertRaisesRegex(ValueError, 'hardware PWM'):
+            validate(values)
+        values['PETREL_BUZZER_GPIO'] = '19'
+        values['ENCODER_B_GPIO'] = '19'
+        with self.assertRaisesRegex(ValueError, 'must differ'):
+            validate(values)
+
     def test_nfc_is_an_independent_opt_in_from_dwin_uart(self):
         values = self.values(Path('/home/printer'))
         self.assertEqual(values['PETREL_NFC'], 'n')

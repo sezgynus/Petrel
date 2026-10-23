@@ -95,6 +95,15 @@ sed \
     -e "s|@PETREL_HOME@|$INSTALL_HOME|g" \
     -e "s|@SUPPLEMENTARY_GROUPS@|$SUPPLEMENTARY_LINE|g" \
     "$REPO_DIR/Petrel.service" | sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null
+# Provision BCM hardware PWM and service-only sysfs write permissions.
+# This also preserves a compatible pre-existing user PWM boot overlay.
+PWM_GPIO=$(sed -n 's/^PETREL_BUZZER_GPIO=["'\'']\?\([0-9]*\)["'\'']\?$/\1/p' "$ENV_FILE" | tail -n 1)
+PWM_GPIO=${PWM_GPIO:-19}
+if [[ ! "$PWM_GPIO" =~ ^(12|13|18|19)$ ]]; then
+    echo "Invalid PETREL_BUZZER_GPIO: $PWM_GPIO" >&2
+    exit 1
+fi
+sudo python3 "$REPO_DIR/tools/pwm_install.py" --install --repo "$REPO_DIR" --user "$INSTALL_USER" --pin "$PWM_GPIO"
 sudo systemctl daemon-reload
 
 echo "Registering Moonraker Update Manager..."
