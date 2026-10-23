@@ -45,7 +45,9 @@ class PrintFocusTests(unittest.TestCase):
         with patch('t5uic1_driver.time.sleep'):
             v._focus_edit_draw()
         packets = v.lcd.MYSERIAL1.frames
-        self.assertEqual(sum(p[1] == 0x23 for p in packets), 1)
+        # Apply backing plus the new Klipper status cap in the shared title.
+        self.assertEqual(sum(p[1] == 0x23 for p in packets), 2)
+        self.assertTrue(any(p[1] == 0x23 and p[-5] == 95 for p in packets))
         self.assertFalse(any(p[1] == 0x08 for p in packets))
         self.assertLess(sum(p[1] == 0x05 for p in packets), 12)
         self.assertIn(b'Apply', [p[11:-4] for p in packets if p[1] == 0x11])

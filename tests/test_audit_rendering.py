@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from lcd_resources import ICON_LIBRARY_ID, ICON_PROGRESS_FILL
 import unittest
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
@@ -43,14 +43,15 @@ class AuditRenderingTests(unittest.TestCase):
         self.assertEqual(result.lcd.serial.frames, frames)
         text = next(f for f in frames if f[1] == 0x11)
         self.assertEqual(text[2] & 15, result.lcd.font8x16)
-        self.assertEqual(text[7:11], bytes.fromhex('00 D9 00 06'))
+        self.assertEqual(text[7:11], bytes.fromhex('00 D6 00 06'))
 
     def test_title_does_not_draw_removed_power_icon(self):
         result = self.screen()
         result.lcd.serial.frames.clear()
         result.Draw_Title('Prepare')
         icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-        self.assertEqual(icons, [])
+        # The only header image is the shared Klipper cap, never Power.
+        self.assertEqual([frame[-5] for frame in icons], [ICON_PROGRESS_FILL])
         self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_complete_progress_has_three_digits_before_percent_sign(self):
