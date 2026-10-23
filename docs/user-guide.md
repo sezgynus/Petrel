@@ -632,9 +632,9 @@ from the scanned Spoolman record. The reel's manufacturer, filament name,
 material and spool ID move with its selection card; gate labels show the
 currently assigned spool IDs. Rotate the encoder to select a gate (groups of
 four for larger MMUs), then press to assign. Rotate left to the header Back
-control to cancel. During verification the reel remains above the slot; it
-moves down only after dispatch and settles into the gate after confirmed
-readback. The operation assigns the bound spool ID through Happy Hare; it
+control to cancel. During verification the reel remains above the slot; it descends in one
+approximately 600ms eased motion only after Happy Hare readback confirms the
+assignment. The operation assigns the bound spool ID through Happy Hare; it
 does not load filament or start motor movement. Moving
 the same spool ID off other gates follows the existing Happy Hare assignment
 behavior.
