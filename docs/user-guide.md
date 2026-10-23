@@ -626,9 +626,16 @@ two-request move itself is still not an atomic transaction.
 ### Scan a spool card to assign an MMU gate
 
 Scan a card linked in Spoolman's **Tags** from any normal Petrel screen to open
-**Spool #ID: choose gate**. Select **Cancel** or a destination gate. Each gate row
-shows its current spool ID. Selection assigns the scanned card's bound spool ID
-through Happy Hare; it does not load filament or start motor movement. Moving
+**Spool #ID: choose gate**. The popup uses the very same library-backed spool icons
+as Home and the MMU menu: four muted destination spools and a moving reel colored
+from the scanned Spoolman record. The reel's manufacturer, filament name,
+material and spool ID move with its selection card; gate labels show the
+currently assigned spool IDs. Rotate the encoder to select a gate (groups of
+four for larger MMUs), then press to assign. Rotate left to the header Back
+control to cancel. During verification the reel remains above the slot; it
+moves down only after dispatch and settles into the gate after confirmed
+readback. The operation assigns the bound spool ID through Happy Hare; it
+does not load filament or start motor movement. Moving
 the same spool ID off other gates follows the existing Happy Hare assignment
 behavior.
 
