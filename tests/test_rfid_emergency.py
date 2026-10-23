@@ -99,6 +99,33 @@ class EmergencyTagTests(unittest.TestCase):
             pd.subscription.request.assert_called_once_with('printer.emergency_stop')
             core.close()
 
+    def test_emergency_card_alarms_directly_even_when_klipper_rpc_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reader = backend()
+            stop = Mock(side_effect=ConnectionError('Klipper already disconnected'))
+            core = NFCCore(reader, emergency_stop=stop,
+                           actions_file=Path(tmp) / 'actions.json')
+            view = display(snapshot())
+            view._buzzer_player = Mock()
+            settings = type(view._buzzer_settings())
+            view._buzzer_values = settings(enabled=True, volume=0, click=0, encoder=0)
+            view._subscribe_emergency_buzzer(core)
+            emit = reader.set_event_sink.call_args.args[0]
+            emit('card.detected', {'uid': '01:02'})
+            view._buzzer_player.play_emergency.assert_not_called()
+            core.assign_global_action('emergency_stop', 'AA:BB')
+            emit('card.detected', {'uid': 'AA:BB'})
+            stop.assert_called_once_with()
+            view._buzzer_player.play_emergency.assert_called_once_with()
+            view._buzzer_player.play.assert_not_called()
+            # Even though the alarm ignores volume/tone=Off, the explicit
+            # master Buzzer Off setting must suppress subsequent alerts.
+            view._buzzer_values = settings(enabled=False, volume=100)
+            emit('card.detected', {'uid': 'AA:BB'})
+            self.assertEqual(stop.call_count, 2)
+            view._buzzer_player.play_emergency.assert_called_once_with()
+            core.close()
+
     def test_rfid_home_artwork_is_distinct_and_both_states_are_bound(self):
         from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
         from PIL import Image, ImageChops
