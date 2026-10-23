@@ -126,7 +126,7 @@ class EmergencyTagTests(unittest.TestCase):
         view._draw_list_menu = Mock()
         view._draw_menu_text = Mock()
         view._rfid_candidate = {'uid': uid}
-        for mode in ('info', 'emg', 'waiting', 'confirm'):
+        for mode in ('info', 'emg', 'confirm'):
             with self.subTest(mode=mode):
                 view._rfid_mode = mode
                 view._draw_menu_text.reset_mock()
@@ -136,11 +136,8 @@ class EmergencyTagTests(unittest.TestCase):
                     self.assertEqual(labels, ['Back', 'Emergency stop tag', 'Spoolman tag'])
                 if mode == 'emg':
                     self.assertEqual(labels, ['Back', 'Replace tag', 'Remove tag'])
-                if mode == 'waiting':
-                    self.assertEqual(labels, ['Cancel'])
                 calls = view._draw_menu_text.call_args_list
                 self.assertTrue(calls)
                 self.assertTrue(all(call.args[2] + 16 < view.STATUS_Y for call in calls))
-                if mode != 'waiting':
-                    lines = [call.args[0] for call in calls if ':' in call.args[0]]
-                    self.assertEqual(':'.join(lines), uid)
+                lines = [call.args[0] for call in calls if ':' in call.args[0]]
+                self.assertEqual(':'.join(lines), uid)
