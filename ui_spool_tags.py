@@ -57,7 +57,7 @@ class SpoolTagViewMixin:
         else:
             self._rfid_mode = 'spool_confirm'
         self._spool_selection = 0
-        if self._uart_online:
+        if self._uart_online and self.checkkey == self.RFIDMenu:
             self.Draw_RFID_Menu()
             self.lcd.update()
 
