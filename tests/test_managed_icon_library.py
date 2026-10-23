@@ -137,6 +137,39 @@ class ManagedIconTests(unittest.TestCase):
             finally:
                 icons._cached_pack.cache_clear()
 
+    def test_shipped_pack_concentrates_all_available_bytes_in_one_block(self):
+        root = Path(__file__).resolve().parents[1]
+        data = icons.build_library(root / 'assets/icons')
+        used = [icons.DIRECTORY_SIZE] + [0] * (len(data) // icons.BLOCK_SIZE - 1)
+        records = []
+        for index, entry, offset, payload in entries(data):
+            used[offset // icons.BLOCK_SIZE] += len(payload)
+            records.append((index, int.from_bytes(entry[:2], 'big'),
+                            int.from_bytes(entry[2:4], 'big'), payload))
+        free = [icons.USABLE_SIZE - count for count in used]
+        # Current artwork admits exact fills in all earlier blocks.
+        self.assertEqual(max(free), sum(free))
+        self.assertGreaterEqual(max(free), 2282)
+        self.assertEqual(icons.pack_records(list(reversed(records))), data)
+        validate_block_layout(data, 3)
+        self.assertTrue(all(data[(i + 1) * icons.BLOCK_SIZE - 1] == 0
+                            for i in range(len(used))))
+
+    def test_consolidated_hole_accepts_an_extra_icon_without_another_slot(self):
+        root = Path(__file__).resolve().parents[1]
+        original = icons.build_library(root / 'assets/icons')
+        records = [(index, int.from_bytes(entry[:2], 'big'),
+                    int.from_bytes(entry[2:4], 'big'), payload)
+                   for index, entry, offset, payload in entries(original)]
+        # ID 255 is unused; this payload exceeded the old largest 1172-byte hole.
+        added = b'\\xff\\xd8' + bytes(1996) + b'\\xff\\xd9'
+        expanded = icons.pack_records(records + [(255, 20, 20, added)])
+        self.assertEqual(len(expanded), len(original))
+        self.assertEqual({index: payload for index, entry, offset, payload
+                          in entries(expanded)},
+                         {record[0]: record[3] for record in records + [(255, 20, 20, added)]})
+        validate_block_layout(expanded, 3)
+
     def test_manifest_crc_rejects_partial_or_corrupt_metadata(self):
         raw = icons.metadata([b'x' * 32])
         self.assertEqual(icons.parse_metadata(raw), [b'x' * 32])

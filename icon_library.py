@@ -23,34 +23,100 @@ MAX_BLOCKS = 16 - ICON_LIBRARY_ID
 _ATTEMPTS = set()
 
 
-def pack_records(records):
-    """Best-fit decreasing; directory IDs are independent of physical order."""
-    blocks = [bytearray(BLOCK_SIZE)]
+def _best_fit_layout(records):
+    """Fast valid baseline; allow overflow so optimization can try to rescue it."""
+    layout = [[]]
     used = [DIRECTORY_SIZE]
+    for record in records:
+        size = len(record[3])
+        fits = [i for i, end in enumerate(used) if USABLE_SIZE - end >= size]
+        if fits:
+            block = min(fits, key=lambda i: (USABLE_SIZE - used[i] - size, i))
+        else:
+            block = len(layout)
+            layout.append([])
+            used.append(0)
+        layout[block].append(record)
+        used[block] += size
+    return layout
+
+
+def _compact_layout(records, block_count):
+    """Fill each earlier block with an exact bounded subset-sum search.
+
+    Python integer bitsets represent reachable byte totals. The saved bitsets
+    reconstruct a subset without reusing a record. This is exact for each
+    individual block, not a globally optimal bin-packing proof.
+    """
+    remaining = list(records)
+    layout = []
+    for block in range(block_count - 1):
+        capacity = USABLE_SIZE - (DIRECTORY_SIZE if block == 0 else 0)
+        mask = (1 << (capacity + 1)) - 1
+        reachable = 1
+        history = []
+        for position, record in enumerate(remaining):
+            size = len(record[3])
+            if size > capacity:
+                continue
+            before = reachable
+            reachable |= (reachable << size) & mask
+            history.append((position, before))
+            if (reachable >> capacity) & 1:
+                break
+        target = reachable.bit_length() - 1
+        chosen = set()
+        for position, before in reversed(history):
+            if not (before >> target) & 1:
+                chosen.add(position)
+                target -= len(remaining[position][3])
+        layout.append([record for i, record in enumerate(remaining) if i in chosen])
+        remaining = [record for i, record in enumerate(remaining) if i not in chosen]
+    capacity = USABLE_SIZE - (DIRECTORY_SIZE if block_count == 1 else 0)
+    if sum(len(record[3]) for record in remaining) > capacity:
+        return None
+    layout.append(remaining)
+    return layout
+
+
+def _layout_score(layout):
+    free = [USABLE_SIZE - sum(len(record[3]) for record in block)
+            - (DIRECTORY_SIZE if i == 0 else 0)
+            for i, block in enumerate(layout)]
+    # Never trade an extra Flash block for a larger hole.
+    return len(layout), -max(free)
+
+
+def pack_records(records):
+    """Preserve JPEG bytes and IDs; consolidate free space deterministically."""
+    records = sorted(records, key=lambda r: (-len(r[3]), r[0]))
     if not records:
         raise ValueError('Icon source directory is empty')
     seen = set()
-    for index, width, height, payload in sorted(records, key=lambda r: (-len(r[3]), r[0])):
+    for index, width, height, payload in records:
         if index in seen or not 0 <= index <= 255:
             raise ValueError(f'Duplicate or invalid icon ID: {index}')
         seen.add(index)
         if not 0 < len(payload) <= USABLE_SIZE:
             raise ValueError(f'Icon {index} exceeds usable block capacity')
-        fits = [i for i, end in enumerate(used) if USABLE_SIZE - end >= len(payload)]
-        if fits:
-            block = min(fits, key=lambda i: (USABLE_SIZE - used[i] - len(payload), i))
-        else:
-            if len(blocks) >= MAX_BLOCKS:
-                raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
-            block = len(blocks)
-            blocks.append(bytearray(BLOCK_SIZE))
-            used.append(0)
-        start = used[block]
-        offset = block * BLOCK_SIZE + start
-        blocks[block][start:start + len(payload)] = payload
-        used[block] += len(payload)
-        entry = struct.pack('>HHI', width, height, offset) + len(payload).to_bytes(3, 'big') + bytes(5)
-        blocks[0][index * 16:(index + 1) * 16] = entry
+    if DIRECTORY_SIZE + sum(len(record[3]) for record in records) > MAX_BLOCKS * USABLE_SIZE:
+        raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
+    baseline = _best_fit_layout(records)
+    candidate = _compact_layout(records, min(len(baseline), MAX_BLOCKS))
+    layout = baseline
+    if candidate is not None and _layout_score(candidate) < _layout_score(baseline):
+        layout = candidate
+    if len(layout) > MAX_BLOCKS:
+        raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
+    blocks = [bytearray(BLOCK_SIZE) for _ in layout]
+    for block, items in enumerate(layout):
+        start = DIRECTORY_SIZE if block == 0 else 0
+        for index, width, height, payload in items:
+            offset = block * BLOCK_SIZE + start
+            blocks[block][start:start + len(payload)] = payload
+            entry = struct.pack('>HHI', width, height, offset) + len(payload).to_bytes(3, 'big') + bytes(5)
+            blocks[0][index * 16:(index + 1) * 16] = entry
+            start += len(payload)
     return b''.join(blocks)
 
 
