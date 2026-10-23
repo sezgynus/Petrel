@@ -18,7 +18,7 @@
     "T5UIC1.CFG": "e1c573639bfa2b3a06c2fa7ad3cab483653dd3dc383217ff653fab3145458095",
     "1_English.jpg": "854dcc7ad264f7e4fcaf08010e86a15822cd918651b266c39d40a2ffdef9727d",
     "0T5UIC1.HZK": "c0a8d043d5f88d5400027d7df880793612b5cf5b1549144a82ca749f12ee682f",
-    "2.ICO": "c393fff46a74b6efc01ca3c1663d51cd13e12759eba67fcf92240548984bcf19"
+    "2.ICO": "bc4d9303244c01dde546e46a386d45fb1baeb3264cf028efe8f9daaadcfbfd04"
   },
   "icons": {
     "ICON_LOGO": {
@@ -101,223 +101,178 @@
       "width": 24,
       "height": 24
     },
-    "ICON_Setup_0": {
-      "id": 16,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Setup_1": {
-      "id": 17,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Pause_0": {
-      "id": 18,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Pause_1": {
-      "id": 19,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Continue_0": {
-      "id": 20,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Continue_1": {
-      "id": 21,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Stop_0": {
-      "id": 22,
-      "width": 80,
-      "height": 100
-    },
-    "ICON_Stop_1": {
-      "id": 23,
-      "width": 80,
-      "height": 100
-    },
     "ICON_Bar": {
-      "id": 24,
+      "id": 16,
       "width": 242,
       "height": 20
     },
     "ICON_More": {
-      "id": 25,
+      "id": 17,
       "width": 20,
       "height": 20
     },
     "ICON_Axis": {
-      "id": 26,
+      "id": 18,
       "width": 20,
       "height": 20
     },
     "ICON_CloseMotor": {
-      "id": 173,
+      "id": 164,
       "width": 20,
       "height": 20
     },
     "ICON_Homing": {
-      "id": 27,
+      "id": 19,
       "width": 20,
       "height": 20
     },
     "ICON_SetHome": {
-      "id": 28,
+      "id": 20,
       "width": 20,
       "height": 20
     },
     "ICON_PLAPreheat": {
-      "id": 184,
+      "id": 175,
       "width": 20,
       "height": 20
     },
     "ICON_ABSPreheat": {
-      "id": 29,
+      "id": 21,
       "width": 20,
       "height": 20
     },
     "ICON_Cool": {
-      "id": 30,
+      "id": 22,
       "width": 20,
       "height": 20
     },
     "ICON_MoveX": {
-      "id": 31,
+      "id": 23,
       "width": 20,
       "height": 20
     },
     "ICON_MoveY": {
-      "id": 32,
+      "id": 24,
       "width": 20,
       "height": 20
     },
     "ICON_MoveZ": {
-      "id": 33,
+      "id": 25,
       "width": 20,
       "height": 20
     },
     "ICON_Extruder": {
-      "id": 34,
+      "id": 26,
       "width": 20,
       "height": 20
     },
     "ICON_Temperature": {
-      "id": 36,
+      "id": 28,
       "width": 20,
       "height": 20
     },
     "ICON_Motion": {
-      "id": 172,
+      "id": 163,
       "width": 20,
       "height": 20
     },
     "ICON_WriteEEPROM": {
-      "id": 37,
+      "id": 29,
       "width": 20,
       "height": 20
     },
     "ICON_ReadEEPROM": {
-      "id": 38,
+      "id": 30,
       "width": 20,
       "height": 20
     },
     "ICON_Info": {
-      "id": 39,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_FanSpeed": {
-      "id": 40,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_StockConfiguraton": {
-      "id": 41,
-      "width": 20,
-      "height": 20
-    },
-    "ICON_MaxSpeedX": {
       "id": 31,
       "width": 20,
       "height": 20
     },
-    "ICON_MaxSpeedY": {
+    "ICON_FanSpeed": {
       "id": 32,
       "width": 20,
       "height": 20
     },
-    "ICON_MaxSpeedZ": {
+    "ICON_StockConfiguraton": {
       "id": 33,
       "width": 20,
       "height": 20
     },
+    "ICON_MaxSpeedX": {
+      "id": 23,
+      "width": 20,
+      "height": 20
+    },
+    "ICON_MaxSpeedY": {
+      "id": 24,
+      "width": 20,
+      "height": 20
+    },
+    "ICON_MaxSpeedZ": {
+      "id": 25,
+      "width": 20,
+      "height": 20
+    },
     "ICON_StepE": {
-      "id": 186,
+      "id": 177,
       "width": 20,
       "height": 20
     },
     "ICON_BLTouch": {
-      "id": 42,
+      "id": 34,
       "width": 73,
       "height": 66
     },
     "ICON_TempTooLow": {
-      "id": 43,
+      "id": 35,
       "width": 73,
       "height": 66
     },
     "ICON_NoTips_C": {
-      "id": 44,
+      "id": 36,
       "width": 100,
       "height": 38
     },
     "ICON_NoTips_E": {
-      "id": 45,
+      "id": 37,
       "width": 100,
       "height": 38
     },
     "ICON_Continue_C": {
-      "id": 46,
+      "id": 38,
       "width": 100,
       "height": 38
     },
     "ICON_Cancel_C": {
-      "id": 47,
+      "id": 39,
       "width": 100,
       "height": 38
     },
     "ICON_Confirm_C": {
-      "id": 48,
-      "width": 100,
-      "height": 38
-    },
-    "ICON_Confirm_E": {
-      "id": 49,
+      "id": 40,
       "width": 100,
       "height": 38
     },
     "ICON_Maintenance_0": {
-      "id": 50,
+      "id": 41,
       "width": 110,
       "height": 100
     },
     "ICON_Maintenance_1": {
-      "id": 51,
+      "id": 42,
       "width": 110,
       "height": 100
     },
     "ICON_Info_0": {
-      "id": 52,
+      "id": 43,
       "width": 110,
       "height": 100
     },
     "ICON_Info_1": {
-      "id": 53,
+      "id": 44,
       "width": 110,
       "height": 100
     }

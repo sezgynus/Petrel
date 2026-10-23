@@ -747,7 +747,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result = display(data)
         entry = next(item for item in result._menus['control'] if item[0] == 'LIGHT')
         self.assertEqual(entry[2], result.ICON_CaseLight)
-        self.assertEqual(result.ICON_CaseLight, 164)
+        self.assertEqual(result.ICON_CaseLight, 155)
         self.assertNotEqual(result.ICON_CaseLight, result.ICON_Motion)
 
     def test_case_light_is_hidden_without_output_pin(self):

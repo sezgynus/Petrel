@@ -164,7 +164,7 @@ class ManagedIconTests(unittest.TestCase):
                     int.from_bytes(entry[2:4], 'big'), payload)
                    for index, entry, offset, payload in entries(original)]
         # Preserve the pre-card golden capacity fixture.
-        records = [record for record in records if not 54 <= record[0] <= 65]
+        records = [record for record in records if not 45 <= record[0] <= 56]
         original = icons.pack_records(records)
         # ID 255 is unused; this payload exceeded the old largest 1172-byte hole.
         added = bytes.fromhex('ffd8') + bytes(1996) + bytes.fromhex('ffd9')

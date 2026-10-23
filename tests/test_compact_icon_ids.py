@@ -1,4 +1,4 @@
-"""Dense managed IDs and safe same-slot migration from PETICO01/PETICO02."""
+"""Dense managed IDs and safe same-slot migration from older ID directories."""
 import hashlib
 import json
 from pathlib import Path
@@ -14,7 +14,7 @@ import test_managed_icon_library as managed
 
 
 class CompactIconIDs(TestCase):
-    def legacy_record(self, hashes, version=b'PETICO02'):
+    def legacy_record(self, hashes, version=b'PETICO04'):
         raw = bytearray(icons.metadata(hashes))
         raw[:8] = version
         raw[-4:] = zlib.crc32(raw[:-4]).to_bytes(4, 'big')
@@ -27,7 +27,7 @@ class CompactIconIDs(TestCase):
         data = (root / 'assets/emulator/2.ICO').read_bytes()
         packed_ids = sorted(n for n, _, _, _ in entries(data))
         self.assertEqual(packed_ids, source_ids)
-        record = json.loads((root / 'assets/icons/id-deduplication.json').read_text())
+        record = json.loads((root / 'assets/icons/id-native-confirm.json').read_text())
         migration = record['mapping']
         physical = [v for k, v in migration.items() if k not in record['aliases']]
         self.assertEqual(len(set(physical)), len(physical))
@@ -66,7 +66,7 @@ class CompactIconIDs(TestCase):
         self.assertTrue(any(frame[1] == 0x28 for frame in view.lcd.serial.frames))
 
     @patch('icon_library.time.sleep')
-    def test_v2_same_slot_hashes_force_upload_then_v3_reconnect_is_unchanged(self, _):
+    def test_older_same_slot_hashes_force_upload_then_current_reconnect_is_unchanged(self, _):
         icons._ATTEMPTS.clear()
         self.addCleanup(icons._ATTEMPTS.clear)
         data = icons.pack_records([(1, 20, 20, b'x'*30000), (2, 20, 20, b'y'*1000)])

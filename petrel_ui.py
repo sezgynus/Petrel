@@ -4,7 +4,7 @@ from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
                             AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR,
                             KLIPPER_ERROR_COLOR)
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
-from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
+from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL, ICON_STOP_BUTTON_SELECTED
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_NFC
 from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
@@ -211,56 +211,47 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     ICON_Back = 13
     ICON_File = 14
     ICON_PrintTime = 15
-    ICON_Setup_0 = 16
-    ICON_Setup_1 = 17
-    ICON_Pause_0 = 18
-    ICON_Pause_1 = 19
-    ICON_Continue_0 = 20
-    ICON_Continue_1 = 21
-    ICON_Stop_0 = 22
-    ICON_Stop_1 = 23
-    ICON_Bar = 24
-    ICON_More = 25
+    ICON_Bar = 16
+    ICON_More = 17
 
-    ICON_Axis = 26
+    ICON_Axis = 18
     ICON_CloseMotor = ICON_MOTOR_OFF
-    ICON_Homing = 27
-    ICON_SetHome = 28
+    ICON_Homing = 19
+    ICON_SetHome = 20
     ICON_PLAPreheat = ICON_PREHEAT_PROFILE
-    ICON_ABSPreheat = 29
-    ICON_Cool = 30
+    ICON_ABSPreheat = 21
+    ICON_Cool = 22
 
-    ICON_MoveX = 31
-    ICON_MoveY = 32
-    ICON_MoveZ = 33
-    ICON_Extruder = 34
+    ICON_MoveX = 23
+    ICON_MoveY = 24
+    ICON_MoveZ = 25
+    ICON_Extruder = 26
 
-    ICON_Temperature = 36
+    ICON_Temperature = 28
     ICON_Motion = ICON_MOTION
-    ICON_WriteEEPROM = 37
-    ICON_ReadEEPROM = 38
-    ICON_Info = 39
+    ICON_WriteEEPROM = 29
+    ICON_ReadEEPROM = 30
+    ICON_Info = 31
     ICON_CaseLight = ICON_LIGHT
 
-    ICON_FanSpeed = 40
+    ICON_FanSpeed = 32
 
-    ICON_StockConfiguraton = 41
+    ICON_StockConfiguraton = 33
     ICON_MaxSpeedX = ICON_MoveX
     ICON_MaxSpeedY = ICON_MoveY
     ICON_MaxSpeedZ = ICON_MoveZ
     ICON_StepE = ICON_FLOW
-    ICON_BLTouch = 42
-    ICON_TempTooLow = 43
-    ICON_NoTips_C = 44
-    ICON_NoTips_E = 45
-    ICON_Continue_C = 46
-    ICON_Cancel_C = 47
-    ICON_Confirm_C = 48
-    ICON_Confirm_E = 49
-    ICON_Maintenance_0 = 50
-    ICON_Maintenance_1 = 51
-    ICON_Info_0 = 52
-    ICON_Info_1 = 53
+    ICON_BLTouch = 34
+    ICON_TempTooLow = 35
+    ICON_NoTips_C = 36
+    ICON_NoTips_E = 37
+    ICON_Continue_C = 38
+    ICON_Cancel_C = 39
+    ICON_Confirm_C = 40
+    ICON_Maintenance_0 = 41
+    ICON_Maintenance_1 = 42
+    ICON_Info_0 = 43
+    ICON_Info_1 = 44
 
     MENU_CHAR_LIMIT = 24
     STATUS_Y = 360
@@ -3670,7 +3661,12 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.lcd.Color_Bg_Window, 20, 235,
             "Nozzle is too cold"
         )
-        show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 86, 280)
+        # Reuse a text-free managed backing; keep the label localizable.
+        show_theme_icon(self.lcd, self.ICON, ICON_STOP_BUTTON_SELECTED, 84, 280)
+        label = 'Confirm'
+        self.lcd.draw_text(
+            False, False, self.lcd.font8x16, 0x10C4, 0x063B,
+            (272 - len(label) * 8) // 2, 290, label)
 
     def Erase_Menu_Cursor(self, line):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, self.MBASE(line) - 18, 14, self.MBASE(line + 1) - 20)
@@ -3785,40 +3781,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             show_theme_icon(self.lcd, self.ICON, self.ICON_Info_0, 145, 246)
             self._draw_menu_text('Info', 186, 318)
 
-    def _draw_print_control_label(self, label, x):
-        self._draw_menu_text(label, x + (80 - len(label) * 8) // 2, 325)
 
-    def ICON_Tune(self):
-        if (self.select_print.now == 0):
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Setup_1, 8, 252)
-            self._draw_print_control_label('Tune', 8)
-        else:
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Setup_0, 8, 252)
-            self._draw_print_control_label('Tune', 8)
 
-    def ICON_Continue(self):
-        if (self.select_print.now == 1):
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Continue_1, 96, 252)
-            self._draw_print_control_label('Continue', 96)
-        else:
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Continue_0, 96, 252)
-            self._draw_print_control_label('Continue', 96)
 
-    def ICON_Pause(self):
-        if (self.select_print.now == 1):
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Pause_1, 96, 252)
-            self._draw_print_control_label('Pause', 96)
-        else:
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Pause_0, 96, 252)
-            self._draw_print_control_label('Pause', 96)
 
-    def ICON_Stop(self):
-        if (self.select_print.now == 2):
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Stop_1, 184, 252)
-            self._draw_print_control_label('Stop', 184)
-        else:
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Stop_0, 184, 252)
-            self._draw_print_control_label('Stop', 184)
 
     def Item_Prepare_Move(self, row):
         self.draw_move_en(self.MBASE(row))  # "Move >"

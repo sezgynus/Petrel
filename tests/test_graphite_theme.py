@@ -33,18 +33,20 @@ class GraphiteContracts(unittest.TestCase):
         self.assertTrue(any(min(pixel) > 240 for pixel in icon.getdata()))
 
 
-    def test_continue_label_is_centered_inside_its_card_in_both_states(self):
+    def test_active_resume_label_is_native_and_stays_in_its_lane_in_both_states(self):
         v = display(snapshot())
         v.lcd = driver()
+        v.pd.printingIsPaused = Mock(return_value=True)
         for selection in (0, 1):
             v.select_print.set(selection)
             v.lcd.serial.frames.clear()
-            v.ICON_Continue()
-            text = next(f for f in v.lcd.serial.frames if f[1] == 0x11)
-            self.assertEqual(text[11:-4], b'Continue')
+            v._focus_draw_buttons()
+            text = next(f for f in v.lcd.serial.frames
+                        if f[1] == 0x11 and f[11:-4] == b'Resume')
             x = int.from_bytes(text[7:9], 'big')
-            self.assertEqual(x, 104)
-            self.assertEqual(x - 96, 176 - (x + 8 * len('Continue')))
+            self.assertEqual(x, 128)
+            self.assertGreaterEqual(x, 97 + 31)
+            self.assertLessEqual(x + 6 * len('Resume'), 175)
 
     def test_sound_rows_have_four_distinct_icons_and_light_is_not_brightness(self):
         v = display(snapshot())
@@ -54,7 +56,7 @@ class GraphiteContracts(unittest.TestCase):
         v._draw_list_menu = Mock()
         v.Draw_Display_Menu()
         rows = v._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[1] for r in rows[4:8]], [168, 169, 170, 171])
+        self.assertEqual([r[1] for r in rows[4:8]], [159, 160, 161, 162])
         # Brightness artwork only belongs to PWM-capable case lights.
         data = snapshot()
         data['objects'].append('output_pin case_light')
@@ -63,8 +65,8 @@ class GraphiteContracts(unittest.TestCase):
         v.pd.update_variable()
         v.Draw_Case_Light_Menu()
         rows = v._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[1] for r in rows[1:]], [164, 165])
-        self.assertNotEqual(v.ICON_CloseMotor, 120)  # Motor-off is not an MCU chip.
+        self.assertEqual([r[1] for r in rows[1:]], [155, 156])
+        self.assertNotEqual(v.ICON_CloseMotor, 111)  # Motor-off is not an MCU chip.
         self.assertNotEqual(v.ICON_Motion, v.ICON_CaseLight)
 
     def test_metadata_for_all_reserved_slots_stays_before_buzzer_record(self):

@@ -47,6 +47,32 @@ class HomingPopupTests(unittest.TestCase):
                 self.assertTrue(any(text in frame for frame in view.lcd.serial.frames))
 
 class PopupRenderingTests(unittest.TestCase):
+    def test_cold_popup_uses_shared_blank_button_and_native_confirm_text(self):
+        from lcd_resources import ICON_STOP_BUTTON_SELECTED
+        view = display(snapshot())
+        view.lcd = driver()
+        view.Popup_Window_ETempTooLow()
+        frames = view.lcd.serial.frames
+        self.assertEqual(sum(f[1] == 0x23 and f[-5] == ICON_STOP_BUTTON_SELECTED
+                             for f in frames), 1)
+        labels = [f for f in frames if f[1] == 0x11 and b'Confirm' in f]
+        self.assertEqual(len(labels), 1)
+        self.assertEqual(int.from_bytes(labels[0][7:9], 'big'), 108)
+        self.assertEqual(int.from_bytes(labels[0][9:11], 'big'), 290)
+        self.assertFalse(hasattr(view, 'ICON_Confirm_E'))
+
+    def test_cold_popup_acknowledgement_returns_without_extruding(self):
+        view = display(snapshot())
+        view.pd.PREVENT_COLD_EXTRUSION = True
+        view.pd.HMI_flag.ETempTooLow_flag = True
+        view.Draw_Move_Menu = Mock()
+        view.pd.sendGCode = Mock()
+        view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
+        view.HMI_AxisMove()
+        self.assertFalse(view.pd.HMI_flag.ETempTooLow_flag)
+        view.Draw_Move_Menu.assert_called_once_with()
+        view.pd.sendGCode.assert_not_called()
+
     def test_completed_homing_frame_contains_background_icon_and_label(self):
         from dwin_emulator.assets import PanelAssets, rgb565
         from dwin_emulator.framebuffer import Framebuffer
@@ -60,8 +86,8 @@ class PopupRenderingTests(unittest.TestCase):
         view.Popup_Window_Home()
         view.lcd.update()
         image, _ = model.snapshot()
-        assets.icon.assert_called_with(ICON_LIBRARY_ID, 42)
-        self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 42
+        assets.icon.assert_called_with(ICON_LIBRARY_ID, view.ICON_BLTouch)
+        self.assertTrue(any(frame[1] == 0x23 and frame[-5] == view.ICON_BLTouch
                             for frame in view.lcd.serial.frames))
         background = rgb565(view.lcd.Color_Bg_Window)
         self.assertEqual(image.getpixel((20, 70)), background)

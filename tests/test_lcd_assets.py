@@ -74,7 +74,7 @@ class AssetContracts(unittest.TestCase):
         self.assertEqual(hashlib.sha256(data).hexdigest(), manifest['sha256'][ICON_LIBRARY_FILENAME])
         self.assertLessEqual(len(data), (16 - ICON_LIBRARY_ID) * 32768)
         assets = PanelAssets()
-        for icon in (52, 53):
+        for icon in (43, 44):
             self.assertEqual(assets.icon(ICON_LIBRARY_ID, icon).size, (110, 100))
         with self.assertRaisesRegex(ValueError, 'Missing icon library 9'):
             assets.icon(9, 90)
