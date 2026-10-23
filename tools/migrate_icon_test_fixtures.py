@@ -20,7 +20,7 @@ edit('test_emulator.py',[
  ('ICON_LIBRARY_ID, 195, 199','ICON_LIBRARY_ID, 181, 185'),
  ('self.assets.icon(ICON_LIBRARY_ID, 195).size','self.assets.icon(ICON_LIBRARY_ID, 181).size'),
  ('for icon in (0, 1, 15, 154, 199):','for icon in (0, 1, 15, 142, 185):'),
- ('self.assets.icon(ICON_LIBRARY_ID, 200)','self.assets.icon(ICON_LIBRARY_ID, 186'),
+ ('self.assets.icon(ICON_LIBRARY_ID, 200)','self.assets.icon(ICON_LIBRARY_ID, 186)'),
 ])
 edit('test_ui_events.py',[
  ("                patch.object(ui.PetrelDisplay, 'HMI_ShowBoot'), \\\n",''),
