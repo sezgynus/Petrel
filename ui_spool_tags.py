@@ -21,7 +21,7 @@ class SpoolTagViewMixin:
             return
         self._spool_future = None
         mode = getattr(self, '_rfid_mode', '')
-        if self.checkkey != self.RFIDMenu or mode not in ('spool_loading', 'spool_saving'):
+        if mode not in ('spool_loading', 'spool_saving'):
             return
         try:
             result = future.result()
@@ -40,7 +40,8 @@ class SpoolTagViewMixin:
                                    else 'Spoolman unavailable')[:90]
             self._rfid_mode = 'spool_error'
         self._spool_selection = 0
-        if self._uart_online:
+        # Complete state transitions under overlays; only drawing is deferred.
+        if self._uart_online and self.checkkey == self.RFIDMenu:
             self.Draw_RFID_Menu()
             self.lcd.update()
 
