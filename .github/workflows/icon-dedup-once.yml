@@ -35,7 +35,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libnfc-dev
       - name: Apply deduplication exactly once
-        run: python tools/migrate_icon_dedup_14.py
+        run: |
+          python tools/migrate_icon_dedup_14.py
+          python tools/migrate_icon_test_fixtures.py
       - name: Compile all Python
         run: python -m compileall -q .
       - name: Full Python regression
@@ -57,7 +59,7 @@ jobs:
           git config commit.gpgsign true
       - name: Commit verified production files (remove one-shot runner)
         run: |
-          git rm .github/workflows/icon-dedup-once.yml tools/migrate_icon_dedup_14.py
+          git rm .github/workflows/icon-dedup-once.yml tools/migrate_icon_dedup_14.py tools/migrate_icon_test_fixtures.py
           git add -A
           git diff --cached --stat
           git commit -S -m "refactor(icons): remove 14 redundant resources and compact to 186 IDs"
