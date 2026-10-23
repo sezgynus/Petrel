@@ -28,6 +28,7 @@ class UIEventLoop:
         self._cleanup = cleanup
         self._interval = interval
         self._queue = Queue(maxsize=capacity)
+        self._coalesced = {}  # At most 32 distinct completion kinds, independent of input backlog.
         self._stop = Event()
         self._ready = Event()
         self._done = Event()
@@ -65,6 +66,38 @@ class UIEventLoop:
             return False
         return True
 
+    def post_coalesced(self, event):
+        """Retain latest state notifications even when the input queue is full.
+
+        Payload owners retain Futures/results. Repeated wakeups of one kind need
+        only one owner callback; never drop encoder/press events to make room.
+        """
+        key = event.kind
+        if not isinstance(key, str) or not key:
+            raise ValueError('Completion kind must be a nonempty string')
+        with self._queue.mutex:
+            if self._stop.is_set():
+                return False
+            fresh = key not in self._coalesced
+            if fresh and len(self._coalesced) >= 32:
+                return False
+            self._coalesced[key] = event
+        if fresh:
+            try:
+                self._queue.put_nowait(None)  # Wake a sleeping owner if space exists.
+            except Full:
+                pass  # A full input queue already keeps the owner awake.
+        return True
+
+    def _drain_coalesced(self):
+        with self._queue.mutex:
+            events = tuple(self._coalesced.values())
+            self._coalesced.clear()
+        for event in events:
+            if self._stop.is_set():
+                break
+            self._invoke(self._handle_event, event)
+
     def set_interval(self, interval):
         if not math.isfinite(interval) or interval <= 0:
             raise ValueError('UI interval must be positive')
@@ -86,6 +119,7 @@ class UIEventLoop:
             next_tick = time.monotonic() + self._interval
             scheduled_interval = self._interval
             while not self._stop.is_set():
+                self._drain_coalesced()
                 if self._interval != scheduled_interval:
                     next_tick = min(next_tick, time.monotonic() + self._interval)
                     scheduled_interval = self._interval

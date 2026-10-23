@@ -1557,7 +1557,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         # Backend/Core callbacks never draw or enter the DWIN UI thread.
         loop = getattr(self, '_loop', None)
         if loop is not None and not getattr(self, '_closed', False):
-            loop.post(InputEvent(kind, 0, 0, getattr(self, '_uart_epoch', 0)))
+            loop.post_coalesced(InputEvent(kind, 0, 0, getattr(self, '_uart_epoch', 0)))
         return False
 
     def _process_input_untraced(self, event):
