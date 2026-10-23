@@ -600,9 +600,8 @@ makara vardır. Bu makaralar Home ve MMU menüsündeki aynı ortak
 filament adı, malzeme ve makara ID'si hareketli makaranın bilgi kartında
 görünür. Gate altındaki yazılar mevcut makara atamasını gösterir.
 Enkoderle gate seçilir (dörtten fazla gate için sayfalama); basıldığında
-önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare komutu başlatılınca
-makara aşağı hareket eder ve yalnız başarılı geri okuma sonrasında
-seçilen gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
+önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare ataması başarılı bir geri okumayla doğrulandıktan sonra makara
+GIF'teki gibi yaklaşık 600 ms süren tek bir yumuşak inişle gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
 Bu işlem filament yüklemez ve motor hareketi başlatmaz.
 
 Yazdırma, duraklatma/kurtarma, meşgul veya uygun olmayan MMU durumunda
