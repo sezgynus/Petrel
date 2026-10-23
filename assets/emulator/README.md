@@ -8,7 +8,7 @@ These files are inputs for screenshot rendering on the Pi. Enabling the emulator
 
 | File | Use |
 |---|---|
-| `3.ICO` | Application icon library at slot 3; Graphite sources and semantic UI icons |
+| `2.ICO` | Application icon library at slot 2; Graphite sources and semantic UI icons |
 | `0T5UIC1.HZK` | Graphite ASCII glyphs; original non-ASCII banks retained |
 | `0_DWIN_ASC.HZK` | Alternative DGUS ASCII font; select explicitly only when appropriate |
 

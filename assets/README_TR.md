@@ -46,4 +46,4 @@ sudo systemctl stop Petrel.service
 sudo systemctl start Petrel.service
 ```
 
-Araç yapılandırılmış UART’ı okur, kütüphane 3’yi oluşturup bloklarını ve ortak slot-1 sayfasını yeniden yükler. Ekran ayarları korunur.
+Araç yapılandırılmış UART’ı okur, kütüphane 2’yi oluşturup bloklarını ve ortak slot-1 sayfasını yeniden yükler. Ekran ayarları korunur.

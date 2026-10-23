@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 import unittest
 from unittest.mock import Mock
 from PIL import Image, ImageChops
@@ -13,7 +14,7 @@ class GraphiteContracts(unittest.TestCase):
     def test_petrel_wordmark_keeps_empty_matte_filtered_on_any_background(self):
         from dwin_emulator.assets import rgb565
         assets = PanelAssets()
-        icon = assets.icon(3, 0)
+        icon = assets.icon(ICON_LIBRARY_ID, 0)
         self.assertEqual(icon.size, (130, 32))
         for background in (0x2125, 0x0000, 0xFFFF):
             fb = Framebuffer(assets)
@@ -95,10 +96,21 @@ class GraphiteContracts(unittest.TestCase):
     def test_animation_uses_existing_library_during_migration_and_waits_for_empty_directory(self):
         from t5uic1_driver import T5UIC1Display
         from icon_library import MAGIC
+        import zlib
         lcd = T5UIC1Display.__new__(T5UIC1Display)
-        lcd.read_flash = Mock(return_value=MAGIC + bytes((7, 8)) + b'x'*32)
-        self.assertEqual(lcd._startup_animation_library(), 7)
-        lcd.read_flash.return_value = MAGIC + bytes((3, 8)) + bytes(32)
+        lcd.read_flash = Mock()
+        def resident(library, committed=True):
+            hashes = (b'x' * 32 if committed else bytes(32)) + b'y' * (7 * 32)
+            body = (MAGIC + bytes((library, 8)) + hashes).ljust(508, b'\x00')
+            return body + zlib.crc32(body).to_bytes(4, 'big')
+        for library in (7, 3, ICON_LIBRARY_ID):
+            with self.subTest(library=library):
+                lcd.read_flash.return_value = resident(library)
+                self.assertEqual(lcd._startup_animation_library(), library)
+                lcd.read_flash.return_value = resident(library, committed=False)
+                self.assertIsNone(lcd._startup_animation_library())
+                damaged = bytearray(resident(library)); damaged[20] ^= 1
+                lcd.read_flash.return_value = bytes(damaged)
+                self.assertIsNone(lcd._startup_animation_library())
+        lcd.read_flash.return_value = resident(4)
         self.assertIsNone(lcd._startup_animation_library())
-        lcd.read_flash.return_value = MAGIC + bytes((3, 8)) + b'x'*32
-        self.assertEqual(lcd._startup_animation_library(), 3)

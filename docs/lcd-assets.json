@@ -1,6 +1,6 @@
 {
   "reference_commit": "05903a80d6e15cc91b0bc690b35e08fd440a21e9",
-  "library": 3,
+  "library": 2,
   "english_jpg": 1,
   "cache": 1,
   "raw_jpg_dimensions": [
@@ -18,7 +18,7 @@
     "T5UIC1.CFG": "e1c573639bfa2b3a06c2fa7ad3cab483653dd3dc383217ff653fab3145458095",
     "1_English.jpg": "854dcc7ad264f7e4fcaf08010e86a15822cd918651b266c39d40a2ffdef9727d",
     "0T5UIC1.HZK": "c0a8d043d5f88d5400027d7df880793612b5cf5b1549144a82ca749f12ee682f",
-    "3.ICO": "47b17f1a9bac00344492fcb7bc6f8a919fce621ee72a57dbb60eac455cbf88ae"
+    "2.ICO": "47b17f1a9bac00344492fcb7bc6f8a919fce621ee72a57dbb60eac455cbf88ae"
   },
   "icons": {
     "ICON_LOGO": {

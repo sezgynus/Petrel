@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 """MMU integration uses the actual master LCD driver, not permissive LCD mocks."""
 import ast
 from pathlib import Path
@@ -36,7 +37,7 @@ class MMUDriverIntegrationTests(unittest.TestCase):
                 self.assertNotIn(0x33, [f[1] for f in frames])
                 view.pd.subscription.request.assert_not_called()
 
-    def test_home_mmu_icon_is_native_library_7_for_both_selections(self):
+    def test_home_mmu_icon_is_native_managed_library_for_both_selections(self):
         view, _ = mmu_fixtures.MMUUITests().make()
         view.lcd = lcd()
         index = next(i for i, entry in enumerate(view._home_entries()) if entry[0] == 'MMU')
@@ -46,13 +47,13 @@ class MMUDriverIntegrationTests(unittest.TestCase):
             view.lcd.serial.frames.clear()
             view.select_page.set(index if selected else index - 1)
             view._draw_home_page()
-            frames = [f for f in view.lcd.serial.frames if f[1] == 0x23 and f[6:8] == bytes((0x23, icon))]
+            frames = [f for f in view.lcd.serial.frames if f[1] == 0x23 and f[6:8] == bytes((0x20 | ICON_LIBRARY_ID, icon))]
             self.assertEqual(len(frames), 1)
             frame = frames[0]
             self.assertEqual(frame[1], 0x23)
             self.assertEqual(int.from_bytes(frame[2:4], 'big'), x)
             self.assertEqual(int.from_bytes(frame[4:6], 'big'), y)
-            self.assertEqual(frame[6:8], bytes((0x23, icon)))
+            self.assertEqual(frame[6:8], bytes((0x20 | ICON_LIBRARY_ID, icon)))
 
     def test_all_production_lcd_calls_exist_on_complete_driver(self):
         root = Path(__file__).resolve().parents[1]

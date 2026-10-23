@@ -205,13 +205,14 @@ class T5UIC1Display:
             raise
 
     def _startup_animation_library(self):
-        """Use a committed resident directory while migrating library 7 to 3."""
-        from icon_library import MAGIC, METADATA_ADDRESS
+        """Use only a verified resident directory during library migration."""
+        from icon_library import METADATA_ADDRESS, METADATA_SIZE, parse_metadata
         from lcd_resources import ICON_LIBRARY_ID
-        header = self.read_flash(METADATA_ADDRESS, 42)
-        if (header[:8] == MAGIC and header[8] in (ICON_LIBRARY_ID, 7)
-                and 1 <= header[9] <= 16-header[8] and any(header[10:42])):
-            return header[8]
+        raw = self.read_flash(METADATA_ADDRESS, METADATA_SIZE)
+        if len(raw) == METADATA_SIZE and raw[8] in (ICON_LIBRARY_ID, 3, 7):
+            hashes = parse_metadata(raw, library=raw[8])
+            if hashes and any(hashes[0]):
+                return raw[8]
         return None  # First install/incomplete directory: animate after upload.
 
     def _startup_sync_icons(self):

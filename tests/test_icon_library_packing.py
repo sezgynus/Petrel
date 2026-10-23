@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -11,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class IconLibraryPackingTests(TestCase):
     def test_all_bundled_icons_decode_and_stay_inside_one_block(self):
-        data = (ROOT / 'assets/emulator/3.ICO').read_bytes()
-        validate_block_layout(data, 3)
+        data = (ROOT / 'assets/emulator/2.ICO').read_bytes()
+        validate_block_layout(data, ICON_LIBRARY_ID)
         self.assertEqual(pack(data), data)
         for index, entry, offset, payload in entries(data):
             with self.subTest(icon=index):
@@ -31,16 +32,16 @@ class IconLibraryPackingTests(TestCase):
             data[index * 16:(index + 1) * 16] = entry
             data.extend(payload)
         with self.assertRaisesRegex(ValueError, 'crosses'):
-            validate_block_layout(data, 3)
+            validate_block_layout(data, ICON_LIBRARY_ID)
         with self.assertRaisesRegex(ValueError, 'crosses'):
             validate_upload(data)
         validate_upload(data, allow_cross_block=True)
         with self.assertRaisesRegex(ValueError, 'exceeds'):
-            validate_upload(bytes(13 * BLOCK_SIZE + 1), allow_cross_block=True)
+            validate_upload(bytes((16 - ICON_LIBRARY_ID) * BLOCK_SIZE + 1), allow_cross_block=True)
         with self.assertRaisesRegex(ValueError, 'No icon entries'):
             validate_upload(bytes(4096), allow_cross_block=True)
         result = pack(data)
-        validate_block_layout(result, 7)
+        validate_block_layout(result, ICON_LIBRARY_ID)
         original = list(entries(data))
         packed = list(entries(result))
         self.assertEqual(packed[1][2], BLOCK_SIZE)
@@ -50,8 +51,9 @@ class IconLibraryPackingTests(TestCase):
 
     @patch('tools.flash_icon_library.time.sleep')
     def test_delay_occurs_after_each_ack_before_next_write(self, sleep):
-        data = (ROOT / 'assets/emulator/3.ICO').read_bytes()
+        data = (ROOT / 'assets/emulator/2.ICO').read_bytes()
         lcd = Mock()
+        lcd.read_flash.return_value = bytes(512)
         events = Mock()
         events.attach_mock(lcd, 'lcd')
         events.attach_mock(sleep, 'sleep')
@@ -72,8 +74,9 @@ class IconLibraryPackingTests(TestCase):
 
     @patch('tools.flash_icon_library.time.sleep')
     def test_separate_last_byte_write_uses_exact_address_and_original_byte(self, sleep):
-        data = (ROOT / 'assets/emulator/3.ICO').read_bytes()
+        data = (ROOT / 'assets/emulator/2.ICO').read_bytes()
         lcd = Mock()
+        lcd.read_flash.return_value = bytes(512)
         upload(lcd, data, rewrite_last_byte=True)
         calls = lcd.write_sram.call_args_list
         self.assertEqual(len(calls), 2 * len(data) // BLOCK_SIZE)
@@ -85,17 +88,28 @@ class IconLibraryPackingTests(TestCase):
 
     @patch('tools.flash_icon_library.time.sleep')
     def test_upload_exact_blocks_directory_last_and_stop_on_failure(self, sleep):
-        data = (ROOT / 'assets/emulator/3.ICO').read_bytes()
+        data = (ROOT / 'assets/emulator/2.ICO').read_bytes()
         lcd = Mock()
+        lcd.read_flash.return_value = bytes(512)
         upload(lcd, data)
         order = list(range(1, len(data) // BLOCK_SIZE)) + [0]
         self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list],
-                         [3 + i for i in order])
+                         [ICON_LIBRARY_ID + i for i in order])
         self.assertEqual([c.args for c in lcd.write_sram.call_args_list],
                          [(0, data[i * BLOCK_SIZE:(i + 1) * BLOCK_SIZE].ljust(BLOCK_SIZE, b'\x00'))
                           for i in order])
         lcd = Mock()
+        lcd.read_flash.return_value = bytes(512)
         lcd.store_sram_as_picture.side_effect = RuntimeError('ACK timeout')
         with self.assertRaisesRegex(RuntimeError, 'ACK timeout'):
             upload(lcd, data)
         self.assertEqual(lcd.write_sram.call_count, 1)
+
+    def test_unverified_manual_invalidation_cannot_overwrite_picture_flash(self):
+        data = (ROOT / 'assets/emulator/2.ICO').read_bytes()
+        lcd = Mock()
+        lcd.read_flash.return_value = b'bad'
+        with self.assertRaisesRegex(RuntimeError, 'invalidation verification'):
+            upload(lcd, data)
+        lcd.store_sram_as_picture.assert_not_called()
+        lcd.write_sram.assert_not_called()

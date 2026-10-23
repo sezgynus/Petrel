@@ -100,14 +100,14 @@ def pack_records(records):
         if not 0 < len(payload) <= USABLE_SIZE:
             raise ValueError(f'Icon {index} exceeds usable block capacity')
     if DIRECTORY_SIZE + sum(len(record[3]) for record in records) > MAX_BLOCKS * USABLE_SIZE:
-        raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
+        raise ValueError(f'Icons exceed reserved Picture Flash slots {ICON_LIBRARY_ID}..15')
     baseline = _best_fit_layout(records)
     candidate = _compact_layout(records, min(len(baseline), MAX_BLOCKS))
     layout = baseline
     if candidate is not None and _layout_score(candidate) < _layout_score(baseline):
         layout = candidate
     if len(layout) > MAX_BLOCKS:
-        raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
+        raise ValueError(f'Icons exceed reserved Picture Flash slots {ICON_LIBRARY_ID}..15')
     blocks = [bytearray(BLOCK_SIZE) for _ in layout]
     for block, items in enumerate(layout):
         start = DIRECTORY_SIZE if block == 0 else 0
@@ -169,10 +169,10 @@ def metadata(hashes):
     return body + zlib.crc32(body).to_bytes(4, 'big')
 
 
-def parse_metadata(raw):
-    if len(raw) != METADATA_SIZE or raw[:8] != MAGIC or raw[8] != ICON_LIBRARY_ID:
+def parse_metadata(raw, *, library=ICON_LIBRARY_ID):
+    if len(raw) != METADATA_SIZE or raw[:8] != MAGIC or raw[8] != library:
         return []
-    if not 1 <= raw[9] <= MAX_BLOCKS or int.from_bytes(raw[-4:], 'big') != zlib.crc32(raw[:-4]):
+    if not 1 <= raw[9] <= 16 - library or int.from_bytes(raw[-4:], 'big') != zlib.crc32(raw[:-4]):
         return []
     return [raw[10 + i * 32:42 + i * 32] for i in range(raw[9])]
 
@@ -188,6 +188,9 @@ def sync_library(lcd, *, directory=SOURCE_DIRECTORY, force=False, automatic=True
     if not changed:
         logging.info('Icon library: unchanged; no Flash writes')
         return False
+    # A migrated library overlaps the old one. Stop every resident animation
+    # before rewriting either directory or payload blocks.
+    lcd.set_animation_mask(0)
     lcd.configure_animation(0, False, ICON_LIBRARY_ID, 250, 254, 0, 320, 10)
     # Whenever any payload changes, commit the directory last, even if its
     # bytes happen to match. Its checkpoint denotes a completed upload.

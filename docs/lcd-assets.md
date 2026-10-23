@@ -6,7 +6,7 @@
 
 Petrel targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable.
 
-The panel must support T5UIC1 commands and display direction **1**. Petrel renders text with the **stock DWIN font**; the [bundled LCD font](#lcd-font) is **optional**, for a different visual style. The application automatically uploads boot artwork and library **3** icons from repository sources; stock `3.ICO` and English bitmap labels are not prerequisites.
+The panel must support T5UIC1 commands and display direction **1**. Petrel renders text with the **stock DWIN font**; the [bundled LCD font](#lcd-font) is **optional**, for a different visual style. The application automatically uploads boot artwork and library **2** icons from repository sources; a preinstalled ICO library and English bitmap labels are not prerequisites.
 
 ## Persistent LCD assets and stock recovery
 
@@ -14,7 +14,7 @@ The panel must support T5UIC1 commands and display direction **1**. Petrel rende
 
 - **Boot JPEG:** Petrel synchronizes its `assets/petrel_bootsplash.jpg` to Picture Flash **slot 0**.
 - **Shared UI JPEG:** Petrel synchronizes `assets/petrel_shared.jpg` to Picture Flash **slot 1**. Info copies QR regions from its decoded Area 1 cache.
-- **Icon library 3:** Petrel packs the baseline JPEGs under `assets/icons/` into 32 KiB blocks starting at **slot 3**, within slots **3–15**, and uploads only changed blocks. This provides menu icons, selected states, print controls and animation frames without redrawing all artwork as primitives.
+- **Icon library 2:** Petrel packs the baseline JPEGs under `assets/icons/` into 32 KiB blocks starting at **slot 2**, within slots **2–15**, and uploads only changed blocks. This provides menu icons, selected states, print controls and animation frames without redrawing all artwork as primitives.
 - **Write reduction:** Content fingerprints are kept in a separate persistent Data Flash area, so matching resources are normally skipped. These fingerprints are **not a backup** of the original OEM images.
 - **Not overwritten automatically:** Stock picture slot **2**, the LCD kernel and font resources. Print thumbnails are transferred to volatile SRAM. The bundled ASCII font is **optional** and is installed manually by SD card only if the user chooses it.
 
@@ -32,7 +32,7 @@ Previews come from Moonraker and do not need a new panel asset pack. Missing thu
 
 ## Resource identification
 
-The application now builds library 3 from [`assets/icons`](../assets/icons/README.md) and automatically uploads changed blocks at the first LCD connection after an update. Unchanged resources are skipped. Follow that guide to add JPEGs, export a pack or force a reload after reinstalling panel resources.
+The application now builds library 2 from [`assets/icons`](../assets/icons/README.md) and automatically uploads changed blocks at the first LCD connection after an update. Unchanged resources are skipped. Follow that guide to add JPEGs, export a pack or force a reload after reinstalling panel resources.
 
 Automatic synchronization is the normal path. For developer diagnostics, the following command rebuilds the pack from current `assets/icons` JPEG sources and uploads it over UART; it does not read the reference ICO file:
 
@@ -47,10 +47,10 @@ To inspect the reference export itself, pass `--file` explicitly with the servic
 
 ```sh
 sudo systemctl stop Petrel.service
-~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/3.ICO && sudo systemctl start Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/2.ICO && sudo systemctl start Petrel.service
 ```
 
-For contributor artwork, `tools/pack_icon_library.py source.ICO destination.ICO --library 3` preserves JPEG images while keeping each icon within one 32 KiB block. This layout avoids splitting icons at the boundaries associated with the observed rendering faults.
+For contributor artwork, `tools/pack_icon_library.py source.ICO destination.ICO --library 2` preserves JPEG images while keeping each icon within one 32 KiB block. This layout avoids splitting icons at the boundaries associated with the observed rendering faults.
 
 The [stock inventory](lcd-assets.json) records the resources previously audited for this project. It does not identify the files installed on your own panel. Contributor artwork and emulator font-selection instructions are linked from the [documentation index](README.md).
 

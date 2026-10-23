@@ -8,7 +8,7 @@ Bu dosyalar Pi üzerinde ekran görüntüsü çiziminde kullanılır. Emülatör
 
 | Dosya | Kullanım |
 |---|---|
-| `3.ICO` | 3 numaralı konumdaki uygulama ikon kütüphanesi; Graphite kaynakları ve işleve özel UI ikonları |
+| `2.ICO` | 2 numaralı konumdaki uygulama ikon kütüphanesi; Graphite kaynakları ve işleve özel UI ikonları |
 | `0T5UIC1.HZK` | Graphite ASCII karakterleri; özgün diğer font bankaları korunur |
 | `0_DWIN_ASC.HZK` | Alternatif DGUS ASCII fontu; yalnız uygun olduğunda açıkça seçin |
 

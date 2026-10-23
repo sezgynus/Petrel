@@ -255,8 +255,8 @@ image content into picture slot `0x00..0x0F`.
 
 ## Managed icon library
 
-JPEG pictures and ICO libraries share Picture Flash. Library 3 uses slots 3–15;
-slot 0 holds managed Petrel boot artwork; slot 1 holds the shared UI JPEG page and slot 2 is unused. Individual baseline JPEGs in `assets/icons/`
+JPEG pictures and ICO libraries share Picture Flash. Library 2 uses slots 2–15;
+slot 0 holds managed Petrel boot artwork; slot 1 holds the shared UI JPEG page and the icon library starts at slot 2. Individual baseline JPEGs in `assets/icons/`
 are packed by `icon_library.py`, preserving each payload within one 32 KiB
 block and reserving every block’s final byte. The packer reuses gaps with
 smaller images, independently of icon ID order.
@@ -266,7 +266,7 @@ directory last, and verifies each metadata checkpoint. Unchanged blocks are
 skipped. Failed automatic writes are guarded against repeated programming
 inside a reconnect loop. The emulator uses the same JPEG sources.
 
-All UI icons use `show_icon(3, id, x, y)`. Boot splash uses `show_jpeg(0)`
+All UI icons use `show_icon(2, id, x, y)`. Boot splash uses `show_jpeg(0)`
 directly, followed by progress/animation rendering. Progress updates restore only
 the lower splash rectangle from Area 0 through `copy_cache()` before drawing
 the new bar/status; they do not repeatedly copy the full screen. General JPEG/cache protocol commands remain

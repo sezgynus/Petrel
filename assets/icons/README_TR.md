@@ -4,7 +4,7 @@
 
 Baseline **4:2:0 JPEG** dosyalarını buraya ekleyin veya mevcut olanları değiştirin. Dosya adı ikon ID'siyle başlamalı: `092.jpg`, `092-about.jpg` veya `092_about.jpeg`. ID aralığı 0–255'tir; her ID yalnız bir dosyada kullanılabilir. Mevcut ID'lerin anlamı korunur. ID ve içerik aynı kalırken dosya adını değiştirmek yükleme başlatmaz. Yeni görsel kütüphaneye girer; ID'nin arayüzde nerede gösterileceğini UI kodu seçer.
 
-JPEG'ler boyutlandırılmadan ve yeniden sıkıştırılmadan korunur. Progressive JPEG, diğer renk örnekleme biçimleri, yinelenen ID ve 32767 bayttan büyük görseller reddedilir. Kütüphane Picture Flash 3–15 slotlarına sığmalıdır; resim 0 Petrel açılış görselidir, resim 1 ortak UI görsel sayfasıdır ve resim 2 kullanılmaz.
+JPEG'ler boyutlandırılmadan ve yeniden sıkıştırılmadan korunur. Progressive JPEG, diğer renk örnekleme biçimleri, yinelenen ID ve 32767 bayttan büyük görseller reddedilir. Kütüphane Picture Flash 2–15 slotlarına sığmalıdır; resim 0 Petrel açılış görselidir, resim 1 ortak UI görsel sayfasıdır ve ikon kütüphanesi resim 2’den başlar.
 
 Uygulama güncellemesinden sonraki ilk LCD bağlantısında bu klasörden kütüphane oluşturulur. Paketleyici önce büyükten küçüğe best-fit yerleşimi oluşturur; ardından her önceki bloğu dolduracak JPEG alt kümesini bayt düzeyinde bitset dinamik programlamasıyla arayarak boşlukları birleştirmeyi dener. İyileştirme aynı veya daha az blokta daha büyük kesintisiz boşluk sağlarsa seçilir; aksi durumda geçerli başlangıç yerleşimi korunur. ID sırası fiziksel yerleşimden bağımsızdır. Her bloğun son baytı ayrılır ve UART yazımına dahil edilmez. Hiçbir JPEG blok sınırını geçmez.
 
@@ -13,12 +13,12 @@ Yalnız değişen bloklar yüklenir; tablo bloğu en son yazılır. Paneldeki ka
 Çalışma sırasında kullanılan paketin aynısını dışa aktarın:
 
 ```bash
-python tools/pack_icon_library.py assets/icons /tmp/3.ICO --library 3
+python tools/pack_icon_library.py assets/icons /tmp/2.ICO --library 2
 ```
 
-Emülatör de bu JPEG kaynaklarını kullanır. `assets/emulator/3.ICO` referans çıktıdır; otomatik güncellemenin kaynağı değildir.
+Emülatör de bu JPEG kaynaklarını kullanır. `assets/emulator/2.ICO` referans çıktıdır; otomatik güncellemenin kaynağı değildir.
 
-Özel UI ikonları 100–109 ve 124 ID'lerini kullanır. MMU 100/101, Display 108/109 ID'leriyle seçili olmayan/seçili 110×100 ana menü ikonlarını kullanır; boyutlar mevcut ana menü yerleşimine uyar; normal ve seçili Graphite yüzeyleri farklıdır. Boş makara 124 ID’sini kullanır. Metal makara yan parçaları 1–7 genişlikleri için 110–123 ID'lerini kullanır; dar alanlarda ayrı tam makara görselleri gerekmez. Sembolik eşleştirme `lcd_resources.py` içindedir. Tüm UI ikonları doğrudan kütüphane 3'den çizilir.
+Özel UI ikonları 100–109 ve 124 ID'lerini kullanır. MMU 100/101, Display 108/109 ID'leriyle seçili olmayan/seçili 110×100 ana menü ikonlarını kullanır; boyutlar mevcut ana menü yerleşimine uyar; normal ve seçili Graphite yüzeyleri farklıdır. Boş makara 124 ID’sini kullanır. Metal makara yan parçaları 1–7 genişlikleri için 110–123 ID'lerini kullanır; dar alanlarda ayrı tam makara görselleri gerekmez. Sembolik eşleştirme `lcd_resources.py` içindedir. Tüm UI ikonları doğrudan kütüphane 2'den çizilir.
 
 Panel kaynaklarını yeniden yüklediğinizde, kayıt eski kurulumu tarif ediyor olabileceğinden zorla yeniden yükleyin:
 
@@ -32,7 +32,7 @@ Yazma onayları ve kayıt geri okuması doğrulanır; Picture Flash'ın kendisi 
 
 ## Graphite
 
-Graphite; ışık, parlaklık, ses ayarları, hareket parametreleri, kalibrasyon ve profiller için 210–234 ID’lerini ekler. Düzenlenebilir SVG kaynakları `assets/icon-source` içindedir; JPEG üretmek için `python tools/render_icon_sources.py` çalıştırın (geliştirme bağımlılığı: CairoSVG). Siyah JPEG zemini panelin şeffaf/enhanced ikon modu ile filtrelenir; menü ve dashboard yüzeyleri korunur. İkon paketi 3 numaralı slotta başlar, 3–15 slotlarını kullanabilir; 512 baytlık metadata kaydı Data Flash `0x0200–0x03FF` aralığındadır.
+Graphite; ışık, parlaklık, ses ayarları, hareket parametreleri, kalibrasyon ve profiller için 210–234 ID’lerini ekler. Düzenlenebilir SVG kaynakları `assets/icon-source` içindedir; JPEG üretmek için `python tools/render_icon_sources.py` çalıştırın (geliştirme bağımlılığı: CairoSVG). Siyah JPEG zemini panelin şeffaf/enhanced ikon modu ile filtrelenir; menü ve dashboard yüzeyleri korunur. İkon paketi 2 numaralı slotta başlar, 2–15 slotlarını kullanabilir; 512 baytlık metadata kaydı Data Flash `0x0200–0x03FF` aralığındadır.
 
 ## Print butonları, switchler ve fan görselleri
 
@@ -42,7 +42,7 @@ Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan
 
 ## Paket boyutu ve ayrılan alan
 
-Mevcut referans paket **13×32 KiB = 416 KiB**, yani **3–15** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; ayrılmış boş slot kalmamıştır. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
+Mevcut referans paket **13×32 KiB = 416 KiB**, yani **2–14** slotlarını kullanır. Ayrılan üst sınır **14×32 KiB = 448 KiB**, yani **2–15** slotlarıdır; **15** büyüme için kullanılabilir. Mevcut kaynaklarla kullanılabilir boşluk **35.049 bayttır**: mevcut pakette 2.282 bayt ve ek slotta 32.767 bayt. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Dışa aktarma aracı artık yönetilen kütüphaneyi varsayılan alır; açık seçim için `--library 2` verin.
 
 ## JPEG uyumluluk kuralı
 
@@ -70,7 +70,7 @@ Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak
 
 **188–199** ID’leri (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`), onaylanan önizlemenin on iki opak **160×160** karesini içerir. Spool panele yaklaşır, NFC dalgaları yanar ve geri çekilir. Bu kaynak henüz hiçbir ekranda kullanılmaz; animasyon kanalı veya zamanlayıcı başlatılmaz. Gelecekteki kullanım için önerilen aralık 200 ms/kare (2,4 saniye/döngü).
 
-Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 3–15 slotlarının tamamını kullanır.
+Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 2–15 aralığında 2–14 slotlarını kullanır.
 
 ## NFC ayarları işlem ikonları
 
@@ -79,3 +79,9 @@ NFC Settings ve seçim alt menüleri Info yerine alana uygun ikonlar kullanır: 
 ## Otomatik boşluk birleştirme
 
 Optimizasyon hem çalışma anındaki `build_library` hem ICO dışa aktarma/yeniden paketleme yolunda ortaktır; JPEG baytlarını, boyutları ve ikon ID’lerini değiştirmez. Girdi sırasından bağımsız deterministik yerleşim aynı kaynaklardan aynı ICO ve parmak izlerini üretir. Her blok için alt küme araması tamdır; blokların sırayla seçimi genel bin-packing optimumunu her gelecek ikon kümesi için garanti etmez. Sığan başlangıç yerleşimi kaybedilmez; ayrılan slot sınırı aşılırsa dosya üretilmez. Mevcut 234 ikon ve 13 blokta kullanılabilir **2.282 baytın tamamı son blokta** toplanır. Dizin 4096 bayttır ve her bloğun son baytı ayrılmış kalır. Gelecek kaynak değişikliklerinde kalan boşluk doğal olarak değişir. Mevcut paket önbelleği sayesinde arama UI karelerinde veya değişmeyen yeniden bağlantılarda tekrarlanmaz. İlk güncellemede yerleşimi değişen bloklar normal senkronizasyonla yüklenir.
+
+## Kütüphane 3 veya 7’den geçiş
+
+Bu güncellemeden sonraki ilk LCD bağlantısı CRC ile doğrulanmış metadata kaydını okur. Tamamlanmış eski dizin, yükleme başlayana kadar açılış animasyonunu sağlayabilir. İlk ikon bloğu değiştirilmeden önce tüm native animasyonlar durdurulur. Eski kütüphanenin hash kayıtları yeni başlangıç adresinde yeniden kullanılmaz: gereken bütün bloklar 2’den başlayarak yüklenir ve yeni dizin slot 2’ye en son yazılır. Doğrulanmış blok kayıtları yarıda kalan aktarımı devam ettirir; sıfır dizin hash’i kısmi kütüphaneden açılış animasyonu başlatılmasını engeller. Slot 0/1, ekran ayarları ve buzzer kayıtları korunur. SD kartla kaynak güncellemesi gerekmez. Sonraki değişmeyen bağlantılarda Flash yeniden yazılmaz. Referans çıktı, emülatör ve elle yeniden yükleme araçları `2.ICO` ile `lcd_resources.py` içindeki ortak kimliği kullanır. 14 blok hash’i mevcut 512 baytlık metadata kaydına sığar.
+
+Elle tanısal yükleme, Picture Flash yazımından önce eski metadata kaydını geçersiz kılar ve doğrular; sonraki normal açılış yönetilen kaynakları otomatik geri yükler. Blok kayıtlı zorunlu kaynak yüklemesi için `tools/reload_icons.py` kullanın.

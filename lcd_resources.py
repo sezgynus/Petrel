@@ -1,7 +1,7 @@
 """Shared panel icon-library identity for runtime and screenshot rendering."""
 
-ICON_LIBRARY_ID = 3
-ICON_LIBRARY_FILENAME = "3.ICO"
+ICON_LIBRARY_ID = 2
+ICON_LIBRARY_FILENAME = "2.ICO"
 
 # Text-free managed backings; labels are rendered separately for localization.
 ICON_STOP_BUTTON_NORMAL = 134

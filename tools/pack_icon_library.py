@@ -6,6 +6,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from lcd_resources import ICON_LIBRARY_ID
+
 BLOCK_SIZE = 32768
 DIRECTORY_SIZE = 4096
 
@@ -52,7 +54,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     parser.add_argument('destination', type=Path)
-    parser.add_argument('--library', type=int, default=7)
+    parser.add_argument('--library', type=int, default=ICON_LIBRARY_ID,
+                        help='Picture Flash start slot (default: managed library)')
     args = parser.parse_args()
     if args.source.is_dir():
         from icon_library import build_library

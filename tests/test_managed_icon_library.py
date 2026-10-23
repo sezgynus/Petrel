@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 from io import BytesIO
 from pathlib import Path
 import tempfile
@@ -22,7 +23,7 @@ class ManagedIconTests(unittest.TestCase):
         table = {i: (o, p) for i, e, o, p in entries(data)}
         self.assertEqual(table[10], (32768, large))
         self.assertEqual(table[11], (4096, small))
-        validate_block_layout(data, 3)
+        validate_block_layout(data, ICON_LIBRARY_ID)
         self.assertEqual(data[32767], 0)
         self.assertEqual(data[65535], 0)
 
@@ -32,7 +33,7 @@ class ManagedIconTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Duplicate'):
             icons.pack_records([(1, 1, 1, b'x'), (1, 1, 1, b'y')])
         with self.assertRaisesRegex(ValueError, 'exceed'):
-            icons.pack_records([(i, 1, 1, bytes(32767)) for i in range(13)])
+            icons.pack_records([(i, 1, 1, bytes(32767)) for i in range(16 - ICON_LIBRARY_ID)])
 
     def test_sources_decode_ids_are_stable_and_rename_does_not_rewrite(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,7 +82,7 @@ class ManagedIconTests(unittest.TestCase):
         lcd, memory = self.panel()
         with patch('icon_library.build_library', return_value=data):
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [4, 3])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID + 1, ICON_LIBRARY_ID])
             self.assertTrue(all(c.args[0] == 0 and len(c.args[1]) == 32767
                                 for c in lcd.write_sram.call_args_list))
             lcd.reset_mock()
@@ -93,7 +94,7 @@ class ManagedIconTests(unittest.TestCase):
         changed[32768] ^= 1
         with patch('icon_library.build_library', return_value=bytes(changed)):
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [4, 3])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID + 1, ICON_LIBRARY_ID])
         self.assertEqual(memory[:64], b'a' * 64)
         self.assertEqual(memory[256:272], b's' * 16)
 
@@ -113,7 +114,7 @@ class ManagedIconTests(unittest.TestCase):
             lcd.reset_mock()
             lcd.store_sram_as_picture.side_effect = None
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [3])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID])
 
 
     @patch('icon_library.time.sleep')
@@ -151,7 +152,7 @@ class ManagedIconTests(unittest.TestCase):
         self.assertEqual(max(free), sum(free))
         self.assertGreaterEqual(max(free), 2282)
         self.assertEqual(icons.pack_records(list(reversed(records))), data)
-        validate_block_layout(data, 3)
+        validate_block_layout(data, ICON_LIBRARY_ID)
         self.assertTrue(all(data[(i + 1) * icons.BLOCK_SIZE - 1] == 0
                             for i in range(len(used))))
 
@@ -168,7 +169,7 @@ class ManagedIconTests(unittest.TestCase):
         self.assertEqual({index: payload for index, entry, offset, payload
                           in entries(expanded)},
                          {record[0]: record[3] for record in records + [(255, 20, 20, added)]})
-        validate_block_layout(expanded, 3)
+        validate_block_layout(expanded, ICON_LIBRARY_ID)
 
     def test_manifest_crc_rejects_partial_or_corrupt_metadata(self):
         raw = icons.metadata([b'x' * 32])
@@ -211,7 +212,7 @@ class ManagedIconTests(unittest.TestCase):
     def test_checked_in_pack_matches_sources_and_all_payloads_are_preserved(self):
         root = Path(__file__).resolve().parents[1]
         data = icons.build_library(root / 'assets/icons')
-        self.assertEqual(data, (root / 'assets/emulator/3.ICO').read_bytes())
+        self.assertEqual(data, (root / 'assets/emulator/2.ICO').read_bytes())
         for index, entry, offset, payload in entries(data):
             self.assertEqual(payload, (root / 'assets/icons' / f'{index:03d}.jpg').read_bytes())
-        validate_block_layout(data, 3)
+        validate_block_layout(data, ICON_LIBRARY_ID)

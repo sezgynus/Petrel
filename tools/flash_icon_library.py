@@ -41,6 +41,14 @@ def upload(lcd, data, *, allow_cross_block=False, rewrite_last_byte=False,
     validate_upload(data, allow_cross_block)
     count = (len(data) + BLOCK_SIZE - 1) // BLOCK_SIZE
     lcd.set_animation_mask(0)
+    # Manual/diagnostic writes may overlap a previously committed library.
+    # Invalidate its checkpoint before any Picture Flash overwrite so a
+    # restart never animates from a stale directory. Runtime resyncs sources.
+    from icon_library import METADATA_ADDRESS, METADATA_SIZE
+    invalid = bytes(METADATA_SIZE)
+    lcd.write_flash(METADATA_ADDRESS, invalid)
+    if lcd.read_flash(METADATA_ADDRESS, METADATA_SIZE) != invalid:
+        raise RuntimeError('Icon metadata invalidation verification failed')
     # Commit the new directory only after every payload block is acknowledged.
     for index in list(range(1, count)) + [0]:
         slot = ICON_LIBRARY_ID + index

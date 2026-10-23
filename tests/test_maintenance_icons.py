@@ -1,3 +1,4 @@
+from lcd_resources import ICON_LIBRARY_ID
 """Semantic Graphite icons and small artwork contracts for Maintenance."""
 import unittest
 from types import SimpleNamespace as NS
@@ -53,7 +54,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
                 self.assertEqual(im.size,(20,20))
                 self.assertEqual(JpegImagePlugin.get_sampling(im),2)
                 self.assertFalse(im.info.get('progressive'))
-            self.assertEqual(assets.icon(3,icon).size,(20,20))
+            self.assertEqual(assets.icon(ICON_LIBRARY_ID,icon).size,(20,20))
             self.assertTrue((root/('assets/icon-source/%d.svg'%icon)).exists())
 
     def test_root_draws_purpose_icons_once_and_keeps_them_on_focus(self):

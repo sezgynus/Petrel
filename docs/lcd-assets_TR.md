@@ -6,7 +6,7 @@
 
 Petrel, uyumlu 4,3 inç Ender 3 V2 panelinde kullanılan **272×480 dikey DWIN T5UIC1** düzenini hedefler. DWIN, DACAI ve TJC firmware/kaynak paketleri birbirinin yerine kullanılamaz.
 
-Panel, T5UIC1 komutlarını ve ekran yönü **1** düzenini desteklemelidir. Petrel yazıları **stok DWIN fontuyla** çizer; [paketle sunulan LCD fontu](#lcd-fontu) farklı bir yazı görünümü isteyenler için **isteğe bağlıdır**. Uygulama açılış görselini ve library **3** ikonlarını repo kaynaklarından otomatik yükler; stok `3.ICO` veya İngilizce bitmap yazılar önkoşul değildir.
+Panel, T5UIC1 komutlarını ve ekran yönü **1** düzenini desteklemelidir. Petrel yazıları **stok DWIN fontuyla** çizer; [paketle sunulan LCD fontu](#lcd-fontu) farklı bir yazı görünümü isteyenler için **isteğe bağlıdır**. Uygulama açılış görselini ve library **2** ikonlarını repo kaynaklarından otomatik yükler; hazır bir ICO kütüphanesi veya İngilizce bitmap yazılar önkoşul değildir.
 
 ## Kalıcı LCD kaynakları ve stok görsellere dönüş
 
@@ -14,7 +14,7 @@ Panel, T5UIC1 komutlarını ve ekran yönü **1** düzenini desteklemelidir. Pet
 
 - **Açılış JPEG'i:** Petrel `assets/petrel_bootsplash.jpg` görselini Picture Flash **0** numaralı yuvaya eşitler.
 - **Ortak UI JPEG’i:** Petrel `assets/petrel_shared.jpg` görselini Picture Flash **1** numaralı yuvaya eşitler. Info, QR bölgelerini bu sayfanın çözülmüş Area 1 önbelleğinden kopyalar.
-- **3 numaralı ikon kütüphanesi:** `assets/icons/` içindeki baseline JPEG'ler 32 KiB bloklara paketlenir; **3** numaralı yuvadan başlayarak **3–15** aralığında yalnız değişen bloklar yazılır. Böylece menü ikonları, seçim durumları, baskı kontrolleri ve animasyon kareleri yeniden tekrar tekrar çizilmeden kullanılır.
+- **2 numaralı ikon kütüphanesi:** `assets/icons/` içindeki baseline JPEG'ler 32 KiB bloklara paketlenir; **2** numaralı yuvadan başlayarak **2–15** aralığında yalnız değişen bloklar yazılır. Böylece menü ikonları, seçim durumları, baskı kontrolleri ve animasyon kareleri yeniden tekrar tekrar çizilmeden kullanılır.
 - **Gereksiz yazmaları önleme:** İçerik parmak izleri ayrı bir kalıcı Data Flash alanında tutulur; eşleşen kaynaklar normalde atlanır. Bu parmak izleri **orijinal OEM görsellerin yedeği değildir**.
 - **Otomatik üzerine yazılmayanlar:** Stok resim yuvası **2**, LCD kernel'i ve font kaynakları. Baskı önizlemeleri geçici SRAM'e taşınır. Paketle sunulan ASCII fontu **isteğe bağlıdır** ve yalnız kullanıcı isterse SD kartla yüklenir.
 
@@ -32,7 +32,7 @@ Kurulumdan sonra fiziksel ekranda menü yazılarını/ikonlarını, renkleri, ö
 
 ## Kaynakları tanıma
 
-Uygulama artık kütüphane 3'yi [`assets/icons`](../assets/icons/README_TR.md) kaynaklarından oluşturur ve güncelleme sonrası ilk LCD bağlantısında değişen blokları otomatik yükler. Değişmeyen kaynaklar atlanır. JPEG ekleme, paketi dışa aktarma ve panel kaynakları yeniden kurulduktan sonra zorla yükleme için bu kılavuzu kullanın.
+Uygulama artık kütüphane 2'yi [`assets/icons`](../assets/icons/README_TR.md) kaynaklarından oluşturur ve güncelleme sonrası ilk LCD bağlantısında değişen blokları otomatik yükler. Değişmeyen kaynaklar atlanır. JPEG ekleme, paketi dışa aktarma ve panel kaynakları yeniden kurulduktan sonra zorla yükleme için bu kılavuzu kullanın.
 
 Normal kullanımda otomatik eşitleme yeterlidir. Geliştirici tanılaması için aşağıdaki komut güncel `assets/icons` JPEG kaynaklarından paketi yeniden oluşturup UART üzerinden yükler; referans ICO dosyasını okumaz:
 
@@ -47,10 +47,10 @@ Referans export dosyasının kendisini incelemek için servis kapalıyken açık
 
 ```sh
 sudo systemctl stop Petrel.service
-~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/3.ICO && sudo systemctl start Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/2.ICO && sudo systemctl start Petrel.service
 ```
 
-Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO --library 3`, JPEG görsellerini koruyarak her ikonu tek bir 32 KiB blokta tutar. Böylece gözlenen çizim sorunlarıyla ilişkili blok sınırlarında ikonların bölünmesi önlenir.
+Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO --library 2`, JPEG görsellerini koruyarak her ikonu tek bir 32 KiB blokta tutar. Böylece gözlenen çizim sorunlarıyla ilişkili blok sınırlarında ikonların bölünmesi önlenir.
 
 [Stok envanteri](lcd-assets.json) proje için önceden incelenen kaynakları kaydeder. Kendi panelinizde kurulu dosyaları belirlemez. Katkı görselleri ve emülatör font seçimi talimatlarına [dokümantasyon dizininden](README_TR.md) ulaşabilirsiniz.
 
