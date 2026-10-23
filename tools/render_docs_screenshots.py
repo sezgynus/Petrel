@@ -193,16 +193,16 @@ def case_light_off():
     return menu('Draw_Case_Light_Menu', configure=lambda v: setattr(v, '_case_light_on', False))
 
 
-@scene('buzzer', 'controls', 'Choose the buzzer output', 'Buzzer çıkışını seçme')
+@scene('buzzer', 'controls', 'Buzzer on/off', 'Buzzer aç/kapat')
 def buzzer():
-    v = canvas(); v._buzzer_values = BuzzerSettings('Buzzer', 60, 2, 1)
-    v._buzzer_selection = 2; v.Draw_Buzzer_Menu()
+    v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
+    v._display_selection = 4; v.Draw_Display_Menu()
     return finish(v)
 
 
 @scene('display-sound-settings', 'controls', 'Volume, click and encoder tones', 'Ses seviyesi, tıklama ve enkoder tonları')
 def sound():
-    v = canvas(); v._buzzer_values = BuzzerSettings('Buzzer', 60, 2, 1)
+    v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
     v._display_selection = 7; v.Draw_Display_Menu()
     return finish(v)
 

@@ -11,8 +11,10 @@ def build_parser():
     parser.add_argument('--moonraker-url', default=os.environ.get('MOONRAKER_URL', 'http://127.0.0.1:7125'))
     parser.add_argument('--request-timeout', type=float, default=os.environ.get('PETREL_REQUEST_TIMEOUT', '5'))
     parser.add_argument('--serial-port', default=os.environ.get('PETREL_SERIAL_PORT', '/dev/ttyAMA0'))
-    parser.add_argument('--encoder-pins', type=int, nargs=2, default=os.environ.get('PETREL_ENCODER_PINS', '21 19').split())
+    parser.add_argument('--encoder-pins', type=int, nargs=2, default=os.environ.get('PETREL_ENCODER_PINS', '21 16').split())
     parser.add_argument('--button-pin', type=int, default=os.environ.get('PETREL_BUTTON_PIN', '13'))
+    parser.add_argument('--buzzer-gpio', type=int, default=os.environ.get('PETREL_BUZZER_GPIO', '19'),
+                        help='BCM pin for native hardware PWM buzzer (12, 13, 18 or 19)')
     parser.add_argument('--settings-file', default=os.environ.get('PETREL_SETTINGS_FILE'), help='Local preset JSON path')
     parser.add_argument('--power-device', default=os.environ.get('PETREL_POWER_DEVICE', 'Printer'),
                         help='Moonraker power device controlled by the encoder button')
@@ -45,6 +47,8 @@ def parse_args(argv=None):
         pins = args.encoder_pins + (args.button_pin,)
         if len(args.encoder_pins) != 2 or len(set(pins)) != 3 or any(pin < 0 or pin > 27 for pin in pins):
             raise ValueError('Use three distinct BCM pins in the range 0..27')
+        if args.buzzer_gpio not in (12, 13, 18, 19) or args.buzzer_gpio in pins:
+            raise ValueError('Buzzer GPIO must be PWM-capable (12, 13, 18 or 19) and distinct from encoder/button pins')
         if not math.isfinite(args.request_timeout) or args.request_timeout <= 0:
             raise ValueError('Request timeout must be finite and positive')
         if not args.serial_port:

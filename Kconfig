@@ -35,7 +35,7 @@ config ENCODER_A_GPIO
 config ENCODER_B_GPIO
     int "Encoder B GPIO (BCM)"
     range 0 65535
-    default 19
+    default 16
 config PETREL_BUTTON_PIN
     int "Encoder button GPIO (BCM)"
     range 0 65535
@@ -46,6 +46,24 @@ config PETREL_SETTINGS_FILE
     string "Preset JSON path"
     help
       External Petrel preset file. Existing paths are imported automatically.
+endmenu
+
+menu "Buzzer hardware PWM"
+choice
+    prompt "Buzzer GPIO (BCM, hardware PWM only)"
+    default PETREL_BUZZER_GPIO19
+    help
+      Connect a passive buzzer via an appropriate transistor driver. The
+      selected pin is fixed at install time; LCD menus change sound settings.
+config PETREL_BUZZER_GPIO12
+    bool "GPIO12 (PWM0 / ALT0)"
+config PETREL_BUZZER_GPIO13
+    bool "GPIO13 (PWM1 / ALT0)"
+config PETREL_BUZZER_GPIO18
+    bool "GPIO18 (PWM0 / ALT5)"
+config PETREL_BUZZER_GPIO19
+    bool "GPIO19 (PWM1 / ALT5)"
+endchoice
 endmenu
 
 menu "Maintenance usage counters"
