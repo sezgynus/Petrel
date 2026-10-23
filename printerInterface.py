@@ -629,7 +629,12 @@ class PrinterData:
         self._read_worker.close()
         self._maintenance_worker.close()
         self.maintenance_book.close()
-        self.spoolman_client.close()
+        # A started tag move may span several HTTP calls. Keep its transport
+        # alive until the owning worker has finished, even if close timed out.
+        if callable(getattr(type(self._read_worker), 'on_stopped', None)):
+            self._read_worker.on_stopped(self.spoolman_client.close)
+        else:
+            self.spoolman_client.close()
         # Started HTTP reads cannot be forcibly cancelled. Release their shared
         # transport only after BOTH workers have relinquished ownership.
         workers = [w for w in (self._read_worker, self._maintenance_worker)

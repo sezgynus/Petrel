@@ -76,3 +76,25 @@ class OverlayCompletionTests(unittest.TestCase):
             self.assertTrue(future.cancelled())
             self.assertIsNone(view._rfid_assignment)
             self.assertEqual(view._rfid_mode, target)
+
+    def test_spoolman_transport_survives_a_worker_close_timeout(self):
+        view = display(snapshot())
+        printer = view.pd
+        class FinishingWorker:
+            def __init__(self):
+                self.callbacks = []
+            def close(self):
+                return False  # A started multi-request move is still running.
+            def on_stopped(self, callback):
+                self.callbacks.append(callback)
+            def finish(self):
+                for callback in self.callbacks:
+                    callback()
+        worker = printer._read_worker = FinishingWorker()
+        printer.spoolman_client = Mock()
+        printer.close()
+        printer.spoolman_client.close.assert_not_called()
+        # The started operation can still complete its link and readback.
+        printer.spoolman_client.request('POST', '/server/spoolman/proxy', {})
+        worker.finish()
+        printer.spoolman_client.close.assert_called_once()
