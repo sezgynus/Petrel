@@ -210,7 +210,12 @@ def main():
             p.error('--repo required for --install')
         install(args.repo, args.user, args.pin)
     elif args.prepare:
-        prepare(args.pin, args.user)
+        try:
+            prepare(args.pin, args.user)
+        except (OSError, ValueError, KeyError) as error:
+            # Audio is optional. Never block Petrel.service startup because a
+            # channel is unavailable, busy, or sysfs ownership cannot change.
+            print('Hardware PWM buzzer disabled: ' + str(error), file=sys.stderr)
     else:
         stop(args.pin, args.user)
 

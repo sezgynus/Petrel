@@ -165,7 +165,6 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     PowerConfirm = 46
     DisplayMenu = 47
     MaintenanceMenu = 48
-    BuzzerMenu = 49
     RFIDMenu = 51
     NFCSettingsMenu = 52
     NFCChoiceMenu = 53
