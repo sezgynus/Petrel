@@ -48,7 +48,7 @@ class BuzzerSettingsTests(unittest.TestCase):
         lcd.read_flash = Mock(return_value=value.encode())
         lcd.save_buzzer_settings(value)
         lcd.write_flash.assert_called_once_with(ADDRESS, value.encode())
-        self.assertEqual(lcd.load_buzzer_settings(), value)
+        self.assertEqual(lcd.load_buzzer_settings().encode(), value.encode())
         lcd.read_flash.return_value = bytes(RECORD_SIZE)
         with self.assertRaises(OSError):
             lcd.save_buzzer_settings(value)
@@ -135,7 +135,9 @@ class BuzzerMenuTests(unittest.TestCase):
         view._buzzer_player.reset_mock()
         view._buzzer_values = Settings(False)
         view._buzzer_feedback('press')
+        view._rfid_buzzer_feedback()
         view._buzzer_player.play.assert_not_called()
+        view._buzzer_values = Settings(True)
         view._rfid_buzzer_feedback()
         view._buzzer_player.play.assert_called_once_with(
             Settings(True, 100, 3), 'press', priority=True)
