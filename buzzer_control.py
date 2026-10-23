@@ -13,6 +13,11 @@ RECORD_SIZE = 128
 TONES = ('Off', 'Tick', 'Short beep', 'Low', 'High', 'Double')
 PATTERNS = ((), ((1800, .015),), ((1400, .055),), ((700, .055),),
             ((2400, .04),), ((1600, .035), (0, .035), (2000, .035)))
+# Three urgent two-tone sweeps and a distinct double high alert (~1.5 s).
+# Never routed through Klipper: all steps run on the Pi PWM worker.
+EMERGENCY_PATTERN = ((2200, .12), (1000, .12), (2200, .12),
+                     (1000, .12), (2200, .12), (1000, .30),
+                     (0, .09), (2600, .13), (0, .07), (2600, .28))
 
 
 @dataclass(frozen=True)
@@ -83,6 +88,21 @@ class Player:
             self.condition.notify_all()
             return True
 
+    def play_emergency(self):
+        """Preempt ordinary feedback with a fixed full-volume emergency alert.
+
+        This is a fast, nonblocking hardware-only enqueue: even a Klipper
+        shutdown or disconnected Moonraker cannot cancel or delay playback.
+        Caller enforces the user's master Buzzer On/Off preference.
+        """
+        with self.condition:
+            if self.stopped:
+                return False
+            self.generation += 1
+            self.pending = (Settings(enabled=True, volume=100), 'emergency', self.generation)
+            self.condition.notify_all()
+            return True
+
     def cancel(self):
         with self.condition:
             self.pending = None
@@ -104,7 +124,8 @@ class Player:
                     if driver is None:
                         driver = self.driver_factory()
                     self.last_error = None
-                    for frequency, duration in PATTERNS[tone]:
+                    pattern = EMERGENCY_PATTERN if tone == 'emergency' else PATTERNS[tone]
+                    for frequency, duration in pattern:
                         with self.condition:
                             if self.stopped or generation != self.generation:
                                 break

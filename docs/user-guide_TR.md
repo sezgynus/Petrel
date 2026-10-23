@@ -557,7 +557,7 @@ Core, açık menüden ve baskı durumundan bağımsız olarak Moonraker'ın
 G-code komutlarının arkasında beklemez. Kayıtlı acil durdurma kartı tanımlama
 sırasında da önceliklidir; yeni kart olarak yakalanmaz. Backend her kart sunumu
 için bir olay üretir; yeniden tetiklemek için kartı uzaklaştırıp tekrar okutun.
-Acil durdurma işleminde onay penceresi beklenmez.
+Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Display → Buzzer ana anahtarı Off ise ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
 
 Okuyucu etkin, yapılandırılmış ve dinliyor olmalıdır. Yukarıda açıklandığı gibi
 NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklatır.

@@ -363,6 +363,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         # NFC stays alive on every menu and during every printer state.
         core = self.pd.get_nfc_core()
         if core is not None:
+            self._nfc_emergency_sound_token = self._subscribe_emergency_buzzer(core)
             self._nfc_ui_token = core.subscribe('card.detected',
                 lambda card: self._queue_nfc_ui_event('nfc_card'))
             self._nfc_status_token = core.subscribe('reader.changed',

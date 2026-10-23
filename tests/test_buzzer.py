@@ -4,7 +4,7 @@ from threading import Event
 import struct
 import tempfile
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 import unittest
 import zlib
 
@@ -141,6 +141,14 @@ class BuzzerMenuTests(unittest.TestCase):
         view._rfid_buzzer_feedback()
         view._buzzer_player.play.assert_called_once_with(
             Settings(True, 100, 3), 'press', priority=True)
+        view._buzzer_player.reset_mock()
+        view._buzzer_values = Settings(True, volume=0, click=0, encoder=0)
+        view._emergency_buzzer_feedback()
+        view._buzzer_player.play_emergency.assert_called_once_with()
+        view._buzzer_player.reset_mock()
+        view._buzzer_values = Settings(False)
+        view._emergency_buzzer_feedback()
+        view._buzzer_player.play_emergency.assert_not_called()
 
     def test_input_plays_once_per_physical_event_and_never_for_stale_event(self):
         from ui_events import InputEvent
@@ -202,6 +210,40 @@ class SoundWorkerTests(unittest.TestCase):
         pwm.tone.assert_called_once_with(1000, 50)
         moonraker.notify_immediate.assert_not_called()
         moonraker.snapshot.assert_not_called()
+
+    def test_emergency_preempts_busy_click_at_full_power_without_rpc(self):
+        pwm = Mock()
+        click_started, alert_started = Event(), Event()
+        def tone(frequency, volume):
+            if frequency == 800:
+                click_started.set()
+            if frequency == 1000:
+                alert_started.set()
+        pwm.tone.side_effect = tone
+        moonraker = Mock()
+        with patch('buzzer_control.PATTERNS', ((), (), ((800, 10),))), \
+             patch('buzzer_control.EMERGENCY_PATTERN',
+                   ((2200, .001), (0, .001), (1000, .001))):
+            player = Player(moonraker, driver_factory=lambda: pwm)
+            try:
+                self.assertTrue(player.play(Settings(), 'press'))
+                self.assertTrue(click_started.wait(1))
+                self.assertTrue(player.play_emergency())
+                self.assertTrue(alert_started.wait(1), 'Alert must preempt busy clicks')
+            finally:
+                player.close()
+        self.assertEqual(pwm.tone.call_args_list[:3],
+                         [call(800, 50), call(2200, 100), call(1000, 100)])
+        self.assertGreaterEqual(pwm.off.call_count, 2)
+        moonraker.notify_immediate.assert_not_called()
+        moonraker.request.assert_not_called()
+
+    def test_emergency_rejected_after_player_closed(self):
+        pwm = Mock()
+        player = Player(driver_factory=lambda: pwm)
+        player.close()
+        self.assertFalse(player.play_emergency())
+        pwm.tone.assert_not_called()
 
     def test_disabled_muted_or_off_tone_does_not_play(self):
         pwm = Mock()
