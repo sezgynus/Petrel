@@ -626,3 +626,23 @@ emergency tags are dispatched before spool lookup and cancel an open gate
 prompt. Unknown or archived spool tags do not open a prompt. Active power/phone
 sharing dialogs are not interrupted. Target-mode URI sharing already suspends
 card scanning.
+
+### NFC dialogs and completion delivery
+
+Temporary power and gate dialogs preserve an active tag enrollment and its
+captured UID. Spoolman catalogue, save, error and move-confirmation results are
+stored even while another dialog is visible; returning shows the completed
+state without repeating a write. Leaving enrollment for a different screen
+cancels it and returns its state to the detail page.
+
+NFC completion wakeups use a separate coalesced mailbox on the existing LCD
+owner, bounded to 32 event kinds. A full encoder queue cannot discard these
+wakeups; repeated notifications of one kind retain the latest pending state.
+No additional NFC/Spoolman polling, hardware handle or worker is introduced.
+Started Spoolman work retains its HTTP client until its read worker has stopped;
+this does not make the remote DELETE/POST tag move atomic.
+
+NFC examples are generated in CI and published in the
+[screenshot gallery](screenshots.md). The existing full documentation render
+remains manual. A `docs(nfc):` commit on master opts into the NFC-only publisher
+after that exact revision passes regression CI; a newer master is never overwritten.

@@ -1,0 +1,71 @@
+name: NFC Documentation Publish
+
+on:
+  workflow_run:
+    workflows: ['Petrel Regression Suite']
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nfc-documentation-master
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Opt in through a docs(nfc): commit, only after that exact revision passes.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_commit.message, 'docs(nfc):')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate signing bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SIGNING_APP_ID }}
+          private-key: ${{ secrets.SIGNING_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install render dependencies
+        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2
+      - name: Render NFC scenes after successful regression
+        env:
+          GPIOZERO_PIN_FACTORY: mock
+        run: python tools/render_docs_screenshots.py --group nfc
+      - name: Publish signed NFC captures on unchanged master
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.COMMIT_SIGNING_KEY }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          if [ "$(git rev-parse origin/master)" != "$SOURCE_SHA" ]; then
+            echo 'Master changed; leave newer work untouched.'
+            exit 0
+          fi
+          git add -- docs/assets/screens/nfc-*.png docs/assets/screens/framed/nfc-*.png docs/screenshots.md docs/screenshots_TR.md
+          if git diff --cached --quiet; then
+            echo 'NFC captures unchanged.'
+            exit 0
+          fi
+          : "${SIGNING_KEY:?Missing signing key}"
+          signing_key="$RUNNER_TEMP/petrel-nfc-docs-signing-key"
+          printf '%s\n' "$SIGNING_KEY" > "$signing_key"
+          chmod 600 "$signing_key"
+          git config --local user.name 'Sezgin AÇIKGÖZ'
+          git config --local user.email 'sezginacikgoz@mail.com'
+          git config --local gpg.format ssh
+          git config --local user.signingkey "$signing_key"
+          git config --local commit.gpgsign true
+          git commit -S -m 'docs(screenshots): publish NFC enrollment and gate scenes'
+          git push origin HEAD:refs/heads/master

@@ -617,6 +617,9 @@ def print_stopping():
 from tools.maintenance_doc_scenes import register as register_maintenance_scenes
 register_maintenance_scenes(scene,canvas,finish)
 
+from tools.nfc_doc_scenes import register as register_nfc_scenes
+register_nfc_scenes(scene, canvas, finish)
+
 # Follow menu navigation rather than source registration order.
 MENU_ORDER = {
     'controls': 'prepare prepare-preheat preheat-settings move move-live-jog control temperature temperature-edit motion-runtime case-light case-light-off display display-sound-settings display-volume-edit buzzer hold-start hold-progress hold-ready hold-cancel power-confirm power-blocked maintenance'.split(),
@@ -632,6 +635,7 @@ def write_galleries():
               ('maintenance', 'Maintenance checks, care and diagnostics', 'Maintenance testleri, bakım ve diagnostik'),
               ('leveling', 'Bed leveling and calibration', 'Tabla ayarı ve kalibrasyon'),
               ('mmu', 'MMU and filament', 'MMU ve filament'),
+              ('nfc', 'NFC tags and spool assignment', 'NFC kartları ve makara atama'),
               ('info', 'System information and updates', 'Sistem bilgileri ve güncellemeler')]
     for turkish in (False, True):
         title = 'Ekran galerisi' if turkish else 'Screenshot gallery'

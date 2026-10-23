@@ -628,3 +628,23 @@ kart ile sınırlıdır; eski sorgu sonuçları kullanılmaz. Kart tanımlama me
 penceresini iptal eder. Tanımsız veya arşivlenmiş makara kartı pencere açmaz.
 Aktif güç/telefon paylaşım penceresi bölünmez. URL paylaşımı target modunda
 olduğu sürece kart taraması zaten duraklar.
+
+### NFC pencereleri ve tamamlanma bildirimleri
+
+Geçici güç ve gate pencereleri, etkin kart tanımlamayı ve yakalanan UID'yi korur.
+Spoolman liste, kayıt, hata ve taşıma onayı sonuçları başka pencere açıkken de
+saklanır; geri dönünce yazma tekrarlanmadan tamamlanan durum gösterilir.
+Tanımlamadan farklı bir ekrana gerçekten ayrılmak işlemi iptal eder ve durumunu
+detay sayfasına döndürür.
+
+NFC tamamlanma bildirimleri mevcut LCD sahibindeki, en fazla 32 olay türü tutan
+ayrı bir birleştirme kutusunu kullanır. Dolu enkoder kuyruğu bu bildirimleri
+kaybettirmez; aynı türün tekrarlı bildirimlerinde en son bekleyen durum korunur.
+Yeni NFC/Spoolman polling'i, donanım handle'ı veya worker eklenmez. Başlamış
+Spoolman işi, read worker durana kadar HTTP istemcisini korur; bu, uzaktaki
+DELETE/POST kart taşımasını atomik hâle getirmez.
+
+NFC örnekleri CI'da üretilip [ekran galerisine](screenshots_TR.md) yayımlanır.
+Mevcut tam doküman üretimi manuel kalır. Master'daki `docs(nfc):` commiti,
+yalnız o sürümün regresyon CI'ı geçtikten sonra NFC yayınını başlatır;
+daha yeni bir master'ın üzerine yazılmaz.
