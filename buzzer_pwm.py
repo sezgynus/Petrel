@@ -54,18 +54,25 @@ class HardwarePWM:
         (self.path / name).write_text(str(value))
 
     def tone(self, frequency, volume):
-        if not 0 < frequency <= 20000 or not 0 <= volume <= 100:
-            raise ValueError('Invalid frequency or volume')
-        if volume == 0:
+        if not 0 <= volume <= 100:
+            raise ValueError('Invalid volume')
+        # UI volume 100% corresponds to 50% *electrical* duty.
+        self.set_pwm(frequency, volume / 200.)
+
+    def set_pwm(self, frequency, duty):
+        """Absolute PWM duty (0..1), as expected by Klipper SET_PIN."""
+        if not 1 <= frequency <= 20000 or not 0 <= duty <= 1:
+            raise ValueError('Invalid hardware PWM frequency/duty')
+        if duty == 0:
             self.off()
             return
         period = round(1_000_000_000 / frequency)
-        # 50% maximizes the fundamental of a 0–3.3V square wave.
-        duty = round(period * volume / 200)
+        duty_ns = round(period * duty)
+        # Zero duty before changing period; the kernel rejects duty > period.
         self._write('enable', 0)
         self._write('duty_cycle', 0)
         self._write('period', period)
-        self._write('duty_cycle', duty)
+        self._write('duty_cycle', duty_ns)
         self._write('enable', 1)
 
     def off(self):

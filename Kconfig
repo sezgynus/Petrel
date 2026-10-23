@@ -66,6 +66,18 @@ config PETREL_BUZZER_GPIO19
 endchoice
 endmenu
 
+menu "Klipper virtual buzzer"
+config PETREL_KLIPPER_BUZZER
+    bool "Virtual SET_PIN Buzzer Klipper extra"
+    default y
+    help
+      Install the optional [petrel_buzzer Buzzer] section and Klipper extra.
+      Existing SET_PIN PIN=Buzzer VALUE=... CYCLE_TIME=... macros remain valid.
+      Remove the old [pwm_cycle_time Buzzer] section before restarting Klipper.
+      Klipper sends requests to Petrel via private local Unix socket.
+      This feature does not affect the independent LCD buzzer.
+endmenu
+
 menu "Maintenance usage counters"
 config PETREL_AXIS_TRAVEL
     bool "Axis travel and event-based sensor counters"
@@ -76,12 +88,12 @@ config PETREL_AXIS_TRAVEL
       Restart Klipper manually while idle after changing the extra.
 config PETREL_KLIPPER_DIR
     string "Klipper repository path"
-    depends on PETREL_AXIS_TRAVEL
+    depends on PETREL_AXIS_TRAVEL || PETREL_KLIPPER_BUZZER
     help
       Existing Klipper checkout. Disable the extra before changing paths.
 config PETREL_PRINTER_CONFIG
     string "Main printer.cfg path"
-    depends on PETREL_AXIS_TRAVEL
+    depends on PETREL_AXIS_TRAVEL || PETREL_KLIPPER_BUZZER
 endmenu
 
 menu "Display tools"

@@ -24,7 +24,10 @@ class KconfigConfigurationTests(unittest.TestCase):
             'PETREL_REMOTE_PORT=8099\nPETREL_BUTTON_PIN=13\n')
         config = Configuration(ROOT, values)
         self.assertFalse(config.warnings)
+        self.assertGreater(config.syms['PETREL_KLIPPER_DIR'].visibility, 0)
+        config.syms['PETREL_KLIPPER_BUZZER'].set_value('n')
         self.assertEqual(config.syms['PETREL_KLIPPER_DIR'].visibility, 0)
+        config.syms['PETREL_KLIPPER_BUZZER'].set_value('y')
         self.assertEqual(collect(config)['PETREL_KLIPPER_DIR'], '/opt/custom klipper')
         self.assertEqual(collect(config)['PETREL_REMOTE_PORT'], '8099')
         config.syms['PETREL_AXIS_TRAVEL'].set_value('y')
@@ -51,6 +54,15 @@ class KconfigConfigurationTests(unittest.TestCase):
         values['ENCODER_B_GPIO'] = '19'
         with self.assertRaisesRegex(ValueError, 'must differ'):
             validate(values)
+
+    def test_virtual_klipper_buzzer_default_on_and_independent_of_axis_travel(self):
+        values = self.values(Path('/home/printer'))
+        self.assertEqual(values['PETREL_KLIPPER_BUZZER'], 'y')
+        config = Configuration(ROOT, values)
+        self.assertEqual(collect(config)['PETREL_KLIPPER_BUZZER'], 'y')
+        config.syms['PETREL_KLIPPER_BUZZER'].set_value('n')
+        self.assertEqual(collect(config)['PETREL_KLIPPER_BUZZER'], 'n')
+        self.assertEqual(collect(config)['PETREL_AXIS_TRAVEL'], 'n')
 
     def test_nfc_is_an_independent_opt_in_from_dwin_uart(self):
         values = self.values(Path('/home/printer'))

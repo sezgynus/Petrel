@@ -823,6 +823,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                                 and getattr(self, '_buzzer_save_future', None) is None):
                             self._buzzer_values = settings
                         self._buzzer_saved = settings
+                        if not settings.enabled:
+                            player = getattr(self, '_buzzer_player', None)
+                            if player is not None and hasattr(player, 'mute_external'):
+                                player.mute_external()
                     self._buzzer_load_complete = True
                 elif kind == 'display_save':
                     self._display_saved = self._display_save_target

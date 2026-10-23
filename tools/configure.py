@@ -21,8 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from tools.axis_travel_install import install as install_axis
+from tools.klipper_buzzer_install import install as install_buzzer
 
-BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
+BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
@@ -85,7 +86,7 @@ def defaults(home):
                 PETREL_SERIAL_PORT='/dev/ttyS0', PETREL_POWER_DEVICE='Printer',
                 PETREL_POWER_ON_HOLD_MS='2000', ENCODER_A_GPIO='21', ENCODER_B_GPIO='16', PETREL_BUZZER_GPIO='19',
                 PETREL_BUTTON_PIN='20', PETREL_SETTINGS_FILE=str(home / '.config/Petrel/presets.json'),
-                PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
+                PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_BUZZER='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
                 PETREL_EMULATOR='n', PETREL_REMOTE='n', PETREL_REMOTE_HOST='0.0.0.0',
                 PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n', RESTART_PETREL='y')
@@ -258,7 +259,7 @@ def pwm_install(repo, user, pin):
 
 
 def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_install,
-          nfc=nfc_install, pwm=None, writer=atomic_private,
+          nfc=nfc_install, pwm=None, buzzer=None, writer=atomic_private,
           dwin_manifest=Path('/var/lib/Petrel/dwin-uart.json'),
           nfc_manifest=Path('/var/lib/Petrel/nfc.json')):
     validate(values)
@@ -267,15 +268,26 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
         raise ValueError('Settings changed while the menu was open; reopen configure.sh')
     previous = read_settings(home, original)
     axis_manifest = home / '.config/Petrel/axis-travel-install.json'
+    buzzer_manifest = home / '.config/Petrel/klipper-buzzer-install.json'
     old_axis = json.loads(axis_manifest.read_text()) if axis_manifest.exists() else None
+    old_buzzer = json.loads(buzzer_manifest.read_text()) if buzzer_manifest.exists() else None
     old_dwin = json.loads(dwin_manifest.read_text()) if dwin_manifest.exists() else None
     old_nfc = json.loads(nfc_manifest.read_text()) if nfc_manifest.exists() else None
-    axis_done = dwin_done = nfc_done = pwm_done = False
+    axis_done = dwin_done = nfc_done = pwm_done = buzzer_done = False
     try:
         changed = axis(values['PETREL_AXIS_TRAVEL'] == 'y', repo=repo,
                        klipper=values['PETREL_KLIPPER_DIR'], printer_config=values['PETREL_PRINTER_CONFIG'],
                        manifest=axis_manifest)
         axis_done = True
+        buzzer_changed = False
+        if buzzer is not None and (values['PETREL_KLIPPER_BUZZER'] == 'y'
+                                   or previous['PETREL_KLIPPER_BUZZER'] == 'y'
+                                   or old_buzzer is not None):
+            buzzer_changed = buzzer(values['PETREL_KLIPPER_BUZZER'] == 'y', repo=repo,
+                                    klipper=values['PETREL_KLIPPER_DIR'],
+                                    printer_config=values['PETREL_PRINTER_CONFIG'],
+                                    manifest=buzzer_manifest, home=home)
+            buzzer_done = True
         if values['PETREL_AUX_UART'] == 'y' or previous['PETREL_AUX_UART'] == 'y' or old_dwin:
             dwin(repo, home, user, values['PETREL_AUX_UART'] == 'y', values['PETREL_SERIAL_PORT'])
             dwin_done = True
@@ -288,6 +300,15 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
         writer(env_file, render_env(values, original))
     except Exception:
         # Each installer rolls its own failure back; undo earlier successful steps.
+        if buzzer_done:
+            try:
+                buzzer(bool(old_buzzer), repo=repo,
+                       klipper=old_buzzer['klipper'] if old_buzzer else values['PETREL_KLIPPER_DIR'],
+                       printer_config=(old_buzzer['printer_config'] if old_buzzer
+                                       else values['PETREL_PRINTER_CONFIG']),
+                       manifest=buzzer_manifest, home=home)
+            except Exception as error:
+                print('Virtual buzzer rollback needs attention: ' + str(error), file=sys.stderr)
         if pwm_done:
             try:
                 pwm(repo, user, previous['PETREL_BUZZER_GPIO'])
@@ -314,6 +335,8 @@ def apply(values, *, repo, home, user, original, axis=install_axis, dwin=dwin_in
         raise
     if changed:
         print('Counter configuration changed. Restart Klipper manually while idle; no Klipper restart was performed.')
+    if buzzer_changed:
+        print('Virtual buzzer extra changed. Restart Klipper manually while idle; no automatic restart.')
     print('Configuration applied: ' + str(env_file))
 
 
@@ -391,7 +414,7 @@ def main():
         with (config_dir / 'configure.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             apply(selected, repo=args.repo, home=args.home, user=args.user,
-                  original=original, pwm=pwm_install)
+                  original=original, pwm=pwm_install, buzzer=install_buzzer)
         if not args.no_restart and selected['RESTART_PETREL'] == 'y':
             active = subprocess.run(['systemctl', 'is-active', '--quiet', 'Petrel.service'], capture_output=True)
             if active.returncode == 0:

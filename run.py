@@ -93,9 +93,24 @@ def main():
              emulator_font=args.emulator_font, remote=args.remote, remote_port=args.remote_port,
              remote_host=args.remote_host)
     signal.signal(signal.SIGTERM, lambda *_: display.lcdExit())
+    server = None
     try:
+        if os.environ.get('PETREL_KLIPPER_BUZZER', '0').lower() in ('1', 'true', 'yes', 'on'):
+            from buzzer_control import Player
+            from buzzer_ipc import BuzzerServer
+            from pathlib import Path
+            if getattr(display, '_buzzer_player', None) is None:
+                display._buzzer_player = Player()
+            path = Path.home() / '.config/Petrel/klipper-buzzer.sock'
+            try:
+                server = BuzzerServer(path, display._buzzer_player,
+                                      enabled=display._buzzer_enabled)
+            except OSError:
+                logging.exception('Optional Klipper virtual buzzer socket unavailable')
         display.wait()
     finally:
+        if server is not None:
+            server.close()
         display.lcdExit()
 
 
