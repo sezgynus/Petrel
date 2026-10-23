@@ -159,7 +159,7 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.lcd.update(); frame, _ = self.model.snapshot()
             self.assertEqual(frame.crop((0, 0, image.width, image.height)).tobytes(), image.tobytes())
         with self.assertRaises(ValueError):
-            self.assets.icon(ICON_LIBRARY_ID, 39)
+            self.assets.icon(ICON_LIBRARY_ID, 94)
 
     def test_move_area_translation_and_wrap_leave_surroundings_unchanged(self):
         for direction, target in ((0, (8, 10)), (1, (12, 10)), (2, (10, 8)), (3, (10, 12))):
