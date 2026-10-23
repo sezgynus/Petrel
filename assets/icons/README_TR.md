@@ -42,7 +42,7 @@ Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan
 
 ## Paket boyutu ve ayrılan alan
 
-Mevcut referans paket **12×32 KiB = 384 KiB**, yani **3–14** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; **15** büyüme için kullanılabilir. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
+Mevcut referans paket **13×32 KiB = 416 KiB**, yani **3–15** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; ayrılmış boş slot kalmamıştır. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
 
 ## JPEG uyumluluk kuralı
 
@@ -50,7 +50,7 @@ Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanma
 
 Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
-Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 12×32 KiB yer kaplar.
+Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 13×32 KiB yer kaplar.
 
 NFC ayarları menü satırı, tanınan NFC N siluetini ortak 20×20 Graphite turkuaz tarzında gösteren ikon **171** (`ICON_NFC`) kullanır. Salt okunur NFC özellik durumu Info düzenini izler ve işlem ikonu kullanmaz. Düzenlenebilir ikon kaynağı `assets/icon-source/171.svg` dosyasındadır.
 
@@ -65,3 +65,9 @@ Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak
 ## Küçük NFC paylaşım kontrolü
 
 **186/187** ID’leri (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`), **16×16** telefon, NFC N silueti ve paylaşım oku içeren normal/seçili **20×20** kontrollerdir. Mevcut 24 piksel satırlara, satır yüksekliğini artırmadan sığarlar. Normal durumda odak çerçevesi yoktur; seçili durumda aynı sınırlar içinde turkuaz çerçeve ve renkli zemin bulunur. Düzenlenebilir kaynaklar: `assets/icon-source/186.svg` ve `187.svg`; yeniden üretim: `python tools/render_icon_sources.py --ids 186 187`. NFC silueti, atfı [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) içinde bulunan kaynağı yeniden kullanır. Info ekranında Software bölümünün Petrel satırında, sürüm numarasının hemen önünde kullanılır. Okuyucu paylaşım kabiliyeti doğrulandığında görünür; QR altında ayrı paylaşım satırı bulunmaz.
+
+## NFC spool okutma animasyonu (ayrılmış kaynak)
+
+**188–199** ID’leri (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`), onaylanan önizlemenin on iki opak **160×160** karesini içerir. Spool panele yaklaşır, NFC dalgaları yanar ve geri çekilir. Bu kaynak henüz hiçbir ekranda kullanılmaz; animasyon kanalı veya zamanlayıcı başlatılmaz. Gelecekteki kullanım için önerilen aralık 200 ms/kare (2,4 saniye/döngü).
+
+Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **85**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 3–15 slotlarının tamamını kullanır.

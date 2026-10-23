@@ -42,7 +42,7 @@ Fan frames **235–242** use a neutral fan symbol on the dashboard's **RGB565 `0
 
 ## Package size and reserved space
 
-The current reference pack occupies **12×32 KiB = 384 KiB**, slots **3–14**. The reserved maximum is **13×32 KiB = 416 KiB**, slots **3–15**, leaving slots **15** available for growth. This is allocated block space, not an exact JPEG payload budget: the directory, placement gaps and reserved final bytes also consume space. Picture Flash is separate from the **512-byte Data Flash metadata record at 0x0200–0x03FF**. Pass `--library 3` to export; the export tool's legacy default is 7, with a different available slot count.
+The current reference pack occupies **13×32 KiB = 416 KiB**, slots **3–15**. The reserved maximum is **13×32 KiB = 416 KiB**, slots **3–15**, with no reserved slot left free. This is allocated block space, not an exact JPEG payload budget: the directory, placement gaps and reserved final bytes also consume space. Picture Flash is separate from the **512-byte Data Flash metadata record at 0x0200–0x03FF**. Pass `--library 3` to export; the export tool's legacy default is 7, with a different available slot count.
 
 ## JPEG compatibility rule
 
@@ -50,7 +50,7 @@ All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: 
 
 Maintenance reuses the existing small Graphite menu icons. Its former large tile IDs 156–163 are retired; they are not shipped or referenced by the UI.
 
-Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 12×32 KiB.
+Small Maintenance purpose icons use IDs 164–167 (20×20): check-circle, activity, lightbulb and calendar. Wi-Fi strength uses IDs **168 (poor), 169 (medium), 170 (strong)**, all 20×20, with black JPEG backgrounds erased by the existing native enhanced transparency filter. The source SVGs are in `assets/icon-source`. All follow the shared Graphite stroke and baseline 4:2:0 JPEG encoding. The reference pack now occupies 13×32 KiB.
 
 The NFC settings entry uses ID **171** (`ICON_NFC`), the familiar NFC N silhouette in the shared 20×20 Graphite cyan style. The read-only NFC feature status follows the Info layout and does not use an action icon. The icon's editable source is `assets/icon-source/171.svg`.
 
@@ -65,3 +65,9 @@ Share via NFC uses twelve opaque 160×160 frames, IDs **174–185**, on popup RG
 ## Compact NFC share control
 
 IDs **186/187** (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`) provide normal/selected **20×20** controls with a **16×16** phone, NFC N silhouette and sharing arrow. They fit existing 24-pixel rows without increasing row height. Normal has no focus border; selected adds a cyan border and tinted surface within the same bounds. Editable sources: `assets/icon-source/186.svg` and `187.svg`; regenerate with `python tools/render_icon_sources.py --ids 186 187`. The NFC silhouette reuses the attributed source in [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt). Info uses this control immediately before the Petrel version in the Software section, gated by confirmed reader sharing capability; there is no separate share row beneath the QR.
+
+## NFC spool scan animation (reserved artwork)
+
+IDs **188–199** (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`) contain the approved preview's twelve opaque **160×160** frames. The spool approaches the panel, NFC waves light up, and the spool retreats. No screen uses these resources yet; no animation channel or timer is started. The suggested interval for future use is 200 ms/frame (2.4 seconds/loop).
+
+Lossless PNG sources are in `assets/icon-source/nfc-spool`. Regenerate with `python assets/icon-source/nfc-spool/render.py`, then update the reference ICO using the packing command above. The new JPEGs use quality **85**, optimized Huffman tables and baseline **4:2:0** to fit Flash capacity; existing icons remain unchanged. The pack occupies **13×32 KiB = 416 KiB**, using all reserved slots 3–15.

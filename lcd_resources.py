@@ -130,3 +130,7 @@ ICON_NFC_SHARE_LAST = 185
 # Compact reusable NFC URI-share control (20x20, 16px glyph).
 ICON_NFC_SHARE_NORMAL = 186
 ICON_NFC_SHARE_SELECTED = 187
+
+# Reserved artwork only; no screen starts this animation yet.
+ICON_NFC_SPOOL_FIRST = 188
+ICON_NFC_SPOOL_LAST = 199
