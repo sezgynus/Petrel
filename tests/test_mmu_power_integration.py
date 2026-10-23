@@ -37,9 +37,9 @@ class MMUPowerIntegrationTests(unittest.TestCase):
                 self.assertEqual(
                     [c.args for c in v.lcd.show_icon.call_args_list if c.args[1] == ICON_WIFI_STRONG],
                     [(v.ICON, ICON_WIFI_STRONG, 193, 4)])
-                self.assertTrue(any(c.args[1:] == (ICON_PROGRESS_FILL, 256, 10)
+                self.assertTrue(any(c.args[1:] == (ICON_PROGRESS_FILL, 259, 10)
                                     for c in v.lcd.show_icon.call_args_list))
-                self.assertTrue(any(c.args[2:] == (256, 10, 263, 17)
+                self.assertTrue(any(c.args[2:] == (259, 10, 266, 17)
                                     for c in v.lcd.draw_rectangle.call_args_list))
                 title = v._mmu_render['title']
                 self.assertLessEqual(title[1] + title[3] * 8, 193)

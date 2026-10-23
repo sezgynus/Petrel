@@ -44,12 +44,12 @@ class DashboardAuditFixes(unittest.TestCase):
             v._maintenance_page=page
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertIn(call(1,v.lcd.Color_Bg_Blue,256,10,263,17),v.lcd.draw_rectangle.call_args_list)
-            self.assertTrue(any(c.args[1:4]==(ICON_PROGRESS_FILL,256,10) for c in v.lcd.show_icon.call_args_list))
+            self.assertIn(call(1,v.lcd.Color_Bg_Blue,259,10,266,17),v.lcd.draw_rectangle.call_args_list)
+            self.assertTrue(any(c.args[1:4]==(ICON_PROGRESS_FILL,259,10) for c in v.lcd.show_icon.call_args_list))
             self.assertTrue(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertFalse(any(c.args[-4:]==(256,10,263,17) for c in v.lcd.draw_rectangle.call_args_list))
+            self.assertFalse(any(c.args[-4:]==(259,10,266,17) for c in v.lcd.draw_rectangle.call_args_list))
             self.assertFalse(any(c.args[1] == ICON_PROGRESS_FILL for c in v.lcd.show_icon.call_args_list))
             self.assertFalse(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
 

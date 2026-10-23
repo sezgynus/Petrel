@@ -19,9 +19,9 @@ class KlipperHeaderIndicatorTests(unittest.TestCase):
     @staticmethod
     def cap(v, icon):
         v.lcd.draw_rectangle.assert_any_call(
-            1, v.lcd.Color_Bg_Blue, 256, 10, 263, 17)
+            1, v.lcd.Color_Bg_Blue, 259, 10, 266, 17)
         v.lcd.show_icon.assert_any_call(
-            ICON_LIBRARY_ID, icon, 256, 10, background=False, enhanced=True)
+            ICON_LIBRARY_ID, icon, 259, 10, background=False, enhanced=True)
 
     @patch.object(ui.time, 'strftime', return_value='12:34')
     def test_first_draw_uses_eight_pixel_fill_and_idle_sends_no_commands(self, clock):
@@ -76,7 +76,7 @@ class KlipperHeaderIndicatorTests(unittest.TestCase):
         self.assertTrue(v._draw_header_clock())
         self.assertEqual(v.lcd.draw_rectangle.call_args_list, [
             call(1, v.lcd.Color_Bg_Blue, 193, 4, 212, 23),
-            call(1, v.lcd.Color_Bg_Blue, 256, 10, 263, 17)])
+            call(1, v.lcd.Color_Bg_Blue, 259, 10, 266, 17)])
         v.lcd.show_icon.assert_any_call(
             ICON_LIBRARY_ID, ICON_WIFI_STRONG, 193, 4,
             background=False, enhanced=True)
@@ -87,7 +87,7 @@ class KlipperHeaderIndicatorTests(unittest.TestCase):
         self.assertEqual(v.lcd.method_calls, [])
 
     @patch.object(ui.time, 'strftime', return_value='12:34')
-    def test_header_cluster_retains_gaps_and_eight_pixel_right_margin(self, clock):
+    def test_header_cluster_centers_cap_in_right_gap_and_vertically_with_clock(self, clock):
         v = self.make()
         v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
         v.Draw_Title('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -102,8 +102,11 @@ class KlipperHeaderIndicatorTests(unittest.TestCase):
             v.lcd.Color_Bg_Blue, 214, 6, '12:34')
         self.cap(v, ICON_PROGRESS_FILL)
         # Title ends at 189; Wi-Fi 193..212; clock 214..253;
-        # indicator 256..263: never overlap, and 8px remain on the right.
-        self.assertEqual(272 - 1 - 263, 8)
+        # indicator 259..266: precisely 5px on either side of the cap.
+        self.assertEqual(259 - (214 + 5 * 8), 5)
+        self.assertEqual(272 - (259 + 8), 5)
+        # Clock glyphs are 16px high at y=6; cap is 8px at y=10.
+        self.assertEqual(6 + 16 / 2, 10 + 8 / 2)
 
     @patch.object(ui.time, 'strftime', return_value='12:34')
     def test_title_clear_repaints_cap_even_if_lifecycle_is_unchanged(self, clock):
