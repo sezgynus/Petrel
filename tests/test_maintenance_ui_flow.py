@@ -209,8 +209,13 @@ class MaintenanceUIFlows(unittest.TestCase):
     def test_shared_master_icons_replace_obsolete_maintenance_tiles(self):
         from pathlib import Path
         root=Path(__file__).resolve().parents[1]
-        self.assertFalse((root/'assets/icons/155.jpg').exists())
-        for index in range(156,164):
+        # IDs 155/156 now hold small NFC interface/port glyphs, not the
+        # obsolete large Maintenance tiles. Keep their footprint explicit.
+        from PIL import Image
+        for index in (155, 156):
+            with Image.open(root / f'assets/icons/{index}.jpg') as icon:
+                self.assertEqual(icon.size, (20, 20))
+        for index in range(157,164):
             self.assertFalse((root/('assets/icons/%d.jpg'%index)).exists())
         for index in (13,45,218):
             self.assertTrue((root/('assets/icons/%03d.jpg'%index)).exists())
