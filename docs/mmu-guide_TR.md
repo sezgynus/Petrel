@@ -13,6 +13,8 @@ Happy Hare MMU yapılandırılmışsa **Home → MMU** seçin. Ana ekran kanal r
   <img src="assets/screens/framed/mmu-purging.png" width="360" alt="Purge ve kalan filament rengi">
 </p>
 
+MMU menüsü ve alt menüleri, üst bardaki **Back** oku seçili açılır; tekrar basarak hemen geri dönebilirsiniz. Onay pencereleri yine **Cancel** seçili açılır.
+
 Seçmek için çevirin; çalıştırmak için basın. Filament değiştirmek için renkli **T0, T1, …** düğmesini seçin: Happy Hare mevcut takımı boşaltıp seçtiğiniz takımı otomatik yükler. Her makaranın üstündeki kanal gerçek eşleşmesini gösterir; birkaç takım aynı kanalı kullanabilir. Dörtten fazla takım, çevirirken gruplar halinde görünür. **G0, Happy Hare kanal 0'dır**.
 
 Dikey şema filamentin yüklenmesini ve geri çekilmesini takip eder. Filament algılandığında Gate dairesi yeşil dolar. Artık malzeme kaldığı sürece nozzle eski filament rengini korur; purge sırasında küçük bir filament çıkışı animasyonu görünür ve renk Happy Hare'in bildirdiği durumu takip eder. MMU ekranında nozzle sıcaklığı gösterilir; genel yazıcı bilgileri ana ekranda kalır.

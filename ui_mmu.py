@@ -124,7 +124,7 @@ class MMUViewMixin:
         self._mmu_return_print = getattr(self, 'checkkey', None) in (self.PrintProcess, self.PrintErrorDetails)
         self.checkkey = self.MMUMenu
         self._mmu_page = page
-        self._mmu_selection = 1 if self.pd.mmu_session.state is not None else 0
+        self._mmu_selection = 0
         self._mmu_gate = 0
         self._mmu_history = []
         self._mmu_notice = ''
@@ -145,7 +145,7 @@ class MMUViewMixin:
         if page == 'spool':
             self._mmu_begin_spool()
         self._mmu_history.append((self._mmu_page, self._mmu_selection))
-        self._mmu_page, self._mmu_selection = page, 1
+        self._mmu_page, self._mmu_selection = page, 0
         self._mmu_notice = ''
         self.Draw_MMU_Menu()
 

@@ -13,6 +13,8 @@ With a configured Happy Hare MMU, select **Home → MMU**. Home also shows gate 
   <img src="assets/screens/framed/mmu-purging.png" width="360" alt="Purge and residual filament color">
 </p>
 
+The MMU menu and its submenus open with the title-bar **Back** arrow selected, so pressing again returns immediately. Confirmation dialogs still open with **Cancel** selected.
+
 Rotate to select; press to activate. Select a colored **T0, T1, …** button to change filament: Happy Hare unloads the current tool and loads the chosen tool automatically. The gate above each spool shows its actual mapping; several tools can use the same gate. More than four tools appear in groups as you rotate. **G0 is Happy Hare gate 0**.
 
 The vertical diagram follows filament loading and withdrawal. The Gate circle fills green when filament is detected. The nozzle retains the previous filament color while residual material remains; purge has a small extrusion animation and follows Happy Hare's reported color. The MMU screen shows nozzle temperature; general printer information remains on Home.

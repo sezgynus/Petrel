@@ -39,10 +39,25 @@ class MMUUITests(unittest.TestCase):
         view.Enter_MMU_Menu()
         return view, data
 
+    def test_entry_and_submenu_focus_back_for_immediate_return(self):
+        v, _ = self.make()
+        self.assertEqual(v._mmu_selection, 0)
+        v.Goto_MainMenu = Mock()
+        self.press(v, 0)
+        v.Goto_MainMenu.assert_called_once()
+        v.Enter_MMU_Menu()
+        for page in ('more', 'gates', 'status'):
+            with self.subTest(page=page):
+                v._mmu_open(page)
+                self.assertEqual(v._mmu_selection, 0)
+                self.press(v, 0)
+                self.assertEqual(v._mmu_page, 'home')
+        v.pd.subscription.request.assert_not_called()
+
     def test_menu_controls_work_without_optional_rgb_metadata(self):
         v, data = self.make(gate_color_rgb=[])
         self.assertIsNone(v.pd.mmu)
-        self.assertEqual(v._mmu_selection, 1)
+        self.assertEqual(v._mmu_selection, 0)
         v._mmu_open('gate')
         v._mmu_gate = 2
         v.Draw_MMU_Menu()
