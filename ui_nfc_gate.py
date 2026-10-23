@@ -27,7 +27,7 @@ class NFCGateViewMixin:
         self._nfc_gate_popup = {
             'uid': uid, 'spool': spool,
             'origin': existing['origin'] if existing else self.checkkey,
-            'epoch': self.pd.state.epoch, 'selection': 1,
+            'epoch': self.pd.state.epoch, 'selection': 0,
             'phase': 'choose', 'message': '', 'operation': None}
         self.checkkey = self.NFCGateMenu
         self._list_render = None
