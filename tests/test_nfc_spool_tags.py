@@ -209,7 +209,7 @@ class SpoolUITests(unittest.TestCase):
         view._rfid_candidate = {'uid': ':'.join('%02X' % i for i in range(32))}
         view._draw_list_menu = Mock()
         view._draw_menu_text = Mock()
-        for mode in ('spool_detail', 'spool_waiting', 'spool_confirm'):
+        for mode in ('spool_detail', 'spool_confirm'):
             view._rfid_mode = mode
             view._draw_menu_text.reset_mock()
             view._spool_draw()

@@ -1,11 +1,38 @@
 """Spoolman inventory selection and NFC Core tag enrollment; LCD owner only."""
 import textwrap
 
-from lcd_resources import ICON_NFC
+from lcd_resources import (ICON_LIBRARY_ID, ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
+                           ICON_SPOOL, ICON_ASSIGN_TAG, ICON_NEXT_PAGE, ICON_RETRY,
+                           ICON_NFC_INTERFACE, ICON_SAVE_PROFILE)
 from spoolman_tags import PAGE_SIZE, BindingConflict
 
 
 class SpoolTagViewMixin:
+    def _spool_stop_scan_animation(self):
+        lcd = getattr(self, '_spool_scan_lcd', None)
+        self._spool_scan_lcd = None
+        if lcd is not None and getattr(lcd, '_closed', False) is not True:
+            lcd.configure_animation(3, False, ICON_LIBRARY_ID,
+                                    ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
+                                    56, 116, 20)
+
+    def _spool_draw_scan_popup(self):
+        lcd = self.lcd
+        if getattr(self, '_spool_scan_lcd', None) is lcd:
+            return  # Card/status events must not restart the native animation.
+        self.Clear_Popup_Area()
+        self.Draw_Title('Spool #%d' % self._spool_selected.id)
+        lcd.draw_rectangle(1, lcd.Color_Bg_Window, 14, 72, 258, 361)
+        lcd.draw_rectangle(0, lcd.Line_Color, 14, 72, 258, 361)
+        lines = ('Assign spool tag', 'Hold spool near reader', 'Press to cancel')
+        for y, label in zip((88, 291, 329), lines):
+            lcd.draw_text(False, False, lcd.font8x16, lcd.Popup_Text_Color,
+                          lcd.Color_Bg_Window, (272 - len(label) * 8) // 2, y, label)
+        lcd.configure_animation(3, True, ICON_LIBRARY_ID,
+                                ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST,
+                                56, 116, 20)
+        self._spool_scan_lcd = lcd
+
     def _spool_load(self, offset=0):
         self._rfid_cancel_assignment()
         self._spool_offset = offset
@@ -50,6 +77,7 @@ class SpoolTagViewMixin:
         if future is None or not future.done():
             return
         self._rfid_assignment = None
+        self._spool_stop_scan_animation()
         try:
             self._rfid_candidate = future.result()
         except Exception:
@@ -69,10 +97,10 @@ class SpoolTagViewMixin:
             choices.append(('page', max(0, self._spool_offset - PAGE_SIZE)))
         for spool in getattr(self, '_spool_rows', ()):
             label = ('#%d %s' % (spool.id, spool.vendor))[:24]
-            rows.append((label, ICON_NFC, spool, self._spool_row_painter(spool)))
+            rows.append((label, ICON_SPOOL, spool, self._spool_row_painter(spool)))
             choices.append(('spool', spool))
         if getattr(self, '_spool_more', False):
-            rows.append(('Next page', self.ICON_Info, None, None))
+            rows.append(('Next page', ICON_NEXT_PAGE, None, None))
             choices.append(('page', self._spool_offset + PAGE_SIZE))
         return rows, choices
 
@@ -117,6 +145,10 @@ class SpoolTagViewMixin:
 
     def _spool_draw(self):
         mode = self._rfid_mode
+        if mode == 'spool_waiting':
+            self._spool_draw_scan_popup()
+            return
+        self._spool_stop_scan_animation()
         selection = getattr(self, '_spool_selection', 0)
         if mode == 'spool_list':
             rows, _ = self._spool_entries()
@@ -132,7 +164,8 @@ class SpoolTagViewMixin:
         if mode in ('spool_error', 'spool_saved'):
             self._draw_list_menu('Spoolman', [
                 ('Back', self.ICON_Back, None, None),
-                ('Retry' if mode == 'spool_error' else 'Choose another spool', ICON_NFC, None, None)], selection)
+                ('Retry' if mode == 'spool_error' else 'Choose another spool',
+                 ICON_RETRY if mode == 'spool_error' else ICON_SPOOL, None, None)], selection)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 145, 263, 351)
             for i, line in enumerate(self._spool_lines(self._spool_message, limit=3)):
                 self._draw_menu_text(line, 8, 154 + i * 22)
@@ -142,7 +175,7 @@ class SpoolTagViewMixin:
             plan = self._spool_plan
             self._draw_list_menu('Move spool tag?', [
                 ('Cancel', self.ICON_Back, None, None),
-                ('Move and assign', ICON_NFC, None, None)], selection)
+                ('Move and assign', ICON_NFC_INTERFACE, None, None)], selection)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 145, 263, 351)
             source_ids = ','.join('#%d' % item.id for item in plan.sources)
             self._draw_menu_text(('From ' + (source_ids or 'Unassigned'))[:31], 8, 150)
@@ -157,7 +190,8 @@ class SpoolTagViewMixin:
         confirm = mode == 'spool_confirm'
         rows = [('Cancel' if waiting or confirm else 'Back', self.ICON_Back, None, None)]
         if not waiting:
-            rows.append(('Save tag' if confirm else 'Assign tag', ICON_NFC, None, None))
+            rows.append(('Save tag' if confirm else 'Assign tag',
+                         ICON_SAVE_PROFILE if confirm else ICON_ASSIGN_TAG, None, None))
         self._draw_list_menu('Save spool tag?' if confirm else 'Spool #%d' % spool.id, rows, selection)
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 145, 263, 351)
         if waiting:
@@ -170,6 +204,14 @@ class SpoolTagViewMixin:
     def _spool_input(self, event):
         mode = self._rfid_mode
         selected = getattr(self, '_spool_selection', 0)
+        if mode == 'spool_waiting':
+            if event == self.ENCODER_DIFF_ENTER:
+                self._rfid_cancel_assignment()
+                self._spool_selection = 0
+                self._list_render = None
+                self.Draw_RFID_Menu()
+                self.lcd.update()
+            return
         if mode == 'spool_list':
             _, choices = self._spool_entries()
             maximum = len(choices) - 1

@@ -9,7 +9,7 @@ class NFCDocumentationTests(unittest.TestCase):
         required = {item[0] for item in SPECS}
         scenes = [item for item in renderer.SCENES if item[1] == 'nfc']
         self.assertEqual({item[0] for item in scenes}, required)
-        self.assertEqual(len(scenes), 11)
+        self.assertEqual(len(scenes), 12)
         for name, _, english, turkish, draw in scenes:
             with self.subTest(scene=name):
                 self.assertTrue(english)

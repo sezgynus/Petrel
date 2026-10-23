@@ -138,3 +138,11 @@ ICON_NFC_SPOOL_LAST = 199
 # Small Graphite communication settings glyphs (20x20).
 ICON_NFC_INTERFACE = 155
 ICON_SERIAL_PORT = 156
+
+# Semantic RFID menu actions, shared small Graphite format.
+ICON_EMERGENCY_TAG = 39
+ICON_SPOOL = 82
+ICON_ASSIGN_TAG = 83
+ICON_REMOVE_TAG = 84
+ICON_NEXT_PAGE = 86
+ICON_RETRY = 88

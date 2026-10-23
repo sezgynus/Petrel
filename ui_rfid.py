@@ -1,7 +1,8 @@
 """RFID card information and explicit emergency-tag enrollment on the LCD owner."""
 import logging
 
-from lcd_resources import ICON_NFC
+from lcd_resources import (ICON_EMERGENCY_TAG, ICON_SPOOL, ICON_ASSIGN_TAG,
+                           ICON_REMOVE_TAG, ICON_SAVE_PROFILE)
 from ui_spool_tags import SpoolTagViewMixin
 from ui_nfc_gate import NFCGateViewMixin
 
@@ -17,6 +18,7 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
         return screen == self.RFIDMenu
 
     def _rfid_cancel_assignment(self):
+        self._spool_stop_scan_animation()
         future = getattr(self, '_rfid_assignment', None)
         self._rfid_assignment = None
         if future is not None:
@@ -69,15 +71,15 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
         elif mode == 'confirm':
             self._draw_list_menu('Save emergency tag?', [
                 ('Cancel', self.ICON_Back, None, None),
-                ('Save tag', ICON_NFC, None, None)],
+                ('Save tag', ICON_SAVE_PROFILE, None, None)],
                 getattr(self, '_rfid_selection', 0))
             uid = (getattr(self, '_rfid_candidate', None) or {}).get('uid')
             details = ('New emergency tag',)
         else:
             self._draw_list_menu('Emergency stop tag', [
                 ('Back', self.ICON_Back, None, None),
-                ('Replace tag' if uid else 'Assign tag', ICON_NFC, None, None),
-                ('Remove tag', self.ICON_Info, None, None)],
+                ('Replace tag' if uid else 'Assign tag', ICON_ASSIGN_TAG, None, None),
+                ('Remove tag', ICON_REMOVE_TAG, None, None)],
                 getattr(self, '_rfid_selection', 0))
             details = (getattr(self, '_rfid_message', '') or
                        ('Assigned' if uid else 'Not assigned'),)
@@ -104,8 +106,8 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
             self.pd.sync_nfc_event()
         self._draw_list_menu('NFC', [
             ('Back', self.ICON_Back, None, None),
-            ('Emergency stop tag', ICON_NFC, None, None),
-            ('Spoolman tag', ICON_NFC, None, None)],
+            ('Emergency stop tag', ICON_EMERGENCY_TAG, None, None),
+            ('Spoolman tag', ICON_SPOOL, None, None)],
             getattr(self, '_rfid_selection', 0))
         state = self.pd.system_info.get('rfid') or {}
         status = state.get('status') or self.pd.system_info.get('nfc', {}).get('status', 'Reading...')

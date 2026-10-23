@@ -1,5 +1,5 @@
 """Global NFC spool-to-gate prompt, using the existing guarded MMU session."""
-from lcd_resources import ICON_NFC
+from lcd_resources import ICON_SPOOL
 
 
 class NFCGateViewMixin:
@@ -51,7 +51,7 @@ class NFCGateViewMixin:
                 old = state.spool_ids[gate]
                 label = self._mmu_gate_label(gate)
                 label += '  #' + str(old) if old is not None and old > 0 else '  Empty'
-                rows.append((label, ICON_NFC, None, None))
+                rows.append((label, ICON_SPOOL, None, None))
                 operations.append(operation)
         return rows, operations, reason
 

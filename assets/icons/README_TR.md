@@ -42,7 +42,7 @@ Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan
 
 ## Paket boyutu ve ayrılan alan
 
-Mevcut referans paket **13×32 KiB = 416 KiB**, yani **2–14** slotlarını kullanır. Ayrılan üst sınır **14×32 KiB = 448 KiB**, yani **2–15** slotlarıdır; **15** büyüme için kullanılabilir. Mevcut kaynaklarla kullanılabilir boşluk **35.049 bayttır**: mevcut pakette 2.282 bayt ve ek slotta 32.767 bayt. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Dışa aktarma aracı artık yönetilen kütüphaneyi varsayılan alır; açık seçim için `--library 2` verin.
+Mevcut referans paket **14×32 KiB = 448 KiB**, yani **2–15** slotlarını kullanır; ayrılan üst sınır da budur. Bu ayrılmış blok alanıdır; birebir JPEG bütçesi değildir: dizin, yerleşim boşlukları ve ayrılmış son baytlar da alan tüketir. Data Flash metadata kaydı 0x0200–0x03FF aralığında 512 bayt kalır. Paketleyici yönetilen kütüphaneyi varsayılan alır; açık seçim için `--library 2` verin.
 
 ## JPEG uyumluluk kuralı
 
@@ -70,7 +70,7 @@ Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak
 
 **188–199** ID’leri (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`), onaylanan önizlemenin on iki opak **160×160** karesini içerir. Spool panele yaklaşır, NFC dalgaları yanar ve geri çekilir. Bu kaynak henüz hiçbir ekranda kullanılmaz; animasyon kanalı veya zamanlayıcı başlatılmaz. Gelecekteki kullanım için önerilen aralık 200 ms/kare (2,4 saniye/döngü).
 
-Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. Paket **13×32 KiB = 416 KiB** ile ayrılmış 2–15 aralığında 2–14 slotlarını kullanır.
+Kayıpsız PNG kaynakları `assets/icon-source/nfc-spool` içindedir. Yeniden üretim: `python assets/icon-source/nfc-spool/render.py`; ardından referans ICO’yu yukarıdaki paketleme komutuyla güncelleyin. Yeni JPEG’ler Flash sınırına sığmak için kalite **84**, optimize edilmiş Huffman tabloları, baseline **4:2:0** kullanır; mevcut ikonlar değişmez. RFID menü ikonlarıyla paket artık **14×32 KiB = 448 KiB**, yani 2–15 slotlarını kullanır.
 
 ## NFC ayarları işlem ikonları
 
@@ -78,10 +78,16 @@ NFC Settings ve seçim alt menüleri Info yerine alana uygun ikonlar kullanır: 
 
 ## Otomatik boşluk birleştirme
 
-Optimizasyon hem çalışma anındaki `build_library` hem ICO dışa aktarma/yeniden paketleme yolunda ortaktır; JPEG baytlarını, boyutları ve ikon ID’lerini değiştirmez. Girdi sırasından bağımsız deterministik yerleşim aynı kaynaklardan aynı ICO ve parmak izlerini üretir. Her blok için alt küme araması tamdır; blokların sırayla seçimi genel bin-packing optimumunu her gelecek ikon kümesi için garanti etmez. Sığan başlangıç yerleşimi kaybedilmez; ayrılan slot sınırı aşılırsa dosya üretilmez. Mevcut 234 ikon ve 13 blokta kullanılabilir **2.282 baytın tamamı son blokta** toplanır. Dizin 4096 bayttır ve her bloğun son baytı ayrılmış kalır. Gelecek kaynak değişikliklerinde kalan boşluk doğal olarak değişir. Mevcut paket önbelleği sayesinde arama UI karelerinde veya değişmeyen yeniden bağlantılarda tekrarlanmaz. İlk güncellemede yerleşimi değişen bloklar normal senkronizasyonla yüklenir.
+Optimizasyon hem çalışma anındaki `build_library` hem ICO dışa aktarma/yeniden paketleme yolunda ortaktır; JPEG baytlarını, boyutları ve ikon ID’lerini değiştirmez. Girdi sırasından bağımsız deterministik yerleşim aynı kaynaklardan aynı ICO ve parmak izlerini üretir. Her blok için alt küme araması tamdır; blokların sırayla seçimi genel bin-packing optimumunu her gelecek ikon kümesi için garanti etmez. Sığan başlangıç yerleşimi kaybedilmez; ayrılan slot sınırı aşılırsa dosya üretilmez. Paketleyici boşluğu bulabildiği en büyük kesintisiz alanda toplar; kaynak eklemeleri kalan alanı değiştirir. Dizin 4096 bayttır ve her bloğun son baytı ayrılmış kalır. Gelecek kaynak değişikliklerinde kalan boşluk doğal olarak değişir. Mevcut paket önbelleği sayesinde arama UI karelerinde veya değişmeyen yeniden bağlantılarda tekrarlanmaz. İlk güncellemede yerleşimi değişen bloklar normal senkronizasyonla yüklenir.
 
 ## Kütüphane 3 veya 7’den geçiş
 
 Bu güncellemeden sonraki ilk LCD bağlantısı CRC ile doğrulanmış metadata kaydını okur. Tamamlanmış eski dizin, yükleme başlayana kadar açılış animasyonunu sağlayabilir. İlk ikon bloğu değiştirilmeden önce tüm native animasyonlar durdurulur. Eski kütüphanenin hash kayıtları yeni başlangıç adresinde yeniden kullanılmaz: gereken bütün bloklar 2’den başlayarak yüklenir ve yeni dizin slot 2’ye en son yazılır. Doğrulanmış blok kayıtları yarıda kalan aktarımı devam ettirir; sıfır dizin hash’i kısmi kütüphaneden açılış animasyonu başlatılmasını engeller. Slot 0/1, ekran ayarları ve buzzer kayıtları korunur. SD kartla kaynak güncellemesi gerekmez. Sonraki değişmeyen bağlantılarda Flash yeniden yazılmaz. Referans çıktı, emülatör ve elle yeniden yükleme araçları `2.ICO` ile `lcd_resources.py` içindeki ortak kimliği kullanır. 14 blok hash’i mevcut 512 baytlık metadata kaydına sığar.
 
 Elle tanısal yükleme, Picture Flash yazımından önce eski metadata kaydını geçersiz kılar ve doğrular; sonraki normal açılış yönetilen kaynakları otomatik geri yükler. Blok kayıtlı zorunlu kaynak yüklemesi için `tools/reload_icons.py` kullanın.
+
+## RFID ve makara etiketi işlemleri
+
+Küçük 20×20 Graphite ikonları: acil durdurma etiketi **39**, makara **82**, etiket atama **83**, etiket silme **84**, sonraki sayfa **86**, yeniden deneme **88**. Kaydet mevcut **228**, taşıma **155**, önceki/geri **13** ikonunu kullanır. NFC, acil durdurma etiketi, Spoolman envanter/detay/onay ve gate seçimi menüleri bu amaca uygun ikonları paylaşır. Kaynaklar `assets/icon-source/rfid/render.py` ve ilgili SVG dosyalarıdır; baseline 4:2:0 JPEG, kalite 94 ve optimize Huffman tabloları kullanılır.
+
+Makara etiketi atama artık NFC paylaşımı tarzında popup içinde mevcut on iki 160×160 **188–199** karesini, native animasyon kanalı **3** ve 200 ms/kare ile gösterir. Tek yakalama işlemi başlatılır; yeniden çizim ve encoder dönüşü animasyonu yeniden başlatmaz. Tıklama iptal eder. Kart gelince animasyon durur ve açık UID/kaydet onayı açılır; yalnız okutmayla Spoolman kaydı yazılmaz. İptal, hata, pencere değişimi, güç popup’ı ve bağlantı kesilmesi/kapanış animasyonu durdurur veya kaydını temizler; korunan yakalama, kaynak ekrana dönünce doğru biçimde sürer ya da tamamlanır.

@@ -9,6 +9,7 @@ SPECS = (
     ('nfc-spool-list', 'list', 'Spoolman inventory with identity and color', 'Kimlik ve renk ile Spoolman envanteri'),
     ('nfc-spool-detail', 'detail', 'Spool identity and HEX color', 'Makara kimliği ve HEX rengi'),
     ('nfc-spool-multicolor', 'multicolor', 'Long filament name and multiple colors', 'Uzun filament adı ve çoklu renk'),
+    ('nfc-spool-waiting', 'waiting', 'Native spool tag capture popup', 'Native makara kartı okutma popup penceresi'),
     ('nfc-spool-confirm', 'confirm', 'Confirm a captured spool tag', 'Okutulan makara kartını onaylama'),
     ('nfc-spool-transfer', 'transfer', 'Confirm moving a tag between spools', 'Kartı makaralar arasında taşıma onayı'),
     ('nfc-gate-choose', 'gate_choose', 'Choose a gate for the scanned spool', 'Okutulan makara için gate seçme'),
@@ -54,6 +55,8 @@ def register(scene, canvas, finish):
                 view._rfid_mode = 'spool_detail'
                 if mode == 'multicolor':
                     view._spool_selected = multi
+            elif mode == 'waiting':
+                view._rfid_mode = 'spool_waiting'
             elif mode == 'confirm':
                 view._rfid_mode = 'spool_confirm'
             elif mode == 'transfer':

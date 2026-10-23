@@ -455,6 +455,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 logging.exception('Remote Display unavailable; continuing with physical LCD')
 
     def _uart_failed(self):
+        self._spool_scan_reconnect_stop = bool(getattr(self, '_spool_scan_reconnect_stop', False)
+                                               or getattr(self, '_spool_scan_lcd', None))
+        self._spool_scan_lcd = None
         self._power_hold_started = None
         self._remote_power_hold_active = False
         self._remote_power_hold_deadline = None
@@ -637,6 +640,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 options['startup_progress'] = lambda lcd, value: self._draw_boot_progress(value, lcd)
             self.lcd = T5UIC1Display(self._settings[0], handshake_timeout=1.0,
                                  handshake_attempts=1, **options)
+            if getattr(self, '_spool_scan_reconnect_stop', False):
+                from lcd_resources import ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST
+                self.lcd.configure_animation(3, False, self.ICON,
+                    ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST, 56, 116, 20)
+                self._spool_scan_reconnect_stop = False
             async_flash = (getattr(self.lcd, 'SUPPORTS_NONBLOCKING_FLASH',
                                    None) is True)
             if async_flash:
@@ -1342,6 +1350,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def _close_resources(self):
         if self._closed:
             return
+        self._spool_stop_scan_animation()
         self._closed = True
         for resource in (getattr(self, '_software_update', None),
                          getattr(self, '_remote_display', None),
@@ -3638,6 +3647,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
 
     def Clear_Main_Window(self):
+        self._spool_stop_scan_animation()
         self._info_render_scroll = None
         component = getattr(self, '_nfc_uri_share', None)
         if component is not None:
@@ -3647,6 +3657,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self.Clear_Menu_Area()
 
     def Clear_Popup_Area(self):
+        self._spool_stop_scan_animation()
         component = getattr(self, '_nfc_uri_share', None)
         if component is not None:
             component.stop_animation()

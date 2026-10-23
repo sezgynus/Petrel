@@ -42,7 +42,7 @@ Fan frames **235–242** use a neutral fan symbol on the dashboard's **RGB565 `0
 
 ## Package size and reserved space
 
-The current reference pack occupies **13×32 KiB = 416 KiB**, slots **2–14**. The reserved maximum is **14×32 KiB = 448 KiB**, slots **2–15**; slot **15** is available for growth. With the current sources, usable free space is **35,049 bytes**: 2,282 bytes inside the current pack plus 32,767 bytes in the extra slot. This is allocated block space, not an exact JPEG payload budget: the directory, placement gaps and reserved final bytes also consume space. Picture Flash is separate from the **512-byte Data Flash metadata record at 0x0200–0x03FF**. The export tool now defaults to the managed library; explicit exports use `--library 2`.
+The current reference pack occupies **14×32 KiB = 448 KiB**, slots **2–15**, which is also the reserved maximum. This is allocated block space, not an exact JPEG payload budget: directory, placement gaps and reserved final bytes consume space too. Data Flash metadata remains 512 bytes at 0x0200–0x03FF. The exporter defaults to the managed library; explicit exports use `--library 2`.
 
 ## JPEG compatibility rule
 
@@ -70,7 +70,7 @@ IDs **186/187** (`ICON_NFC_SHARE_NORMAL` / `ICON_NFC_SHARE_SELECTED`) provide no
 
 IDs **188–199** (`ICON_NFC_SPOOL_FIRST` / `ICON_NFC_SPOOL_LAST`) contain the approved preview's twelve opaque **160×160** frames. The spool approaches the panel, NFC waves light up, and the spool retreats. No screen uses these resources yet; no animation channel or timer is started. The suggested interval for future use is 200 ms/frame (2.4 seconds/loop).
 
-Lossless PNG sources are in `assets/icon-source/nfc-spool`. Regenerate with `python assets/icon-source/nfc-spool/render.py`, then update the reference ICO using the packing command above. The new JPEGs use quality **84**, optimized Huffman tables and baseline **4:2:0** to fit Flash capacity; existing icons remain unchanged. The pack occupies **13×32 KiB = 416 KiB**, using slots 2–14 within reserved slots 2–15.
+Lossless PNG sources are in `assets/icon-source/nfc-spool`. Regenerate with `python assets/icon-source/nfc-spool/render.py`, then update the reference ICO using the packing command above. The new JPEGs use quality **84**, optimized Huffman tables and baseline **4:2:0** to fit Flash capacity; existing icons remain unchanged. With the RFID menu icons, the pack now occupies **14×32 KiB = 448 KiB**, slots 2–15.
 
 ## NFC settings action icons
 
@@ -78,10 +78,16 @@ NFC Settings and its choice submenus use purpose-specific icons instead of Info:
 
 ## Automatic gap consolidation
 
-The optimizer is shared by runtime `build_library` and ICO export/repacking; JPEG bytes, dimensions and icon IDs remain unchanged. Deterministic placement independent of input order gives identical ICO bytes and fingerprints for identical sources. Each block's subset search is exact; sequential block selection does not guarantee the global bin-packing optimum for every future icon set. A valid baseline is retained if refinement fails, and the reserved slot limit is enforced before producing a file. For the current 234 icons and 13 blocks, **all 2,282 available bytes are consolidated in the final block**. The directory occupies 4096 bytes and each block's last byte remains reserved. Future source changes naturally change available space. The existing pack cache avoids repeating searches in UI frames or unchanged reconnects. On the first update, blocks affected by the new layout upload through normal synchronization.
+The optimizer is shared by runtime `build_library` and ICO export/repacking; JPEG bytes, dimensions and icon IDs remain unchanged. Deterministic placement independent of input order gives identical ICO bytes and fingerprints for identical sources. Each block's subset search is exact; sequential block selection does not guarantee the global bin-packing optimum for every future icon set. A valid baseline is retained if refinement fails, and the reserved slot limit is enforced before producing a file. The optimizer consolidates available bytes into the largest contiguous hole it can find; source additions change the resulting free space. The directory occupies 4096 bytes and each block's last byte remains reserved. Future source changes naturally change available space. The existing pack cache avoids repeating searches in UI frames or unchanged reconnects. On the first update, blocks affected by the new layout upload through normal synchronization.
 
 ## Migration from library 3 or 7
 
 The first LCD connection after this update reads CRC-verified metadata. A committed old directory may provide the boot animation until uploading begins. Before any icon block is replaced, every native animation is stopped. Old-library hashes are never reused at the new base: all required blocks are uploaded to slots 2 onward, with the new directory in slot 2 written last. Verified per-block checkpoints resume interrupted transfers; a zero directory hash prevents boot animation from a partial library. Slots 0/1, display settings and buzzer records are preserved. No SD-card resource update is required. Unchanged later connections do not rewrite Flash. Reference exports, emulator and manual reload tools use `2.ICO` and the shared `lcd_resources.py` identity. The 14 block hashes still fit the existing 512-byte metadata record.
 
 Manual diagnostic uploads invalidate and verify the old metadata before overwriting Picture Flash; the next normal startup restores the managed sources automatically. Use `tools/reload_icons.py` for a checkpointed forced source reload.
+
+## RFID and spool-tag actions
+
+Small 20×20 Graphite icons: emergency tag **39**, spool **82**, assign tag **83**, remove tag **84**, next page **86**, retry **88**. Save reuses **228** and transfer reuses **155**; previous/back uses **13**. NFC, emergency-tag, Spoolman inventory/detail/confirmation and gate-choice menus share these semantic glyphs. Sources: `assets/icon-source/rfid/render.py` and the matching SVGs; baseline 4:2:0 JPEG, quality 94, optimized Huffman tables.
+
+Spool tag enrollment now displays an NFC-share-style popup with the existing twelve 160×160 frames **188–199**, native animation channel **3**, 200 ms/frame. Only one capture is started; redraws and encoder rotation do not restart the animation. Clicking cancels. Arrival stops the animation and opens explicit UID/save confirmation; no Spoolman write occurs on scan alone. Cancellation, failure, window replacement, power overlays and disconnect/close stop or clear the animation; a retained capture resumes or completes correctly when the origin screen returns.
