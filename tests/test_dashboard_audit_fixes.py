@@ -6,7 +6,7 @@ from test_capabilities import display,printer,snapshot
 from test_regressions import ui,backend
 from maintenance_layout import draw_maintenance
 from maintenance_experience import Screen,Choice
-from graphite_theme import AXIS_HOMED_COLOR
+from lcd_resources import ICON_PROGRESS_FILL
 
 
 class DashboardAuditFixes(unittest.TestCase):
@@ -44,11 +44,13 @@ class DashboardAuditFixes(unittest.TestCase):
             v._maintenance_page=page
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertIn(call(1,AXIS_HOMED_COLOR,260,12,263,15),v.lcd.draw_rectangle.call_args_list)
+            self.assertIn(call(1,v.lcd.Color_Bg_Blue,256,10,263,17),v.lcd.draw_rectangle.call_args_list)
+            self.assertTrue(any(c.args[1:4]==(ICON_PROGRESS_FILL,256,10) for c in v.lcd.show_icon.call_args_list))
             self.assertTrue(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
             v.lcd.reset_mock()
             draw_maintenance(v,screen)
-            self.assertFalse(any(c.args[-4:]==(260,12,263,15) for c in v.lcd.draw_rectangle.call_args_list))
+            self.assertFalse(any(c.args[-4:]==(256,10,263,17) for c in v.lcd.draw_rectangle.call_args_list))
+            self.assertFalse(any(c.args[1] == ICON_PROGRESS_FILL for c in v.lcd.show_icon.call_args_list))
             self.assertFalse(any(c.args[-2:]==(193,4) for c in v.lcd.show_icon.call_args_list))
 
     def test_titles_always_reserve_the_wifi_region(self):

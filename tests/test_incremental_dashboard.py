@@ -5,7 +5,7 @@ from test_regressions import ui
 from test_mmu_control import mmu_snapshot
 from printer_state import PrinterState
 from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
-from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_PROGRESS_FILL
 from unittest.mock import call
 
 
@@ -136,8 +136,11 @@ class IncrementalDashboardTests(unittest.TestCase):
         v = self.make()
         v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-58)
         self.assertTrue(v._draw_header_clock())
-        v.lcd.show_icon.assert_called_once_with(
+        v.lcd.show_icon.assert_any_call(
             v.ICON, ICON_WIFI_STRONG, 193, 4, background=False, enhanced=True)
+        v.lcd.show_icon.assert_any_call(
+            v.ICON, ICON_PROGRESS_FILL, 256, 10, background=False, enhanced=True)
+        self.assertEqual(v.lcd.show_icon.call_count, 2)
         v.lcd.reset_mock()
         self.assertFalse(v._draw_header_clock())
         self.assertEqual(v.lcd.method_calls, [])
@@ -162,12 +165,12 @@ class IncrementalDashboardTests(unittest.TestCase):
         v = self.make()
         v.pd.system_info.update(wifi_ssid='Workshop', wifi_rssi=-60)
         v.Clear_Title_Bar()
-        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
-                         (ICON_WIFI_STRONG, 193, 4))
+        self.assertIn((ICON_WIFI_STRONG, 193, 4),
+                      [c.args[1:] for c in v.lcd.show_icon.call_args_list])
         v.lcd.reset_mock()
         v.Clear_Title_Bar()
-        self.assertEqual(v.lcd.show_icon.call_args.args[1:],
-                         (ICON_WIFI_STRONG, 193, 4))
+        self.assertIn((ICON_WIFI_STRONG, 193, 4),
+                      [c.args[1:] for c in v.lcd.show_icon.call_args_list])
         v.lcd.reset_mock()
         v.pd.system_info.update(network='Online', wifi_ssid='Disconnected', wifi_rssi=None)
         self.assertTrue(v._draw_header_clock())
