@@ -14,9 +14,6 @@ import sys
 import tempfile
 import time
 
-# Executed as a script under sudo, outside Petrel's package import path.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
 PINS = {12: (0, 4), 13: (1, 4), 18: (0, 2), 19: (1, 2)}
 BEGIN = '# BEGIN PETREL HARDWARE PWM'
 END = '# END PETREL HARDWARE PWM'
@@ -89,9 +86,13 @@ def install(repo, user, gpio):
     after = render_boot(before, gpio)
     dropin = Path('/etc/systemd/system/Petrel.service.d/50-hardware-pwm.conf')
     repo = Path(repo).resolve()
-    script = repo / 'tools/pwm_install.py'
-    if any(char.isspace() for char in str(script)):
-        raise ValueError('Petrel checkout path cannot contain whitespace')
+    # ExecStartPre runs with root privileges. Never execute scripts from a
+    # user-writable home directory under root on every service restart.
+    script = Path('/usr/local/libexec/petrel-pwm-helper')
+    source = (repo / 'tools/pwm_install.py').read_text()
+    if not script.exists() or script.read_text() != source:
+        atomic(script, source, mode=0o755)
+    os.chown(script, 0, 0)
     # EnvironmentFile is read by systemd before ExecStartPre.
     dropin_text = ('# Petrel managed hardware PWM setup\n'
                    '[Service]\n'
@@ -120,9 +121,24 @@ def gpio_is_pwm(gpio):
     return result.returncode == 0 and 'PWM' in result.stdout.upper()
 
 
+def find_chip(root=Path('/sys/class/pwm')):
+    candidates = []
+    for chip in sorted(root.glob('pwmchip*')):
+        try:
+            if int((chip / 'npwm').read_text()) >= 2:
+                candidates.append(chip)
+        except (OSError, ValueError):
+            pass
+    bcm = [path for path in candidates if ('3f20c000.pwm' in str(path.resolve())
+                                          or 'fe20c000.pwm' in str(path.resolve()))]
+    if len(bcm) == 1:
+        return bcm[0]
+    if len(candidates) == 1:
+        return candidates[0]
+    raise OSError('BCM2835 hardware PWM sysfs device not uniquely available')
+
+
 def channel_dir(gpio):
-    # Imported at execution time: configure.py only needs the installer CLI.
-    from buzzer_pwm import find_chip
     chip = find_chip()
     channel = PINS[gpio][0]
     path = chip / ('pwm' + str(channel))
