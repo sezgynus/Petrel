@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from threading import Condition, Thread
 import logging
+import math
 import struct
 import time
 import zlib
@@ -61,9 +62,15 @@ class Settings:
 
 
 class Player:
+    """Single owning thread for PWM: emergency > UI tones > Klipper SET_PIN.
+
+    External SET_PIN levels persist until changed or a 30-second safety cutoff.
+    A UI click briefly overlays that state; emergency clears it permanently.
+    No listener or UI thread ever writes sysfs directly.
+    """
+    EXTERNAL_MAX_SECONDS = 30.
+
     def __init__(self, subscription=None, driver_factory=HardwarePWM):
-        # 'subscription' is accepted only so older callers do not break.
-        # Hardware sound is completely independent of Klipper/Moonraker.
         self.driver_factory = driver_factory
         self.condition = Condition()
         self.pending = None
@@ -71,6 +78,11 @@ class Player:
         self.stopped = False
         self.generation = 0
         self.last_error = None
+        self.external = None
+        self.external_expires = 0.
+        self.external_dirty = False
+        self.emergency_active = False
+        self.emergency_pending = False
         self.thread = Thread(target=self._run, name='petrel-buzzer', daemon=True)
         self.thread.start()
 
@@ -80,7 +92,8 @@ class Player:
         if not settings.enabled or settings.volume == 0 or tone == 0:
             return False
         with self.condition:
-            if self.stopped or (not priority and (self.busy or self.pending is not None)):
+            if (self.stopped or self.emergency_active or self.emergency_pending
+                    or (not priority and (self.busy or self.pending is not None))):
                 return False
             if priority:
                 self.generation += 1
@@ -88,23 +101,38 @@ class Player:
             self.condition.notify_all()
             return True
 
-    def play_emergency(self):
-        """Preempt ordinary feedback with a fixed full-volume emergency alert.
+    def set_external(self, value, cycle_time):
+        """Queue an absolute duty fraction from Klipper, independent of UI volume."""
+        if (not math.isfinite(value) or not 0. <= value <= 1.
+                or not math.isfinite(cycle_time) or not .00005 <= cycle_time <= 1.):
+            return False
+        with self.condition:
+            if self.stopped or self.emergency_active or self.emergency_pending:
+                return False
+            self.external = (value, cycle_time) if value else None
+            self.external_expires = time.monotonic() + self.EXTERNAL_MAX_SECONDS
+            self.external_dirty = True
+            self.condition.notify_all()
+            return True
 
-        This is a fast, nonblocking hardware-only enqueue: even a Klipper
-        shutdown or disconnected Moonraker cannot cancel or delay playback.
-        Caller enforces the user's master Buzzer On/Off preference.
-        """
+    def play_emergency(self):
+        """Preempt all sounds; Klipper events cannot interrupt the alarm."""
         with self.condition:
             if self.stopped:
                 return False
             self.generation += 1
-            self.pending = (Settings(enabled=True, volume=100), 'emergency', self.generation)
+            self.external = None
+            self.external_dirty = False
+            self.emergency_pending = True
+            self.pending = (Settings(enabled=True, volume=100), 'emergency',
+                            self.generation)
             self.condition.notify_all()
             return True
 
     def cancel(self):
         with self.condition:
+            if self.emergency_active or self.emergency_pending:
+                return  # The emergency alert cannot be cancelled by UI preferences.
             self.pending = None
             self.generation += 1
             self.condition.notify_all()
@@ -114,45 +142,75 @@ class Player:
         try:
             while True:
                 with self.condition:
-                    self.condition.wait_for(lambda: self.stopped or self.pending is not None)
+                    remaining = (max(0., self.external_expires - time.monotonic())
+                                 if self.external is not None else None)
+                    self.condition.wait_for(
+                        lambda: self.stopped or self.pending is not None or self.external_dirty,
+                        timeout=remaining)
                     if self.stopped:
                         return
-                    settings, tone, generation = self.pending
-                    self.pending = None
-                    self.busy = True
+                    if self.external is not None and time.monotonic() >= self.external_expires:
+                        self.external = None
+                        self.external_dirty = True
+                    if self.pending is not None:
+                        settings, tone, generation = self.pending
+                        self.pending = None
+                        self.busy = True
+                        self.emergency_active = tone == 'emergency'
+                        if self.emergency_active:
+                            self.emergency_pending = False
+                        external_state = None
+                    else:
+                        settings = tone = generation = None
+                        external_state = self.external
+                        self.external_dirty = False
                 try:
                     if driver is None:
                         driver = self.driver_factory()
                     self.last_error = None
-                    pattern = EMERGENCY_PATTERN if tone == 'emergency' else PATTERNS[tone]
-                    for frequency, duration in pattern:
-                        with self.condition:
-                            if self.stopped or generation != self.generation:
-                                break
-                        if frequency:
-                            driver.tone(frequency, settings.volume)
-                        else:
+                    if tone is None:
+                        if external_state is None:
                             driver.off()
-                        with self.condition:
-                            self.condition.wait_for(
-                                lambda: self.stopped or generation != self.generation,
-                                timeout=duration)
-                        driver.off()
+                        else:
+                            value, cycle_time = external_state
+                            driver.set_pwm(1. / cycle_time, value)
+                    else:
+                        pattern = EMERGENCY_PATTERN if tone == 'emergency' else PATTERNS[tone]
+                        for frequency, duration in pattern:
+                            with self.condition:
+                                if self.stopped or generation != self.generation:
+                                    break
+                            if frequency:
+                                driver.tone(frequency, settings.volume)
+                            else:
+                                driver.off()
+                            with self.condition:
+                                self.condition.wait_for(
+                                    lambda: self.stopped or generation != self.generation,
+                                    timeout=duration)
+                            driver.off()
                 except (OSError, ValueError) as error:
-                    # A missing overlay/permission must not block printer UI.
                     message = str(error)
                     if message != self.last_error:
                         logging.warning('Hardware buzzer unavailable: %s', message)
                         self.last_error = message
                     driver = None
                 finally:
-                    if driver is not None:
-                        try:
-                            driver.off()
-                        except OSError:
-                            driver = None
-                    with self.condition:
-                        self.busy = False
+                    if tone is not None:
+                        if driver is not None:
+                            try:
+                                driver.off()
+                            except OSError:
+                                driver = None
+                        with self.condition:
+                            self.busy = False
+                            if tone == 'emergency':
+                                self.emergency_active = False
+                                self.external = None
+                                self.external_dirty = False
+                            elif self.external is not None:
+                                self.external_dirty = True
+                            self.condition.notify_all()
         finally:
             if driver is not None:
                 try:
@@ -164,6 +222,7 @@ class Player:
         with self.condition:
             self.stopped = True
             self.pending = None
+            self.external = None
             self.generation += 1
             self.condition.notify_all()
         self.thread.join(timeout=2)
