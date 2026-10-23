@@ -6,7 +6,7 @@ from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
 from lcd_resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 from lcd_resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL, ICON_STOP_BUTTON_SELECTED
 from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
-from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_NFC
+from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_NFC, ICON_PROGRESS_TRACK, ICON_PROGRESS_FILL
 from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
 import display_settings
 from display_numbers import fixed, compact, motion_text, js_round, fit_decimal
@@ -3052,6 +3052,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         show_theme_icon(self.lcd, self.ICON, self.ICON_Back, 6, 5)
 
     def Draw_Title(self, title, back=False):
+        # Wi-Fi begins at x=193; the clock shifts left for the 8x8 state cap.
         # Wi-Fi begins at x=193; an 8x16 title gets at most 22 cells,
         # leaving a three-pixel gap before the status cluster.
         title = T5UIC1Display._panel_text(str(title))
@@ -3082,23 +3083,22 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return True
 
     def _draw_klipper_state(self):
-        # No new icon or polling. The subscription snapshot distinguishes
-        # ready / connecting / disconnected, even when Wi-Fi is unavailable.
+        # Reuse the actual progress-bar JPEG caps: ready is the fill color,
+        # every non-ready state is the track color. Recoloring those assets
+        # therefore updates both the progress bar and this indicator.
+        # No polling or additional LCD library resources are needed.
         connection = self.pd.state.connection
-        if connection == 'ready' and not self.pd.connection_error:
-            color = AXIS_HOMED_COLOR
-        elif connection == 'connecting':
-            color = AXIS_UNHOMED_COLOR
-        elif connection in ('disconnected', 'error', 'shutdown') or self.pd.connection_error:
-            color = KLIPPER_ERROR_COLOR
-        else:
-            color = AXIS_UNKNOWN_COLOR
-        key = (id(self.lcd), color)
+        error = bool(self.pd.connection_error)
+        icon = ICON_PROGRESS_FILL if connection == 'ready' and not error else ICON_PROGRESS_TRACK
+        key = (id(self.lcd), connection, error, icon)
         if key == getattr(self, '_header_klipper_drawn', None):
             return False
-        # Clock occupies x=217..256; Wi-Fi occupies x=193..212.
-        # This 4x4 dot at x=260..263 leaves eight pixels on the right.
-        self.lcd.draw_rectangle(1, color, 260, 12, 263, 15)
+        # Wi-Fi ends at x=212; clock x=214..253; cap x=256..263.
+        # The 8x8 artwork has rounded edges and preserves the 8px right margin.
+        # Clear before changing caps: enhanced JPEG drawing leaves black
+        # background pixels transparent and must not retain the previous state.
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 256, 10, 263, 17)
+        show_theme_icon(self.lcd, self.ICON, icon, 256, 10)
         self._header_klipper_drawn = key
         return True
 
@@ -3108,7 +3108,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         clock_changed = key != getattr(self, '_header_clock_drawn', None)
         if clock_changed:
             self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                               self.lcd.Color_Bg_Blue, 217, 6, value)
+                               self.lcd.Color_Bg_Blue, 214, 6, value)
             self._header_clock_drawn = key
         wifi_changed = self._draw_wifi_signal()
         klipper_changed = self._draw_klipper_state()
