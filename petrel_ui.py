@@ -3372,6 +3372,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def _finish_nfc_share_popup(self):
         if not getattr(self, '_nfc_share_popup', None):
             return
+        self._nfc_share_component().stop_animation()
         self._nfc_share_popup = None
         if self._uart_online and self.checkkey == self.Info:
             self._info_render_scroll = None
@@ -3381,6 +3382,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def _cancel_nfc_share_popup(self, redraw=True):
         if not getattr(self, '_nfc_share_popup', None):
             return
+        self._nfc_share_component().stop_animation()
         self._nfc_share_popup = None
         self._nfc_share_component().cancel()
         if redraw and self._uart_online and self.checkkey == self.Info:
@@ -3616,6 +3618,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self.Clear_Menu_Area()
 
     def Clear_Popup_Area(self):
+        component = getattr(self, '_nfc_uri_share', None)
+        if component is not None:
+            component.stop_animation()
         self._info_render_scroll = None
         # Popup overwrites previously cached screw graphics; power-cancel
         # must repaint all four corners when returning to that screen.

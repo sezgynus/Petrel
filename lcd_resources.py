@@ -122,3 +122,7 @@ ICON_NFC = 171
 # Dedicated normal/selected RFID home tiles (110x100 Graphite).
 ICON_RFID_HOME_NORMAL = 172
 ICON_RFID_HOME_SELECTED = 173
+
+# Twelve opaque 160x160 phone-approach frames, panel-native animation.
+ICON_NFC_SHARE_FIRST = 174
+ICON_NFC_SHARE_LAST = 185

@@ -106,3 +106,31 @@ class NFCShareUITests(unittest.TestCase):
         self.assertTrue(view._start_nfc_share_popup())
         self.assertEqual(view._nfc_share_popup, 'failed')
         self.assertTrue(view._nfc_share_component().visible)
+
+    def test_native_animation_starts_once_and_stops_on_completion(self):
+        view, core = self.screen()
+        core.share_ndef_uri.return_value = Future()
+        view._start_nfc_share_popup()
+        view.lcd.configure_animation.assert_called_once_with(
+            2, True, 3, 174, 185, 56, 116, 20)
+        view._process_input_untraced(InputEvent('nfc_share_done', 0, 0, 0))
+        self.assertIn(((2, False, 3, 174, 185, 56, 116, 20), {}),
+                      view.lcd.configure_animation.call_args_list)
+
+    def test_native_animation_stops_on_failure_cancel_and_window_replacement(self):
+        for action in ('failure', 'cancel', 'main', 'popup'):
+            with self.subTest(action=action):
+                view, core = self.screen()
+                core.share_ndef_uri.return_value = Future()
+                view._start_nfc_share_popup()
+                view.lcd.configure_animation.reset_mock()
+                if action == 'failure':
+                    view._process_input_untraced(InputEvent('nfc_share_failed', 0, 0, 0))
+                elif action == 'cancel':
+                    view._cancel_nfc_share_popup()
+                elif action == 'main':
+                    view.Clear_Main_Window()
+                else:
+                    view.Clear_Popup_Area()
+                view.lcd.configure_animation.assert_called_once_with(
+                    2, False, 3, 174, 185, 56, 116, 20)

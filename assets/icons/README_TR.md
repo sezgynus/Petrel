@@ -42,7 +42,7 @@ Fan kareleri **235–242**, dashboard'un **RGB565 `0x18C4`** zemininde nötr fan
 
 ## Paket boyutu ve ayrılan alan
 
-Mevcut referans paket **10×32 KiB = 320 KiB**, yani **3–12** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; **13–15** büyüme için kullanılabilir. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
+Mevcut referans paket **12×32 KiB = 384 KiB**, yani **3–14** slotlarını kullanır. Ayrılan üst sınır **13×32 KiB = 416 KiB**, yani **3–15** slotlarıdır; **15** büyüme için kullanılabilir. Bu ayrılmış blok alanıdır; birebir JPEG veri bütçesi değildir: dizin, yerleşim boşlukları ve blokların ayrılmış son baytları da alan tüketir. Picture Flash, **0x0200–0x03FF adresindeki 512 baytlık Data Flash metadata kaydından** ayrıdır. Export sırasında `--library 3` verin; aracın eski varsayılanı 7'dir ve kullanılabilir slot sayısı farklıdır.
 
 ## JPEG uyumluluk kuralı
 
@@ -50,10 +50,14 @@ Yönetilen tüm ikonlar baseline RGB/YCbCr JPEG ve **4:2:0** örnekleme kullanma
 
 Maintenance mevcut küçük Graphite menü ikonlarını yeniden kullanır. Eski büyük kutu ID’leri 156–163 kaldırılmıştır; paketlenmez ve UI tarafından kullanılmaz.
 
-Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 10×32 KiB yer kaplar.
+Küçük bakım amaç ikonları 164–167 ID’leridir (20×20): onay çemberi, aktivite dalgası, ampul ve takvim. Wi-Fi gücü için **168 (zayıf), 169 (orta), 170 (güçlü)** ID’leri kullanılır (20×20). JPEG’lerin siyah zemini, mevcut native gelişmiş şeffaflık filtresiyle kaldırılır; düzenlenebilir SVG kaynakları `assets/icon-source` içindedir. Tümü Graphite çizgisini ve baseline 4:2:0 JPEG kodlamasını izler. Referans paket artık 12×32 KiB yer kaplar.
 
 NFC ayarları menü satırı, tanınan NFC N siluetini ortak 20×20 Graphite turkuaz tarzında gösteren ikon **171** (`ICON_NFC`) kullanır. Salt okunur NFC özellik durumu Info düzenini izler ve işlem ikonu kullanmaz. Düzenlenebilir ikon kaynağı `assets/icon-source/171.svg` dosyasındadır.
 
 NFC silueti [Pictogrammers Material Design Icons — nfc](https://github.com/Templarian/MaterialDesign/blob/master/svg/nfc.svg) kaynağından uyarlanmıştır; oranları korunmuş, yalnız eşit ölçekleme ve Graphite renklendirmesi uygulanmıştır. Kaynak atfı ve lisans [NFC-LICENSE.txt](../icon-source/NFC-LICENSE.txt) dosyasındadır.
 
 RFID ana menüsü, NFC N sembollü **172/173** normal/seçili ikonlarını (110×100) kullanır. Graphite kart yüzeyleri, seçim çerçevesi ve native etiket alanı diğer ana menü ikonlarıyla aynıdır; Info ikonunu paylaşmaz.
+
+## NFC telefonu yaklaştırma animasyonu
+
+Share via NFC, popup RGB565 `0x2967` zemininde **174–185** ID’li on iki opak 160×160 kare kullanır. DWIN native `0x28`, animasyon kanalı **2**, **20×10 ms** aralıkla **2,4 saniyede** döner; sunucuda kare zamanlayıcısı yoktur. 0/1 kanalları açılış/fan için korunur. Kapanma, tamamlanma, hata ve pencere değişimi yeniden çizimden önce kanal 2’yi durdurur. Başarısız paylaşımda ilk kare animasyonsuz gösterilir. Yeniden üretim: `python assets/icon-source/nfc-share/render.py`; eklenen NFC N-Mark bitmap’i onaylanan önizlemenin simgesini korur. N-Mark, NFC’yi tanımlar (NFC Forum).
