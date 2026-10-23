@@ -590,6 +590,26 @@ NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklat
 UID eşleştirmesi kimlik doğrulama veya donanımsal güvenlik devresi değildir;
 çalışan Pi'ye, okuyucuya ve Moonraker bağlantısına bağlıdır.
 
+### NFC kartıyla MMU gate atama
+
+Spoolman **Tags** üzerinden eşlenmiş bir kart normal bir Petrel ekranında
+okutulunca **Spool #ID: choose gate** penceresi açılır. Altta dört soluk gate
+makarası, üstte kartın bağlı olduğu makaranın gerçek rengindeki hareketli
+makara vardır. Bu makaralar Home ve MMU menüsündeki aynı ortak
+**SpoolView** simgeleridir; yeni bir ikon kopyası kullanılmaz. Üretici,
+filament adı, malzeme ve makara ID'si hareketli makaranın bilgi kartında
+görünür. Gate altındaki yazılar mevcut makara atamasını gösterir.
+Enkoderle gate seçilir (dörtten fazla gate için sayfalama); basıldığında
+önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare komutu başlatılınca
+makara aşağı hareket eder ve yalnız başarılı geri okuma sonrasında
+seçilen gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
+Bu işlem filament yüklemez ve motor hareketi başlatmaz.
+
+Yazdırma, duraklatma/kurtarma, meşgul veya uygun olmayan MMU durumunda
+atama engellenir. Onaydan hemen önce NFC kart eşleşmesi yeniden okunur;
+MMU işlemi mevcut korumalı MMUSession mekanizmasıyla yürütülür.
+Başarı, gerçek gate map geri okumasından sonra gösterilir.
+
 ### Spoolman makarasına NFC kartı atama
 
 **Home → NFC → Spoolman tag** yoluyla Spoolman envanterini açın. Liste 20'şer
