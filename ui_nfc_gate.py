@@ -338,8 +338,9 @@ class NFCGateViewMixin:
             popup['message'] = str(error)[:90] if isinstance(error, ValueError) else 'Spool lookup failed'
         else:
             popup['phase'] = 'writing'
+            # Keep the reel hovering during verification; the GIF has one
+            # continuous ~600ms descent, only after confirmed MMU readback.
             popup['message'] = 'Assigning to ' + self._mmu_gate_label(popup['operation'].gate)
-            self._nfc_gate_start_vertical(popup, 267)
         self._nfc_gate_draw()
         self.lcd.update()
 
