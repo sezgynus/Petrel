@@ -100,13 +100,50 @@ class GateUITests(unittest.TestCase):
             self.assertEqual(view.checkkey, view.NFCGateMenu)
             self.assertEqual(view._nfc_gate_popup['origin'], getattr(view, origin))
             texts = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
-            self.assertIn('Spool #17: choose gate', texts)
+            self.assertTrue(any('Spool #17' in text for text in texts))
             self.assertEqual(len(view._nfc_gate_popup['operations']), 5)
             view.pd.subscription.request.assert_not_called()
             view.pd.sendGCode.assert_not_called()
             view._redraw_current_screen = Mock()
             view._nfc_gate_close()
             self.assertEqual(view.checkkey, getattr(view, origin))
+
+    def test_gate_popup_reuses_shared_mmu_spool_icons_and_moves_reel(self):
+        from lcd_resources import ICON_SPOOL_EMPTY
+        view, _ = self.make()
+        view._nfc_gate_result()
+        self.assertEqual(view._nfc_gate_popup['selection'], 0)
+        icons = [call.args for call in view.lcd.show_icon.call_args_list
+                 if len(call.args) >= 4 and call.args[1] == ICON_SPOOL_EMPTY]
+        self.assertEqual(len(icons), 5)  # Four ghost gates + one colored reel.
+        titles = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
+        spool = view._nfc_gate_popup['spool']
+        self.assertTrue(any(spool.vendor[:20] in text for text in titles))
+        self.assertTrue(any(spool.name[:20] in text for text in titles))
+        self.assertTrue(any(spool.material in text for text in titles))
+        self.assertEqual(view._nfc_gate_popup['operations'][0], None)
+
+        view.lcd.reset_mock()
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        self.assertEqual(view._nfc_gate_popup['selection'], 1)
+        first = [call.args[2] for call in view.lcd.show_icon.call_args_list
+                 if call.args[1] == ICON_SPOOL_EMPTY][-1]
+        view.lcd.reset_mock()
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        second = [call.args[2] for call in view.lcd.show_icon.call_args_list
+                  if call.args[1] == ICON_SPOOL_EMPTY][-1]
+        self.assertGreater(second, first)
+        view.pd.subscription.request.assert_not_called()
+
+    def test_back_header_is_cancel_and_never_sends_mmu_command(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        self.assertEqual(view._nfc_gate_popup['selection'], 0)
+        view._redraw_current_screen = Mock()
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        self.assertIsNone(view._nfc_gate_popup)
+        self.assertEqual(view.checkkey, view.Info)
+        view.pd.subscription.request.assert_not_called()
 
     def test_gate_selection_rechecks_native_binding_then_uses_real_mmu_session(self):
         view, data = self.make()
