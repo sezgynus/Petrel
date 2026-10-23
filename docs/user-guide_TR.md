@@ -185,13 +185,9 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 ### Buzzer ve tuş sesleri
 
-<p align="center">
-  <img src="assets/screens/framed/buzzer.png" width="360" alt="Buzzer çıkışını seçme">
-  <img src="assets/screens/framed/display-sound-settings.png" width="360" alt="Display altındaki ses seçenekleri">
-  <img src="assets/screens/framed/display-volume-edit.png" width="360" alt="Ses seviyesini düzenleme">
-</p>
+**Display → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **On/Off** yapar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
 
-Yapılandırılmış `[pwm_cycle_time ad]` çıkışlarından birini veya **Disabled** seçmek için **Display → Buzzer** açın. Seçime basınca kaydedilir ve Display’e dönülür. Kullanılabilir bir çıkış seçiliyken **Volume**, **Click tone** ve **Encoder tone**, Display’de Buzzer’ın altında görünür.
+Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer On/Off ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
 ### NFC okuyucu ayarları
 
