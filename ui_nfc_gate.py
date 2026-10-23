@@ -164,6 +164,9 @@ class NFCGateViewMixin:
         bg, panel = self.GATE_BG, self.GATE_PANEL
 
         self.Clear_Popup_Area()
+        # 0x09 fills newly exposed pixels with graphite. Prepaint the same
+        # graphite behind both moving bands once to prevent wake/trail stripes.
+        lcd.draw_rectangle(1, bg, 0, 31, 271, 429)
         self.Draw_Title('ASSIGN FILAMENT', back=True)
         lcd.draw_rectangle(1, panel, 8, 58, 263, 96)
         lcd.draw_rectangle(0, AXIS_UNKNOWN_COLOR, 8, 58, 263, 96)
