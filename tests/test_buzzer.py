@@ -223,6 +223,42 @@ class BuzzerMenuTests(unittest.TestCase):
         self.assertFalse(view._display_edit)
         self.assertEqual(view._display_save_message, '')
 
+    def test_volume_flash_failure_exits_edit_mode_and_user_can_retry(self):
+        view = self.view()
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
+        view._display_selection = 5
+        failed = Future()
+        view.lcd.begin_flash_write_verified.return_value = failed
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.step(view, view.ENCODER_DIFF_CW)
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertTrue(view._display_edit)
+        failed.set_exception(TimeoutError('DWIN Flash ACK timed out'))
+        view._poll_panel_flash()
+        self.assertFalse(view._display_edit)
+        self.assertEqual(view._buzzer_values, Settings())
+        self.assertEqual(view._buzzer_saved, Settings())
+        self.assertIn('Not saved', view._display_save_message)
+
+        # The former bug held the encoder in an editor, preventing navigation.
+        self.step(view, view.ENCODER_DIFF_CW)
+        self.assertEqual(view._display_selection, 6)
+        self.step(view, view.ENCODER_DIFF_CCW)
+        self.assertEqual(view._display_selection, 5)
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertTrue(view._display_edit)
+
+        self.step(view, view.ENCODER_DIFF_CW)
+        succeeded = Future()
+        view.lcd.begin_flash_write_verified.return_value = succeeded
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertTrue(view._display_edit)
+        succeeded.set_result(Settings(True, 60, 2, 1).encode())
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_saved, Settings(True, 60, 2, 1))
+        self.assertFalse(view._display_edit)
+
     def test_wrong_flash_readback_never_commits_toggle(self):
         view = self.view()
         view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
