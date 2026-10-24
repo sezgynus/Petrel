@@ -846,6 +846,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._buzzer_saved = self._buzzer_save_target
                     self._buzzer_save_error = False
                     self._buzzer_save_is_toggle = False
+                    if getattr(self, '_display_selection', None) in (5, 6, 7):
+                        self._display_edit = False
                     self._display_save_message = ''
             except Exception as error:
                 if kind == 'display_save':
