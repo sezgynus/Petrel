@@ -961,6 +961,7 @@ class T5UIC1Display:
                 # programming the same address. Keep the owner nonblocking,
                 # but allow the delayed ACK rather than aborting at 1.25s.
                 'chunk_size': 0, 'timeout': 3.0 if verify else 2.0,
+                'verification_retries': 0, 'resume_at': 0.0,
             })
         return future
 
@@ -992,6 +993,36 @@ class T5UIC1Display:
             if not future.done():
                 future.set_exception(error)
 
+    def _flash_retry_readback(self, job, reason):
+        """Reconcile a possibly completed write by *reading*, never rewriting.
+
+        T5UIC1 can finish Data Flash programming even if the host missed 0x31
+        ACK, or its first 0x32 response. In those cases 'Not saved' would be
+        false. The only acceptable success is an exact readback of the bytes
+        requested. A mismatch or unreadable value gets bounded read retries.
+        """
+        if job['data'] is None or job['verification_retries'] >= 4:
+            return False
+        job['verification_retries'] += 1
+        job['stage'] = 'read'
+        job['offset'] = 0
+        job['chunk_size'] = 0
+        job['buffer'].clear()
+        job['awaiting'] = None
+        self._expected_response = None
+        # A delayed ACK or read reply is not evidence for any subsequent
+        # request; clear only Flash RPCs, retaining liveness and AUX traffic.
+        for op in (0x31, 0x32):
+            self._protected_response_slots().pop(op, None)
+        self._frames = deque((frame for frame in self._frames
+                              if frame[0] not in (0x31, 0x32)),
+                             maxlen=self.RX_FRAME_LIMIT)
+        job['resume_at'] = time.monotonic() + 0.15 * job['verification_retries']
+        logging.warning('DWIN Flash confirmation retry %d/4: '
+                        'address=0x%04X cause=%s (read-only)',
+                        job['verification_retries'], job['address'], reason)
+        return True
+
     def poll_flash_tasks(self):
         """Advance at most one Flash packet/ACK, with no sleep or ACK spin.
 
@@ -1017,7 +1048,11 @@ class T5UIC1Display:
                 matched = self._take_response(op, predicate)
                 if matched is None:
                     if time.monotonic() >= job['deadline']:
-                        raise T5UIC1TimeoutError('Flash operation timed out')
+                        if self._flash_retry_readback(
+                                job, 'missing 0x%02X response' % op):
+                            return True
+                        raise T5UIC1TimeoutError(
+                            'Flash confirmation timed out at 0x%02X' % op)
                     return True
                 job['awaiting'] = None
                 self._expected_response = None
@@ -1030,13 +1065,18 @@ class T5UIC1Display:
                     else:
                         result = bytes(job['buffer'])
                         if job['data'] is not None and result != job['data']:
-                            raise T5UIC1ProtocolError('Flash verification mismatch')
+                            if self._flash_retry_readback(job, 'readback mismatch'):
+                                return True
+                            raise T5UIC1ProtocolError(
+                                'Flash verification mismatch after read retries')
                         job['future'].set_result(result)
                         self._flash_job = None
                 return True
 
-            # Send only one packet per UI tick. Never send an unrelated
-            # write while waiting for an ACK from a previous chunk.
+            # Send only one packet per UI tick. Readback retries have a
+            # short nonblocking settle period; do not issue another write.
+            if time.monotonic() < job.get('resume_at', 0):
+                return True
             remaining = job['length'] - job['offset']
             address = job['address'] + job['offset']
             if job['stage'] == 'write':
