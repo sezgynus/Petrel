@@ -1822,7 +1822,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if len(self._leveling_menu_entries()) > 1:
             entries.append(('LEVEL', 'Leveling', self.ICON_Leveling_0, self.ICON_Leveling_1))
         entries.append(('MMU', 'MMU', self.ICON_MMU_0, self.ICON_MMU_1))
-        entries.append(('DISPLAY', 'Display', self.ICON_Display_0, self.ICON_Display_1))
+        entries.append(('DISPLAY', 'Device', self.ICON_Display_0, self.ICON_Display_1))
         entries.append(('MAINTENANCE', 'Maintenance', self.ICON_Maintenance_0, self.ICON_Maintenance_1))
         entries.append(('RFID', 'NFC', ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED))
         # Home navigation contract: append new features above Info; Info is always last.
@@ -2162,8 +2162,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         entries.append(('NFC settings', ICON_NFC, None, None))
         self._display_selection = min(selection, len(entries) - 1)
         save_message = getattr(self, '_display_save_message', '')
-        title = ('Display - saving...' if save_message == 'Saving...' else
-                 'Display - not saved' if save_message else 'Display')
+        title = ('Device - saving...' if save_message == 'Saving...' else
+                 'Device - not saved' if save_message else 'Device settings')
         self._draw_list_menu(title, entries, self._display_selection)
 
     def HMI_Display_Menu(self):

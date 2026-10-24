@@ -4,6 +4,8 @@
 
 ## Navigation and dashboard
 
+The **Device** tile opens **Device settings**, covering the DWIN HMI brightness/dimming, buzzer, event sounds and NFC reader configuration.
+
 <p align="center">
   <img src="assets/screens/framed/home.png" width="360" alt="Home, first page">
   <img src="assets/screens/framed/home-page-2.png" width="360" alt="Home, second page">
@@ -185,7 +187,7 @@ The first encoder movement or click after idle dimming wakes the display without
 
 ### Buzzer and button sounds
 
-**Display → Buzzer** now switches the buzzer **Enabled/Disabled** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
+**Device → Buzzer** now switches the buzzer **Enabled/Disabled** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
 
 The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses the short NFC_TAG_READ melody and respects master Buzzer Enabled/Disabled and Volume. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects the master Buzzer switch and the Emergency card alarm checkbox (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
 
@@ -285,7 +287,7 @@ without automatic event bindings.
 
 ### Event sound switches
 
-Open **Display → Event sounds** for 17 independent checkboxes: the sixteen events above plus **Emergency card alarm**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
+Open **Device → Event sounds** for 17 independent checkboxes: the sixteen events above plus **Emergency card alarm**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
 
 Each change is saved automatically to DWIN Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
 
@@ -318,11 +320,11 @@ SET_PIN PIN=Buzzer VALUE=0
 
 The `VALUE` parameter is a **direct electrical PWM duty fraction** (0.0–1.0), optionally divided by `scale` if configured. `CYCLE_TIME` is seconds per PWM cycle (0.00005–1.0 s); omitting it uses the configured default. Unlike Petrel UI's volume scaling, `VALUE=0.5` generates exactly 50% PWM duty. This intentionally does **not** provide backward-compatible Jinja status names.
 
-Klipper's extra transfers events over a **private AF_UNIX datagram socket** to the single Petrel PWM owner, without GPIO access or blocking the G-code queue when Petrel is offline. The master **Display → Buzzer Disabled** mutes Klipper-driven tones as well; UI Volume and tone settings do not rescale the explicit Klipper VALUE. Ordinary LCD tones may temporarily overlay a Klipper tone, and emergency-tag melody takes exclusive priority. On Klipper shutdown the extra sends `shutdown_value`; if that notification is lost, a nonzero external duty has a 30-second safety cutoff. Petrel and Klipper should normally run under the same OS account for private-socket access. The UI remains usable even when Klipper is in shutdown.
+Klipper's extra transfers events over a **private AF_UNIX datagram socket** to the single Petrel PWM owner, without GPIO access or blocking the G-code queue when Petrel is offline. The master **Device → Buzzer Disabled** mutes Klipper-driven tones as well; UI Volume and tone settings do not rescale the explicit Klipper VALUE. Ordinary LCD tones may temporarily overlay a Klipper tone, and emergency-tag melody takes exclusive priority. On Klipper shutdown the extra sends `shutdown_value`; if that notification is lost, a nonzero external duty has a 30-second safety cutoff. Petrel and Klipper should normally run under the same OS account for private-socket access. The UI remains usable even when Klipper is in shutdown.
 
 ### NFC reader settings
 
-Open **Display → NFC settings**. The page reports whether NFC was enabled in
+Open **Device → NFC settings**. The page reports whether NFC was enabled in
 `configure.sh`. When it was not enabled, the NFC rows remain visible but cannot
 be selected. Enable NFC in `configure.sh` and restart Petrel to unlock them.
 Choose a libnfc reader family, one of that family's available interfaces, an
@@ -555,7 +557,7 @@ Real UI emulator output with example data. [Original panel PNGs](screenshots.md)
 libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
 library is required; no compiler or development headers are needed on the Pi.
-The reader configuration is selected under **Display → NFC settings**.
+The reader configuration is selected under **Device → NFC settings**.
 The libnfc symbol bindings are cached once in the Petrel process; individual
 reader contexts and handles still have explicit session ownership and teardown.
 The settings module never performs USB/PCSC/NCI libnfc enumeration: it is queued

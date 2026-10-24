@@ -182,7 +182,7 @@ class HomePageTests(unittest.TestCase):
             self.step(view, view.ENCODER_DIFF_ENTER)
             self.assertEqual(view.checkkey, view.DisplayMenu)
             self.assertTrue(view._power_at_first_item())
-            self.assertIn('Display', [c.args[-1] for c in view.lcd.draw_text.call_args_list])
+            self.assertIn('Device settings', [c.args[-1] for c in view.lcd.draw_text.call_args_list])
             view._dispatch_input()
             self.assertEqual(view.checkkey, view.MainMenu)
             self.assertEqual(view.select_page.now, index)

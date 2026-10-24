@@ -14,7 +14,7 @@ The dashboard and Move menu now share X/Y/Z IDs **21/22/23**. Three byte-identic
 
 Add baseline **4:2:0 JPEGs** under this directory. IDs must be unique and within 0–255. Progressive JPEGs, other color sampling, invalid filenames and payloads above 32767 bytes are rejected. The renderer preserves existing JPEGs unless explicitly invoked to regenerate artwork.
 
-Picture Flash **0** holds boot artwork, **1** shared QR/UI artwork, and **2–15** are reserved for library **2**. The current export uses **12×32 KiB**, slots **2–13**. It has **18,247 usable free bytes** within those blocks and slots **14/15** remain available; the full reservation has **83,781 usable bytes free**. These figures change with new sources. The 4096-byte directory stays fixed even when IDs are removed.
+Picture Flash **0** holds boot artwork, **1** shared QR/UI artwork, and **2–15** are reserved for library **2**. The current export uses **12×32 KiB**, slots **2–13**. It has **17,666 usable free bytes** within those blocks and slots **14/15** remain available; the full reservation has **83,200 usable bytes free**. These figures change with new sources. The 4096-byte directory stays fixed even when IDs are removed.
 
 The runtime and export tool share the deterministic packer: best-fit decreasing followed by bounded subset-sum searches that consolidate earlier gaps. Refinement never adds a block to enlarge a hole. Each block search is exact; sequential searches do not prove a global bin-packing optimum. Every block's last byte is reserved, and no JPEG crosses a block boundary. Packing changes addresses, not JPEG bytes or directory IDs. The cache avoids repacking unchanged resources on every reconnect.
 
@@ -79,3 +79,5 @@ The cold-extrusion warning reuses the existing 104×36 text-free selected button
 ## Retired legacy Print controls
 
 Former IDs 16–23 (Tune, Pause, Continue and Stop, normal/selected) were referenced only by uncalled legacy draw helpers. Those eight JPEG/SVG pairs, constants and five obsolete helpers are removed. The former helper-only regression now verifies native Resume text in the active `_focus_draw_buttons` path. Together with the old confirmation image, nine resources totaling **22,697 JPEG bytes** are removed in this update. The reserved Picture Flash range remains 2–15; fewer occupied blocks leave more space available for additions.
+
+Device settings tiles **56/57** depict the documented DWIN housing with chamfered corners, a portrait screen, centered lower encoder and a gear badge. Regenerate with `python assets/icon-source/device-settings/render.py`. Tile labels remain runtime text.

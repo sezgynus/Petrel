@@ -140,7 +140,7 @@ def home():
     return finish(v)
 
 
-@scene('home-page-2', 'home', 'MMU, Display, Maintenance and Info tiles', 'MMU, Display, Maintenance ve Info simgeleri')
+@scene('home-page-2', 'home', 'MMU, Device, Maintenance and NFC tiles', 'MMU, Device, Maintenance ve NFC simgeleri')
 def home_page_two():
     v = canvas(sample(mmu=True)); v.select_page.set(5); v.Goto_MainMenu()
     return finish(v)

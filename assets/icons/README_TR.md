@@ -14,7 +14,7 @@ Dashboard ve Move menüsü artık X/Y/Z için **21/22/23** ID’lerini ortak kul
 
 Bu dizine baseline **4:2:0 JPEG** ekleyin. ID’ler benzersiz ve 0–255 aralığında olmalıdır. Progressive JPEG, diğer renk örneklemeleri, geçersiz dosya adları ve 32767 bayttan büyük yükler reddedilir. Görselleri yeniden üretme aracı açıkça çalıştırılmadıkça mevcut JPEG’ler korunur.
 
-Picture Flash **0** açılış görseline, **1** ortak QR/UI görseline, **2–15** ise **2** numaralı ikon kütüphanesine ayrılmıştır. Güncel çıktı **12×32 KiB**, yani **2–13** slotlarını kullanır. Bu bloklarda **18.247 kullanılabilir bayt boşluk** vardır; **14/15** numaralı slotlar da kullanılabilir. Ayrılmış alanın toplam kullanılabilir boşluğu **83.781 bayttır**. Yeni kaynaklarla bu değerler değişir. ID silinince 4096 baytlık dizin küçülmez.
+Picture Flash **0** açılış görseline, **1** ortak QR/UI görseline, **2–15** ise **2** numaralı ikon kütüphanesine ayrılmıştır. Güncel çıktı **12×32 KiB**, yani **2–13** slotlarını kullanır. Bu bloklarda **17.666 kullanılabilir bayt boşluk** vardır; **14/15** numaralı slotlar da kullanılabilir. Ayrılmış alanın toplam kullanılabilir boşluğu **83.200 bayttır**. Yeni kaynaklarla bu değerler değişir. ID silinince 4096 baytlık dizin küçülmez.
 
 Çalışma zamanı ve dışa aktarma aracı aynı deterministik paketleyiciyi kullanır: best-fit decreasing ardından önceki boşlukları birleştiren sınırlı subset-sum aramaları. Daha büyük boşluk için fazladan blok tüketilmez. Her blok araması kesindir; sıralı aramalar tüm paket için küresel optimum kanıtı değildir. Her bloğun son baytı ayrılmıştır; JPEG blok sınırını aşmaz. Paketleme adresleri değiştirir; JPEG baytlarını ve ID’leri değiştirmez. Önbellek, değişmeyen kaynakları her bağlantıda yeniden paketlemeyi önler.
 
@@ -79,3 +79,5 @@ Soğuk ekstrüzyon uyarısı mevcut 104×36 yazısız seçili buton zeminini (`I
 ## Kaldırılan eski Print kontrolleri
 
 Eski 16–23 ID’leri (Tune, Pause, Continue ve Stop; normal/seçili) yalnız çağrılmayan eski çizim yardımcılarında referanslıydı. Sekiz JPEG/SVG çifti, sabitleri ve beş eski yardımcı kaldırıldı. Eski yardımcıyı doğrudan çağıran regresyon testi artık etkin `_focus_draw_buttons` yolundaki native Resume metnini doğrular. Eski onay görseliyle birlikte bu güncellemede toplam **22.697 JPEG baytı** tutan dokuz kaynak kaldırıldı. Ayrılmış Picture Flash aralığı 2–15 olarak kalır; daha az dolu blok, yeni kaynaklar için daha fazla alan bırakır.
+
+Device settings simgeleri **56/57**, dokümandaki DWIN gövdesini pahlı köşeler, dikey ekran, altta ortalanmış enkoder ve ayar dişlisiyle gösterir. Yeniden üretmek için `python assets/icon-source/device-settings/render.py` kullanın. Menü adları çalışma anında metin olarak çizilir.

@@ -15,7 +15,7 @@ Statik görüntüler belgelenmiş örnek durumları gösterir. Değer, etiket ve
 | Ekran | Önizleme | Panel PNG |
 |---|---|---|
 | Happy Hare ve Spoolman ile ana ekran | <a href="assets/screens/home.png"><img src="assets/screens/framed/home.png" width="176" alt="Happy Hare ve Spoolman ile ana ekran"></a> | [Tam boyut PNG](assets/screens/home.png) |
-| MMU, Display, Maintenance ve Info simgeleri | <a href="assets/screens/home-page-2.png"><img src="assets/screens/framed/home-page-2.png" width="176" alt="MMU, Display, Maintenance ve Info simgeleri"></a> | [Tam boyut PNG](assets/screens/home-page-2.png) |
+| MMU, Device, Maintenance ve NFC simgeleri | <a href="assets/screens/home-page-2.png"><img src="assets/screens/framed/home-page-2.png" width="176" alt="MMU, Device, Maintenance ve NFC simgeleri"></a> | [Tam boyut PNG](assets/screens/home-page-2.png) |
 | Petrel açılışı ve ilerleme göstergesi | <a href="assets/screens/boot-splash.png"><img src="assets/screens/framed/boot-splash.png" width="176" alt="Petrel açılışı ve ilerleme göstergesi"></a> | [Tam boyut PNG](assets/screens/boot-splash.png) |
 
 ## Dosyalar ve baskı

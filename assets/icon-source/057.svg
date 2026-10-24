@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="110" height="100" viewBox="0 0 110 100"><defs><linearGradient id="petrel" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#429bd4"/><stop offset="1" stop-color="#429bd4"/></linearGradient></defs><rect width="110" height="100" fill="#000000"/><rect x="1" y="1" width="108" height="98" rx="16" fill="#183e4c" stroke="#00c4dc"/><g transform="translate(32.5,17.5) scale(1.875)" stroke="#429bd4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" color="#429bd4"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M12 17v5M7 22h10" /><path d="M5 6h14v8H5Z" fill="currentColor"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="110" height="100" viewBox="0 0 110 100">
+<rect width="110" height="100" fill="#000000"/>
+<rect x="1" y="1" width="108" height="98" rx="16" fill="#183e4c" stroke="#00c4dc"/>
+<g stroke="#429bd4" stroke-linejoin="round" stroke-linecap="round">
+<path d="M46 14H64L69 18V60L65 63H45L41 60V18Z" fill="#183e4c" stroke-width="3"/>
+<rect x="46.2" y="19.5" width="17.6" height="29" rx="1.2" fill="#429bd4" stroke="none"/>
+<circle cx="55" cy="57" r="3.8" fill="#183e4c" stroke-width="2.5"/>
+<circle cx="41" cy="53" r="10.6" fill="#183e4c" stroke="none"/>
+<polyline points="47.1739,50.6671 49.8962,51.0847 49.8962,54.9153 47.1739,55.3329 47.0153,55.7160 48.6449,57.9362 45.9362,60.6449 43.7160,59.0153 43.3329,59.1739 42.9153,61.8962 39.0847,61.8962 38.6671,59.1739 38.2840,59.0153 36.0638,60.6449 33.3551,57.9362 34.9847,55.7160 34.8261,55.3329 32.1038,54.9153 32.1038,51.0847 34.8261,50.6671 34.9847,50.2840 33.3551,48.0638 36.0638,45.3551 38.2840,46.9847 38.6671,46.8261 39.0847,44.1038 42.9153,44.1038 43.3329,46.8261 43.7160,46.9847 45.9362,45.3551 48.6449,48.0638 47.0153,50.2840 47.1739,50.6671" fill="none" stroke-width="2.5"/>
+<circle cx="41" cy="53" r="2.8" fill="#183e4c" stroke-width="2.2"/>
+</g></svg>

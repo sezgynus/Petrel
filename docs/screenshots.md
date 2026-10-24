@@ -15,7 +15,7 @@ Static captures illustrate documented example states. Values, labels and availab
 | Screen | Preview | Panel PNG |
 |---|---|---|
 | Home with Happy Hare and Spoolman | <a href="assets/screens/home.png"><img src="assets/screens/framed/home.png" width="176" alt="Home with Happy Hare and Spoolman"></a> | [Full-size PNG](assets/screens/home.png) |
-| MMU, Display, Maintenance and Info tiles | <a href="assets/screens/home-page-2.png"><img src="assets/screens/framed/home-page-2.png" width="176" alt="MMU, Display, Maintenance and Info tiles"></a> | [Full-size PNG](assets/screens/home-page-2.png) |
+| MMU, Device, Maintenance and NFC tiles | <a href="assets/screens/home-page-2.png"><img src="assets/screens/framed/home-page-2.png" width="176" alt="MMU, Device, Maintenance and NFC tiles"></a> | [Full-size PNG](assets/screens/home-page-2.png) |
 | Petrel startup and progress | <a href="assets/screens/boot-splash.png"><img src="assets/screens/framed/boot-splash.png" width="176" alt="Petrel startup and progress"></a> | [Full-size PNG](assets/screens/boot-splash.png) |
 
 ## Files and printing
