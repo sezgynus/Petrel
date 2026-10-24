@@ -84,6 +84,7 @@ class GateUITests(unittest.TestCase):
         view._uart_online = True
         view._update_ui_state = Mock()
         view._display_activity = Mock(return_value=False)
+        view._buzzer_feedback = Mock()
         view._queue_nfc_ui_event = Mock()
         view.checkkey = view.Info
         view.pd.subscription.responses_since.return_value = (0, ())
@@ -91,6 +92,48 @@ class GateUITests(unittest.TestCase):
         view._nfc_spool_router = Mock()
         view._nfc_spool_router.take_result.return_value = ('AA:BB', describe(spool(17)))
         return view, data
+
+    def test_popup_rotary_and_press_feedback_matches_other_menus(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        view._buzzer_feedback.assert_not_called()
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        self.assertEqual([call.args for call in
+                          view._buzzer_feedback.call_args_list],
+                         [('rotate',), ('rotate',)])
+        view._buzzer_feedback.reset_mock()
+        # Assign gate: the same encoder press sound as normal menus.
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        view._buzzer_feedback.assert_called_once_with('press')
+        self.assertEqual(view._nfc_gate_popup['phase'], 'checking')
+
+    def test_popup_back_press_buzzer_and_activity_wake(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        # The standard idle-dimmer wake gesture does not activate the menu
+        # item and must not play a menu click here either.
+        view._display_activity.return_value = True
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        view._buzzer_feedback.assert_not_called()
+        self.assertIsNotNone(view._nfc_gate_popup)
+
+        view._display_activity.return_value = False
+        view._redraw_current_screen = Mock()
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        view._buzzer_feedback.assert_called_once_with('press')
+        self.assertIsNone(view._nfc_gate_popup)
+
+    def test_popup_core_input_dispatch_does_not_double_beep(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        # The normal dispatch path has its own buzzer call; the NFC gate
+        # early-return means only the popup handler may produce this sound.
+        view._process_input_untraced(InputEvent('rotate', -1, 1, 0))
+        view._buzzer_feedback.assert_called_once_with('rotate')
+        view._buzzer_feedback.reset_mock()
+        view._process_input_untraced(InputEvent('press', 1, 1, 0))
+        view._buzzer_feedback.assert_called_once_with('press')
 
     def test_any_menu_match_opens_gate_prompt_without_assigning_or_loading(self):
         for origin in ('Info', 'MainMenu', 'Tune', 'RFIDMenu'):
