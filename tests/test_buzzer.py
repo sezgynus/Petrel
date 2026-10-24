@@ -93,6 +93,82 @@ class BuzzerMenuTests(unittest.TestCase):
             self.assertTrue(view._ensure_uart())
         view.lcd.load_buzzer_settings.assert_called_once_with()
 
+    def test_buzzer_row_uses_enabled_disabled_labels(self):
+        view = self.view()
+        self.assertEqual(view._buzzer_rows()[0], ('Buzzer', 'Enabled', True))
+        view._buzzer_values = Settings(False)
+        self.assertEqual(view._buzzer_rows()[0], ('Buzzer', 'Disabled', True))
+        view.Draw_Display_Menu()
+        labels = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
+        self.assertIn('Disabled', labels)
+
+    def test_async_toggle_waits_for_verified_flash_and_survives_reload(self):
+        view = self.view()
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
+        future = Future()
+        view.lcd.begin_flash_write_verified.return_value = future
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertFalse(view._buzzer_values.enabled)
+        self.assertTrue(view._buzzer_saved.enabled)
+        self.assertEqual(view._display_save_message, 'Saving...')
+        self.assertEqual(view._buzzer_rows()[0][1], 'Disabled')
+        self.assertIn('Display - saving...', str(view._draw_list_menu.call_args))
+        # A second press while the panel is still writing cannot overwrite it.
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        view.lcd.begin_flash_write_verified.assert_called_once_with(
+            ADDRESS, Settings(False).encode())
+        future.set_result(Settings(False).encode())
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_saved, Settings(False))
+        self.assertEqual(view._display_save_message, '')
+        self.assertFalse(view._buzzer_save_error)
+        # A fresh panel Flash load returns that same disabled value.
+        view._buzzer_values = view._buzzer_saved = Settings()
+        loaded = Future()
+        loaded.set_result(Settings(False).encode())
+        view._buzzer_load_future = loaded
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_settings(), Settings(False))
+        self.assertEqual(view._buzzer_rows()[0][1], 'Disabled')
+
+    def test_failed_async_toggle_rolls_back_and_can_retry(self):
+        view = self.view()
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
+        failed = Future()
+        view.lcd.begin_flash_write_verified.return_value = failed
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        failed.set_exception(OSError('panel Flash did not acknowledge'))
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_values, Settings())
+        self.assertEqual(view._buzzer_saved, Settings())
+        self.assertTrue(view._buzzer_save_error)
+        self.assertEqual(view._display_save_message, 'Not saved. Press to retry')
+        self.assertEqual(view._buzzer_rows()[0][1], 'Enabled')
+
+        saved = Future()
+        view.lcd.begin_flash_write_verified.return_value = saved
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertEqual(view._display_save_message, 'Saving...')
+        saved.set_result(Settings(False).encode())
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_saved, Settings(False))
+        self.assertFalse(view._buzzer_save_error)
+
+    def test_wrong_flash_readback_never_commits_toggle(self):
+        view = self.view()
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
+        future = Future()
+        view.lcd.begin_flash_write_verified.return_value = future
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        future.set_result(Settings(True).encode())
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_saved, Settings())
+        self.assertEqual(view._buzzer_values, Settings())
+        self.assertTrue(view._buzzer_save_error)
+
     def test_verified_async_save(self):
         view = self.view()
         view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
