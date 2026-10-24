@@ -315,10 +315,113 @@ class T5UIC1DriverPackets(unittest.TestCase):
         self.assertEqual([f[1] for f in lcd.serial.frames],
                          [0x31, 0x32] * len(values))
 
+    def test_second_flash_save_is_verified_even_if_write_ack_is_lost(self):
+        """The panel stored the 2nd value; only its 0x31 ACK was lost."""
+        from unittest.mock import patch
+        from display_settings import encode
+        lcd = driver()
+        first = encode(71, 15, 20)
+        second = encode(72, 16, 21)
+        for i, record in enumerate((first, second)):
+            start = float(10 * (i + 1))
+            future = lcd.begin_flash_write_verified(0x0100, record)
+            with patch('t5uic1_driver.time.monotonic', return_value=start):
+                lcd.poll_flash_tasks()
+            if i == 0:
+                lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
+                with patch('t5uic1_driver.time.monotonic', return_value=start + .3):
+                    lcd.poll_flash_tasks()
+                    lcd.poll_flash_tasks()
+            else:
+                # Firmware programmed Flash, but its ACK got dropped.
+                with patch('t5uic1_driver.time.monotonic', return_value=start + 3.1):
+                    self.assertTrue(lcd.poll_flash_tasks())
+                self.assertFalse(future.done())
+                with patch('t5uic1_driver.time.monotonic', return_value=start + 3.3):
+                    lcd.poll_flash_tasks()
+                self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+            lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x10'
+                                     + record + lcd.TAIL)
+            with patch('t5uic1_driver.time.monotonic', return_value=start + 3.5):
+                lcd.poll_flash_tasks()
+            self.assertEqual(future.result(), record)
+            self.assertFalse(lcd.flash_busy())
+        self.assertEqual([frame[1] for frame in lcd.serial.frames],
+                         [0x31, 0x32, 0x31, 0x32])
+        self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+
+    def test_flash_written_value_survives_lost_first_readback_response(self):
+        from unittest.mock import patch
+        lcd = driver()
+        record = b'first-time-value'
+        job = lcd.begin_flash_write_verified(0x0100, record)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.0):
+            lcd.poll_flash_tasks()
+        lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.1):
+            lcd.poll_flash_tasks()
+            lcd.poll_flash_tasks()
+        self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+        # The panel contains the value; its first readback response was lost.
+        with patch('t5uic1_driver.time.monotonic', return_value=4.3):
+            lcd.poll_flash_tasks()
+        self.assertFalse(job.done())
+        with patch('t5uic1_driver.time.monotonic', return_value=4.5):
+            lcd.poll_flash_tasks()
+        self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00'
+                                 + bytes((len(record),)) + record + lcd.TAIL)
+        with patch('t5uic1_driver.time.monotonic', return_value=4.7):
+            lcd.poll_flash_tasks()
+        self.assertEqual(job.result(), record)
+        self.assertEqual([p[1] for p in lcd.serial.frames], [0x31, 0x32, 0x32])
+
+    def test_stale_readback_recovers_but_undetectable_write_is_not_success(self):
+        from unittest.mock import patch
+        lcd = driver()
+        target = b'NEW!'
+        job = lcd.begin_flash_write_verified(0x0100, target)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.):
+            lcd.poll_flash_tasks()
+        lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.1):
+            lcd.poll_flash_tasks()
+            lcd.poll_flash_tasks()
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x04OLD!'
+                                 + lcd.TAIL)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.2):
+            lcd.poll_flash_tasks()
+        self.assertFalse(job.done())
+        self.assertEqual(lcd._flash_job['verification_retries'], 1)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.6):
+            lcd.poll_flash_tasks()
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x04NEW!'
+                                 + lcd.TAIL)
+        with patch('t5uic1_driver.time.monotonic', return_value=1.7):
+            lcd.poll_flash_tasks()
+        self.assertEqual(job.result(), target)
+        # Never treat a missing ACK alone as proof of persistence.
+        unconfirmed = lcd.begin_flash_write_verified(0x0100, b'BAD!')
+        with patch('t5uic1_driver.time.monotonic', return_value=10.):
+            lcd.poll_flash_tasks()
+        for i in range(5):
+            with patch('t5uic1_driver.time.monotonic',
+                       return_value=14.0 + i * 5):
+                lcd.poll_flash_tasks()  # Missing ACK / missing readback
+            if i < 4:
+                with patch('t5uic1_driver.time.monotonic',
+                           return_value=14.5 + i * 5):
+                    lcd.poll_flash_tasks()  # Send verification read
+        self.assertTrue(unconfirmed.done())
+        with self.assertRaises(TimeoutError):
+            unconfirmed.result()
+
     def test_flash_timeout_and_bad_verification_do_not_commit(self):
         from unittest.mock import patch
         lcd = driver()
-        first = lcd.begin_flash_write_verified(0x0100, b'1234')
+        # Ordinary reads have no written value to reconcile: timeout still
+        # fails the batch, unlike verified writes with a lost write ACK.
+        first = lcd.begin_flash_read(0x0100, 4)
         second = lcd.begin_flash_read(0x0200, 2)
         with patch('t5uic1_driver.time.monotonic', return_value=10):
             lcd.poll_flash_tasks()
