@@ -223,14 +223,16 @@ Sixteen melodies are now wired to application and subscribed printer events:
 | `PROBE_FAIL` | A server-reported probing command error or a failed probe diagnostic. |
 | `LAYER_CHANGE` | Reported `print_stats.info.current_layer` increases within the same active print. |
 | `FILAMENT_OUT` | Live boolean `mmu.runout` changes from false to true while Happy Hare is enabled. |
-| `NFC_TAG_READ` | A normal card arrival, including emergency/spool enrollment. |
-| `NFC_SPOOL_MATCH` | The existing asynchronous Spoolman lookup opens the matched-spool gate selector. |
+| `NFC_TAG_READ` | A card with no Spoolman match (also lookup failure), or emergency/spool enrollment. |
+| `NFC_SPOOL_MATCH` | The existing asynchronous Spoolman lookup finds a matched spool. |
 | `NFC_SHARE_DONE` | `share.ndef_transferred` closes an active sharing popup; not cancel or failure. |
 
 The NFC family shares a C6/E6 opening: NFC_TAG_READ is a 135 ms two-note
 signature, NFC_SPOOL_MATCH adds G6 (290 ms), and NFC_SHARE_DONE resolves through
-G6 to C7 (430 ms). Reading sounds immediately; a later confirmed spool match
-has its own related confirmation cue. No new lookup, polling or reader worker
+G6 to C7 (430 ms). Reading waits for the existing asynchronous lookup: a matched spool plays only
+NFC_SPOOL_MATCH; no match or a lookup failure plays only NFC_TAG_READ.
+Enrollment keeps the generic read cue. Muting the selected cue does not fall back
+to the other cue. No new lookup, polling or reader worker
 is introduced. All three use global mute/volume; emergency behavior is unchanged.
 WARNING and CUSTOM_EVENT remain library-only without automatic bindings.
 

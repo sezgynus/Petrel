@@ -91,6 +91,7 @@ class SpoolTagViewMixin:
         except Exception:
             self._rfid_mode = 'spool_detail'
         else:
+            self._rfid_buzzer_feedback()
             self._rfid_mode = 'spool_confirm'
         self._spool_selection = 0
         if self._uart_online and self.checkkey == self.RFIDMenu:

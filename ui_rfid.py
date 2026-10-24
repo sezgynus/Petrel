@@ -54,6 +54,7 @@ class RFIDViewMixin(SpoolTagViewMixin, NFCGateViewMixin):
             self._rfid_message = 'Read failed'
             self._rfid_mode = 'emg'
         else:
+            self._rfid_buzzer_feedback()
             self._rfid_mode = 'confirm'
         self._rfid_selection = 0
         if self._uart_online and self.checkkey == self.RFIDMenu:

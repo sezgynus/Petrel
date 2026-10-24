@@ -1638,8 +1638,6 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self.pd.sync_nfc_event()
                 component = self._nfc_share_component()
                 availability_changed = component.sync()
-                if event.kind == 'nfc_card':
-                    self._rfid_buzzer_feedback()
                 if self._uart_online and self.checkkey == self.RFIDMenu:
                     self.Draw_RFID_Menu(full=False)
                     self.lcd.update()

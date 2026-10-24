@@ -223,14 +223,15 @@ On altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `PROBE_FAIL` | Prob komutunun sunucu tarafından hata ile sonuçlanması veya başarısız prob tanılaması. |
 | `LAYER_CHANGE` | Aynı aktif baskıda bildirilen `print_stats.info.current_layer` değerinin artması. |
 | `FILAMENT_OUT` | Etkin Happy Hare’de ortak boolean `mmu.runout` alanının canlı `false → true` geçişi. |
-| `NFC_TAG_READ` | Emergency/spool ataması dahil normal kart geliş olayı. |
-| `NFC_SPOOL_MATCH` | Mevcut asenkron Spoolman eşleşmesinin gate seçim ekranını açması. |
+| `NFC_TAG_READ` | Spoolman eşleşmesi olmayan kart (sorgu hatası dahil) veya emergency/spool ataması. |
+| `NFC_SPOOL_MATCH` | Mevcut asenkron Spoolman sorgusunun eşleşen makarayı bulması. |
 | `NFC_SHARE_DONE` | Etkin paylaşım popup’ını kapatan `share.ndef_transferred`; iptal veya hata değil. |
 
 NFC ailesi ortak Do6/Mi6 başlangıcını kullanır: NFC_TAG_READ 135 ms’lik iki
 notalı kısa imza, NFC_SPOOL_MATCH Sol6 ekleyen 290 ms’lik onay, NFC_SHARE_DONE
-ise Sol6 üzerinden Do7’ye çözülen 430 ms’lik tamamlanma sesidir. Okuma sesi hemen,
-sonradan doğrulanan spool eşleşmesi ise ayrı ama benzer bir onay sesiyle duyulur.
+ise Sol6 üzerinden Do7’ye çözülen 430 ms’lik tamamlanma sesidir. Mevcut asenkron sorgu sonucu beklenir: eşleşen kartta yalnız NFC_SPOOL_MATCH,
+eşleşme yoksa veya sorgu başarısızsa yalnız NFC_TAG_READ çalar. Atama sırasında
+genel okutma sesi korunur. Seçilen ses kapalıysa diğer sese geçilmez.
 Yeni sorgu, polling veya okuyucu işçisi eklenmez. Üçü de genel ses anahtarı ve
 Volume ayarını kullanır; emergency davranışı değişmez. WARNING ve CUSTOM_EVENT
 kütüphanede kalır, otomatik olaya bağlanmaz.

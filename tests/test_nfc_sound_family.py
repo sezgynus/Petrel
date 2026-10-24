@@ -70,3 +70,56 @@ class NFCSoundFamilyTests(TestCase):
             view._event_buzzer_melody('NFC_SPOOL_MATCH')
             view._event_buzzer_melody('NFC_SHARE_DONE')
             view._buzzer_player.play_melody.assert_not_called()
+
+    def test_arrival_waits_for_lookup_and_plays_exactly_one_selected_cue(self):
+        from concurrent.futures import Future
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from nfc_core import NFCCore
+        from nfc_spool_router import NFCSpoolRouter
+        from test_nfc_core import backend
+        from test_nfc_gate_assignment import GateUITests
+        from test_nfc_spool_tags import spool
+        from spoolman_tags import describe
+        for outcome, expected in ((describe(spool(17)), 'NFC_SPOOL_MATCH'),
+                                  (None, 'NFC_TAG_READ'),
+                                  (OSError('offline'), 'NFC_TAG_READ')):
+            for muted in (False, True):
+                with self.subTest(expected=expected, muted=muted), TemporaryDirectory() as folder:
+                    view, _ = GateUITests().make()
+                    view._closed = False
+                    view._buzzer_load_complete = view._sound_event_prefs_ready = True
+                    view._event_buzzer_ready = True
+                    view._event_sound_values = view._event_sound_settings()
+                    if muted:
+                        view._event_sound_values = view._event_sound_values.toggled(expected)
+                    view._buzzer_player = Mock()
+                    reader = backend()
+                    core = NFCCore(reader, actions_file=Path(folder)/'actions.json')
+                    pending = Future()
+                    lookup = Mock(return_value=pending)
+                    ready = Mock()
+                    router = NFCSpoolRouter(core, lookup, ready)
+                    view._nfc_spool_router = router
+                    view._queue_nfc_ui_event = Mock()
+                    view._subscribe_nfc_card_notifications(core)
+                    view._nfc_share_component = Mock()
+                    view._nfc_share_component.return_value.sync.return_value = False
+                    view.pd.sync_nfc_event = Mock()
+                    reader.set_event_sink.call_args.args[0]('card.detected', {'uid':'AA:BB'})
+                    view._process_input_untraced(InputEvent('nfc_card',0,0,0))
+                    view._buzzer_player.play_melody.assert_not_called()
+                    if isinstance(outcome, Exception):
+                        pending.set_exception(outcome)
+                    else:
+                        pending.set_result(outcome)
+                    ready.assert_called_once()
+                    view._nfc_gate_result()
+                    view._nfc_gate_result()
+                    sounds = [c.args[0] for c in view._buzzer_player.play_melody.call_args_list]
+                    self.assertEqual(sounds, [] if muted else [expected])
+                    lookup.assert_called_once_with('AA:BB')
+                    self.assertEqual(bool(getattr(view, '_nfc_gate_popup', None)),
+                                     expected == 'NFC_SPOOL_MATCH')
+                    router.close()
+                    core.close()

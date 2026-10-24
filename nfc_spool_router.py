@@ -32,7 +32,7 @@ class NFCSpoolRouter:
             self.result = None
             if self.active is None:
                 self._start()
-        return False  # Ordinary UI card feedback remains independent.
+        return False  # Card UI refresh is independent; sound waits for this result.
 
     def _start(self):
         serial, uid = self.next
@@ -56,10 +56,9 @@ class NFCSpoolRouter:
                     spool = future.result()
                 except Exception as error:
                     logging.info('NFC spool lookup unavailable: %s', error)
-                else:
-                    if spool is not None:
-                        self.result = (uid, spool)
-                        notify = True
+                    spool = None
+                self.result = (uid, spool)
+                notify = True
             if self.next is not None:
                 self._start()
         if notify:

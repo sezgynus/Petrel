@@ -138,7 +138,7 @@ class RFIDTests(unittest.TestCase):
         view.Draw_RFID_Menu = Mock()
         view._process_input_untraced(InputEvent('nfc_card', 0, 0, 0))
         view.pd.sync_nfc_event.assert_called_once_with()
-        view._rfid_buzzer_feedback.assert_called_once_with()
+        view._rfid_buzzer_feedback.assert_not_called()
         view.Draw_RFID_Menu.assert_called_once_with(full=False)
         view.lcd.update.assert_called()
 

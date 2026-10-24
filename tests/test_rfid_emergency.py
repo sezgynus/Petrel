@@ -123,10 +123,15 @@ class EmergencyTagTests(unittest.TestCase):
             for action in ('emergency_stop', None):
                 view._queue_nfc_ui_event.reset_mock()
                 pending = core.begin_assignment(action=action)
+                view.checkkey = view.RFIDMenu
+                view._rfid_mode = 'waiting' if action else 'spool_waiting'
+                view._rfid_assignment = pending
                 emit('card.detected', {'uid': 'AA:BB'})
                 self.assertTrue(pending.done())
                 view._queue_nfc_ui_event.assert_called_once_with('nfc_card')
                 view._process_input_untraced(InputEvent('nfc_card', 0, 0, 0))
+                self.assertEqual(view._rfid_buzzer_feedback.call_count, 0 if action else 1)
+                view._rfid_assignment_event()
             self.assertEqual(view._rfid_buzzer_feedback.call_count, 2)
             core.close()
 

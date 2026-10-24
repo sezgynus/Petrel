@@ -17,6 +17,12 @@ class NFCGateViewMixin:
             if getattr(self, '_nfc_gate_popup', None):
                 self._nfc_gate_close()
             return
+        if self._closed:
+            return
+        if spool is None:
+            self._rfid_buzzer_feedback()
+            return
+        self._event_buzzer_melody('NFC_SPOOL_MATCH')
         if (not self._uart_online or self._closed or getattr(self, '_boot_active', False)
                 or getattr(self, '_nfc_share_popup', None)
                 or self.checkkey == self.PowerConfirm
@@ -25,7 +31,6 @@ class NFCGateViewMixin:
         existing = getattr(self, '_nfc_gate_popup', None)
         if existing and existing['phase'] in ('checking', 'writing'):
             return
-        self._event_buzzer_melody('NFC_SPOOL_MATCH')
         self._update_ui_state()
         self._display_activity()
         # The home MMU percentage belongs to a gate, not directly to a
