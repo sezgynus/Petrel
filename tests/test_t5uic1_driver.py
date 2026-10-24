@@ -210,6 +210,31 @@ class T5UIC1DriverPackets(unittest.TestCase):
         self.assertEqual(int.from_bytes(lcd.serial.frames[-1][3:5], 'big'), ADDRESS)
         self.assertFalse(future.done())
 
+    def test_buzzer_flash_uses_display_sized_single_write_and_read(self):
+        from buzzer_control import ADDRESS, RECORD_SIZE, Settings
+        import display_settings
+        self.assertEqual(RECORD_SIZE, display_settings.RECORD_SIZE)
+        lcd = driver()
+        data = Settings(enabled=False, volume=90, click=5, encoder=3).encode()
+        self.assertEqual(len(data), 16)
+        future = lcd.begin_flash_write_verified(ADDRESS, data)
+        lcd.poll_flash_tasks()
+        write = lcd.serial.frames[-1]
+        self.assertEqual(write[1], 0x31)
+        self.assertEqual(write[2:5], b'\xa5\x04\x00')
+        self.assertEqual(write[5:-4], data)
+        lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
+        lcd.poll_flash_tasks()
+        lcd.poll_flash_tasks()
+        read = lcd.serial.frames[-1]
+        self.assertEqual(read[1], 0x32)
+        self.assertEqual(read[2:-4], b'\xa5\x04\x00\x10')
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x04\x00\x10'
+                                 + data + lcd.TAIL)
+        lcd.poll_flash_tasks()
+        self.assertEqual(future.result(), data)
+        self.assertEqual([packet[1] for packet in lcd.serial.frames], [0x31, 0x32])
+
     def test_async_flash_read_never_waits_for_missing_ack(self):
         from unittest.mock import patch
         lcd = driver()
