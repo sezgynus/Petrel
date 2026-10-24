@@ -154,7 +154,7 @@ class BuzzerMenuTests(unittest.TestCase):
         view.lcd.begin_flash_write_verified.return_value = future
         with patch.object(view, '_draw_list_menu', wraps=view._draw_list_menu) as menu:
             self.step(view, view.ENCODER_DIFF_ENTER)
-        self.assertEqual(menu.call_args.args[0], 'Display - saving...')
+        self.assertEqual(menu.call_args.args[0], 'Device - saving...')
         self.assertFalse(view._buzzer_values.enabled)
         self.assertTrue(view._buzzer_saved.enabled)
         self.assertEqual(view._display_save_message, 'Saving...')
