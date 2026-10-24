@@ -127,8 +127,25 @@ class DisplaySettingsTests(unittest.TestCase):
         future.set_exception(TimeoutError('ACK lost'))
         view._poll_panel_flash()
         self.assertEqual(view._display_saved, (50, 0, 10))
-        self.assertTrue(view._display_edit)
+        self.assertEqual(view._display_values, [50, 0, 10])
+        self.assertFalse(view._display_edit)
         self.assertIn('Not saved', view._display_save_message)
+        # The selector must no longer trap the user on a failed save.
+        self.step(view, view.ENCODER_DIFF_CW)
+        self.assertEqual(view._display_selection, 2)  # A free menu detent.
+        self.step(view, view.ENCODER_DIFF_CCW)
+        self.assertEqual(view._display_selection, 1)
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertTrue(view._display_edit)
+        self.step(view, view.ENCODER_DIFF_CW)
+        recovered = Future()
+        view.lcd.begin_flash_write_verified.return_value = recovered
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertEqual(view._display_save_message, 'Saving...')
+        recovered.set_result(settings.encode(51, 0, 10))
+        view._poll_panel_flash()
+        self.assertEqual(view._display_saved, (51, 0, 10))
+        self.assertFalse(view._display_edit)
 
     def test_idle_dim_and_wake_never_write_flash(self):
         view = self.view(); view._display_values = [50, 1, 10]
