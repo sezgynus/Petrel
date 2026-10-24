@@ -320,7 +320,8 @@ changed setting, never on encoder movement or idle dim/wake.
 | `0x0120..0x0147` | Boot-artwork fingerprint | 40 bytes |
 | `0x0150..0x0177` | Shared slot-1 artwork fingerprint | 40 bytes |
 | `0x0200..0x03FF` | Icon-library block metadata | 512 bytes |
-| `0x0400..0x047F` | Buzzer settings | 128 bytes |
+| `0x0400..0x040F` | Buzzer settings (PETBZR02) | 16 bytes |
+| `0x0410..0x047F` | Legacy buzzer padding (reserved) | 112 bytes |
 
 The Display record contains the magic/version `PETDSPL2`, brightness (0–100),
 idle minutes (0 = Off, otherwise 1–60), dim brightness (0–100), one reserved byte and a CRC32. Legacy `KDWDSPL1` records retain brightness/timeout and default dim brightness to 10%, without an automatic flash write. The 16-byte allocation is unchanged. These
@@ -328,10 +329,13 @@ addresses refer to Data Flash, separate from JPEG Picture Flash slots.
 
 ### Buzzer preferences
 
-The separate `PETBZR01` record stores the selected PWM section name, volume,
-click tone and encoder tone with CRC32 and exact readback verification. It is
-written only when confirming a changed setting. The sound worker uses a bounded
-single pending event, monotonic timing and epoch-guarded WebSocket notifications.
-It sends `SET_PIN` on/off without `G4` or sleeping in the UI thread. PWM periods
-are specified in seconds, per the [Klipper SET_PIN reference](https://www.klipper3d.org/G-Codes.html#pwm_cycle_time).
+The `PETBZR02` record stores a master Enabled/Disabled boolean, volume,
+click tone and encoder tone. Like Display settings, it uses a single 16-byte
+Data Flash write followed by an exact readback with CRC32 validation. Previous
+128-byte `PETBZR02` and earlier `PETBZR01`/`KDWBZR01` records remain
+readable through their 16-byte legacy prefixes; they are migrated to a
+16-byte CRC-verified record on the next user-initiated save. The original
+`0x0400` address and other Flash allocations are unchanged. Only the
+Raspberry Pi hardware PWM worker drives the physical buzzer. The optional
+Klipper virtual Buzzer extra forwards compatible `SET_PIN` requests to it.
 
