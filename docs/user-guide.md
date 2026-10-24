@@ -636,7 +636,10 @@ shared SpoolView variable-height fill and percent caption as Home/MMU. The
 snapshot remains fixed while the popup is open; an unmatched or unknown spool
 shows `--` instead of copying another gate's percentage. Gate captions show
 the currently assigned spool IDs. The selector has no redundant rotate/press
-instructions. Rotate the encoder to select a gate (groups of
+instructions. Thin connectors join the rounded information card to the moving
+reel and the reel to the selected gate; the lower connector retracts as the
+reel lands. Native DWIN area moves still carry both sprites without redrawing
+the icons on every animation frame. Rotate the encoder to select a gate (groups of
 four for larger MMUs), then press to assign. Rotate left to the header Back
 control to cancel. During verification the reel remains above the slot; it descends in one
 approximately 600ms eased motion only after Happy Hare readback confirms the
