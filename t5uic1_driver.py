@@ -956,7 +956,11 @@ class T5UIC1Display:
                 'data': value if verify else None, 'future': future,
                 'stage': 'write' if verify else 'read', 'offset': 0,
                 'buffer': bytearray(), 'awaiting': None, 'deadline': 0.0,
-                'chunk_size': 0, 'timeout': 1.25 if verify else 1.0,
+                # T5UIC1 Data Flash may take up to 1s *per write*. On a
+                # repeat write the panel can spend additional time internally
+                # programming the same address. Keep the owner nonblocking,
+                # but allow the delayed ACK rather than aborting at 1.25s.
+                'chunk_size': 0, 'timeout': 3.0 if verify else 2.0,
             })
         return future
 
