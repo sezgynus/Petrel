@@ -108,12 +108,13 @@ class BuzzerMenuTests(unittest.TestCase):
         view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
         future = Future()
         view.lcd.begin_flash_write_verified.return_value = future
-        self.step(view, view.ENCODER_DIFF_ENTER)
+        with patch.object(view, '_draw_list_menu', wraps=view._draw_list_menu) as menu:
+            self.step(view, view.ENCODER_DIFF_ENTER)
+        self.assertEqual(menu.call_args.args[0], 'Display - saving...')
         self.assertFalse(view._buzzer_values.enabled)
         self.assertTrue(view._buzzer_saved.enabled)
         self.assertEqual(view._display_save_message, 'Saving...')
         self.assertEqual(view._buzzer_rows()[0][1], 'Disabled')
-        self.assertIn('Display - saving...', str(view._draw_list_menu.call_args))
         # A second press while the panel is still writing cannot overwrite it.
         self.step(view, view.ENCODER_DIFF_ENTER)
         view.lcd.begin_flash_write_verified.assert_called_once_with(
