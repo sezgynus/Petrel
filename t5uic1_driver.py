@@ -1059,6 +1059,11 @@ class T5UIC1Display:
             job['deadline'] = time.monotonic() + job['timeout']
             return True
         except (OSError, RuntimeError, ValueError) as error:
+            logging.warning('DWIN Flash RPC failed: address=0x%04X stage=%s '
+                            'offset=%d opcode=%s: %s',
+                            job['address'], job['stage'], job['offset'],
+                            '0x%02X' % job['awaiting'][0] if job['awaiting']
+                            else 'send', error)
             self._flash_abort(error)
             # I/O errors still reach the main UART reconnect handler.
             if self._closed:
