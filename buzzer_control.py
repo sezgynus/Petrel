@@ -10,7 +10,10 @@ import zlib
 from buzzer_pwm import HardwarePWM
 
 ADDRESS = 0x0400
-RECORD_SIZE = 128
+# Match the working Display settings Flash transaction: one short write and
+# one short verified read. Previously the 12-byte data was padded to 128 bytes.
+RECORD_SIZE = 16
+LEGACY_RECORD_SIZE = 128
 TONES = ('Off', 'Tick', 'Short beep', 'Low', 'High', 'Double')
 PATTERNS = ((), ((1800, .015),), ((1400, .055),), ((700, .055),),
             ((2400, .04),), ((1600, .035), (0, .035), (2000, .035)))
@@ -37,26 +40,44 @@ class Settings:
         return self
 
     def encode(self):
+        """16-byte CRC-protected record at the original DWIN Flash address."""
         self.validate()
-        body = struct.pack('>8sBBBB', b'PETBZR02', self.volume, self.click,
-                           self.encoder, int(self.enabled))
-        body = body.ljust(RECORD_SIZE - 4, b'\0')
-        return body + struct.pack('>I', zlib.crc32(body))
+        payload = struct.pack('>8sBBBB', b'PETBZR02', self.volume, self.click,
+                              self.encoder, int(self.enabled))
+        return payload + struct.pack('>I', zlib.crc32(payload))
 
     @classmethod
     def decode(cls, raw):
-        if len(raw) != RECORD_SIZE or raw[:8] not in (b'PETBZR02', b'PETBZR01', b'KDWBZR01'):
+        if (len(raw) not in (RECORD_SIZE, LEGACY_RECORD_SIZE)
+                or raw[:8] not in (b'PETBZR02', b'PETBZR01', b'KDWBZR01')):
             return None
-        if zlib.crc32(raw[:-4]) != int.from_bytes(raw[-4:], 'big'):
-            return None
+        magic = raw[:8]
+        verified = zlib.crc32(raw[:-4]) == int.from_bytes(raw[-4:], 'big')
         try:
-            if raw[:8] == b'PETBZR02':
-                if raw[11] not in (0, 1):
-                    return None
-                return cls(bool(raw[11]), *raw[8:11]).validate()
-            # Legacy output selection was saved in DWIN Flash. Import only its
-            # enabled/disabled state; never retain or send the Klipper name.
-            return cls(bool(raw[11:-4].split(b'\0', 1)[0]), *raw[8:11]).validate()
+            if verified:
+                if magic == b'PETBZR02':
+                    if raw[11] not in (0, 1):
+                        return None
+                    return cls(bool(raw[11]), *raw[8:11]).validate()
+                # Old format stored a Klipper output name, which only implied
+                # enabled/disabled. Do not revive the obsolete pin selector.
+                return cls(bool(raw[11:-4].split(b'\\0', 1)[0]),
+                           *raw[8:11]).validate()
+
+            # Legacy 128-byte settings used a CRC at byte 124. Read only
+            # their first 16 bytes to avoid the problematic 128-byte panel
+            # transfer, then migrate to CRC-protected 16 bytes on next save.
+            # Identify padded PETBZR02 precisely (four zero padding bytes),
+            # never accept a damaged modern 16-byte record as a valid save.
+            if len(raw) == RECORD_SIZE and magic == b'PETBZR02':
+                if raw[12:] == b'\\0' * 4 and raw[11] in (0, 1):
+                    return cls(bool(raw[11]), *raw[8:11]).validate()
+            elif len(raw) == RECORD_SIZE and magic in (b'PETBZR01', b'KDWBZR01'):
+                # Prefix of the old name-string record. The field begins at
+                # byte 11; its nonempty prefix means that sound was enabled.
+                return cls(bool(raw[11:].split(b'\\0', 1)[0]),
+                           *raw[8:11]).validate()
+            return None
         except (ValueError, TypeError):
             return None
 
