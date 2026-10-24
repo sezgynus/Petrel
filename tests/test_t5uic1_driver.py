@@ -272,6 +272,49 @@ class T5UIC1DriverPackets(unittest.TestCase):
         self.assertEqual(task.result(), raw)
         self.assertEqual([frame[1] for frame in lcd.serial.frames], [0x31, 0x32])
 
+    def test_consecutive_flash_settings_writes_survive_delayed_second_ack(self):
+        """Real parser/driver path: update the same record repeatedly in one session.
+
+        Second same-address write responds after 1.8s (longer than the old
+        1.25s ACK budget); a later unrelated settings write must also work.
+        """
+        from unittest.mock import patch
+        from display_settings import encode
+        from buzzer_control import Settings, ADDRESS
+        lcd = driver()
+        values = (
+            (0x0100, encode(60, 15, 20), 0.1),
+            (0x0100, encode(70, 16, 21), 1.8),
+            (ADDRESS, Settings(enabled=False, volume=80).encode(), 0.5),
+            (0x0100, encode(61, 17, 22), 1.7),
+        )
+        for index, (address, record, latency) in enumerate(values):
+            start = index * 10.
+            result = lcd.begin_flash_write_verified(address, record)
+            with patch('t5uic1_driver.time.monotonic', return_value=start):
+                lcd.poll_flash_tasks()
+            self.assertEqual(lcd.serial.frames[-1][1], 0x31)
+            with patch('t5uic1_driver.time.monotonic',
+                       return_value=start + latency - 0.01):
+                self.assertTrue(lcd.poll_flash_tasks())
+            self.assertFalse(result.done())
+            lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + T5UIC1Display.TAIL)
+            with patch('t5uic1_driver.time.monotonic',
+                       return_value=start + latency):
+                self.assertTrue(lcd.poll_flash_tasks())
+                lcd.poll_flash_tasks()
+            self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+            lcd.serial.chunks.append(b'\xaa\x32\xa5' + address.to_bytes(2, 'big')
+                                     + bytes((len(record),)) + record
+                                     + T5UIC1Display.TAIL)
+            with patch('t5uic1_driver.time.monotonic',
+                       return_value=start + latency + .1):
+                lcd.poll_flash_tasks()
+            self.assertEqual(result.result(), record)
+            self.assertFalse(lcd.flash_busy())
+        self.assertEqual([f[1] for f in lcd.serial.frames],
+                         [0x31, 0x32] * len(values))
+
     def test_flash_timeout_and_bad_verification_do_not_commit(self):
         from unittest.mock import patch
         lcd = driver()
