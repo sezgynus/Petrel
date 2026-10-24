@@ -604,6 +604,9 @@ ve dolgu yüksekliği Home/MMU ekranlarıyla aynı SpoolView mantığını kulla
 Bu yüzde, popup boyunca sabit kalır; eşleşmeyen veya bilinmeyen makaraya başka
 bir gate'in yüzdesi atanmaz, `--` gösterilir. Gate altındaki yazılar mevcut
 makara atamasını gösterir. Gereksiz enkoder kullanım açıklamaları gösterilmez.
+Bilgi kartından hareketli makaraya ve makaradan seçili gate'e ince bağlantı
+çizgileri uzanır; gate'e inişte alt çizgi kısalıp kaybolur. Animasyon
+karelerinde ikonlar yeniden çizilmez; DWIN'in bölge taşıma komutu kullanılır.
 Enkoderle gate seçilir (dörtten fazla gate için sayfalama); basıldığında
 önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare ataması başarılı bir geri okumayla doğrulandıktan sonra makara
 GIF'teki gibi yaklaşık 600 ms süren tek bir yumuşak inişle gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
