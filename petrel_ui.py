@@ -795,6 +795,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self.pd.mmu_session.update()
         self._draw_boot_progress(100)
         self._boot_active = False
+        self._maybe_play_boot_melody()
         self._uart_epoch += 1
         self._offline = False
         self._panel_backend_epoch = snapshot['epoch']

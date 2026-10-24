@@ -119,6 +119,40 @@ class MelodyOwnerTests(TestCase):
         view._event_buzzer_melody('PRINT_DONE')
         self.assertEqual(view._buzzer_player.play_melody.call_count, 1)
 
+    def test_boot_waits_for_both_startup_and_persisted_preferences(self):
+        view = self.make()
+        view._boot_active = True
+        view._arm_buzzer_events()
+        view._buzzer_player.play_melody.assert_not_called()
+        self.assertFalse(getattr(view, '_boot_melody_attempted', False))
+        view._boot_active = False
+        view._maybe_play_boot_melody()
+        view._buzzer_player.play_melody.assert_called_once()
+        view._arm_buzzer_events()  # Reconnected panel must not replay BOOT.
+        self.assertEqual(view._buzzer_player.play_melody.call_count, 1)
+        view = self.make()
+        view._boot_active = False
+        self.assertFalse(view._maybe_play_boot_melody())
+        view._buzzer_player.play_melody.assert_not_called()
+        view._arm_buzzer_events()  # Late settings complete after boot.
+        view._buzzer_player.play_melody.assert_called_once()
+
+    def test_boot_rejection_is_not_marked_played_and_mute_is_not_replayed(self):
+        view = self.make()
+        view._buzzer_player.play_melody.return_value = False
+        view._arm_buzzer_events()
+        self.assertFalse(getattr(view, '_boot_melody_attempted', False))
+        view._buzzer_player.play_melody.return_value = True
+        self.assertTrue(view._maybe_play_boot_melody())
+        self.assertTrue(view._boot_melody_attempted)
+        view = self.make()
+        view._buzzer_values = Settings(volume=0)
+        view._arm_buzzer_events()
+        self.assertTrue(view._boot_melody_attempted)
+        view._buzzer_values = Settings(volume=30)
+        view._maybe_play_boot_melody()
+        view._buzzer_player.play_melody.assert_not_called()
+
     def test_events_are_queued_and_stale_reconnected_events_drop(self):
         view = self.make()
         view._event_buzzer_ready = True

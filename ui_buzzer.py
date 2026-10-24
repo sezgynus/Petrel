@@ -52,9 +52,29 @@ class BuzzerViewMixin:
     def _arm_buzzer_events(self):
         """Only use persisted preferences; UART reconnect never replays BOOT."""
         self._event_buzzer_ready = True
-        if not getattr(self, '_boot_melody_attempted', False):
+        self._maybe_play_boot_melody()
+
+    def _maybe_play_boot_melody(self):
+        """Join settings-ready and startup-complete events, without a timer."""
+        if (getattr(self, '_boot_melody_attempted', False)
+                or getattr(self, '_boot_active', False)
+                or not getattr(self, '_event_buzzer_ready', False)
+                or getattr(self, '_closed', False)):
+            return False
+        settings = self._buzzer_settings()
+        if not settings.enabled or not settings.volume:
+            # Explicit mute is intentional, not a sound to replay when unmuted.
             self._boot_melody_attempted = True
-            self._event_buzzer_melody('BOOT')
+            logging.info('BOOT melody muted: enabled=%s volume=%s',
+                         settings.enabled, settings.volume)
+            return False
+        accepted = bool(self._event_buzzer_melody('BOOT'))
+        if accepted:
+            self._boot_melody_attempted = True
+            logging.info('BOOT melody queued: volume=%s', settings.volume)
+        else:
+            logging.warning('BOOT melody not queued; buzzer busy or unavailable')
+        return accepted
 
     def _rfid_buzzer_feedback(self):
         # NFC beep uses the hardware buzzer but respects the global On/Off.

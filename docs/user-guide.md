@@ -214,7 +214,7 @@ Six melodies are now wired to application and subscribed printer events:
 | `PAUSE` | An active print transitions to `paused`. |
 | `RESUME` | `paused` transitions to `printing`; initial start is silent. |
 | `ERROR` | A live print enters `error`, or Klipper reports shutdown. |
-| `BOOT` | Buzzer preferences are read at application startup, once per process. |
+| `BOOT` | Application startup completes and buzzer preferences are loaded, once per process. |
 | `SHUTDOWN` | Confirmed Petrel power-off request, immediately before dispatch. |
 
 These use existing WebSocket deltas/lifecycle notifications and UI callbacks,

@@ -214,7 +214,7 @@ Altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `PAUSE` | Aktif baskının `paused` durumuna geçmesi. |
 | `RESUME` | `paused → printing`; ilk baskı başlangıcı sessizdir. |
 | `ERROR` | Canlı baskının `error` olması veya Klipper shutdown bildirimi. |
-| `BOOT` | Uygulama açılışında buzzer ayarlarının okunması; işlem başına bir kez. |
+| `BOOT` | Açılış tamamlanıp buzzer ayarları okunduğunda; işlem başına bir kez. |
 | `SHUTDOWN` | Petrel kapatmasının onaylanması; güç isteği gönderilmeden hemen önce. |
 
 Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
