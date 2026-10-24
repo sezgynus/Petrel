@@ -112,8 +112,8 @@ class BuzzerViewMixin:
             elif event == self.ENCODER_DIFF_ENTER:
                 try:
                     self._save_buzzer(self._buzzer_settings())
-                    self._display_edit = False
-                    self._display_save_message = ''
+                    if getattr(self, '_buzzer_save_future', None) is None:
+                        self._display_edit = False
                 except (OSError, TimeoutError, T5UIC1ProtocolError):
                     self._display_save_message = 'Not saved. Press to retry'
             self.Draw_Display_Menu()
