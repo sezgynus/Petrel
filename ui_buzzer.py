@@ -1,6 +1,8 @@
 """Display buzzer enable/volume/tone preferences (pin fixed in Kconfig)."""
 from dataclasses import replace
 from buzzer_control import Settings, Player, TONES
+from buzzer_melodies import MELODIES
+from lcd_resources import ICON_BUZZER
 from t5uic1_driver import T5UIC1ProtocolError
 
 
@@ -132,3 +134,43 @@ class BuzzerViewMixin:
             self.lcd.update()
             return True
         return False
+
+    # Temporary test screen: this branch is intentionally not merged to master.
+    def Draw_Melody_Test_Menu(self):
+        entries = [('Back', self.ICON_Back, None, None),
+                   ('Stop sound', ICON_BUZZER, None, None)]
+        entries.extend((name.replace('_', ' ').title(), ICON_BUZZER, None, None)
+                       for name in MELODIES)
+        self._melody_test_selection = max(0, min(
+            getattr(self, '_melody_test_selection', 0), len(entries) - 1))
+        title = 'Melody test' if self._buzzer_enabled() else 'Melody test - muted'
+        self._draw_list_menu(title, entries, self._melody_test_selection)
+
+    def HMI_Melody_Test_Menu(self):
+        event = self.get_encoder_state()
+        if event == self.ENCODER_DIFF_NO:
+            return
+        selection = getattr(self, '_melody_test_selection', 0)
+        if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
+            delta = max(1, int(getattr(self, '_rotation_steps', 1)))
+            if event == self.ENCODER_DIFF_CCW:
+                delta = -delta
+            self._melody_test_selection = max(0, min(len(MELODIES) + 1,
+                                                     selection + delta))
+        elif event == self.ENCODER_DIFF_ENTER:
+            if selection in (0, 1):
+                player = getattr(self, '_buzzer_player', None)
+                if player is not None:
+                    player.cancel()
+                if selection == 0:
+                    self._display_selection = 5 + len(self._buzzer_rows())
+                    self.checkkey = self.DisplayMenu
+                    self.Draw_Display_Menu()
+                    self.lcd.update()
+                    return
+            else:
+                self._play_buzzer_melody(tuple(MELODIES)[selection - 2], priority=True)
+        else:
+            return
+        self.Draw_Melody_Test_Menu()
+        self.lcd.update()

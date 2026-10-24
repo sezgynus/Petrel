@@ -169,6 +169,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     NFCSettingsMenu = 52
     NFCChoiceMenu = 53
     NFCGateMenu = 54
+    MelodyTestMenu = 55
 
     MINUNITMULT = 10
 
@@ -2118,6 +2119,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black, 10)
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
         entries.append(('NFC settings', ICON_NFC, None, None))
+        entries.append(('Melody test', ICON_BUZZER, None, None))
         self._display_selection = min(selection, len(entries) - 1)
         save_message = getattr(self, '_display_save_message', '')
         title = ('Display - saving...' if save_message == 'Saving...' else
@@ -2143,13 +2145,19 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 if index == 0:
                     self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
             else:
-                self._display_selection = max(0, min(4 + len(self._buzzer_rows()), selection + delta))
+                self._display_selection = max(0, min(5 + len(self._buzzer_rows()), selection + delta))
             self._display_save_message = ''
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
                 self.select_page.set(next(i for i, entry in enumerate(self._home_entries())
                                           if entry[0] == 'DISPLAY'))
                 self.Goto_MainMenu()
+                self.lcd.update()
+                return
+            if selection == 5 + len(self._buzzer_rows()):
+                self._melody_test_selection = 0
+                self.checkkey = self.MelodyTestMenu
+                self.Draw_Melody_Test_Menu()
                 self.lcd.update()
                 return
             if selection == 4 + len(self._buzzer_rows()):
@@ -3990,6 +3998,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.FilePreview: '_preview_choice',
             self.Info: '_info_scroll',
             self.DisplayMenu: '_display_selection',
+            self.MelodyTestMenu: '_melody_test_selection',
             self.NFCSettingsMenu: '_nfc_selection',
             self.NFCChoiceMenu: '_nfc_choice_selection',
             self.MaintenanceMenu: '_maintenance_selection',
@@ -4058,6 +4067,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.RFIDMenu: self.Draw_RFID_Menu,
             self.NFCGateMenu: self._nfc_gate_draw,
             self.DisplayMenu: self.Draw_Display_Menu,
+            self.MelodyTestMenu: self.Draw_Melody_Test_Menu,
             self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,
             self.NFCChoiceMenu: self.Draw_NFC_Choice_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
@@ -4190,6 +4200,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.HMI_NFC_Settings_Menu()
         elif self.checkkey == self.NFCChoiceMenu:
             self.HMI_NFC_Choice_Menu()
+        elif self.checkkey == self.MelodyTestMenu:
+            self.HMI_Melody_Test_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
         elif self.checkkey == self.RFIDMenu:

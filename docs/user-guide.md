@@ -709,3 +709,7 @@ remains manual. A `docs(nfc):` commit on master opts into the NFC-only publisher
 after that exact revision passes regression CI; a newer master is never overwritten.
 
 Emergency tag enrollment captures an already registered emergency card for confirmation without sending an emergency-stop request. Outside that explicit enrollment flow, including spool-tag enrollment, emergency cards retain priority. Canceling enrollment restores normal emergency handling. Remove tag is shown only while an emergency tag is assigned. Both enrollment flows retain the normal card-arrival beep, subject to the master Buzzer switch.
+
+### Temporary melody test branch
+
+On `test/buzzer-melodies` only, open **Display → Melody test**, rotate to a melody and press to play it. The list includes all 15 supplied scores, UI tones and the emergency alarm. **Stop sound** or Back cancels ordinary playback; the emergency alarm completes its protected sequence. Playback respects Buzzer Enabled and Volume; emergency retains its full-volume policy. No printer action is triggered by testing a score. Return to master to remove the test screen.

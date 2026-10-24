@@ -728,3 +728,7 @@ daha yeni bir master'ın üzerine yazılmaz.
 Gate seçim penceresinde okutulan makaranın doluluğu Spoolman kaydındaki kalan ağırlık ve başlangıç ağırlığından (yoksa filament ağırlığından) hesaplanır; yüzde yazısı ve ortak makara çizimi aynı değeri kullanır. Bu veri yoksa yalnız aynı makara ID’sine bağlı Happy Hare gate yüzdesi kullanılır; başka gate’in doluluğu alınmaz. Geçerli miktar yoksa `--` gösterilir. Değer pencere açılırken bir kez alınır.
 
 Emergency kartı atama akışında kayıtlı emergency kartı tekrar okutulursa acil durdurma gönderilmeden onay için yakalanır. Bu açık atama akışının dışında, spool kartı atama sırasında da emergency önceliği korunur. Atamayı iptal etmek normal emergency davranışını geri getirir. Remove tag yalnız kayıtlı emergency kartı varken görünür. Her iki atama akışında kart okutma bip sesi, genel Buzzer anahtarına bağlı olarak çalar.
+
+### Geçici melodi test dalı
+
+Yalnız `test/buzzer-melodies` dalında **Display → Melody test** açılır; enkoderle melodiyi seçip basarak çalabilirsiniz. Listede verilen 15 melodi, UI tonları ve emergency alarmı bulunur. **Stop sound** veya Back normal çalmayı durdurur; emergency alarmı korunan dizisini tamamlar. Buzzer Enabled ve Volume ayarları geçerlidir; emergency tam ses politikasını korur. Melodi denemek hiçbir yazıcı işlemini tetiklemez. Test ekranını kaldırmak için master dalına dönün.
