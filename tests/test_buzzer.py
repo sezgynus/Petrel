@@ -318,8 +318,8 @@ class BuzzerMenuTests(unittest.TestCase):
         view._buzzer_player.play.assert_not_called()
         view._buzzer_values = Settings(True)
         view._rfid_buzzer_feedback()
-        view._buzzer_player.play.assert_called_once_with(
-            Settings(True, 100, 3), 'press', priority=True)
+        view._buzzer_player.play_melody.assert_called_once_with(
+            'NFC_TAG_READ', Settings(True), priority=True)
         view._buzzer_player.reset_mock()
         view._buzzer_values = Settings(True, volume=0, click=0, encoder=0)
         view._emergency_buzzer_feedback()

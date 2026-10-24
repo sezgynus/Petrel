@@ -1615,6 +1615,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if event.kind in ('nfc_share_done', 'nfc_share_failed', 'nfc_share_cancelled'):
             if getattr(self, '_nfc_share_popup', None):
                 if event.kind in ('nfc_share_done', 'nfc_share_cancelled'):
+                    if event.kind == 'nfc_share_done':
+                        self._event_buzzer_melody('NFC_SHARE_DONE')
                     self._finish_nfc_share_popup()
                 else:
                     self._nfc_share_popup = 'failed'

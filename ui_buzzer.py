@@ -77,13 +77,8 @@ class BuzzerViewMixin:
         return accepted
 
     def _rfid_buzzer_feedback(self):
-        # NFC beep uses the hardware buzzer but respects the global On/Off.
-        # Its volume/tone remain deliberate independent notification defaults.
-        if not self._buzzer_enabled():
-            return
-        if getattr(self, '_buzzer_player', None) is None:
-            self._buzzer_player = Player()
-        self._buzzer_player.play(Settings(enabled=True, volume=100, click=3), 'press', priority=True)
+        # Common NFC signature, using the same master mute/volume as melodies.
+        return self._play_buzzer_melody('NFC_TAG_READ', priority=True)
 
     def _emergency_buzzer_feedback(self):
         # Called directly by NFC Core's global emergency event, not the LCD

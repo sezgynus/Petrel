@@ -27,6 +27,10 @@ MELODIES = MappingProxyType({
     'PROBE_FAIL': _score((784,100),(0,40),(523,160),(0,100),(523,180)),
     'WARNING': _score((880,120),(0,100),(880,120),(0,100),(659,180)),
     'CUSTOM_EVENT': _score((784,80),(0,35),(1319,120),(0,35),(1047,220)),
+    # NFC family: shared C6/E6 read signature, then event-specific resolution.
+    'NFC_TAG_READ': _score((1047,45),(0,20),(1319,70)),
+    'NFC_SPOOL_MATCH': _score((1047,45),(0,20),(1319,70),(0,30),(1568,125)),
+    'NFC_SHARE_DONE': _score((1047,45),(0,20),(1319,70),(0,30),(1568,75),(0,30),(2093,160)),
     'OFF': (),
     'TICK': ((1800, .015),),
     'SHORT_BEEP': ((1400, .055),),

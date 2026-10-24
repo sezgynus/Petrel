@@ -187,7 +187,7 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 **Display → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **Enabled/Disabled** olarak ayarlar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
 
-Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer Enabled/Disabled ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
+Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi kısa NFC_TAG_READ melodisini kullanır; genel Buzzer Enabled/Disabled ve Volume ayarlarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
 ### İsimli buzzer melodileri
 
@@ -206,7 +206,7 @@ kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli önceli
 korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
 `ValueError` üretir.
 
-On üç melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
+On altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 
 | Melodi | Tetikleyici |
 |---|---|
@@ -223,6 +223,17 @@ On üç melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `PROBE_FAIL` | Prob komutunun sunucu tarafından hata ile sonuçlanması veya başarısız prob tanılaması. |
 | `LAYER_CHANGE` | Aynı aktif baskıda bildirilen `print_stats.info.current_layer` değerinin artması. |
 | `FILAMENT_OUT` | Etkin Happy Hare’de ortak boolean `mmu.runout` alanının canlı `false → true` geçişi. |
+| `NFC_TAG_READ` | Emergency/spool ataması dahil normal kart geliş olayı. |
+| `NFC_SPOOL_MATCH` | Mevcut asenkron Spoolman eşleşmesinin gate seçim ekranını açması. |
+| `NFC_SHARE_DONE` | Etkin paylaşım popup’ını kapatan `share.ndef_transferred`; iptal veya hata değil. |
+
+NFC ailesi ortak Do6/Mi6 başlangıcını kullanır: NFC_TAG_READ 135 ms’lik iki
+notalı kısa imza, NFC_SPOOL_MATCH Sol6 ekleyen 290 ms’lik onay, NFC_SHARE_DONE
+ise Sol6 üzerinden Do7’ye çözülen 430 ms’lik tamamlanma sesidir. Okuma sesi hemen,
+sonradan doğrulanan spool eşleşmesi ise ayrı ama benzer bir onay sesiyle duyulur.
+Yeni sorgu, polling veya okuyucu işçisi eklenmez. Üçü de genel ses anahtarı ve
+Volume ayarını kullanır; emergency davranışı değişmez. WARNING ve CUSTOM_EVENT
+kütüphanede kalır, otomatik olaya bağlanmaz.
 
 Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
 yeni polling, sorgu veya G-code makrosu eklenmez. İlk bağlantı, yeniden bağlantı
@@ -639,9 +650,9 @@ PN532'den kendiliğinden UART olayı yöntemi henüz uygulanmadı.
 
 
 Son kartın protokolü, tam UID/ID'si (32 bayta kadar), ATQA ve SAK canlı güncellenir;
-kart uzaklaşınca kimlik kalır. Her kart sunumunda seçili kullanılabilir buzzer
-(Disabled ise ilk kullanılabilir çıkış), Display ses tercihlerinden bağımsız
-700 Hz, %100 seviyede kısa bip verir. Tutulan kart bir kez öter; kendi
+kart uzaklaşınca kimlik kalır. Her kart sunumunda genel buzzer anahtarı ve Volume
+ayarına uyan NFC_TAG_READ melodisi çalar; click/encoder tonu seçiminden bağımsızdır.
+Tutulan kart bir kez öter; kendi
 teknolojisindeki iki başarısız tarama aynı kart için yeniden bipi etkinleştirir. Kimlikler UUID değildir; ATQA/SAK kesin MIFARE çipini
 kanıtlamaz. Yalnız değişen alanlar çizilir; kart belleğine veya diske yazılmaz.
 Sayfadan çıkılınca tarama sürer; kapanışta bekleyen libnfc I/O'su iptal edilip port
@@ -787,4 +798,4 @@ daha yeni bir master'ın üzerine yazılmaz.
 
 Gate seçim penceresinde okutulan makaranın doluluğu Spoolman kaydındaki kalan ağırlık ve başlangıç ağırlığından (yoksa filament ağırlığından) hesaplanır; yüzde yazısı ve ortak makara çizimi aynı değeri kullanır. Bu veri yoksa yalnız aynı makara ID’sine bağlı Happy Hare gate yüzdesi kullanılır; başka gate’in doluluğu alınmaz. Geçerli miktar yoksa `--` gösterilir. Değer pencere açılırken bir kez alınır.
 
-Emergency kartı atama akışında kayıtlı emergency kartı tekrar okutulursa acil durdurma gönderilmeden onay için yakalanır. Bu açık atama akışının dışında, spool kartı atama sırasında da emergency önceliği korunur. Atamayı iptal etmek normal emergency davranışını geri getirir. Remove tag yalnız kayıtlı emergency kartı varken görünür. Her iki atama akışında kart okutma bip sesi, genel Buzzer anahtarına bağlı olarak çalar.
+Emergency kartı atama akışında kayıtlı emergency kartı tekrar okutulursa acil durdurma gönderilmeden onay için yakalanır. Bu açık atama akışının dışında, spool kartı atama sırasında da emergency önceliği korunur. Atamayı iptal etmek normal emergency davranışını geri getirir. Remove tag yalnız kayıtlı emergency kartı varken görünür. Her iki atama akışında NFC_TAG_READ, genel Buzzer anahtarı ve Volume ayarına bağlı olarak çalar.

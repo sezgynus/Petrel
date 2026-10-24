@@ -162,20 +162,19 @@ class RFIDTests(unittest.TestCase):
         reader._observe_card((1, 1), dict(card, uid='03:04'))
         self.assertTrue(reader.take_card_event())
 
-    def test_card_beep_respects_master_enable_but_ignores_volume_and_tone(self):
+    def test_card_signature_uses_global_volume_but_not_click_or_encoder_tone(self):
         from test_regressions import ui
         Settings = ui.BuzzerSettings
         view = display(snapshot())
-        view._buzzer_values = Settings(enabled=False, volume=0, click=0, encoder=0)
         view._buzzer_player = Mock()
+        for values in (Settings(enabled=False),Settings(volume=0)):
+            view._buzzer_values = values
+            view._rfid_buzzer_feedback()
+        view._buzzer_player.play_melody.assert_not_called()
+        view._buzzer_values = Settings(volume=30,click=0,encoder=0)
         view._rfid_buzzer_feedback()
-        view._buzzer_player.play.assert_not_called()
-        view._buzzer_values = Settings(enabled=True, volume=0, click=0, encoder=0)
-        view._rfid_buzzer_feedback()
-        settings, kind = view._buzzer_player.play.call_args.args
-        self.assertEqual((settings.enabled, settings.volume, settings.click, kind),
-                         (True, 100, 3, 'press'))
-        self.assertTrue(view._buzzer_player.play.call_args.kwargs['priority'])
+        view._buzzer_player.play_melody.assert_called_once_with(
+            'NFC_TAG_READ',view._buzzer_values,priority=True)
 
     def test_card_beep_can_queue_behind_busy_click_player(self):
         from buzzer_control import Player, Settings

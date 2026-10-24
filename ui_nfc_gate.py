@@ -25,6 +25,7 @@ class NFCGateViewMixin:
         existing = getattr(self, '_nfc_gate_popup', None)
         if existing and existing['phase'] in ('checking', 'writing'):
             return
+        self._event_buzzer_melody('NFC_SPOOL_MATCH')
         self._update_ui_state()
         self._display_activity()
         # The home MMU percentage belongs to a gate, not directly to a

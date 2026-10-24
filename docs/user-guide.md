@@ -187,7 +187,7 @@ The first encoder movement or click after idle dimming wakes the display without
 
 **Display → Buzzer** now switches the buzzer **Enabled/Disabled** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
 
-The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses a special 700 Hz beep at full volume but respects master Buzzer Enabled/Disabled. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects only the explicit master Buzzer Off switch (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
+The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses the short NFC_TAG_READ melody and respects master Buzzer Enabled/Disabled and Volume. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects only the explicit master Buzzer Off switch (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
 
 ### Named buzzer melodies
 
@@ -206,7 +206,7 @@ replaces ordinary playback without building a queue. The emergency alarm retains
 its dedicated full-volume preemption path and cannot be interrupted by ordinary
 melodies. Unknown names raise `ValueError` before queuing.
 
-Thirteen melodies are now wired to application and subscribed printer events:
+Sixteen melodies are now wired to application and subscribed printer events:
 
 | Melody | Trigger |
 |---|---|
@@ -223,6 +223,16 @@ Thirteen melodies are now wired to application and subscribed printer events:
 | `PROBE_FAIL` | A server-reported probing command error or a failed probe diagnostic. |
 | `LAYER_CHANGE` | Reported `print_stats.info.current_layer` increases within the same active print. |
 | `FILAMENT_OUT` | Live boolean `mmu.runout` changes from false to true while Happy Hare is enabled. |
+| `NFC_TAG_READ` | A normal card arrival, including emergency/spool enrollment. |
+| `NFC_SPOOL_MATCH` | The existing asynchronous Spoolman lookup opens the matched-spool gate selector. |
+| `NFC_SHARE_DONE` | `share.ndef_transferred` closes an active sharing popup; not cancel or failure. |
+
+The NFC family shares a C6/E6 opening: NFC_TAG_READ is a 135 ms two-note
+signature, NFC_SPOOL_MATCH adds G6 (290 ms), and NFC_SHARE_DONE resolves through
+G6 to C7 (430 ms). Reading sounds immediately; a later confirmed spool match
+has its own related confirmation cue. No new lookup, polling or reader worker
+is introduced. All three use global mute/volume; emergency behavior is unchanged.
+WARNING and CUSTOM_EVENT remain library-only without automatic bindings.
 
 These use existing WebSocket deltas/lifecycle notifications and UI callbacks,
 without additional polling, queries or G-code macros. Initial snapshots,
@@ -639,9 +649,9 @@ performs radio scans; there is no PN532 unsolicited UART event mode yet.
 
 
 The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
-live; the identity remains after removal. Each card presentation plays a short
-700 Hz beep at 100% volume on the configured native hardware PWM buzzer when Buzzer is On, independently of the configured click/encoder tone settings. A held card
-beeps once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
+live; the identity remains after removal. Each card presentation plays the short
+NFC_TAG_READ melody using the global buzzer switch and Volume, independently of
+click/encoder tone choices. A held card sounds once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
 prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
 written or persisted. Scanning continues after leaving the page, and shutdown
 aborts pending libnfc I/O before closing the reader. Press to return Home. The
@@ -769,4 +779,4 @@ NFC examples are generated in CI and published in the
 remains manual. A `docs(nfc):` commit on master opts into the NFC-only publisher
 after that exact revision passes regression CI; a newer master is never overwritten.
 
-Emergency tag enrollment captures an already registered emergency card for confirmation without sending an emergency-stop request. Outside that explicit enrollment flow, including spool-tag enrollment, emergency cards retain priority. Canceling enrollment restores normal emergency handling. Remove tag is shown only while an emergency tag is assigned. Both enrollment flows retain the normal card-arrival beep, subject to the master Buzzer switch.
+Emergency tag enrollment captures an already registered emergency card for confirmation without sending an emergency-stop request. Outside that explicit enrollment flow, including spool-tag enrollment, emergency cards retain priority. Canceling enrollment restores normal emergency handling. Remove tag is shown only while an emergency tag is assigned. Both enrollment flows retain NFC_TAG_READ, subject to the master Buzzer switch and Volume.
