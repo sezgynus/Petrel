@@ -851,18 +851,23 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._display_save_message = ''
             except Exception as error:
                 if kind == 'display_save':
-                    self._display_edit = True
+                    # Failed Flash writes must not trap the encoder in an
+                    # editor. Restore the last verified setting, then let the
+                    # user navigate away or press again to start a new edit.
+                    self._display_values = list(self._display_saved)
+                    self._display_edit = False
+                    if not getattr(self, '_display_dimmed', False):
+                        self.lcd.set_backlight(
+                            display_settings.raw_brightness(self._display_saved[0]))
                     self._display_save_message = 'Not saved. Press to retry'
+                    logging.warning('Display settings Flash save failed: %s', error)
                 elif kind == 'buzzer_save':
                     self._buzzer_save_error = True
-                    # A switch must never display Enabled/Disabled as saved
-                    # after Flash rejected the write. Keep volume/tone drafts
-                    # available for retry, as in the existing editor.
-                    if getattr(self, '_buzzer_save_is_toggle', False):
-                        self._buzzer_values = self._buzzer_saved
+                    self._buzzer_values = self._buzzer_saved
                     self._buzzer_save_is_toggle = False
+                    self._display_edit = False
                     self._display_save_message = 'Not saved. Press to retry'
-                    logging.warning('Buzzer settings not persisted: %s', error)
+                    logging.warning('Buzzer settings Flash save failed: %s', error)
                 else:
                     logging.warning('Could not read panel %s: %s', kind, error)
             changed = True
