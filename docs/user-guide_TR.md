@@ -189,6 +189,27 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer Enabled/Disabled ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
+### İsimli buzzer melodileri
+
+Bütün nota dizileri `buzzer_melodies.py` içinde tutulur. Kütüphanede
+`PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
+`SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
+`PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Özgün M300 frekansları,
+milisaniye süreleri ve sessiz beklemeleri korunur. Mevcut UI tonları ve emergency
+alarmı da aynı kütüphaneyi kullanır.
+
+UI kodu `self._play_buzzer_melody('PRINT_DONE')`, mevcut oynatıcıya erişen diğer
+kod `player.play_melody('PRINT_DONE', settings)` çağırabilir. Yeni PWM sahibi
+başlatmak yerine tek oynatıcı yeniden kullanılır. Çalma asenkrondur; genel ses
+anahtarına ve volume ayarına uyar, click/encoder tonu seçimine bağlı değildir.
+Oynatıcı meşgulken normal istek reddedilir; `priority=True` normal sesi kesip
+kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli öncelik yolu
+korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
+`ValueError` üretir.
+
+Melodi eklemek olaylara otomatik bağlantı veya G-code makrosu kurmaz. Bu 15 yeni
+melodi sonraki olay entegrasyonları için hazırdır.
+
 ### Klipper sanal buzzer (isteğe bağlı extra)
 
 Kconfig'teki **Klipper virtual buzzer → Virtual SET_PIN Buzzer Klipper extra** seçeneği ilk yapılandırmada **varsayılan açıktır**. Apply edildiğinde Petrel, Klipper extras klasörüne kaynak dosyasının sembolik bağlantısını kurar, yönetilen `petrel-buzzer.cfg` parçasını oluşturur ve `printer.cfg` dosyasına include ekler. Klipper **otomatik yeniden başlatılmaz**; yazıcı boşta iken elle restart uygulayın. Kconfig seçeneği kapatılırsa yalnız Petrel tarafından yönetilen dosyalar temizlenir.

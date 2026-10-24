@@ -189,6 +189,27 @@ The first encoder movement or click after idle dimming wakes the display without
 
 The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses a special 700 Hz beep at full volume but respects master Buzzer Enabled/Disabled. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects only the explicit master Buzzer Off switch (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
 
+### Named buzzer melodies
+
+All note sequences live in `buzzer_melodies.py`. The library includes
+`PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
+`SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
+`PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, preserving the original M300
+frequencies, millisecond durations and silent rests. Existing UI tones and the
+emergency alarm share this library.
+
+Internal UI code can call `self._play_buzzer_melody('PRINT_DONE')`; other code
+with the existing player can call `player.play_melody('PRINT_DONE', settings)`.
+Reuse the single player instead of starting another PWM owner. Playback is
+asynchronous, honors master mute/volume and does not depend on click/encoder
+tone selection. Busy playback rejects ordinary requests; `priority=True`
+replaces ordinary playback without building a queue. The emergency alarm retains
+its dedicated full-volume preemption path and cannot be interrupted by ordinary
+melodies. Unknown names raise `ValueError` before queuing.
+
+Adding a score does not bind it to printer events or install G-code macros.
+These 15 new melodies are available for future event wiring only.
+
 ### Klipper virtual buzzer (optional extra)
 
 **Kconfig → Klipper virtual buzzer → Virtual SET_PIN Buzzer Klipper extra** is **enabled by default** for newly applied configurations. Applying it installs the tracked Petrel source as a Klipper extra symlink, registers a managed `petrel-buzzer.cfg` and safely adds its include to `printer.cfg`. Klipper itself is **not restarted**; restart it manually while idle after the configuration change. Disable the Kconfig option to remove only Petrel-managed files while preserving unrelated Klipper configuration.

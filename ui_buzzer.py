@@ -19,6 +19,13 @@ class BuzzerViewMixin:
                 self._buzzer_player = Player()
             self._buzzer_player.play(settings, kind)
 
+    def _play_buzzer_melody(self, name, *, priority=False):
+        """Shared UI entry point for named scores; no event bindings implied."""
+        settings = self._buzzer_settings()
+        if getattr(self, '_buzzer_player', None) is None:
+            self._buzzer_player = Player()
+        return self._buzzer_player.play_melody(name, settings, priority=priority)
+
     def _rfid_buzzer_feedback(self):
         # NFC beep uses the hardware buzzer but respects the global On/Off.
         # Its volume/tone remain deliberate independent notification defaults.

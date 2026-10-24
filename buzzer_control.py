@@ -8,6 +8,7 @@ import time
 import zlib
 
 from buzzer_pwm import HardwarePWM
+from buzzer_melodies import PATTERNS, EMERGENCY_PATTERN, get_melody
 
 ADDRESS = 0x0400
 # Match the working Display settings Flash transaction: one short write and
@@ -15,13 +16,6 @@ ADDRESS = 0x0400
 RECORD_SIZE = 16
 LEGACY_RECORD_SIZE = 128
 TONES = ('Off', 'Tick', 'Short beep', 'Low', 'High', 'Double')
-PATTERNS = ((), ((1800, .015),), ((1400, .055),), ((700, .055),),
-            ((2400, .04),), ((1600, .035), (0, .035), (2000, .035)))
-# Three urgent two-tone sweeps and a distinct double high alert (~1.5 s).
-# Never routed through Klipper: all steps run on the Pi PWM worker.
-EMERGENCY_PATTERN = ((2200, .12), (1000, .12), (2200, .12),
-                     (1000, .12), (2200, .12), (1000, .30),
-                     (0, .09), (2600, .13), (0, .07), (2600, .28))
 
 
 @dataclass(frozen=True)
@@ -112,6 +106,25 @@ class Player:
         tone = settings.click if kind == 'press' else settings.encoder
         if not settings.enabled or settings.volume == 0 or tone == 0:
             return False
+        return self._queue_pattern(settings, tone, priority)
+
+    def play_melody(self, name, settings, priority=False):
+        """Play a library score asynchronously, respecting master mute and volume.
+
+        Ordinary requests never build a backlog. Priority requests replace the
+        pending sound and interrupt ordinary playback, never an emergency.
+        """
+        pattern = get_melody(name)
+        settings.validate()
+        if not settings.enabled or not pattern:
+            return False
+        if name == 'EMERGENCY':
+            return self.play_emergency()
+        if not settings.volume:
+            return False
+        return self._queue_pattern(settings, name, priority)
+
+    def _queue_pattern(self, settings, tone, priority):
         with self.condition:
             if (self.stopped or self.emergency_active or self.emergency_pending
                     or (not priority and (self.busy or self.pending is not None))):
@@ -203,7 +216,8 @@ class Player:
                             value, cycle_time = external_state
                             driver.set_pwm(1. / cycle_time, value)
                     else:
-                        pattern = EMERGENCY_PATTERN if tone == 'emergency' else PATTERNS[tone]
+                        pattern = (EMERGENCY_PATTERN if tone == 'emergency' else
+                                   get_melody(tone) if isinstance(tone, str) else PATTERNS[tone])
                         for frequency, duration in pattern:
                             with self.condition:
                                 if self.stopped or generation != self.generation:
