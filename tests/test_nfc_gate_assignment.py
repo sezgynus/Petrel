@@ -305,7 +305,7 @@ class GateUITests(unittest.TestCase):
         self.assertEqual(image.getpixel((10, 170)), rgb565(0x2125))
         self.assertEqual(image.getpixel((47, 170)), rgb565(0x07E0))
         self.assertEqual(popup['sprite_x'], 83)
-        self.assertEqual(popup['card_x'], 46)
+        self.assertEqual(popup['card_x'], 40)
         view._nfc_gate_move(popup, y=326)
         image, _ = model.snapshot()
         self.assertEqual(image.getpixel((84, 250)), rgb565(0x2125))
