@@ -52,7 +52,7 @@ path. Use the actual pin assignments of your wiring.
 
 ### Buzzer hardware PWM
 
-Select the buzzer pin only among GPIO12 (PWM0), 13 (PWM1), 18 (PWM0), or 19 (PWM1), default GPIO19. The pin cannot conflict with encoder A/B or button. Kconfig configures the physical pin and boot overlay; the LCD controls On/Off, volume and tones only. Reboot after changing boot overlay. No Klipper output pin is required.
+Select the buzzer pin only among GPIO12 (PWM0), 13 (PWM1), 18 (PWM0), or 19 (PWM1), default GPIO19. The pin cannot conflict with encoder A/B or button. Kconfig configures the physical pin and boot overlay; the LCD controls Enabled/Disabled, volume and tones only. Reboot after changing boot overlay. No Klipper output pin is required.
 
 ### Klipper virtual buzzer
 
