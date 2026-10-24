@@ -119,7 +119,7 @@ class GateUITests(unittest.TestCase):
                  if len(call.args) >= 4 and call.args[1] == ICON_SPOOL_EMPTY]
         self.assertEqual(len(icons), 5)  # Four ghost gates + colored moving reel.
         lines = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
-        self.assertTrue(any('Example Filament' in line for line in lines))
+        self.assertIn('Example Filam', lines)
         self.assertTrue(any('Galaxy Red' in line for line in lines))
         self.assertTrue(any('PLA' in line for line in lines))
         self.assertIsNone(popup['operations'][0])
@@ -155,6 +155,77 @@ class GateUITests(unittest.TestCase):
         self.assertEqual(popup['sprite_x'], popup['positions'][3])
         self.assertFalse(view.lcd.show_icon.called)
         view.pd.subscription.request.assert_not_called()
+
+    def test_popup_freezes_matched_happy_hare_spool_percentage(self):
+        view, snapshot = self.make()
+        # Gate 1 contains the spool on this NFC tag. Gate 0 has a different
+        # percentage; rotating the selector must never borrow that value.
+        snapshot['status']['mmu']['gate_spool_id'][1] = 17
+        view.pd.mmu['remaining_percent'] = [99, 43, 71, 0]
+        view._nfc_gate_result()
+        popup = view._nfc_gate_popup
+        self.assertEqual(popup['remaining_percent'], 43)
+        texts = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
+        self.assertIn('43%', texts)
+        view.pd.mmu['remaining_percent'][1] = 5
+        view.lcd.reset_mock()
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
+        self.assertEqual(popup['remaining_percent'], 43)
+        self.assertFalse(view.lcd.show_icon.called)
+        self.assertTrue(popup.get('motion'))
+
+    def test_no_happy_hare_owner_yields_unknown_fill_not_other_gate(self):
+        view, _ = self.make()
+        view.pd.mmu['remaining_percent'] = [91, 55, 62, 0]
+        view._nfc_gate_result()
+        self.assertIsNone(view._nfc_gate_popup['remaining_percent'])
+        texts = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
+        self.assertIn('--', texts)
+        self.assertNotIn('91%', texts)
+        self.assertNotIn('55%', texts)
+
+    def test_fill_snapshot_validity_and_empty_gate_match_mmu_home_policy(self):
+        from ui_nfc_gate import NFCGateViewMixin
+        view, snapshot = self.make()
+        snapshot['status']['mmu']['gate_spool_id'][1] = 17
+        state = view.pd.mmu_session.state
+        percent = NFCGateViewMixin._nfc_gate_snapshot_percent
+        self.assertIsNone(percent(17, state, {'remaining_percent': [10]}))
+        self.assertIsNone(percent(17, state, {'remaining_percent': [10, float('nan')]}))
+        self.assertIsNone(percent(17, state, {'remaining_percent': [10, True]}))
+        self.assertEqual(percent(17, state, {'remaining_percent': [10, 43.2]}), 43)
+        self.assertEqual(percent(17, state, {'remaining_percent': [10, 150]}), 100)
+        snapshot['status']['mmu']['gate_status'][1] = 0
+        empty = view.pd.mmu_session.state
+        self.assertEqual(percent(17, empty, {'remaining_percent': [10, 80]}), 0)
+
+    def test_gif_rounded_card_has_color_side_capsule_and_no_hint_text(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        texts = [call.args[-1] for call in view.lcd.draw_text.call_args_list]
+        self.assertNotIn('ROTATE TO MOVE', ' '.join(texts))
+        self.assertNotIn('PRESS TO ASSIGN', ' '.join(texts))
+        self.assertNotIn('CHOOSE GATE', texts)
+        self.assertTrue(view.lcd.draw_polyline.called)
+        border, corners = view.lcd.draw_polyline.call_args.args
+        self.assertGreater(len(corners), 20)
+        self.assertEqual(border, 0x7BCF)
+        spool_color = view._nfc_gate_color(view._nfc_gate_popup['spool'])
+        self.assertTrue(any(call.args[1] == spool_color
+                            and call.args[2] == view._nfc_gate_popup['card_x'] + 7
+                            and call.args[4] == view._nfc_gate_popup['card_x'] + 10
+                            for call in view.lcd.draw_rectangle.call_args_list))
+        view.lcd.reset_mock()
+        # A real movement frame is only two native framebuffer moves.
+        view._nfc_gate_select(2)
+        motion = view._nfc_gate_popup['motion']
+        view.lcd.reset_mock()
+        view._nfc_gate_motion_tick(view._nfc_gate_popup,
+                                   now=motion['start'] + .175)
+        self.assertEqual(view.lcd.move_area.call_count, 2)
+        view.lcd.draw_polyline.assert_not_called()
+        view.lcd.draw_text.assert_not_called()
 
     def test_gif_easing_and_timing_match_sampled_motions(self):
         from ui_nfc_gate import NFCGateViewMixin
