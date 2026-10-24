@@ -31,6 +31,11 @@ MELODIES = MappingProxyType({
     'NFC_TAG_READ': _score((1047,45),(0,20),(1319,70)),
     'NFC_SPOOL_MATCH': _score((1047,45),(0,20),(1319,70),(0,30),(1568,125)),
     'NFC_SHARE_DONE': _score((1047,45),(0,20),(1319,70),(0,30),(1568,75),(0,30),(2093,160)),
+    # One short cue per rendered hold step; never a continuous melody loop.
+    'POWER_HOLD_START': _score((1047,18)),
+    'POWER_HOLD_STEP': _score((1568,7)),
+    'POWER_HOLD_READY': _score((2093,50)),
+    'POWER_HOLD_CANCEL': _score((784,22),(0,10),(523,40)),
     'OFF': (),
     'TICK': ((1800, .015),),
     'SHORT_BEEP': ((1400, .055),),

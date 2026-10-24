@@ -286,11 +286,13 @@ olmadan isimle çağrılabilir.
 
 ### Olay seslerini açma ve kapatma
 
-**Device → Event sounds** altında 17 bağımsız checkbox bulunur: yukarıdaki on altı olay ve **Emergency card alarm**. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
+**Device → Event sounds** altında 18 bağımsız checkbox bulunur: yukarıdaki on altı olay, **Emergency card alarm** ve **Power button hold**. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
 
 Her değişiklik DWIN Flash'a otomatik kaydedilir ve geri okunarak doğrulanır. Kayıt sürerken son doğrulanan seçimler geçerlidir. **Not saved** durumunda önceki seçimler korunur; tekrar basarak kaydı deneyin. **Retry read** ayarları yeniden okur. `0x0480` adresindeki ayrı, CRC korumalı 16 baytlık kayıt mevcut ekran ve buzzer ayarlarını korur.
 
 Ana Buzzer anahtarı bütün sesleri susturmaya devam eder. Normal olay melodileri Volume ayarını kullanır. Acil durum alarmı açıkken tam sesle çalar; kendi kutusunu kapatmak yalnız alarmı susturur, **acil durdurma işlemini devre dışı bırakmaz**. Tuş ve enkoder tonları mevcut ayarlarını kullanmaya devam eder.
+
+**Power button hold**, dört kısa sesi birlikte kontrol eder: basılı tutma çubuğu açılınca başlangıç, çizilen her ilerleme adımında 7 ms tık, dolunca farklı bir hazır tonu ve erken bırakınca alçalan iptal sesi. Normal kısa basış bu sesleri üretmez. Gecikmiş adımlar için ses birikmez; çubuk dolunca yine bırakmak ve mevcut ayrı kapatma onayını vermek gerekir. Dört ses de genel ses anahtarı/seviyesine uyar, acil alarmı kesemez. Yeni bit mevcut Flash kaydına sona eklenir; önceki seçimler korunur ve bu seçenek varsayılan açıktır.
 
 ![Olay sesi seçimleri](assets/screens/event-sounds.png)
 ![RFID, NFC ve acil durum sesi seçimleri](assets/screens/event-sounds-nfc.png)

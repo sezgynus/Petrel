@@ -309,3 +309,61 @@ class PowerShortcutTests(unittest.TestCase):
             v._button_released(); self.drain(v)
         v.Draw_Control_Menu.assert_called_once()
         self.assertEqual(v.checkkey, v.Control)
+
+    def test_hold_cues_follow_only_visible_progress_and_complete_once(self):
+        v = self.view(); v._event_buzzer_melody = Mock()
+        self.input(v, 'button_down', 10000)
+        for moment in (10.1, 10.44):
+            with patch.object(ui.time, 'monotonic', return_value=moment):
+                v._power_hold_tick()
+        v._event_buzzer_melody.assert_not_called()
+        for moment in (10.45, 10.47, 10.47, 10.49, 11.2, 11.4):
+            with patch.object(ui.time, 'monotonic', return_value=moment):
+                v._power_hold_tick()
+        self.assertEqual([c.args[0] for c in v._event_buzzer_melody.call_args_list],
+                         ['POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_STEP', 'POWER_HOLD_READY'])
+        self.input(v, 'button_release', 1400)
+        self.assertEqual(v._event_buzzer_melody.call_count, 4)
+        v.pd.power_off_if_on.assert_not_called()
+
+    def test_early_release_and_remote_cancel_replace_progress_with_cancel_cue(self):
+        for cancel in ('button_release', 'remote_button_cancel'):
+            v = self.view(); v._event_buzzer_melody = Mock()
+            self.input(v, 'button_down', 10000)
+            with patch.object(ui.time, 'monotonic', return_value=10.6):
+                v._power_hold_tick()
+            v._remote_power_hold_active = True
+            self.input(v, cancel, 650)
+            self.assertEqual([c.args[0] for c in v._event_buzzer_melody.call_args_list],
+                             ['POWER_HOLD_START', 'POWER_HOLD_CANCEL'])
+            self.assertIsNone(v._power_hold_started)
+            with patch.object(ui.time, 'monotonic', return_value=10.8):
+                self.assertFalse(v._power_hold_tick())
+            self.assertEqual(v._event_buzzer_melody.call_count, 2)
+            v.pd.power_off_if_on.assert_not_called()
+        v = self.view(); v._event_buzzer_melody = Mock()
+        self.gesture(v, .1)
+        v._event_buzzer_melody.assert_not_called()
+
+    def test_power_hold_checkbox_mutes_all_four_cues_with_global_volume(self):
+        v = self.view()
+        v._buzzer_load_complete = v._sound_event_prefs_ready = v._event_buzzer_ready = True
+        v._buzzer_player = Mock()
+        v._buzzer_values = ui.BuzzerSettings(volume=30)
+        cues = ('POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_READY', 'POWER_HOLD_CANCEL')
+        for name in cues:
+            v._event_buzzer_melody(name)
+        self.assertEqual([c.args[0] for c in v._buzzer_player.play_melody.call_args_list], list(cues))
+        self.assertTrue(all(c.args[1].volume == 30 and c.kwargs['priority']
+                            for c in v._buzzer_player.play_melody.call_args_list))
+        v._buzzer_player.reset_mock()
+        v._event_sound_values = v._event_sound_settings().toggled('POWER_HOLD')
+        for name in cues:
+            v._event_buzzer_melody(name)
+        v._buzzer_player.play_melody.assert_not_called()
+        v._event_sound_values = v._event_sound_settings().toggled('POWER_HOLD')
+        for settings in (ui.BuzzerSettings(volume=0), ui.BuzzerSettings(enabled=False)):
+            v._buzzer_values = settings
+            for name in cues:
+                v._event_buzzer_melody(name)
+        v._buzzer_player.play_melody.assert_not_called()

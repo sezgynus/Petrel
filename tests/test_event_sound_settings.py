@@ -11,7 +11,7 @@ from test_capabilities import display, snapshot
 class EventSoundRecordTests(TestCase):
     def test_all_enabled_default_independent_bits_and_crc_roundtrip(self):
         values = EventSounds()
-        self.assertEqual(len(EVENTS),17)
+        self.assertEqual(len(EVENTS),18)
         self.assertTrue(all(values.enabled(name) for name,_ in EVENTS))
         for name,_ in EVENTS:
             one = values.toggled(name)
@@ -28,6 +28,18 @@ class EventSoundRecordTests(TestCase):
             self.assertIsNone(EventSounds.decode(missing))
         future = EventSounds(1<<31)
         self.assertEqual(EventSounds.decode(future.toggled('BOOT').encode()).disabled,(1<<31)|BITS['BOOT'])
+
+    def test_new_hold_bit_preserves_old_choices_and_defaults_on_for_old_records(self):
+        old = EventSounds((1 << 17) - 1)
+        restored = EventSounds.decode(old.encode())
+        self.assertTrue(restored.enabled('POWER_HOLD'))
+        self.assertEqual(BITS['EMERGENCY'], 1 << 16)
+        self.assertEqual(BITS['POWER_HOLD'], 1 << 17)
+        muted = restored.toggled('POWER_HOLD')
+        for cue in ('POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_READY', 'POWER_HOLD_CANCEL'):
+            self.assertFalse(muted.enabled(cue))
+        self.assertEqual(muted.disabled & ((1 << 17) - 1), old.disabled)
+        self.assertEqual(EventSounds.decode(muted.encode()), muted)
 
     def test_flash_record_is_disjoint_from_all_existing_settings(self):
         from buzzer_control import ADDRESS as old, LEGACY_RECORD_SIZE
@@ -65,7 +77,7 @@ class EventSoundUITests(TestCase):
         self.assertEqual(view.checkkey,view.EventSoundsMenu)
         self.assertEqual(view._event_sound_selection,0)
         rows=view._draw_list_menu.call_args.args[1]
-        self.assertEqual(len(rows),18)
+        self.assertEqual(len(rows),19)
         self.assertEqual(rows[0][0],'Back')
         self.assertTrue(all(r[2] and getattr(r[3],'checkbox',False) for r in rows[1:]))
         view.HMI_Event_Sounds_Menu()

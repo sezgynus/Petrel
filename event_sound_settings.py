@@ -26,7 +26,10 @@ EVENTS = (
     ('NFC_SPOOL_MATCH', 'Spool tag matched'),
     ('NFC_SHARE_DONE', 'NFC share completed'),
     ('EMERGENCY', 'Emergency card alarm'),
+    ('POWER_HOLD', 'Power button hold'),
 )
+CUE_EVENTS = {name: 'POWER_HOLD' for name in (
+    'POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_READY', 'POWER_HOLD_CANCEL')}
 BITS = {name: 1 << index for index, (name, _) in enumerate(EVENTS)}
 
 
@@ -41,7 +44,7 @@ class EventSounds:
         return self
 
     def enabled(self, name):
-        return not bool(self.disabled & BITS.get(name, 0))
+        return not bool(self.disabled & BITS.get(CUE_EVENTS.get(name, name), 0))
 
     def toggled(self, name):
         return replace(self, disabled=self.disabled ^ BITS[name]).validate()

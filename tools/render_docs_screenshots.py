@@ -214,11 +214,11 @@ def event_sounds():
     return finish(v)
 
 
-@scene('event-sounds-nfc', 'controls', 'NFC and emergency sound choices (example)', 'NFC ve emergency ses seçimleri (örnek)')
+@scene('event-sounds-nfc', 'controls', 'NFC, emergency and power hold sound choices (example)', 'NFC, emergency ve basılı tutma ses seçimleri (örnek)')
 def event_sounds_nfc():
     v = canvas(); v.checkkey = v.EventSoundsMenu
     v._event_sound_values = v._event_sound_settings().toggled('NFC_SPOOL_MATCH')
-    v._event_sound_selection = 17
+    v._event_sound_selection = 18
     v.Draw_Event_Sounds_Menu()
     return finish(v)
 

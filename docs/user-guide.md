@@ -287,11 +287,13 @@ without automatic event bindings.
 
 ### Event sound switches
 
-Open **Device → Event sounds** for 17 independent checkboxes: the sixteen events above plus **Emergency card alarm**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
+Open **Device → Event sounds** for 18 independent checkboxes: the sixteen events above plus **Emergency card alarm** and **Power button hold**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
 
 Each change is saved automatically to DWIN Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
 
 The master Buzzer switch still mutes all sounds. Ordinary event melodies use Volume. The emergency alarm uses full volume when enabled; disabling its checkbox silences only the alarm and **does not disable the emergency-stop action**. Click and encoder tones keep their existing settings.
+
+The **Power button hold** switch controls four short cues: start when the hold bar appears, a 7 ms tick per rendered progress advance, a distinct ready tone when full, and a descending cancellation cue on early release. A normal short click has no hold cue. Delayed ticks never replay missed steps; reaching full still requires release and the existing separate power-off confirmation. All four use global mute/volume and remain below emergency priority. The new bit is appended to the existing Flash record; previous choices are retained and this option defaults on.
 
 ![Event sound checkboxes](assets/screens/event-sounds.png)
 ![RFID, NFC and emergency sound switches](assets/screens/event-sounds-nfc.png)

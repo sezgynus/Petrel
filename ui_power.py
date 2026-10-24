@@ -41,8 +41,10 @@ class PowerShortcutMixin:
             return
         self._loop.post(InputEvent('button_release', elapsed, epoch, ui_epoch))
 
-    def _clear_power_hold(self, restore=True):
+    def _clear_power_hold(self, restore=True, *, cancelled=True):
         visible = getattr(self, '_power_hold_visible', False)
+        if visible and cancelled:
+            self._event_buzzer_melody('POWER_HOLD_CANCEL')
         self._power_hold_started = None
         self._remote_power_hold_active = False
         self._remote_power_hold_deadline = None
@@ -84,7 +86,10 @@ class PowerShortcutMixin:
             return False
         wake_only = getattr(self, '_power_wake_only', False)
         self._power_wake_only = False
-        self._clear_power_hold(restore=event.value < self.POWER_OFF_HOLD_MS)
+        completed = event.value >= self.POWER_OFF_HOLD_MS
+        if completed and not getattr(self, '_power_hold_ready', False):
+            self._event_buzzer_melody('POWER_HOLD_READY')
+        self._clear_power_hold(restore=not completed, cancelled=not completed)
         if event.value >= self.POWER_OFF_HOLD_MS:
             if self.checkkey != self.PowerConfirm:
                 self._open_power_hold_popup()
@@ -113,7 +118,9 @@ class PowerShortcutMixin:
         elapsed = round((time.monotonic() - started) * 1000)
         if elapsed < self.SHORT_PRESS_MS or self.checkkey == self.PowerConfirm:
             return True
-        dirty = not self._power_hold_visible
+        first_step = not self._power_hold_visible
+        dirty = first_step
+        cue = 'POWER_HOLD_START' if first_step else None
         if not self._power_hold_visible:
             self._power_hold_visible = True
             show_icon(self.lcd, self.ICON, ICON_POWER_HOLD_PANEL, 28, 160)
@@ -124,6 +131,8 @@ class PowerShortcutMixin:
                        / (self.POWER_OFF_HOLD_MS - self.SHORT_PRESS_MS)))
         pixels = round(progress * 184)
         if pixels > self._power_hold_pixels:
+            if not first_step:
+                cue = 'POWER_HOLD_STEP'
             dirty = True
             self.lcd.draw_rectangle(1, 0x063B, 44 + self._power_hold_pixels,
                                     214, 43 + pixels, 221)
@@ -131,9 +140,12 @@ class PowerShortcutMixin:
         if progress == 1 and not self._power_hold_ready:
             dirty = True
             self._power_hold_ready = True
+            cue = 'POWER_HOLD_READY'
             self.lcd.draw_text(False, False, self.lcd.font8x16,
                 self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
                 56, 236, 'Release to continue')
+        if cue is not None:
+            self._event_buzzer_melody(cue)
         if dirty:
             self.lcd.update()
         return True
