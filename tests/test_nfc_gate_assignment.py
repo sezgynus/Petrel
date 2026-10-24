@@ -231,6 +231,76 @@ class GateUITests(unittest.TestCase):
         view.lcd.draw_polyline.assert_not_called()
         view.lcd.draw_text.assert_not_called()
 
+    def test_gif_connectors_link_card_reel_and_selected_gate(self):
+        """Two thin GIF connectors and a cyan tip are drawn once at opening."""
+        view, _ = self.make()
+        view._nfc_gate_result()
+        popup = view._nfc_gate_popup
+        self.assertEqual(len(popup['link_segments']), 2)
+        upper, lower = popup['link_segments']
+        cx = popup['sprite_x'] + view.GATE_REEL_WIDTH // 2
+        self.assertEqual(upper, (popup['card_x'] + view.GATE_CARD_WIDTH // 2,
+                                 view.GATE_CARD_TOP + view.GATE_CARD_HEIGHT + 4,
+                                 cx, popup['sprite_y'] - 5))
+        self.assertEqual(lower, (cx, popup['sprite_y'] + view.GATE_REEL_HEIGHT + 3,
+                                 popup['positions'][1] + view.GATE_REEL_WIDTH // 2,
+                                 view.GATE_LINK_TIP_Y - 2))
+        self.assertEqual(popup['link_tip'], lower[2])
+        strokes = [call.args for call in view.lcd.draw_line.call_args_list]
+        for line in (upper, lower):
+            self.assertIn((view.GATE_LINK_COLOR, *line), strokes)
+        self.assertTrue(any(call.args[1] == 0x063B
+                            and call.args[2] == popup['link_tip'] - 2
+                            and call.args[3] == view.GATE_LINK_TIP_Y - 2
+                            for call in view.lcd.draw_rectangle.call_args_list))
+
+    def test_connectors_follow_native_pixel_motion_without_sprite_redraw(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        popup = view._nfc_gate_popup
+        view._nfc_gate_select(2)
+        motion = popup['motion']
+        old_lines = tuple(popup['link_segments'])
+        view.lcd.reset_mock()
+        view._nfc_gate_motion_tick(popup, now=motion['start'] + .30)
+        self.assertEqual(view.lcd.move_area.call_count, 2)
+        self.assertNotEqual(tuple(popup['link_segments']), old_lines)
+        # Two old lines cleared first; two new lines drawn after both 0x09 moves.
+        strokes = [call.args for call in view.lcd.draw_line.call_args_list]
+        self.assertEqual(strokes[:2], [(view.GATE_BG, *v) for v in old_lines])
+        self.assertEqual(strokes[2:], [(view.GATE_LINK_COLOR, *v)
+                                       for v in popup['link_segments']])
+        self.assertEqual(len(popup['link_segments']), 2)
+        self.assertEqual(popup['link_segments'][1][2],
+                         popup['positions'][2] + view.GATE_REEL_WIDTH // 2)
+        view.lcd.show_icon.assert_not_called()
+        view.lcd.draw_text.assert_not_called()
+        view.Clear_Popup_Area = Mock()
+        # Native 0x09 is retained and moving lines do not trigger a full draw.
+        view._nfc_gate_motion_tick(popup, now=motion['start'] + .35)
+        view.Clear_Popup_Area.assert_not_called()
+
+    def test_lower_connector_retracts_during_verified_gate_landing(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        popup = view._nfc_gate_popup
+        self.assertEqual(len(popup['link_segments']), 2)
+        view._nfc_gate_start_vertical(popup, view.GATE_GHOST_TOP)
+        motion = popup['motion']
+        view.lcd.reset_mock()
+        view._nfc_gate_motion_tick(popup, now=motion['start'] + .30)
+        self.assertGreater(popup['sprite_y'], view.GATE_REEL_TOP)
+        self.assertEqual(len(popup['link_segments']), 1)
+        self.assertNotIn('link_tip', popup)
+        self.assertEqual(popup['link_segments'][0][3], popup['sprite_y'] - 5)
+        self.assertEqual(view.lcd.move_area.call_args.args[0:2], (1, 3))
+        view.lcd.show_icon.assert_not_called()
+        view.lcd.draw_text.assert_not_called()
+        # The upper card connector stretches through the remaining descent.
+        view._nfc_gate_motion_tick(popup, now=motion['start'] + .61)
+        self.assertEqual(popup['sprite_y'], view.GATE_GHOST_TOP)
+        self.assertEqual(len(popup['link_segments']), 1)
+
     def test_gif_easing_and_timing_match_sampled_motions(self):
         from ui_nfc_gate import NFCGateViewMixin
         ease = NFCGateViewMixin._nfc_gate_ease
