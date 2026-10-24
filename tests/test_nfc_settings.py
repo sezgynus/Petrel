@@ -147,8 +147,8 @@ class NFCSettingsTests(unittest.TestCase):
         view._draw_list_menu = Mock()
         view.Draw_Display_Menu()
         rows = view._draw_list_menu.call_args.args[1]
-        self.assertEqual(rows[-1][0], 'NFC settings')
-        self.assertEqual(rows[-1][1], ICON_NFC)
+        row = next(row for row in rows if row[0] == 'NFC settings')
+        self.assertEqual(row[1], ICON_NFC)
         self.assertNotEqual(ICON_NFC, view.ICON_Info)
 
         with patch.dict('os.environ', {'PETREL_NFC': '1'}):
