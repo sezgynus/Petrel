@@ -482,6 +482,11 @@ class NFCGateViewMixin:
     def _nfc_gate_input(self, event):
         if self._display_activity():
             return
+        # NFC gate input branches off before the normal UI's shared buzzer
+        # feedback call. Give rotary detents and encoder presses the same
+        # configured sounds as every other menu (including Back/confirm).
+        if event.kind in ('rotate', 'press'):
+            self._buzzer_feedback(event.kind)
         popup = self._nfc_gate_popup
         if event.kind == 'rotate' and popup['phase'] == 'choose':
             delta = abs(event.value) * (1 if event.value < 0 else -1)
