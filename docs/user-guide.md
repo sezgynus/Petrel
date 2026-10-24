@@ -194,8 +194,7 @@ The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle
 All note sequences live in `buzzer_melodies.py`. The library includes
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
-`PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, preserving the original M300
-frequencies, millisecond durations and silent rests. Existing UI tones and the
+`PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, using short event-specific motifs with explicit silent rests. Existing UI tones and the
 emergency alarm share this library.
 
 Internal UI code can call `self._play_buzzer_melody('PRINT_DONE')`; other code
@@ -207,8 +206,29 @@ replaces ordinary playback without building a queue. The emergency alarm retains
 its dedicated full-volume preemption path and cannot be interrupted by ordinary
 melodies. Unknown names raise `ValueError` before queuing.
 
-Adding a score does not bind it to printer events or install G-code macros.
-These 15 new melodies are available for future event wiring only.
+Six melodies are now wired to application and subscribed printer events:
+
+| Melody | Trigger |
+|---|---|
+| `PRINT_DONE` | An active print transitions to `complete`; cancellation is silent. |
+| `PAUSE` | An active print transitions to `paused`. |
+| `RESUME` | `paused` transitions to `printing`; initial start is silent. |
+| `ERROR` | A live print enters `error`, or Klipper reports shutdown. |
+| `BOOT` | Buzzer preferences are read at application startup, once per process. |
+| `SHUTDOWN` | Confirmed Petrel power-off request, immediately before dispatch. |
+
+These use existing WebSocket deltas/lifecycle notifications and UI callbacks,
+without additional polling, queries or G-code macros. Initial snapshots,
+reconnect snapshots and duplicate states do not replay sounds. Error reports
+from print state and Klipper shutdown are deduplicated. Normal connection loss
+is not an error melody. Delayed events from a recovered older connection are
+discarded. Sound runs asynchronously on the existing bounded PWM worker and
+honors Buzzer Enabled/Disabled and Volume. Emergency alarm priority is unchanged.
+
+The shutdown sound starts before the power request; shutdown is not delayed
+for audio, so cutting power to the Pi may truncate it. Abrupt power loss cannot
+produce a reliable shutdown sound. Other melodies remain available by name
+without automatic event bindings.
 
 ### Klipper virtual buzzer (optional extra)
 

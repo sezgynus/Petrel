@@ -359,6 +359,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                               power_device=power_device)
         self._maintenance_button_presses = 0
         self.pd._maintenance_panel_api = self._maintenance_panel_api
+        self._event_buzzer_ready = False
+        self.pd.subscription.set_melody_callback(self._queue_buzzer_melody)
         self.pd.init_Webservices()
         # NFC stays alive on every menu and during every printer state.
         core = self.pd.get_nfc_core()
@@ -627,6 +629,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._buzzer_save_future = None
                     self._buzzer_save_error = True
                     self._display_save_message = 'Not saved. Press to retry'
+                self._event_buzzer_ready = False
                 self._buzzer_load_complete = False
                 self._buzzer_load_future = self.lcd.begin_flash_read(
                     buzzer_control.ADDRESS, buzzer_control.RECORD_SIZE)
@@ -649,11 +652,15 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 if not hasattr(self, '_buzzer_values'):
                     try:
                         values = self.lcd.load_buzzer_settings()
+                        buzzer_read_ok = True
                     except (OSError, TimeoutError, T5UIC1ProtocolError):
                         logging.warning('Buzzer settings unavailable; sounds disabled')
                         values = None
+                        buzzer_read_ok = False
                     self._buzzer_values = values if isinstance(values, BuzzerSettings) else BuzzerSettings()
                     self._buzzer_saved = self._buzzer_values
+                    if buzzer_read_ok:
+                        self._arm_buzzer_events()
             self._display_last_activity = time.monotonic()
             self._display_dimmed = False
             self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
@@ -834,6 +841,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                             if player is not None and hasattr(player, 'mute_external'):
                                 player.mute_external()
                     self._buzzer_load_complete = True
+                    self._arm_buzzer_events()
                 elif kind == 'display_save':
                     self._display_saved = self._display_save_target
                     self._display_edit = False
@@ -1345,6 +1353,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if self._closed:
             return
         self._spool_stop_scan_animation()
+        self._event_buzzer_ready = False
+        self.pd.subscription.set_melody_callback(None)
         self._closed = True
         for resource in (getattr(self, '_software_update', None),
                          getattr(self, '_remote_display', None),
@@ -1576,6 +1586,16 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return False
 
     def _process_input_untraced(self, event):
+        if event.kind.startswith('melody_'):
+            name = event.kind[7:]
+            if name in ('PRINT_DONE', 'PAUSE', 'RESUME', 'ERROR'):
+                live = self.pd.subscription.lifecycle()
+                valid = (event.epoch == live['epoch'] or
+                         (name == 'ERROR' and live['state'] != 'ready'
+                          and event.epoch + 1 == live['epoch']))
+                if valid:
+                    self._event_buzzer_melody(name)
+            return
         if event.kind in ('nfc_gate_lookup', 'nfc_gate_verify'):
             if not self._closed:
                 (self._nfc_gate_result if event.kind == 'nfc_gate_lookup'
@@ -4099,6 +4119,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                         self._draw_power_confirmation(buttons_only=True)
                 elif event == self.ENCODER_DIFF_ENTER:
                     if self._power_confirm_yes and not self._power_blocked:
+                        self._event_buzzer_melody('SHUTDOWN')
                         self._power_off_future = self.pd.power_off_if_on()
                         self._power_shutdown_requested = True
                         self._show_message('Powering off...')
@@ -4110,6 +4131,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self._draw_power_confirmation()
             elif event == self.ENCODER_DIFF_ENTER:
                 if self._power_confirm_yes:
+                    self._event_buzzer_melody('SHUTDOWN')
                     self.pd.power_off_if_on()
                     self._show_message('Powering off...')
                 else:

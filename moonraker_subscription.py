@@ -6,6 +6,7 @@ is decoupled from physical completion. Completion is confirmed from subscribed p
 from collections import deque, OrderedDict
 import copy
 import json
+import logging
 import math
 import re
 import socket
@@ -71,6 +72,8 @@ class MoonrakerSubscription:
         self._thermal_generation = 0
         self._case_light_tracking = False
         self._case_light_callback = None
+        self._melody_callback = None
+        self._melody_error_latched = False
         self._case_light_generation = 0
         self._settings = {}
         self._frozen_status = {}
@@ -272,6 +275,42 @@ class MoonrakerSubscription:
         future.add_done_callback(receive)
         return future
 
+    def set_melody_callback(self, callback):
+        """One nonblocking observer; registration never replays existing state."""
+        with self._lock:
+            self._melody_callback = callback
+
+    def _emit_melody(self, name, epoch):
+        with self._lock:
+            callback = self._melody_callback
+        if callback is not None:
+            try:
+                callback(name, epoch)
+            except Exception:
+                logging.exception('Buzzer event observer failed')
+
+    def _melody_transition(self, previous, current, webhooks):
+        """Called with the state lock held for live deltas only, never bootstrap."""
+        name = None
+        if current == 'printing' and previous not in ('printing', 'paused', 'pausing'):
+            self._melody_error_latched = False
+        if current != previous:
+            if current == 'complete' and previous in ('printing', 'paused', 'pausing'):
+                name = 'PRINT_DONE'
+            elif current == 'paused' and previous in ('printing', 'pausing'):
+                name = 'PAUSE'
+            elif current == 'printing' and previous == 'paused':
+                name = 'RESUME'
+        failure = ((current == 'error' and previous != 'error' and previous is not None)
+                   or webhooks in ('shutdown', 'error'))
+        if failure:
+            if not self._melody_error_latched:
+                name = 'ERROR'
+                self._melody_error_latched = True
+            else:
+                name = None
+        return name
+
     def _invalidate(self, error):
         with self._lock:
             self._thermal_objects = ()
@@ -294,7 +333,9 @@ class MoonrakerSubscription:
                 or not all(isinstance(value, dict) for value in status.values())):
             raise MoonrakerError('Invalid status notification')
         callback = None
+        melody = None
         with self._lock:
+            previous_print = self._status.get('print_stats', {}).get('state')
             previous_light = copy.deepcopy(self._status.get('output_pin case_light'))
             if not replace and self._eventtime is not None and eventtime < self._eventtime:
                 return
@@ -308,12 +349,19 @@ class MoonrakerSubscription:
             self._prune_thermal_status()
             self._eventtime = eventtime
             self._revision += 1
+            if self._state == 'ready' and not replace and not self._subscribing:
+                melody = self._melody_transition(
+                    previous_print, self._status.get('print_stats', {}).get('state'),
+                    status.get('webhooks', {}).get('state'))
+            melody_epoch = self._epoch
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):
                 callback = self._case_light_callback
             if not self._case_light_tracking and 'output_pin case_light' not in self._usage_fields:
                 self._status.pop('output_pin case_light', None)
         if callback is not None:
             callback()
+        if melody is not None:
+            self._emit_melody(melody, melody_epoch)
 
     def _notification(self, message):
         if 'id' in message:
@@ -371,6 +419,14 @@ class MoonrakerSubscription:
                 raise MoonrakerError('Klipper is not ready')
         elif method in ('notify_klippy_disconnected', 'notify_klippy_shutdown',
                          'notify_klippy_ready'):
+            if method == 'notify_klippy_shutdown':
+                with self._lock:
+                    alarm = self._state == 'ready' and not self._melody_error_latched
+                    epoch = self._epoch
+                    if alarm:
+                        self._melody_error_latched = True
+                if alarm:
+                    self._emit_melody('ERROR', epoch)
             # Obtain a fresh object list and snapshot on every lifecycle epoch.
             raise MoonrakerError('Klipper lifecycle changed; resubscribing')
         elif method == 'notify_filelist_changed':
@@ -750,6 +806,7 @@ class MoonrakerSubscription:
             self._software_version = printer_info.get('software_version', 'unknown')
             self._state = 'ready'
             self._error = None
+            self._melody_error_latched = False
 
     def _run(self):
         while not self._stop.is_set():

@@ -194,8 +194,7 @@ Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `o
 Bütün nota dizileri `buzzer_melodies.py` içinde tutulur. Kütüphanede
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
-`PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Özgün M300 frekansları,
-milisaniye süreleri ve sessiz beklemeleri korunur. Mevcut UI tonları ve emergency
+`PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Kısa, olaya özgü motifler ve açık sessiz beklemeler kullanılır. Mevcut UI tonları ve emergency
 alarmı da aynı kütüphaneyi kullanır.
 
 UI kodu `self._play_buzzer_melody('PRINT_DONE')`, mevcut oynatıcıya erişen diğer
@@ -207,8 +206,29 @@ kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli önceli
 korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
 `ValueError` üretir.
 
-Melodi eklemek olaylara otomatik bağlantı veya G-code makrosu kurmaz. Bu 15 yeni
-melodi sonraki olay entegrasyonları için hazırdır.
+Altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
+
+| Melodi | Tetikleyici |
+|---|---|
+| `PRINT_DONE` | Aktif baskının `complete` durumuna geçmesi; iptal sessizdir. |
+| `PAUSE` | Aktif baskının `paused` durumuna geçmesi. |
+| `RESUME` | `paused → printing`; ilk baskı başlangıcı sessizdir. |
+| `ERROR` | Canlı baskının `error` olması veya Klipper shutdown bildirimi. |
+| `BOOT` | Uygulama açılışında buzzer ayarlarının okunması; işlem başına bir kez. |
+| `SHUTDOWN` | Petrel kapatmasının onaylanması; güç isteği gönderilmeden hemen önce. |
+
+Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
+yeni polling, sorgu veya G-code makrosu eklenmez. İlk bağlantı, yeniden bağlantı
+snapshot’ları ve tekrarlanan durumlar ses üretmez. Baskı hatası ve Klipper
+shutdown aynı hata için tek ses üretir; sıradan bağlantı kaybı hata melodisi
+değildir. Yeni bağlantı kurulduktan sonra eski oturumdan gecikmiş bildirimler
+elenir. Ses mevcut sınırlı PWM işçisinde asenkron çalar; Buzzer Enabled/Disabled
+ve Volume ayarlarına uyar. Emergency alarmının önceliği korunur.
+
+Kapanış melodisi güç isteğinden önce başlar; ses için kapatma geciktirilmez.
+Pi’nin gücü de kesiliyorsa melodi yarıda kalabilir. Ani elektrik kesilmesinde
+kapanış sesi garanti edilemez. Diğer melodiler otomatik olay bağlantısı
+olmadan isimle çağrılabilir.
 
 ### Klipper sanal buzzer (isteğe bağlı extra)
 
