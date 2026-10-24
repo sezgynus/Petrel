@@ -629,8 +629,14 @@ Scan a card linked in Spoolman's **Tags** from any normal Petrel screen to open
 **Spool #ID: choose gate**. The popup uses the very same library-backed spool icons
 as Home and the MMU menu: four muted destination spools and a moving reel colored
 from the scanned Spoolman record. The reel's manufacturer, filament name,
-material and spool ID move with its selection card; gate labels show the
-currently assigned spool IDs. Rotate the encoder to select a gate (groups of
+material and spool ID move inside a rounded, filament-accented information
+card. If Happy Hare currently associates that spool ID with a gate, its
+remaining percentage is sampled once on opening and rendered with the same
+shared SpoolView variable-height fill and percent caption as Home/MMU. The
+snapshot remains fixed while the popup is open; an unmatched or unknown spool
+shows `--` instead of copying another gate's percentage. Gate captions show
+the currently assigned spool IDs. The selector has no redundant rotate/press
+instructions. Rotate the encoder to select a gate (groups of
 four for larger MMUs), then press to assign. Rotate left to the header Back
 control to cancel. During verification the reel remains above the slot; it descends in one
 approximately 600ms eased motion only after Happy Hare readback confirms the
