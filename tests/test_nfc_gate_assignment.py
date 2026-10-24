@@ -222,6 +222,24 @@ class GateUITests(unittest.TestCase):
         view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .30)
         self.assertFalse(view.lcd.show_icon.called)
 
+    def test_unmounted_spool_uses_own_spoolman_weight_for_text_and_fill(self):
+        view, _ = self.make()
+        raw = spool(17)
+        raw.update(remaining_weight=420, initial_weight=1000)
+        described = describe(raw)
+        view._nfc_spool_router.take_result.return_value = ('AA:BB', described)
+        view.pd.mmu['remaining_percent'] = [91, 55, 62, 0]
+        view._nfc_gate_result()
+        self.assertEqual(view._nfc_gate_popup['remaining_percent'], 42)
+        self.assertIn('42%', [c.args[-1] for c in view.lcd.draw_text.call_args_list])
+        # Shared renderer paints the 42% filament body at its reduced height.
+        self.assertTrue(any(c.args[-1] - c.args[-3] + 1 == 28
+                            for c in view.lcd.draw_rectangle.call_args_list))
+        raw['remaining_weight'] = 10
+        self.assertEqual(described.remaining_percent, 42)
+        # Quantity changes do not invalidate a tag-move identity confirmation.
+        self.assertEqual(described, describe(raw))
+
     def test_no_happy_hare_owner_yields_unknown_fill_not_other_gate(self):
         view, _ = self.make()
         view.pd.mmu['remaining_percent'] = [91, 55, 62, 0]

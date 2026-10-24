@@ -75,6 +75,81 @@ class EmergencyTagTests(unittest.TestCase):
             self.assertIsNone(core.global_action_uid('emergency_stop'))
             core.close()
 
+    def test_reenrollment_of_saved_card_captures_without_shutdown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reader, stop = backend(), Mock()
+            core = NFCCore(reader, emergency_stop=stop,
+                           actions_file=Path(tmp) / 'actions.json')
+            core.assign_global_action('emergency_stop', 'AA:BB')
+            emit = reader.set_event_sink.call_args.args[0]
+            ordinary = Mock()
+            core.subscribe('card.detected', ordinary, priority=500)
+            pending = core.begin_assignment(action='emergency_stop')
+            emit('card.detected', {'uid': 'AA:BB'})
+            self.assertEqual(pending.result()['uid'], 'AA:BB')
+            stop.assert_not_called()
+            ordinary.assert_called_once()
+            core.assign_global_action('emergency_stop', pending.result()['uid'])
+            emit('card.detected', {'uid': 'AA:BB'})
+            stop.assert_called_once()
+            self.assertEqual(ordinary.call_count, 1)
+            # Spool enrollment must still respect emergency priority.
+            pending = core.begin_assignment()
+            emit('card.detected', {'uid': 'AA:BB'})
+            self.assertFalse(pending.done())
+            self.assertEqual(stop.call_count, 2)
+            pending.cancel()
+            pending = core.begin_assignment(action='emergency_stop')
+            pending.cancel()
+            emit('card.detected', {'uid': 'AA:BB'})
+            self.assertEqual(stop.call_count, 3)
+            core.close()
+
+    def test_card_feedback_observes_both_enrollment_flows_once(self):
+        from ui_events import InputEvent
+        with tempfile.TemporaryDirectory() as tmp:
+            reader = backend()
+            core = NFCCore(reader, actions_file=Path(tmp) / 'actions.json')
+            view = display(snapshot())
+            view._closed = False
+            view._uart_online = False
+            view._queue_nfc_ui_event = Mock(return_value=False)
+            view._rfid_buzzer_feedback = Mock()
+            view._nfc_share_component = Mock()
+            view._nfc_share_component.return_value.sync.return_value = False
+            view.pd.sync_nfc_event = Mock()
+            view._subscribe_nfc_card_notifications(core)
+            emit = reader.set_event_sink.call_args.args[0]
+            for action in ('emergency_stop', None):
+                view._queue_nfc_ui_event.reset_mock()
+                pending = core.begin_assignment(action=action)
+                emit('card.detected', {'uid': 'AA:BB'})
+                self.assertTrue(pending.done())
+                view._queue_nfc_ui_event.assert_called_once_with('nfc_card')
+                view._process_input_untraced(InputEvent('nfc_card', 0, 0, 0))
+            self.assertEqual(view._rfid_buzzer_feedback.call_count, 2)
+            core.close()
+
+    def test_remove_row_disappears_and_selection_returns_to_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            core = NFCCore(backend(), actions_file=Path(tmp) / 'actions.json')
+            core.assign_global_action('emergency_stop', 'AA:BB')
+            view = display(snapshot())
+            view.pd.get_nfc_core = Mock(return_value=core)
+            view._rfid_mode = 'emg'
+            view._draw_list_menu = Mock()
+            view.Draw_RFID_Menu()
+            self.assertIn('Remove tag', [r[0] for r in view._draw_list_menu.call_args.args[1]])
+            self.press(view, 2)
+            self.assertIsNone(core.global_action_uid('emergency_stop'))
+            self.assertNotIn('Remove tag', [r[0] for r in view._draw_list_menu.call_args.args[1]])
+            self.assertEqual(view._rfid_selection, 0)
+            view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_CW)
+            view._rotation_steps = 8
+            view.HMI_RFID()
+            self.assertEqual(view._rfid_selection, 1)
+            core.close()
+
     def test_disabled_reader_cannot_begin_enrollment(self):
         view = display(snapshot())
         view.pd.get_nfc_core = Mock(return_value=None)

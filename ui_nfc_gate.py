@@ -30,8 +30,10 @@ class NFCGateViewMixin:
         # The home MMU percentage belongs to a gate, not directly to a
         # Spoolman ID. Resolve the scanned spool once against Happy Hare's
         # current gate map; retain that single snapshot for the popup.
-        percent = self._nfc_gate_snapshot_percent(
-            spool.id, self.pd.mmu_session.state, self.pd.mmu)
+        percent = spool.remaining_percent
+        if percent is None:
+            percent = self._nfc_gate_snapshot_percent(
+                spool.id, self.pd.mmu_session.state, self.pd.mmu)
         self._nfc_gate_popup = {
             'uid': uid, 'spool': spool, 'remaining_percent': percent,
             'origin': existing['origin'] if existing else self.checkkey,

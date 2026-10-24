@@ -22,7 +22,7 @@ class CardScanPopupTests(TestCase):
 
     def test_replace_starts_twelve_native_frames_once_then_requires_save(self):
         view, core, pending = self.screen()
-        core.begin_assignment.assert_called_once_with()
+        core.begin_assignment.assert_called_once_with(action='emergency_stop')
         view.lcd.configure_animation.assert_called_once_with(
             3, True, ICON_LIBRARY_ID, 42, 53, 56, 116, 20)
         view.Draw_RFID_Menu(full=False)
