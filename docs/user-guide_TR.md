@@ -194,8 +194,7 @@ Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `o
 Bütün nota dizileri `buzzer_melodies.py` içinde tutulur. Kütüphanede
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
-`PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Özgün M300 frekansları,
-milisaniye süreleri ve sessiz beklemeleri korunur. Mevcut UI tonları ve emergency
+`PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Bu test dalında 15 olay için kısa ve ritmik v2 motifleri denenir. Mevcut UI tonları ve emergency
 alarmı da aynı kütüphaneyi kullanır.
 
 UI kodu `self._play_buzzer_melody('PRINT_DONE')`, mevcut oynatıcıya erişen diğer
@@ -731,4 +730,4 @@ Emergency kartı atama akışında kayıtlı emergency kartı tekrar okutulursa 
 
 ### Geçici melodi test dalı
 
-Yalnız `test/buzzer-melodies` dalında **Display → Melody test** açılır; enkoderle melodiyi seçip basarak çalabilirsiniz. Listede verilen 15 melodi, UI tonları ve emergency alarmı bulunur. **Stop sound** veya Back normal çalmayı durdurur; emergency alarmı korunan dizisini tamamlar. Buzzer Enabled ve Volume ayarları geçerlidir; emergency tam ses politikasını korur. Melodi denemek hiçbir yazıcı işlemini tetiklemez. Test ekranını kaldırmak için master dalına dönün.
+Yalnız `test/buzzer-melodies` dalında **Display → Melody test** açılır; enkoderle melodiyi seçip basarak çalabilirsiniz. Listede yeniden tasarlanan 15 olay melodisi (v2), UI tonları ve değişmeyen emergency alarmı bulunur. Özgün M300 melodileri yalnız bu test dalında değiştirilmiştir. **Stop sound** veya Back normal çalmayı durdurur; emergency alarmı korunan dizisini tamamlar. Buzzer Enabled ve Volume ayarları geçerlidir; emergency tam ses politikasını korur. Melodi denemek hiçbir yazıcı işlemini tetiklemez. Test ekranını kaldırmak için master dalına dönün.

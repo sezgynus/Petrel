@@ -1,4 +1,4 @@
-"""Original M300 score fidelity and bounded named melody playback."""
+"""Event melody validity and bounded named melody playback."""
 from threading import Event
 import unittest
 from unittest.mock import Mock, call, patch
@@ -8,29 +8,21 @@ from buzzer_melodies import MELODIES, get_melody
 
 
 class MelodyTests(unittest.TestCase):
-    def test_original_m300_frequencies_durations_and_rests(self):
-        original = {
-            'PRINT_DONE': '1319:150 1568:150 1760:150 2093:300 0:150 2093:300',
-            'HEATING_DONE': '784:150 988:150 1319:200 1760:200 1568:200 1976:400',
-            'COOLING_DONE': '2093:150 1760:150 1319:250 988:300 784:300 523:400',
-            'ERROR': '1046:200 784:200 523:200 0:100 523:250 494:300 440:400',
-            'FILAMENT_OUT': '1568:150 0:50 1568:150 0:50 880:200 988:250 784:300',
-            'BOOT': '880:120 1175:120 1568:120 2093:200 2637:200 3136:250 4186:400',
-            'SHUTDOWN': '2093:200 1760:200 1319:200 988:250 784:400 523:400',
-            'PAUSE': '1568:150 1175:150 880:300 0:100 880:250 1319:250',
-            'RESUME': '784:150 1046:150 1319:200 1760:250 2093:300',
-            'LAYER_CHANGE': '2093:100 0:40 2349:120 0:40 2637:150 0:40 3136:180',
-            'HOMING': '1046:150 1175:150 1319:150 1568:250 1760:250',
-            'PROBE_SUCCESS': '988:150 1175:150 1568:150 2093:250 2637:250',
-            'PROBE_FAIL': '2093:120 1976:120 1760:150 1319:250 988:400',
-            'WARNING': '1175:150 1175:150 1175:150 0:100 784:250 880:400',
-            'CUSTOM_EVENT': '987:150 740:150 987:150 1319:200 1760:300 2093:400',
-        }
-        for name, notes in original.items():
+    def test_event_scores_are_distinct_short_valid_and_include_rests(self):
+        names = ('PRINT_DONE', 'HEATING_DONE', 'COOLING_DONE', 'ERROR',
+                 'FILAMENT_OUT', 'BOOT', 'SHUTDOWN', 'PAUSE', 'RESUME',
+                 'LAYER_CHANGE', 'HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL',
+                 'WARNING', 'CUSTOM_EVENT')
+        scores = [get_melody(name) for name in names]
+        self.assertEqual(len(set(scores)), 15)
+        for name, score in zip(names, scores):
             with self.subTest(name=name):
-                expected = tuple(tuple(map(int, note.split(':'))) for note in notes.split())
-                actual = tuple((hz, round(seconds * 1000)) for hz, seconds in get_melody(name))
-                self.assertEqual(actual, expected)
+                self.assertGreater(sum(duration for _, duration in score), 0)
+                self.assertLess(sum(duration for _, duration in score), 1.5)
+                self.assertTrue(any(frequency == 0 for frequency, _ in score))
+                self.assertTrue(all(0 <= frequency <= 4186 and 0 < duration <= .3
+                                    for frequency, duration in score))
+        self.assertLess(sum(duration for _, duration in get_melody('LAYER_CHANGE')), .2)
         with self.assertRaises(TypeError):
             MELODIES['BOOT'] = ()
 

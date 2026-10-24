@@ -194,8 +194,7 @@ The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle
 All note sequences live in `buzzer_melodies.py`. The library includes
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
-`PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, preserving the original M300
-frequencies, millisecond durations and silent rests. Existing UI tones and the
+`PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, with short event-specific motifs in the test branch's v2 audition set. Existing UI tones and the
 emergency alarm share this library.
 
 Internal UI code can call `self._play_buzzer_melody('PRINT_DONE')`; other code
@@ -712,4 +711,4 @@ Emergency tag enrollment captures an already registered emergency card for confi
 
 ### Temporary melody test branch
 
-On `test/buzzer-melodies` only, open **Display → Melody test**, rotate to a melody and press to play it. The list includes all 15 supplied scores, UI tones and the emergency alarm. **Stop sound** or Back cancels ordinary playback; the emergency alarm completes its protected sequence. Playback respects Buzzer Enabled and Volume; emergency retains its full-volume policy. No printer action is triggered by testing a score. Return to master to remove the test screen.
+On `test/buzzer-melodies` only, open **Display → Melody test**, rotate to a melody and press to play it. The list includes 15 redesigned event motifs (v2), UI tones and the unchanged emergency alarm. These replace the original M300-derived scores on this branch only. **Stop sound** or Back cancels ordinary playback; the emergency alarm completes its protected sequence. Playback respects Buzzer Enabled and Volume; emergency retains its full-volume policy. No printer action is triggered by testing a score. Return to master to remove the test screen.
