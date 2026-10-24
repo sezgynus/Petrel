@@ -185,9 +185,9 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 ### Buzzer ve tuş sesleri
 
-**Display → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **On/Off** yapar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
+**Display → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **Enabled/Disabled** olarak ayarlar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
 
-Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer On/Off ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
+Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi ayrı bir 700 Hz, %100 seviyeli bip kullanır ancak genel Buzzer Enabled/Disabled ayarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
 ### Klipper sanal buzzer (isteğe bağlı extra)
 
@@ -213,7 +213,7 @@ SET_PIN PIN=Buzzer VALUE=0
 
 `VALUE`, doğrudan **fiziksel PWM duty oranıdır** (0–1); `scale` ayarlanmışsa değere ölçek uygulanır. `CYCLE_TIME` saniye cinsinden periyottur (0.00005–1 s); verilmezse yapılandırmadaki varsayılan kullanılır. UI'daki volume ayarının aksine `VALUE=0.5` tam %50 PWM duty üretir. Eski Jinja durum nesnesi isimleri için uyumluluk sağlamıyoruz.
 
-Klipper extra'sı komutları Petrel'in tek PWM işçisine, **özel yerel Unix datagram socket** üzerinden gönderir. **Display → Buzzer Off** Klipper tonlarını da susturur; UI Volume ve ton ayarları Klipper'ın açıkça belirttiği VALUE değerini yeniden ölçeklemez. Petrel çalışmıyorsa G-code akışını bloke etmez. LCD bildirimleri Klipper tonuna kısa süreli öncelik alabilir; acil durum NFC melodisi tüm tonları keserek özel öncelik kazanır. Klipper shutdown anında `shutdown_value` gönderilir; aktarım kaybolursa harici PWM için 30 saniyelik güvenlik zaman aşımı vardır. Özel socket erişimi için Petrel ve Klipper'ın aynı Linux kullanıcısı ile çalışması önerilir. Klipper shutdown durumundayken LCD bildirimleri bağımsızdır.
+Klipper extra'sı komutları Petrel'in tek PWM işçisine, **özel yerel Unix datagram socket** üzerinden gönderir. **Display → Buzzer Disabled** Klipper tonlarını da susturur; UI Volume ve ton ayarları Klipper'ın açıkça belirttiği VALUE değerini yeniden ölçeklemez. Petrel çalışmıyorsa G-code akışını bloke etmez. LCD bildirimleri Klipper tonuna kısa süreli öncelik alabilir; acil durum NFC melodisi tüm tonları keserek özel öncelik kazanır. Klipper shutdown anında `shutdown_value` gönderilir; aktarım kaybolursa harici PWM için 30 saniyelik güvenlik zaman aşımı vardır. Özel socket erişimi için Petrel ve Klipper'ın aynı Linux kullanıcısı ile çalışması önerilir. Klipper shutdown durumundayken LCD bildirimleri bağımsızdır.
 
 ### NFC okuyucu ayarları
 
@@ -583,7 +583,7 @@ Core, açık menüden ve baskı durumundan bağımsız olarak Moonraker'ın
 G-code komutlarının arkasında beklemez. Kayıtlı acil durdurma kartı tanımlama
 sırasında da önceliklidir; yeni kart olarak yakalanmaz. Backend her kart sunumu
 için bir olay üretir; yeniden tetiklemek için kartı uzaklaştırıp tekrar okutun.
-Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Display → Buzzer ana anahtarı Off ise ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
+Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Display → Buzzer ana anahtarı Disabled ise ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
 
 Okuyucu etkin, yapılandırılmış ve dinliyor olmalıdır. Yukarıda açıklandığı gibi
 NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklatır.
