@@ -206,7 +206,7 @@ replaces ordinary playback without building a queue. The emergency alarm retains
 its dedicated full-volume preemption path and cannot be interrupted by ordinary
 melodies. Unknown names raise `ValueError` before queuing.
 
-Twelve melodies are now wired to application and subscribed printer events:
+Thirteen melodies are now wired to application and subscribed printer events:
 
 | Melody | Trigger |
 |---|---|
@@ -222,6 +222,7 @@ Twelve melodies are now wired to application and subscribed printer events:
 | `PROBE_SUCCESS` | Verified mesh/screw-probing results, accepted manual-probe offset, or a passed probe diagnostic. |
 | `PROBE_FAIL` | A server-reported probing command error or a failed probe diagnostic. |
 | `LAYER_CHANGE` | Reported `print_stats.info.current_layer` increases within the same active print. |
+| `FILAMENT_OUT` | Live boolean `mmu.runout` changes from false to true while Happy Hare is enabled. |
 
 These use existing WebSocket deltas/lifecycle notifications and UI callbacks,
 without additional polling, queries or G-code macros. Initial snapshots,
@@ -252,7 +253,18 @@ It never estimates layers from Z motion. The first valid value establishes a
 baseline; repeats, decreases, job changes, pause/resume and reconnect snapshots
 are silent. A forward jump produces one notification, not catch-up playback.
 No per-event toggle is added yet; global buzzer mute and volume apply.
-Filament runout remains unbound.
+Filament runout uses the shared `mmu.runout` contract checked in HH v3.0.1,
+v3.4.2, v4.0 and v4.1, rather than parsing version strings. It uses the existing
+`mmu` subscription. Missing/nonboolean flags and disabled MMUs are silent. An
+initial true value establishes a baseline and is not replayed on reconnect.
+Raw sensors, empty gates, pause-reason text and `operation=runout` are not
+triggers: the operation name also covers clog/tangle handling. Genuine runout
+can sound during EndlessSpool; ordinary load/unload/toolchange alone cannot.
+PAUSE sound is suppressed while the semantic runout flag is active. General
+ERROR takes precedence in the same notification; emergency priority remains.
+Coverage is HH's flagged runout handling, not every sensor error path. The field
+is deprecated; if removed in a future version, no raw-sensor inference replaces
+it. No extra polling, Klipper extra or macro is installed.
 
 The shutdown sound starts before the power request; shutdown is not delayed
 for audio, so cutting power to the Pi may truncate it. Abrupt power loss cannot

@@ -1591,7 +1591,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if event.kind.startswith('melody_'):
             name = event.kind[7:]
             if name in ('PRINT_DONE', 'PAUSE', 'RESUME', 'ERROR', 'HEATING_DONE',
-                        'COOLING_DONE', 'HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL', 'LAYER_CHANGE'):
+                        'COOLING_DONE', 'HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL', 'LAYER_CHANGE', 'FILAMENT_OUT'):
                 live = self.pd.subscription.lifecycle()
                 valid = (event.epoch == live['epoch'] or
                          (name == 'ERROR' and live['state'] != 'ready'

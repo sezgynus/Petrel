@@ -373,6 +373,7 @@ class MoonrakerSubscription:
         with self._lock:
             previous_stats = (dict(self._status.get('print_stats', {}))
                               if 'print_stats' in status else None)
+            previous_runout = self._status.get('mmu', {}).get('runout')
             previous_print = self._status.get('print_stats', {}).get('state')
             previous_light = copy.deepcopy(self._status.get('output_pin case_light'))
             if not replace and self._eventtime is not None and eventtime < self._eventtime:
@@ -400,6 +401,17 @@ class MoonrakerSubscription:
                     status.get('webhooks', {}).get('state'))
                 layer_changed = self._layer_changed(
                     previous_stats, self._status.get('print_stats', {}), status)
+                mmu = self._status.get('mmu', {})
+                runout = (mmu.get('runout') is True and mmu.get('enabled') is True)
+                # HH v3/v4 semantic flag, never raw sensor/operation inference.
+                if runout and melody == 'PAUSE':
+                    melody = None  # A runout pause is covered by FILAMENT_OUT.
+                if (runout and previous_runout is False
+                        and status.get('mmu', {}).get('runout') is True
+                        and melody != 'ERROR'):
+                    melody = 'FILAMENT_OUT'
+                    layer_changed = False
+                    heater_melodies = []
             melody_epoch = self._epoch
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):
                 callback = self._case_light_callback

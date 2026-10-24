@@ -206,7 +206,7 @@ kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli önceli
 korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
 `ValueError` üretir.
 
-On iki melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
+On üç melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 
 | Melodi | Tetikleyici |
 |---|---|
@@ -222,6 +222,7 @@ On iki melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `PROBE_SUCCESS` | Doğrulanmış mesh/vida ölçümü, kabul edilmiş manuel prob ofseti veya başarılı prob tanılaması. |
 | `PROBE_FAIL` | Prob komutunun sunucu tarafından hata ile sonuçlanması veya başarısız prob tanılaması. |
 | `LAYER_CHANGE` | Aynı aktif baskıda bildirilen `print_stats.info.current_layer` değerinin artması. |
+| `FILAMENT_OUT` | Etkin Happy Hare’de ortak boolean `mmu.runout` alanının canlı `false → true` geçişi. |
 
 Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
 yeni polling, sorgu veya G-code makrosu eklenmez. İlk bağlantı, yeniden bağlantı
@@ -251,7 +252,18 @@ Katman sesi, yalnız dilimleyici/makro katman bilgisini Klipper’a bildiriyorsa
 Tekrar, geriye sayım, iş değişimi, pause/resume ve yeniden bağlantı snapshot’ları
 ses üretmez. Katman atlaması tek bildirim üretir; kaçırılmış katmanlar için ses
 tekrarı yapılmaz. Şimdilik ayrı aç/kapat seçeneği yoktur; genel buzzer ve volume
-ayarları geçerlidir. Filament bitişi henüz bağlanmaz.
+ayarları geçerlidir. Filament bitişi HH v3.0.1/v3.4.2 ve v4.0/v4.1’de ortak `mmu.runout`
+sözleşmesini kullanır. Sürüm metninden tahmin yapılmaz; mevcut `mmu` aboneliği
+yeterlidir. Alan eksik, boolean değil veya MMU devre dışıysa ses üretilmez.
+İlk bağlantıdaki `true` başlangıç kabul edilir; yeniden bağlantıda çalınmaz.
+Ham sensörler, gate doluluğu, pause nedeni metni ve `operation=runout` tetikleyici
+değildir; sonuncusu clog/tangle durumunu da kapsayabilir. EndlessSpool sırasında
+gerçek runout ses üretir, normal yükleme/boşaltma/değişim tek başına üretmez.
+Runout bayrağı açıkken gelen PAUSE sesi bastırılır; aynı bildirimdeki genel ERROR
+önceliklidir, emergency alarmının önceliği de korunur. Kapsam HH’nin bu bayrakla
+bildirdiği runout işlemleridir; bütün sensör hata yolları değildir. Deprecated
+alan ileride kaldırılırsa sensörlerden tahmin üretilmez. Ek polling, Klipper
+extra’sı veya makro kurulmaz.
 
 Kapanış melodisi güç isteğinden önce başlar; ses için kapatma geciktirilmez.
 Pi’nin gücü de kesiliyorsa melodi yarıda kalabilir. Ani elektrik kesilmesinde
