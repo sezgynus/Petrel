@@ -618,15 +618,22 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._display_load_future = self.lcd.begin_flash_read(
                         self.lcd.DISPLAY_SETTINGS_ADDRESS,
                         self.lcd.DISPLAY_SETTINGS_SIZE)
-                if not getattr(self, '_buzzer_load_complete', False):
-                    self._buzzer_load_future = self.lcd.begin_flash_read(
-                        buzzer_control.ADDRESS, buzzer_control.RECORD_SIZE)
+                # Every new LCD connection needs a fresh persistent read:
+                # an interrupted Flash transaction must not leave an unsaved
+                # On/Off value masquerading as the saved preference.
+                pending_buzzer = getattr(self, '_buzzer_save_future', None) is not None
+                if pending_buzzer:
+                    if getattr(self, '_buzzer_save_is_toggle', False):
+                        self._buzzer_values = self._buzzer_saved
+                    self._buzzer_save_future = None
+                    self._buzzer_save_error = True
+                    self._display_save_message = 'Not saved. Press to retry'
+                self._buzzer_load_complete = False
+                self._buzzer_load_future = self.lcd.begin_flash_read(
+                    buzzer_control.ADDRESS, buzzer_control.RECORD_SIZE)
                 if getattr(self, '_display_save_future', None) is not None:
                     self._display_save_future = None
                     self._display_save_message = 'Not saved. Press to retry'
-                if getattr(self, '_buzzer_save_future', None) is not None:
-                    self._buzzer_save_future = None
-                    self._buzzer_save_error = True
             else:
                 if not hasattr(self, '_display_values'):
                     try:
@@ -833,8 +840,12 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._display_edit = False
                     self._display_save_message = ''
                 else:
+                    # Only the exact verified bytes may be adopted as saved.
+                    if raw != self._buzzer_save_target.encode():
+                        raise T5UIC1ProtocolError('Buzzer Flash readback mismatch')
                     self._buzzer_saved = self._buzzer_save_target
                     self._buzzer_save_error = False
+                    self._buzzer_save_is_toggle = False
                     self._display_save_message = ''
             except Exception as error:
                 if kind == 'display_save':
@@ -842,7 +853,14 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._display_save_message = 'Not saved. Press to retry'
                 elif kind == 'buzzer_save':
                     self._buzzer_save_error = True
+                    # A switch must never display Enabled/Disabled as saved
+                    # after Flash rejected the write. Keep volume/tone drafts
+                    # available for retry, as in the existing editor.
+                    if getattr(self, '_buzzer_save_is_toggle', False):
+                        self._buzzer_values = self._buzzer_saved
+                    self._buzzer_save_is_toggle = False
                     self._display_save_message = 'Not saved. Press to retry'
+                    logging.warning('Buzzer settings not persisted: %s', error)
                 else:
                     logging.warning('Could not read panel %s: %s', kind, error)
             changed = True
@@ -2085,7 +2103,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
         entries.append(('NFC settings', ICON_NFC, None, None))
         self._display_selection = min(selection, len(entries) - 1)
-        title = 'Display - not saved' if getattr(self, '_display_save_message', '') else 'Display'
+        save_message = getattr(self, '_display_save_message', '')
+        title = ('Display - saving...' if save_message == 'Saving...' else
+                 'Display - not saved' if save_message else 'Display')
         self._draw_list_menu(title, entries, self._display_selection)
 
     def HMI_Display_Menu(self):
