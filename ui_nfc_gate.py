@@ -27,8 +27,13 @@ class NFCGateViewMixin:
             return
         self._update_ui_state()
         self._display_activity()
+        # The home MMU percentage belongs to a gate, not directly to a
+        # Spoolman ID. Resolve the scanned spool once against Happy Hare's
+        # current gate map; retain that single snapshot for the popup.
+        percent = self._nfc_gate_snapshot_percent(
+            spool.id, self.pd.mmu_session.state, self.pd.mmu)
         self._nfc_gate_popup = {
-            'uid': uid, 'spool': spool,
+            'uid': uid, 'spool': spool, 'remaining_percent': percent,
             'origin': existing['origin'] if existing else self.checkkey,
             'epoch': self.pd.state.epoch, 'selection': 0,
             'phase': 'choose', 'message': '', 'operation': None}
@@ -69,10 +74,33 @@ class NFCGateViewMixin:
     GATE_REEL_TOP = 234
     GATE_GHOST_TOP = 326
     GATE_CARD_TOP = 132
-    GATE_CARD_WIDTH = 116
-    GATE_CARD_HEIGHT = 71
+    GATE_CARD_WIDTH = 128
+    GATE_CARD_HEIGHT = 56
     GATE_REEL_WIDTH = 42
     GATE_REEL_HEIGHT = 52
+
+    @staticmethod
+    def _nfc_gate_snapshot_percent(spool_id, state, mmu):
+        """Freeze the Home/Happy Hare fill for this *spool*, not selected gate.
+
+        HH publishes percentages per gate. Unmounted/unknown spools must not
+        inherit another gate's percentage as the reel moves across the slots.
+        """
+        if state is None or not isinstance(mmu, dict):
+            return None
+        percentages = mmu.get('remaining_percent', ())
+        if not isinstance(percentages, (tuple, list)):
+            return None
+        for gate, assigned in enumerate(state.spool_ids):
+            if assigned != spool_id or gate >= len(percentages):
+                continue
+            if gate < len(state.gate_status) and state.gate_status[gate] == 0:
+                return 0  # Same empty-gate policy as Home/MMU.
+            value = percentages[gate]
+            if (isinstance(value, (int, float)) and not isinstance(value, bool)
+                    and math.isfinite(value)):
+                return max(0, min(100, int(round(value))))
+        return None
 
     @staticmethod
     def _nfc_gate_color(spool):
@@ -90,7 +118,7 @@ class NFCGateViewMixin:
     @staticmethod
     def _nfc_gate_card_x(spool_x):
         # Keep the compact text panel entirely inside the 272px viewport.
-        return max(8, min(148, spool_x + 21 - 58))
+        return max(8, min(136, spool_x + 21 - 64))
 
     def _nfc_gate_draw_focus(self, previous=None):
         """Recolor only tiny gate footers / header focus, never the reels."""
@@ -108,11 +136,12 @@ class NFCGateViewMixin:
     def _nfc_gate_draw_status(self):
         popup = self._nfc_gate_popup
         lcd = self.lcd
-        lcd.draw_rectangle(1, self.GATE_PANEL, 10, 433, 261, 465)
         phase = popup['phase']
-        if phase == 'choose':
-            message = ('ROTATE TO MOVE  /  PRESS TO ASSIGN'
-                       if popup.get('positions') else popup.get('reason', 'MMU unavailable'))
+        # No encoder instructions: the reel and four gates are self-explanatory.
+        if phase == 'choose' and popup.get('positions'):
+            message = ''
+        elif phase == 'choose':
+            message = popup.get('reason', 'MMU unavailable')
         elif phase == 'checking':
             message = 'Checking spool tag...'
         elif phase == 'writing':
@@ -121,10 +150,14 @@ class NFCGateViewMixin:
             message = 'Assigned: ' + popup['message']
         else:
             message = popup['message']
-        for i, line in enumerate(self._spool_lines(message, width=39, limit=2)):
-            lcd.draw_text(False, False, lcd.font6x12,
-                          AXIS_HOMED_COLOR if phase == 'complete' else lcd.Color_White,
-                          self.GATE_PANEL, 17, 438 + i * 14, line)
+        bg = self.GATE_PANEL if message else self.GATE_BG
+        lcd.draw_rectangle(1, bg, 8, 430, 263, 468)
+        if message:
+            lcd.draw_rectangle(0, AXIS_UNKNOWN_COLOR, 8, 430, 263, 468)
+            for i, line in enumerate(self._spool_lines(message, width=39, limit=2)):
+                lcd.draw_text(False, False, lcd.font6x12,
+                              AXIS_HOMED_COLOR if phase == 'complete' else lcd.Color_White,
+                              bg, 17, 438 + i * 14, line)
 
     def _nfc_gate_draw(self):
         """Paint a scene once; subsequent selection and motion use native 0x09."""
@@ -174,10 +207,6 @@ class NFCGateViewMixin:
                       17, 65, 'SPOOLMAN  /  MMU')
         lcd.draw_text(False, False, lcd.font6x12, AXIS_HOMED_COLOR, bg,
                       15, 111, 'NFC TAG READ   #%d' % popup['spool'].id)
-        lcd.draw_text(False, False, lcd.font6x12, AXIS_UNKNOWN_COLOR, bg,
-                      95, 216, 'CHOOSE GATE')
-        lcd.draw_rectangle(1, panel, 8, 430, 263, 468)
-        lcd.draw_rectangle(0, AXIS_UNKNOWN_COLOR, 8, 430, 263, 468)
         if len(gates) > 4:
             lcd.draw_text(False, False, lcd.font6x12, AXIS_HOMED_COLOR, bg,
                           195, 111, '%d/%d' % (page + 1, (len(gates) + 3) // 4))
@@ -197,31 +226,77 @@ class NFCGateViewMixin:
                           gx + 21 - 3 * len(assigned[:7]), 398, assigned[:7])
         if popup['phase'] != 'complete':
             SpoolView(lcd, x, y, color=self._nfc_gate_color(popup['spool']),
-                      remaining_percent=None, background=bg, label_width=0).draw()
+                      remaining_percent=popup.get('remaining_percent'),
+                      background=bg, label_width=42).draw()
         else:
             # Documentation "complete" scene starts with the reel already landed.
             lcd.draw_rectangle(1, bg, x, y, x + 41, y + 51)
             SpoolView(lcd, x, y, color=self._nfc_gate_color(popup['spool']),
-                      remaining_percent=None, background=bg, label_width=0).draw()
+                      remaining_percent=popup.get('remaining_percent'),
+                      background=bg, label_width=42).draw()
 
         self._nfc_gate_draw_card(popup['card_x'])
         self._nfc_gate_draw_focus()
         self._nfc_gate_draw_status()
 
     def _nfc_gate_draw_card(self, x):
-        """Paint once. 0x09 moves its pixels with the reel on later frames."""
+        """GIF-style rounded info capsule, painted once and shifted via 0x09."""
         lcd = self.lcd
         spool = self._nfc_gate_popup['spool']
         y = self.GATE_CARD_TOP
-        lcd.draw_rectangle(1, self.GATE_PANEL, x, y,
-                           x + self.GATE_CARD_WIDTH - 1, y + self.GATE_CARD_HEIGHT - 1)
-        lcd.draw_rectangle(0, AXIS_UNKNOWN_COLOR, x, y,
-                           x + self.GATE_CARD_WIDTH - 1, y + self.GATE_CARD_HEIGHT - 1)
-        lcd.draw_rectangle(1, self._nfc_gate_color(spool), x + 4, y + 4, x + 7, y + 65)
-        for label, yy in ((spool.vendor, y + 8), (spool.name, y + 25),
-                          ('%s  #%d' % (spool.material, spool.id), y + 46)):
-            lcd.draw_text(False, False, lcd.font6x12, lcd.Color_White, self.GATE_PANEL,
-                          x + 12, yy, label[:16])
+        width, height = self.GATE_CARD_WIDTH, self.GATE_CARD_HEIGHT
+        radius = 9
+        bg, border = self.GATE_PANEL, AXIS_UNKNOWN_COLOR
+
+        # Fill as a pill-shaped panel without adding any atlas/JPEG icons.
+        # Only the first presentation needs these inexpensive primitives;
+        # every subsequent horizontal frame moves its existing pixels.
+        lcd.draw_rectangle(1, bg, x + radius, y,
+                           x + width - radius - 1, y + height - 1)
+        lcd.draw_rectangle(1, bg, x, y + radius,
+                           x + width - 1, y + height - radius - 1)
+        arc = []
+        for dy in range(radius):
+            inset = int(math.ceil(radius -
+                         math.sqrt(max(0., radius ** 2 - (radius - dy - .5) ** 2))))
+            arc.append(inset)
+            lcd.draw_rectangle(1, bg, x + inset, y + dy,
+                               x + width - inset - 1, y + dy)
+            lcd.draw_rectangle(1, bg, x + inset, y + height - dy - 1,
+                               x + width - inset - 1, y + height - dy - 1)
+        # Pixel-accurate rounded outline, a single native polyline command.
+        points = [(x + arc[0], y), (x + width - arc[0] - 1, y)]
+        points.extend((x + width - inset - 1, y + dy)
+                      for dy, inset in enumerate(arc))
+        points.append((x + width - 1, y + radius))
+        points.append((x + width - 1, y + height - radius - 1))
+        points.extend((x + width - inset - 1, y + height - dy - 1)
+                      for dy, inset in reversed(tuple(enumerate(arc))))
+        points += [(x + arc[0], y + height - 1)]
+        points.extend((x + inset, y + height - dy - 1)
+                      for dy, inset in enumerate(arc))
+        points.append((x, y + height - radius - 1))
+        points.append((x, y + radius))
+        points.extend((x + inset, y + dy)
+                      for dy, inset in reversed(tuple(enumerate(arc))))
+        lcd.draw_polyline(border, points)
+
+        # Rounded filament-color side accent from the original GIF.
+        color = self._nfc_gate_color(spool)
+        lcd.draw_rectangle(1, color, x + 7, y + 9, x + 10, y + height - 10)
+        lcd.draw_rectangle(1, color, x + 8, y + 7, x + 9, y + 8)
+        lcd.draw_rectangle(1, color, x + 8, y + height - 9,
+                           x + 9, y + height - 8)
+
+        # Identity hierarchy follows the reference: manufacturer, colored
+        # filament name, muted material/ID. Use short panel-native strings.
+        lcd.draw_text(False, False, lcd.font8x16, lcd.Color_White, bg,
+                      x + 17, y + 5, spool.vendor[:13])
+        lcd.draw_text(False, False, lcd.font6x12, color, bg,
+                      x + 17, y + 25, spool.name[:17])
+        lcd.draw_text(False, False, lcd.font6x12, AXIS_UNKNOWN_COLOR, bg,
+                      x + 17, y + 41,
+                      ('%s  #%d' % (spool.material, spool.id))[:17])
 
     def _nfc_gate_move(self, popup, x=None, y=None):
         """Shift an isolated sprite in framebuffer, not a redrawn icon.
