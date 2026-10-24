@@ -3,7 +3,8 @@
 No NFC hardware access. Run only on the existing bounded read worker.
 Bindings use Spoolman's native Tags API, never an extra-field substitute.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import math
 import re
 from urllib.parse import urlencode
 
@@ -20,6 +21,7 @@ class Spool:
     material: str
     colors: tuple
     archived: bool = False
+    remaining_percent: int | None = field(default=None, compare=False)
 
 
 def colors(value):
@@ -33,6 +35,22 @@ def colors(value):
     return tuple(result)
 
 
+def remaining_percent(spool):
+    """Same weight-based percentage used by the Home/MMU spool display."""
+    try:
+        remaining = float(spool['remaining_weight'])
+        initial = spool.get('initial_weight')
+        if initial is None:
+            initial = (spool.get('filament') or {}).get('weight')
+        initial = float(initial)
+        if (not math.isfinite(remaining) or not math.isfinite(initial)
+                or initial <= 0 or remaining < 0):
+            return None
+        return math.ceil(max(0, min(100, remaining / initial * 100)))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+
+
 def describe(raw):
     if not isinstance(raw, dict) or type(raw.get('id')) is not int or raw['id'] <= 0:
         raise ValueError('Invalid Spoolman spool')
@@ -43,7 +61,7 @@ def describe(raw):
                  text(filament.get('name')) or 'Unnamed',
                  text(filament.get('material')) or 'Unknown',
                  colors(filament.get('multi_color_hexes')) or colors(filament.get('color_hex')),
-                 raw.get('archived') is True)
+                 raw.get('archived') is True, remaining_percent(raw))
 
 
 def tag_uids(raw):

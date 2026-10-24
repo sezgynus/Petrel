@@ -630,10 +630,11 @@ Scan a card linked in Spoolman's **Tags** from any normal Petrel screen to open
 as Home and the MMU menu: four muted destination spools and a moving reel colored
 from the scanned Spoolman record. The reel's manufacturer, filament name,
 material and spool ID move inside a rounded, filament-accented information
-card. If Happy Hare currently associates that spool ID with a gate, its
-remaining percentage is sampled once on opening and rendered with the same
+card. The remaining percentage is taken from the scanned Spoolman record using
+remaining weight and initial weight (or filament weight). If unavailable, a
+matching Happy Hare gate percentage is sampled once on opening and rendered with the same
 shared SpoolView variable-height fill and percent caption as Home/MMU. The
-snapshot remains fixed while the popup is open; an unmatched or unknown spool
+snapshot remains fixed while the popup is open; a spool with no valid quantity
 shows `--` instead of copying another gate's percentage. Gate captions show
 the currently assigned spool IDs. The selector has no redundant rotate/press
 instructions. Thin connectors join the rounded information card to the moving
@@ -685,3 +686,5 @@ NFC examples are generated in CI and published in the
 [screenshot gallery](screenshots.md). The existing full documentation render
 remains manual. A `docs(nfc):` commit on master opts into the NFC-only publisher
 after that exact revision passes regression CI; a newer master is never overwritten.
+
+Emergency tag enrollment captures an already registered emergency card for confirmation without sending an emergency-stop request. Outside that explicit enrollment flow, including spool-tag enrollment, emergency cards retain priority. Canceling enrollment restores normal emergency handling. Remove tag is shown only while an emergency tag is assigned. Both enrollment flows retain the normal card-arrival beep, subject to the master Buzzer switch.

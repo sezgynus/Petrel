@@ -1269,18 +1269,8 @@ class PrinterData:
 
     @staticmethod
     def _spool_remaining_percent(spool):
-        try:
-            remaining = float(spool['remaining_weight'])
-            initial = spool.get('initial_weight')
-            if initial is None:
-                initial = (spool.get('filament') or {}).get('weight')
-            initial = float(initial)
-            if (not math.isfinite(remaining) or not math.isfinite(initial)
-                    or initial <= 0 or remaining < 0):
-                return None
-            return math.ceil(max(0, min(100, remaining / initial * 100)))
-        except (KeyError, TypeError, ValueError, AttributeError):
-            return None
+        from spoolman_tags import remaining_percent
+        return remaining_percent(spool)
 
     def _poll_spoolman_percentages(self, spool_ids):
         now = time.monotonic()

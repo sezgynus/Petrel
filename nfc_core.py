@@ -59,6 +59,7 @@ class NFCCore:
         self._operations = deque(maxlen=8)
         self._emergency_stop = emergency_stop
         self._assignment = None
+        self._assignment_action = None
         self._actions_file = Path(actions_file or settings_path().with_name('nfc-actions.json'))
         self._global_actions = self._load_actions()
         self.subscribe('card.detected', self._dispatch_global, priority=GLOBAL_PRIORITY)
@@ -81,17 +82,20 @@ class NFCCore:
             return next((uid for uid, name in self._global_actions.items()
                          if name == action), None)
 
-    def begin_assignment(self):
-        """Capture the NEXT arrival; saved emergency tags always preempt capture.
+    def begin_assignment(self, *, action=None):
+        """Capture the NEXT arrival; emergency enrollment captures its saved tag.
 
         No cached/last card is enrolled and nothing is persisted here. The LCD
         owner must explicitly confirm assign_global_action after capture.
         """
+        if action is not None and action not in ALLOWED_GLOBAL_ACTIONS:
+            raise ValueError('Unsupported assignment action')
         with self._lock:
             if self._closed:
                 raise OSError('NFC Core closed')
             if self._assignment is not None and not self._assignment.done():
                 raise OSError('Tag assignment already active')
+            self._assignment_action = action
             self._assignment = Future()
             return self._assignment
 
@@ -154,6 +158,11 @@ class NFCCore:
             return False
         with self._lock:
             action = self._global_actions.get(uid)
+            if (action == 'emergency_stop'
+                    and self._assignment_action == action
+                    and self._assignment is not None
+                    and not self._assignment.done()):
+                return False
         if action != 'emergency_stop':
             return False
         # Never block the scanner waiting for the Moonraker WebSocket response.

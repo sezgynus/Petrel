@@ -701,3 +701,9 @@ NFC örnekleri CI'da üretilip [ekran galerisine](screenshots_TR.md) yayımlanı
 Mevcut tam doküman üretimi manuel kalır. Master'daki `docs(nfc):` commiti,
 yalnız o sürümün regresyon CI'ı geçtikten sonra NFC yayınını başlatır;
 daha yeni bir master'ın üzerine yazılmaz.
+
+### v7 NFC hotfix davranışları
+
+Gate seçim penceresinde okutulan makaranın doluluğu Spoolman kaydındaki kalan ağırlık ve başlangıç ağırlığından (yoksa filament ağırlığından) hesaplanır; yüzde yazısı ve ortak makara çizimi aynı değeri kullanır. Bu veri yoksa yalnız aynı makara ID’sine bağlı Happy Hare gate yüzdesi kullanılır; başka gate’in doluluğu alınmaz. Geçerli miktar yoksa `--` gösterilir. Değer pencere açılırken bir kez alınır.
+
+Emergency kartı atama akışında kayıtlı emergency kartı tekrar okutulursa acil durdurma gönderilmeden onay için yakalanır. Bu açık atama akışının dışında, spool kartı atama sırasında da emergency önceliği korunur. Atamayı iptal etmek normal emergency davranışını geri getirir. Remove tag yalnız kayıtlı emergency kartı varken görünür. Her iki atama akışında kart okutma bip sesi, genel Buzzer anahtarına bağlı olarak çalar.
