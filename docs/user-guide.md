@@ -206,7 +206,7 @@ replaces ordinary playback without building a queue. The emergency alarm retains
 its dedicated full-volume preemption path and cannot be interrupted by ordinary
 melodies. Unknown names raise `ValueError` before queuing.
 
-Eleven melodies are now wired to application and subscribed printer events:
+Twelve melodies are now wired to application and subscribed printer events:
 
 | Melody | Trigger |
 |---|---|
@@ -221,6 +221,7 @@ Eleven melodies are now wired to application and subscribed printer events:
 | `HOMING` | A Petrel G28 script reaches guarded local dispatch, including calibration preparation. |
 | `PROBE_SUCCESS` | Verified mesh/screw-probing results, accepted manual-probe offset, or a passed probe diagnostic. |
 | `PROBE_FAIL` | A server-reported probing command error or a failed probe diagnostic. |
+| `LAYER_CHANGE` | Reported `print_stats.info.current_layer` increases within the same active print. |
 
 These use existing WebSocket deltas/lifecycle notifications and UI callbacks,
 without additional polling, queries or G-code macros. Initial snapshots,
@@ -246,7 +247,12 @@ They announce the whole operation, not every contact. A successful screws-tilt
 measurement does not imply the bed is level. User aborts, timeouts, disconnected
 sessions and unconfirmed/malformed results do not become probe failures.
 Klipper shutdown retains the general ERROR alarm; the special emergency alarm
-still has higher priority. No filament-runout or layer-change binding is added.
+still has higher priority. Layer sound requires the slicer/macro to report layer information to Klipper.
+It never estimates layers from Z motion. The first valid value establishes a
+baseline; repeats, decreases, job changes, pause/resume and reconnect snapshots
+are silent. A forward jump produces one notification, not catch-up playback.
+No per-event toggle is added yet; global buzzer mute and volume apply.
+Filament runout remains unbound.
 
 The shutdown sound starts before the power request; shutdown is not delayed
 for audio, so cutting power to the Pi may truncate it. Abrupt power loss cannot

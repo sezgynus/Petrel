@@ -328,6 +328,22 @@ class MoonrakerSubscription:
                 name = None
         return name
 
+    @staticmethod
+    def _layer_changed(previous, current, delta):
+        """Only an observed forward layer transition within the same active job."""
+        if (previous is None or previous.get('state') != 'printing'
+                or current.get('state') != 'printing'
+                or previous.get('filename') != current.get('filename')):
+            return False
+        before = previous.get('info')
+        incoming = delta.get('print_stats', {}).get('info')
+        if not isinstance(before, dict) or not isinstance(incoming, dict):
+            return False
+        old, new = before.get('current_layer'), incoming.get('current_layer')
+        total = incoming.get('total_layer', before.get('total_layer'))
+        return (type(old) is int and type(new) is int and 0 <= old < new
+                and (total is None or (type(total) is int and new <= total)))
+
     def _invalidate(self, error):
         with self._lock:
             self._thermal_objects = ()
@@ -353,7 +369,10 @@ class MoonrakerSubscription:
         callback = None
         melody = None
         heater_melodies = []
+        layer_changed = False
         with self._lock:
+            previous_stats = (dict(self._status.get('print_stats', {}))
+                              if 'print_stats' in status else None)
             previous_print = self._status.get('print_stats', {}).get('state')
             previous_light = copy.deepcopy(self._status.get('output_pin case_light'))
             if not replace and self._eventtime is not None and eventtime < self._eventtime:
@@ -379,6 +398,8 @@ class MoonrakerSubscription:
                 melody = self._melody_transition(
                     previous_print, self._status.get('print_stats', {}).get('state'),
                     status.get('webhooks', {}).get('state'))
+                layer_changed = self._layer_changed(
+                    previous_stats, self._status.get('print_stats', {}), status)
             melody_epoch = self._epoch
             if self._case_light_tracking and previous_light != self._status.get('output_pin case_light'):
                 callback = self._case_light_callback
@@ -388,6 +409,8 @@ class MoonrakerSubscription:
             callback()
         if melody is not None:
             self._emit_melody(melody, melody_epoch)
+        if layer_changed:
+            self._emit_melody('LAYER_CHANGE', melody_epoch)
         for event in heater_melodies:
             self._emit_melody(event, melody_epoch)
 

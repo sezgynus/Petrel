@@ -206,7 +206,7 @@ kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli önceli
 korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
 `ValueError` üretir.
 
-On bir melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
+On iki melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 
 | Melodi | Tetikleyici |
 |---|---|
@@ -221,6 +221,7 @@ On bir melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `HOMING` | Kalibrasyon hazırlığı dahil Petrel G28 komutunun korumalı yerel gönderime ulaşması. |
 | `PROBE_SUCCESS` | Doğrulanmış mesh/vida ölçümü, kabul edilmiş manuel prob ofseti veya başarılı prob tanılaması. |
 | `PROBE_FAIL` | Prob komutunun sunucu tarafından hata ile sonuçlanması veya başarısız prob tanılaması. |
+| `LAYER_CHANGE` | Aynı aktif baskıda bildirilen `print_stats.info.current_layer` değerinin artması. |
 
 Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
 yeni polling, sorgu veya G-code makrosu eklenmez. İlk bağlantı, yeniden bağlantı
@@ -245,7 +246,12 @@ eklenmez. Her temas yerine tüm işlem duyurulur. Vida ölçümünün başarıl�
 yatağın düz olduğu anlamına gelmez. Kullanıcı iptali, zaman aşımı, bağlantı kaybı
 ve doğrulanamayan/bozuk sonuçlar prob hatası sayılmaz. Klipper shutdown genel
 ERROR alarmını kullanır; özel emergency alarmının önceliği daha yüksektir.
-Filament bitişi ve katman değişimi henüz bağlanmaz.
+Katman sesi, yalnız dilimleyici/makro katman bilgisini Klipper’a bildiriyorsa
+çalışır. Z hareketinden tahmin edilmez; ilk geçerli değer başlangıç kabul edilir.
+Tekrar, geriye sayım, iş değişimi, pause/resume ve yeniden bağlantı snapshot’ları
+ses üretmez. Katman atlaması tek bildirim üretir; kaçırılmış katmanlar için ses
+tekrarı yapılmaz. Şimdilik ayrı aç/kapat seçeneği yoktur; genel buzzer ve volume
+ayarları geçerlidir. Filament bitişi henüz bağlanmaz.
 
 Kapanış melodisi güç isteğinden önce başlar; ses için kapatma geciktirilmez.
 Pi’nin gücü de kesiliyorsa melodi yarıda kalabilir. Ani elektrik kesilmesinde
