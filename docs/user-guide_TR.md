@@ -597,8 +597,13 @@ okutulunca **Spool #ID: choose gate** penceresi açılır. Altta dört soluk gat
 makarası, üstte kartın bağlı olduğu makaranın gerçek rengindeki hareketli
 makara vardır. Bu makaralar Home ve MMU menüsündeki aynı ortak
 **SpoolView** simgeleridir; yeni bir ikon kopyası kullanılmaz. Üretici,
-filament adı, malzeme ve makara ID'si hareketli makaranın bilgi kartında
-görünür. Gate altındaki yazılar mevcut makara atamasını gösterir.
+filament adı, malzeme ve makara ID'si, solda filament renginde şerit bulunan
+yuvarlatılmış bilgi kartında görünür. Makara, Happy Hare'de mevcut bir gate'e
+eşliyse popup açılırken kalan yüzde bir kez alınır; makaranın üzerindeki yüzde
+ve dolgu yüksekliği Home/MMU ekranlarıyla aynı SpoolView mantığını kullanır.
+Bu yüzde, popup boyunca sabit kalır; eşleşmeyen veya bilinmeyen makaraya başka
+bir gate'in yüzdesi atanmaz, `--` gösterilir. Gate altındaki yazılar mevcut
+makara atamasını gösterir. Gereksiz enkoder kullanım açıklamaları gösterilmez.
 Enkoderle gate seçilir (dörtten fazla gate için sayfalama); basıldığında
 önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare ataması başarılı bir geri okumayla doğrulandıktan sonra makara
 GIF'teki gibi yaklaşık 600 ms süren tek bir yumuşak inişle gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
