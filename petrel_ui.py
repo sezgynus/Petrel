@@ -921,17 +921,25 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._ensure_uart()
             return
         try:
+            now = time.monotonic()
+            flash_active = False
             if getattr(self.lcd, 'SUPPORTS_NONBLOCKING_FLASH', None) is True:
                 self.lcd.poll_flash_tasks()
                 self._poll_panel_flash()
-                if self.lcd.flash_busy() and hasattr(self, '_loop'):
-                    self._loop.set_interval(.05)
+                flash_active = self.lcd.flash_busy()
+                if flash_active:
+                    # Data Flash may be busy programming a repeated value.
+                    # Never treat an unanswered 500ms liveness ping during a
+                    # 3s Flash write as evidence that the LCD disappeared.
+                    # Postpone the *next* ping until after the write settles.
+                    self._next_uart_probe = now + 2.0
+                    if hasattr(self, '_loop'):
+                        self._loop.set_interval(.05)
             if self._power_hold_tick():
                 return
-            now = time.monotonic()
             incremental_probe = (getattr(self.lcd,
                                           'SUPPORTS_NONBLOCKING_LIVENESS', None) is True)
-            if now >= getattr(self, '_next_uart_probe', 0):
+            if not flash_active and now >= getattr(self, '_next_uart_probe', 0):
                 self._next_uart_probe = now + 2.0
                 if incremental_probe:
                     self.lcd.begin_liveness_probe(timeout=0.5)
@@ -943,10 +951,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                         self._uart_probe_failures = getattr(self, '_uart_probe_failures', 0) + 1
             if incremental_probe:
                 result = self.lcd.poll_liveness_probe()
-                if result is True:
-                    self._uart_probe_failures = 0
-                elif result is False:
-                    self._uart_probe_failures = getattr(self, '_uart_probe_failures', 0) + 1
+                if not flash_active:
+                    if result is True:
+                        self._uart_probe_failures = 0
+                    elif result is False:
+                        self._uart_probe_failures = getattr(self, '_uart_probe_failures', 0) + 1
             if getattr(self, '_uart_probe_failures', 0):
                 if self._uart_probe_failures >= 2:
                     logging.warning('LCD liveness lost; reconnecting')
