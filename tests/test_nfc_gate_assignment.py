@@ -135,7 +135,7 @@ class GateUITests(unittest.TestCase):
         view._nfc_gate_draw = Mock()
         view.lcd.reset_mock()
         start = popup['motion']['start']
-        view._nfc_gate_motion_tick(popup, now=start + .175)
+        view._nfc_gate_motion_tick(popup, now=start + .30)
         self.assertEqual(view.lcd.move_area.call_count, 2)  # Reel + moving info.
         args = [call.args for call in view.lcd.move_area.call_args_list]
         self.assertTrue(all(a[0] == 1 and a[1] == 1 and a[2] > 0 for a in args))
@@ -172,8 +172,12 @@ class GateUITests(unittest.TestCase):
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         view._nfc_gate_input(InputEvent('rotate', -1, 1, 0))
         self.assertEqual(popup['remaining_percent'], 43)
-        self.assertFalse(view.lcd.show_icon.called)
         self.assertTrue(popup.get('motion'))
+        # Header Back can legitimately redraw on focus change; an animation
+        # frame itself must not re-upload the spool icon.
+        view.lcd.reset_mock()
+        view._nfc_gate_motion_tick(popup, now=popup['motion']['start'] + .30)
+        self.assertFalse(view.lcd.show_icon.called)
 
     def test_no_happy_hare_owner_yields_unknown_fill_not_other_gate(self):
         view, _ = self.make()
@@ -222,7 +226,7 @@ class GateUITests(unittest.TestCase):
         motion = view._nfc_gate_popup['motion']
         view.lcd.reset_mock()
         view._nfc_gate_motion_tick(view._nfc_gate_popup,
-                                   now=motion['start'] + .175)
+                                   now=motion['start'] + .30)
         self.assertEqual(view.lcd.move_area.call_count, 2)
         view.lcd.draw_polyline.assert_not_called()
         view.lcd.draw_text.assert_not_called()
