@@ -187,7 +187,7 @@ The first encoder movement or click after idle dimming wakes the display without
 
 **Display → Buzzer** now switches the buzzer **Enabled/Disabled** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
 
-The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses the short NFC_TAG_READ melody and respects master Buzzer Enabled/Disabled and Volume. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects only the explicit master Buzzer Off switch (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
+The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses the short NFC_TAG_READ melody and respects master Buzzer Enabled/Disabled and Volume. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects the master Buzzer switch and the Emergency card alarm checkbox (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
 
 ### Named buzzer melodies
 
@@ -262,7 +262,7 @@ still has higher priority. Layer sound requires the slicer/macro to report layer
 It never estimates layers from Z motion. The first valid value establishes a
 baseline; repeats, decreases, job changes, pause/resume and reconnect snapshots
 are silent. A forward jump produces one notification, not catch-up playback.
-No per-event toggle is added yet; global buzzer mute and volume apply.
+The Layer changed checkbox controls this cue; global buzzer mute and volume also apply.
 Filament runout uses the shared `mmu.runout` contract checked in HH v3.0.1,
 v3.4.2, v4.0 and v4.1, rather than parsing version strings. It uses the existing
 `mmu` subscription. Missing/nonboolean flags and disabled MMUs are silent. An
@@ -280,6 +280,17 @@ The shutdown sound starts before the power request; shutdown is not delayed
 for audio, so cutting power to the Pi may truncate it. Abrupt power loss cannot
 produce a reliable shutdown sound. Other melodies remain available by name
 without automatic event bindings.
+
+### Event sound switches
+
+Open **Display → Event sounds** for 17 independent checkboxes: the sixteen events above plus **Emergency card alarm**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
+
+Each change is saved automatically to DWIN Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
+
+The master Buzzer switch still mutes all sounds. Ordinary event melodies use Volume. The emergency alarm uses full volume when enabled; disabling its checkbox silences only the alarm and **does not disable the emergency-stop action**. Click and encoder tones keep their existing settings.
+
+![Event sound checkboxes](assets/screens/event-sounds.png)
+![RFID, NFC and emergency sound switches](assets/screens/event-sounds-nfc.png)
 
 ### Klipper virtual buzzer (optional extra)
 

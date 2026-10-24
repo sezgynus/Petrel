@@ -262,8 +262,8 @@ Katman sesi, yalnız dilimleyici/makro katman bilgisini Klipper’a bildiriyorsa
 çalışır. Z hareketinden tahmin edilmez; ilk geçerli değer başlangıç kabul edilir.
 Tekrar, geriye sayım, iş değişimi, pause/resume ve yeniden bağlantı snapshot’ları
 ses üretmez. Katman atlaması tek bildirim üretir; kaçırılmış katmanlar için ses
-tekrarı yapılmaz. Şimdilik ayrı aç/kapat seçeneği yoktur; genel buzzer ve volume
-ayarları geçerlidir. Filament bitişi HH v3.0.1/v3.4.2 ve v4.0/v4.1’de ortak `mmu.runout`
+tekrarı yapılmaz. Layer changed kutusu bu sesi açıp kapatır; genel buzzer ve volume
+ayarları da geçerlidir. Filament bitişi HH v3.0.1/v3.4.2 ve v4.0/v4.1’de ortak `mmu.runout`
 sözleşmesini kullanır. Sürüm metninden tahmin yapılmaz; mevcut `mmu` aboneliği
 yeterlidir. Alan eksik, boolean değil veya MMU devre dışıysa ses üretilmez.
 İlk bağlantıdaki `true` başlangıç kabul edilir; yeniden bağlantıda çalınmaz.
@@ -280,6 +280,17 @@ Kapanış melodisi güç isteğinden önce başlar; ses için kapatma geciktiril
 Pi’nin gücü de kesiliyorsa melodi yarıda kalabilir. Ani elektrik kesilmesinde
 kapanış sesi garanti edilemez. Diğer melodiler otomatik olay bağlantısı
 olmadan isimle çağrılabilir.
+
+### Olay seslerini açma ve kapatma
+
+**Display → Event sounds** altında 17 bağımsız checkbox bulunur: yukarıdaki on altı olay ve **Emergency card alarm**. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
+
+Her değişiklik DWIN Flash'a otomatik kaydedilir ve geri okunarak doğrulanır. Kayıt sürerken son doğrulanan seçimler geçerlidir. **Not saved** durumunda önceki seçimler korunur; tekrar basarak kaydı deneyin. **Retry read** ayarları yeniden okur. `0x0480` adresindeki ayrı, CRC korumalı 16 baytlık kayıt mevcut ekran ve buzzer ayarlarını korur.
+
+Ana Buzzer anahtarı bütün sesleri susturmaya devam eder. Normal olay melodileri Volume ayarını kullanır. Acil durum alarmı açıkken tam sesle çalar; kendi kutusunu kapatmak yalnız alarmı susturur, **acil durdurma işlemini devre dışı bırakmaz**. Tuş ve enkoder tonları mevcut ayarlarını kullanmaya devam eder.
+
+![Olay sesi seçimleri](assets/screens/event-sounds.png)
+![RFID, NFC ve acil durum sesi seçimleri](assets/screens/event-sounds-nfc.png)
 
 ### Klipper sanal buzzer (isteğe bağlı extra)
 
@@ -675,7 +686,7 @@ Core, açık menüden ve baskı durumundan bağımsız olarak Moonraker'ın
 G-code komutlarının arkasında beklemez. Kayıtlı acil durdurma kartı tanımlama
 sırasında da önceliklidir; yeni kart olarak yakalanmaz. Backend her kart sunumu
 için bir olay üretir; yeniden tetiklemek için kartı uzaklaştırıp tekrar okutun.
-Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Display → Buzzer ana anahtarı Disabled ise ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
+Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Display → Buzzer ana anahtarı Disabled ise veya Emergency card alarm kutusu kapalıysa ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
 
 Okuyucu etkin, yapılandırılmış ve dinliyor olmalıdır. Yukarıda açıklandığı gibi
 NFC target modunda URL paylaşımı kart algılamasını geçici olarak duraklatır.

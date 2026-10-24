@@ -206,6 +206,23 @@ def sound():
     return finish(v)
 
 
+@scene('event-sounds', 'controls', 'Per-event sound checkboxes (all enabled)', 'Olay sesi checkbox’ları (tümü açık)')
+def event_sounds():
+    v = canvas(); v.checkkey = v.EventSoundsMenu
+    v._event_sound_selection = 0
+    v.Draw_Event_Sounds_Menu()
+    return finish(v)
+
+
+@scene('event-sounds-nfc', 'controls', 'NFC and emergency sound choices (example)', 'NFC ve emergency ses seçimleri (örnek)')
+def event_sounds_nfc():
+    v = canvas(); v.checkkey = v.EventSoundsMenu
+    v._event_sound_values = v._event_sound_settings().toggled('NFC_SPOOL_MATCH')
+    v._event_sound_selection = 17
+    v.Draw_Event_Sounds_Menu()
+    return finish(v)
+
+
 @scene('display-volume-edit', 'controls', 'Editing sound volume', 'Ses seviyesini düzenleme')
 def volume():
     v = canvas(); v._buzzer_values = BuzzerSettings(True, 60, 2, 1)
@@ -621,7 +638,7 @@ register_nfc_scenes(scene, canvas, finish)
 
 # Follow menu navigation rather than source registration order.
 MENU_ORDER = {
-    'controls': 'prepare prepare-preheat preheat-settings move move-live-jog control temperature temperature-edit motion-runtime case-light case-light-off display display-sound-settings display-volume-edit buzzer hold-start hold-progress hold-ready hold-cancel power-confirm power-blocked maintenance'.split(),
+    'controls': 'prepare prepare-preheat preheat-settings move move-live-jog control temperature temperature-edit motion-runtime case-light case-light-off display display-sound-settings display-volume-edit buzzer event-sounds event-sounds-nfc hold-start hold-progress hold-ready hold-cancel power-confirm power-blocked maintenance'.split(),
     'mmu': 'mmu mmu-loading mmu-unloading mmu-purging mmu-more mmu-gates mmu-gate-details mmu-filament mmu-spool mmu-tool-map mmu-endless-spool mmu-group-members mmu-manage mmu-status mmu-recovery mmu-manual-state mmu-confirm mmu-bypass mmu-maintenance mmu-options mmu-leds mmu-units mmu-unit-gates'.split(),
     'printing': 'print-file print-preview printing printing-paused printing-mmu printing-toolchange printing-mmu-error error-full error-long error-scrolled tune tune-edit tune-limited tune-rejected tune-switch-rejected pause-rejected tune-hold-cancel print-no-metadata stop-confirm printing-complete'.split(),
 }

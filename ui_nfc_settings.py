@@ -372,7 +372,7 @@ class NFCSettingsViewMixin:
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
                 self.checkkey = self.DisplayMenu
-                self._display_selection = 4 + len(self._buzzer_rows())
+                self._display_selection = 5 + len(self._buzzer_rows())
                 self.Draw_Display_Menu()
                 self.lcd.update()
                 return

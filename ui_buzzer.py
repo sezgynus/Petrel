@@ -1,4 +1,5 @@
 """Display buzzer enable/volume/tone preferences (pin fixed in Kconfig)."""
+from ui_event_sounds import EventSoundsViewMixin
 from dataclasses import replace
 import logging
 from ui_events import InputEvent
@@ -6,7 +7,7 @@ from buzzer_control import Settings, Player, TONES
 from t5uic1_driver import T5UIC1ProtocolError
 
 
-class BuzzerViewMixin:
+class BuzzerViewMixin(EventSoundsViewMixin):
     def _buzzer_settings(self):
         value = getattr(self, '_buzzer_values', None)
         return value if isinstance(value, Settings) else Settings()
@@ -24,6 +25,8 @@ class BuzzerViewMixin:
     def _play_buzzer_melody(self, name, *, priority=False):
         """Shared UI entry point for named scores; no event bindings implied."""
         settings = self._buzzer_settings()
+        if not self._event_sound_enabled(name):
+            return False
         if not settings.enabled or (name != 'EMERGENCY' and not settings.volume):
             return False
         if getattr(self, '_buzzer_player', None) is None:
@@ -51,6 +54,9 @@ class BuzzerViewMixin:
 
     def _arm_buzzer_events(self):
         """Only use persisted preferences; UART reconnect never replays BOOT."""
+        if (not getattr(self, '_sound_event_prefs_ready', True)
+                or not getattr(self, '_buzzer_load_complete', True)):
+            return
         self._event_buzzer_ready = True
         self._maybe_play_boot_melody()
 
@@ -62,7 +68,8 @@ class BuzzerViewMixin:
                 or getattr(self, '_closed', False)):
             return False
         settings = self._buzzer_settings()
-        if not settings.enabled or not settings.volume:
+        if (not settings.enabled or not settings.volume
+                or not self._event_sound_enabled('BOOT')):
             # Explicit mute is intentional, not a sound to replay when unmuted.
             self._boot_melody_attempted = True
             logging.info('BOOT melody muted: enabled=%s volume=%s',
@@ -84,8 +91,8 @@ class BuzzerViewMixin:
         # Called directly by NFC Core's global emergency event, not the LCD
         # queue, so Klipper shutdown and an offline display cannot delay it.
         # Emergency is full-volume and preempts clicks/card beeps; the explicit
-        # master Buzzer Off preference is still respected.
-        if not self._buzzer_enabled():
+        # master mute and emergency sound checkbox are still respected.
+        if not self._buzzer_enabled() or not self._event_sound_enabled('EMERGENCY'):
             return
         if getattr(self, '_buzzer_player', None) is None:
             self._buzzer_player = Player()

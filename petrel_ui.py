@@ -170,6 +170,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     NFCSettingsMenu = 52
     NFCChoiceMenu = 53
     NFCGateMenu = 54
+    EventSoundsMenu = 55
 
     MINUNITMULT = 10
 
@@ -361,6 +362,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self._maintenance_button_presses = 0
         self.pd._maintenance_panel_api = self._maintenance_panel_api
         self._event_buzzer_ready = False
+        self._sound_event_prefs_ready = False
+        self._buzzer_load_complete = False
         self.pd.subscription.set_melody_callback(self._queue_buzzer_melody)
         self.pd.init_Webservices()
         # NFC stays alive on every menu and during every printer state.
@@ -661,7 +664,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     self._buzzer_values = values if isinstance(values, BuzzerSettings) else BuzzerSettings()
                     self._buzzer_saved = self._buzzer_values
                     if buzzer_read_ok:
+                        self._buzzer_load_complete = True
                         self._arm_buzzer_events()
+            self._load_event_sound_preferences(async_flash)
             self._display_last_activity = time.monotonic()
             self._display_dimmed = False
             self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
@@ -687,7 +692,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self._focus_error_draw()
             if getattr(self, 'checkkey', None) == self.FilePreview:
                 self.Draw_File_Preview()
-            if getattr(self, 'checkkey', None) == self.DisplayMenu:
+            if getattr(self, 'checkkey', None) == self.EventSoundsMenu:
+                self.Draw_Event_Sounds_Menu()
+            elif getattr(self, 'checkkey', None) == self.DisplayMenu:
                 self.Draw_Display_Menu()
             if getattr(self, 'checkkey', None) == self.MaintenanceMenu:
                 self.Draw_Maintenance_Menu()
@@ -808,6 +815,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         """Collect completed Flash futures on the same UART-owning UI thread."""
         if getattr(self, '_panel_flash_lcd', None) is not self.lcd:
             return
+        self._poll_event_sound_flash()
         changed = False
         for kind in ('display_load', 'buzzer_load', 'display_save', 'buzzer_save'):
             attr = '_' + kind + '_future'
@@ -2142,6 +2150,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 text, self.MBASE(row) - 1,
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black, 10)
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
+        entries.append(('Event sounds', ICON_BUZZER, None, None))
         entries.append(('NFC settings', ICON_NFC, None, None))
         self._display_selection = min(selection, len(entries) - 1)
         save_message = getattr(self, '_display_save_message', '')
@@ -2168,7 +2177,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 if index == 0:
                     self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
             else:
-                self._display_selection = max(0, min(4 + len(self._buzzer_rows()), selection + delta))
+                self._display_selection = max(0, min(5 + len(self._buzzer_rows()), selection + delta))
             self._display_save_message = ''
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
@@ -2178,6 +2187,13 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self.lcd.update()
                 return
             if selection == 4 + len(self._buzzer_rows()):
+                self._event_sound_selection = 0
+                self._event_sound_message = ''
+                self.checkkey = self.EventSoundsMenu
+                self.Draw_Event_Sounds_Menu()
+                self.lcd.update()
+                return
+            if selection == 5 + len(self._buzzer_rows()):
                 self._nfc_selection = 0
                 self._nfc_scroll_start = 0
                 self._nfc_choice_field = None
@@ -4014,6 +4030,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.FilePreview: '_preview_choice',
             self.Info: '_info_scroll',
             self.DisplayMenu: '_display_selection',
+            self.EventSoundsMenu: '_event_sound_selection',
             self.NFCSettingsMenu: '_nfc_selection',
             self.NFCChoiceMenu: '_nfc_choice_selection',
             self.MaintenanceMenu: '_maintenance_selection',
@@ -4082,6 +4099,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.RFIDMenu: self.Draw_RFID_Menu,
             self.NFCGateMenu: self._nfc_gate_draw,
             self.DisplayMenu: self.Draw_Display_Menu,
+            self.EventSoundsMenu: self.Draw_Event_Sounds_Menu,
             self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,
             self.NFCChoiceMenu: self.Draw_NFC_Choice_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
@@ -4216,6 +4234,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.HMI_NFC_Settings_Menu()
         elif self.checkkey == self.NFCChoiceMenu:
             self.HMI_NFC_Choice_Menu()
+        elif self.checkkey == self.EventSoundsMenu:
+            self.HMI_Event_Sounds_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
         elif self.checkkey == self.RFIDMenu:
