@@ -120,6 +120,54 @@ class NFCGateViewMixin:
         # Keep the compact text panel entirely inside the 272px viewport.
         return max(8, min(136, spool_x + 21 - 64))
 
+    # The original GIF links the rounded identity card to the reel, then
+    # links the reel to the selected gate with a subtle cyan terminal dot.
+    # The lines live OUTSIDE the sprites' 0x09 source rectangles so every
+    # animation frame can erase/redraw just two thin lines, never an icon.
+    GATE_LINK_COLOR = 0x5AEB
+    GATE_LINK_TIP_Y = GATE_GHOST_TOP - 13
+
+    def _nfc_gate_clear_links(self, popup):
+        lcd = self.lcd
+        for x0, y0, x1, y1 in popup.pop('link_segments', ()):
+            lcd.draw_line(self.GATE_BG, x0, y0, x1, y1)
+        tip = popup.pop('link_tip', None)
+        if tip is not None:
+            lcd.draw_rectangle(1, self.GATE_BG, tip - 2,
+                               self.GATE_LINK_TIP_Y - 2, tip + 2,
+                               self.GATE_LINK_TIP_Y + 2)
+
+    def _nfc_gate_draw_links(self, popup):
+        """Connect card → reel → target gate using only small DWIN primitives."""
+        positions = popup.get('positions') or {}
+        if not positions:
+            return
+        x, y = popup['sprite_x'], popup['sprite_y']
+        reel_center = x + self.GATE_REEL_WIDTH // 2
+        card_center = popup['card_x'] + self.GATE_CARD_WIDTH // 2
+        upper = (card_center, self.GATE_CARD_TOP + self.GATE_CARD_HEIGHT + 4,
+                 reel_center, y - 5)
+        segments = [upper]
+        target = positions.get(popup['selection'])
+        if target is None:
+            target = next(iter(positions.values()))
+        target_center = target + self.GATE_REEL_WIDTH // 2
+        lower_start = y + self.GATE_REEL_HEIGHT + 3
+        # During the 600ms landing this stem naturally shortens, then
+        # disappears rather than crossing the descending reel or gate artwork.
+        if lower_start < self.GATE_LINK_TIP_Y - 2:
+            segments.append((reel_center, lower_start,
+                             target_center, self.GATE_LINK_TIP_Y - 2))
+            popup['link_tip'] = target_center
+        popup['link_segments'] = tuple(segments)
+        for coords in segments:
+            self.lcd.draw_line(self.GATE_LINK_COLOR, *coords)
+        if 'link_tip' in popup:
+            cx = popup['link_tip']
+            self.lcd.draw_rectangle(1, AXIS_HOMED_COLOR,
+                                    cx - 2, self.GATE_LINK_TIP_Y - 2,
+                                    cx + 2, self.GATE_LINK_TIP_Y + 2)
+
     def _nfc_gate_draw_focus(self, previous=None):
         """Recolor only tiny gate footers / header focus, never the reels."""
         popup = self._nfc_gate_popup
@@ -191,6 +239,8 @@ class NFCGateViewMixin:
         y = self.GATE_GHOST_TOP if popup['phase'] == 'complete' else self.GATE_REEL_TOP
         popup['sprite_x'], popup['sprite_y'] = x, y
         popup['card_x'] = self._nfc_gate_card_x(x)
+        popup.pop('link_segments', None)
+        popup.pop('link_tip', None)
         popup['drawn_page'], popup['drawn_lcd'] = page, id(self.lcd)
         popup.pop('motion', None)
         lcd = self.lcd
@@ -236,6 +286,7 @@ class NFCGateViewMixin:
                       background=bg, label_width=42).draw()
 
         self._nfc_gate_draw_card(popup['card_x'])
+        self._nfc_gate_draw_links(popup)
         self._nfc_gate_draw_focus()
         self._nfc_gate_draw_status()
 
@@ -307,6 +358,10 @@ class NFCGateViewMixin:
         lcd = self.lcd
         bg = self.GATE_BG
         old_x, old_y = popup['sprite_x'], popup['sprite_y']
+        changed = ((x is not None and x != old_x)
+                   or (y is not None and y != old_y))
+        if changed:
+            self._nfc_gate_clear_links(popup)
         if x is not None and x != old_x:
             delta = x - old_x
             lcd.move_area(1, 1 if delta > 0 else 0, abs(delta), bg,
@@ -329,6 +384,8 @@ class NFCGateViewMixin:
                           popup['sprite_x'] + self.GATE_REEL_WIDTH - 1,
                           max(old_y, y) + self.GATE_REEL_HEIGHT - 1)
             popup['sprite_y'] = y
+        if changed:
+            self._nfc_gate_draw_links(popup)
         lcd.update()
 
     def _nfc_gate_animate(self, popup, axis, target, seconds, *, now=None):
