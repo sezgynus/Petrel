@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch, call
 import unittest
 import zlib
 
-from buzzer_control import Player, ADDRESS, RECORD_SIZE
+from buzzer_control import Player, ADDRESS, RECORD_SIZE, LEGACY_RECORD_SIZE
 from buzzer_pwm import HardwarePWM, PWM_PINS
 from test_capabilities import snapshot, display
 from test_regressions import ui
@@ -36,10 +36,31 @@ class BuzzerSettingsTests(unittest.TestCase):
         for name in ('Buzzer', ''):
             body = struct.pack('>8sBBB', b'PETBZR01', 70, 4, 1)
             body += name.encode() + b'\0'
-            body = body.ljust(RECORD_SIZE - 4, b'\0')
+            body = body.ljust(LEGACY_RECORD_SIZE - 4, b'\0')
             raw = body + struct.pack('>I', zlib.crc32(body))
-            self.assertEqual(Settings.decode(raw), Settings(bool(name), 70, 4, 1))
-        self.assertEqual(Settings.decode(raw).encode()[:8], b'PETBZR02')
+            expected = Settings(bool(name), 70, 4, 1)
+            self.assertEqual(Settings.decode(raw), expected)
+            self.assertEqual(Settings.decode(raw[:RECORD_SIZE]), expected)
+            self.assertEqual(Settings.decode(raw).encode()[:8], b'PETBZR02')
+
+    def test_migrate_old_128_byte_record_through_16_byte_panel_read(self):
+        for enabled in (False, True):
+            chosen = Settings(enabled, 100, 5, 4)
+            body = struct.pack('>8sBBBB', b'PETBZR02', chosen.volume,
+                               chosen.click, chosen.encoder, int(chosen.enabled))
+            body = body.ljust(LEGACY_RECORD_SIZE - 4, b'\0')
+            legacy = body + struct.pack('>I', zlib.crc32(body))
+            self.assertEqual(Settings.decode(legacy), chosen)
+            self.assertEqual(Settings.decode(legacy[:RECORD_SIZE]), chosen)
+            upgraded = Settings.decode(legacy[:RECORD_SIZE]).encode()
+            self.assertEqual(len(upgraded), 16)
+            self.assertEqual(Settings.decode(upgraded), chosen)
+        # New records must have a valid checksum; a damaged CRC is not
+        # mistaken for the legacy padded format.
+        corrupted = bytearray(chosen.encode())
+        corrupted[-1] ^= 0x40
+        self.assertIsNone(Settings.decode(corrupted))
+
 
     def test_flash_record_verification(self):
         lcd = driver()
@@ -92,6 +113,29 @@ class BuzzerMenuTests(unittest.TestCase):
             view._uart_online = False
             self.assertTrue(view._ensure_uart())
         view.lcd.load_buzzer_settings.assert_called_once_with()
+
+    def test_buzzer_rows_share_display_fixed_width_and_vertical_baseline(self):
+        view = self.view()
+        view._buzzer_values = Settings(False, 100, 5, 4)
+        view.Draw_Display_Menu()
+        values = [call.args for call in view.lcd.draw_text.call_args_list]
+        buzzer = next(args for args in values if args[-1] == '  Disabled')
+        volume = next(args for args in values if args[-1] == '      100%')
+        brightness = next(args for args in values if args[-1] == '   100%')
+        for args in (buzzer, volume):
+            self.assertEqual(args[0:2], (False, True))
+            self.assertEqual(args[-3], view.MENU_VALUE_RIGHT - 10 * 8)
+            self.assertEqual(args[-3] + 10 * 8, view.MENU_VALUE_RIGHT)
+        self.assertEqual(brightness[-3] + 7 * 8, view.MENU_VALUE_RIGHT)
+        # Label and value use identical row y, not independent baselines.
+        line = next(args for args in values if args[-1] == 'Buzzer')
+        self.assertEqual(buzzer[-2], line[-2])
+        view._list_render = None
+        view._display_selection = 6
+        view.Draw_Display_Menu()
+        tone = next(c.args for c in view.lcd.draw_text.call_args_list
+                    if c.args[-1] == '    Double')
+        self.assertEqual(tone[-3] + 10 * 8, view.MENU_VALUE_RIGHT)
 
     def test_buzzer_row_uses_enabled_disabled_labels(self):
         view = self.view()
