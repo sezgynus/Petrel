@@ -157,6 +157,28 @@ class BuzzerMenuTests(unittest.TestCase):
         self.assertEqual(view._buzzer_saved, Settings(False))
         self.assertFalse(view._buzzer_save_error)
 
+    def test_async_volume_editor_waits_for_verified_flash(self):
+        view = self.view()
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.BUZZER_SETTINGS_ADDRESS = ADDRESS
+        view._display_selection = 5
+        view._display_edit = False
+        future = Future()
+        view.lcd.begin_flash_write_verified.return_value = future
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        self.step(view, view.ENCODER_DIFF_CW)
+        self.step(view, view.ENCODER_DIFF_ENTER)
+        wanted = Settings(True, 60, 2, 1)
+        self.assertEqual(view._buzzer_values, wanted)
+        self.assertEqual(view._buzzer_saved, Settings())
+        self.assertTrue(view._display_edit)
+        self.assertEqual(view._display_save_message, 'Saving...')
+        future.set_result(wanted.encode())
+        view._poll_panel_flash()
+        self.assertEqual(view._buzzer_saved, wanted)
+        self.assertFalse(view._display_edit)
+        self.assertEqual(view._display_save_message, '')
+
     def test_wrong_flash_readback_never_commits_toggle(self):
         view = self.view()
         view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
