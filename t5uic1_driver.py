@@ -1069,6 +1069,11 @@ class T5UIC1Display:
                                 return True
                             raise T5UIC1ProtocolError(
                                 'Flash verification mismatch after read retries')
+                        if job['data'] is not None and job['verification_retries']:
+                            logging.info('DWIN Flash save verified by readback '
+                                         'after %d confirmation retries: '
+                                         'address=0x%04X', job['verification_retries'],
+                                         job['address'])
                         job['future'].set_result(result)
                         self._flash_job = None
                 return True
