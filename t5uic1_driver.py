@@ -934,11 +934,23 @@ class T5UIC1Display:
         future = Future()
         if self._closed:
             future.set_exception(OSError('LCD disconnected'))
-        elif self._flash_fault is not None:
-            future.set_exception(self._flash_fault)
         elif len(self._flash_queue) + int(self._flash_job is not None) >= 4:
             future.set_exception(RuntimeError('Flash request queue full'))
         else:
+            # A failed transaction invalidates its queued followers, but must
+            # not permanently disable all subsequent Display/NFC/Buzzer saves.
+            # A new user-initiated request is an explicit retry after the
+            # previous queue was failed and drained.
+            if self._flash_fault is not None:
+                logging.warning('Retrying DWIN Flash after failure: %s',
+                                self._flash_fault)
+                self._flash_fault = None
+                self._expected_response = None
+                for op in (0x31, 0x32):
+                    self._protected_response_slots().pop(op, None)
+                self._frames = deque((frame for frame in self._frames
+                                      if frame[0] not in (0x31, 0x32)),
+                                     maxlen=self.RX_FRAME_LIMIT)
             self._flash_queue.append({
                 'address': address, 'length': size,
                 'data': value if verify else None, 'future': future,
@@ -979,8 +991,9 @@ class T5UIC1Display:
     def poll_flash_tasks(self):
         """Advance at most one Flash packet/ACK, with no sleep or ACK spin.
 
-        Only the UI thread invokes this method, preserving sole UART ownership.
-        Failed/ambiguous transactions invalidate the queue until reconnect.
+        The UI thread owns all UART access. On error, cancel the current
+        transaction and its queued followers. A subsequent explicit request
+        can retry without requiring a panel or Petrel service restart.
         """
         self._flash_state()
         if self._flash_fault is not None:
