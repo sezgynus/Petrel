@@ -2096,12 +2096,13 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self.MENU_WIDE_CELLS)
             entries.append((label, icon, (text, editing), painter))
         for row, (label, text, editable) in enumerate(self._buzzer_rows(), 4):
-            text = text[:11]
             editing = getattr(self, '_display_edit', False) and selection == row
-            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
-                True, False, self.lcd.font8x16, self.lcd.Color_White,
-                self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
-                max(172, 260 - len(text) * 8), self.MBASE(row) - 1, text)
+            # Use the *same* fixed-width, opaque right-edge value renderer
+            # as Brightness/Idle dim above. The old variable-width 0x11
+            # text mode left artifacts and misaligned Enabled/Disabled.
+            painter = lambda row, text=text, editing=editing: self._draw_menu_value(
+                text, self.MBASE(row) - 1,
+                self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black, 10)
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
         entries.append(('NFC settings', ICON_NFC, None, None))
         self._display_selection = min(selection, len(entries) - 1)
