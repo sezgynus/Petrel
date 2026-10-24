@@ -1,3 +1,4 @@
+from heater_events import heater_ready
 from lcd_resources import ICON_BOOT_FIRST, ICON_BOOT_LAST
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
 from graphite_theme import (show_icon as show_theme_icon, draw_scrollbar,
@@ -1589,7 +1590,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def _process_input_untraced(self, event):
         if event.kind.startswith('melody_'):
             name = event.kind[7:]
-            if name in ('PRINT_DONE', 'PAUSE', 'RESUME', 'ERROR'):
+            if name in ('PRINT_DONE', 'PAUSE', 'RESUME', 'ERROR', 'HEATING_DONE',
+                        'COOLING_DONE', 'HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL'):
                 live = self.pd.subscription.lifecycle()
                 valid = (event.epoch == live['epoch'] or
                          (name == 'ERROR' and live['state'] != 'ready'
@@ -2949,9 +2951,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                     color = self.lcd.Line_Color  # Heat disabled
                 else:
                     # 2 C entry / 3 C exit hysteresis suppresses threshold flicker.
-                    ready_band = 3.0 if previous == AXIS_HOMED_COLOR else 2.0
-                    color = (AXIS_HOMED_COLOR if abs(actual - target) <= ready_band
-                             else AXIS_UNHOMED_COLOR)
+                    ready = heater_ready(actual, target, previous == AXIS_HOMED_COLOR)
+                    color = AXIS_HOMED_COLOR if ready else AXIS_UNHOMED_COLOR
         self._draw_dashboard_indicator(key, x + 3, y + 22, 14 if key == 'bed_heat' else 12,
                                        3, color)
 

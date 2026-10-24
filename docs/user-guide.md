@@ -206,7 +206,7 @@ replaces ordinary playback without building a queue. The emergency alarm retains
 its dedicated full-volume preemption path and cannot be interrupted by ordinary
 melodies. Unknown names raise `ValueError` before queuing.
 
-Six melodies are now wired to application and subscribed printer events:
+Eleven melodies are now wired to application and subscribed printer events:
 
 | Melody | Trigger |
 |---|---|
@@ -216,6 +216,11 @@ Six melodies are now wired to application and subscribed printer events:
 | `ERROR` | A live print enters `error`, or Klipper reports shutdown. |
 | `BOOT` | Application startup completes and buzzer preferences are loaded, once per process. |
 | `SHUTDOWN` | Confirmed Petrel power-off request, immediately before dispatch. |
+| `HEATING_DONE` | Each heater reaches its positive target, using dashboard 2 C entry / 3 C exit hysteresis. |
+| `COOLING_DONE` | With target exactly zero, a previously hot heater crosses below 50 C (bed: 40 C). |
+| `HOMING` | A Petrel G28 script reaches guarded local dispatch, including calibration preparation. |
+| `PROBE_SUCCESS` | Verified mesh/screw-probing results, accepted manual-probe offset, or a passed probe diagnostic. |
+| `PROBE_FAIL` | A server-reported probing command error or a failed probe diagnostic. |
 
 These use existing WebSocket deltas/lifecycle notifications and UI callbacks,
 without additional polling, queries or G-code macros. Initial snapshots,
@@ -224,6 +229,24 @@ from print state and Klipper shutdown are deduplicated. Normal connection loss
 is not an error melody. Delayed events from a recovered older connection are
 discarded. Sound runs asynchronously on the existing bounded PWM worker and
 honors Buzzer Enabled/Disabled and Volume. Emergency alarm priority is unchanged.
+
+Heater cycles are independent and share `heater_ready()` with the dashboard.
+Reaching target sounds once per target cycle; fluctuations do not rearm it.
+Cooling is armed by an observed hot/off state or switching a hot heater off;
+a cold initial/reconnect snapshot never announces an old cooling completion.
+Targets changed during a cycle replace its tracking. Generic heater temperature
+and target use the existing subscription; power telemetry retains its thermal
+check/usage lease. Simultaneous identical notifications may coalesce rather than
+build an audio backlog.
+
+Homing means local G28 dispatch, not proof of motor movement, and does not cover
+opaque homing macros or commands started by other clients. Probe notifications
+come from existing operation-result transitions, not new queries or timers.
+They announce the whole operation, not every contact. A successful screws-tilt
+measurement does not imply the bed is level. User aborts, timeouts, disconnected
+sessions and unconfirmed/malformed results do not become probe failures.
+Klipper shutdown retains the general ERROR alarm; the special emergency alarm
+still has higher priority. No filament-runout or layer-change binding is added.
 
 The shutdown sound starts before the power request; shutdown is not delayed
 for audio, so cutting power to the Pi may truncate it. Abrupt power loss cannot

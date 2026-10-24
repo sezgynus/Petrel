@@ -18,6 +18,8 @@ from types import MappingProxyType
 from urllib.parse import urlsplit, urlunsplit
 
 from moonraker_client import MoonrakerError
+from heater_events import HeaterEvents, heater_name
+from buzzer_notifications import contains_homing
 from print_tuning import JOB_OBJECTS
 from petrel_version import client_version
 from printer_state import PrinterState, freeze
@@ -73,6 +75,7 @@ class MoonrakerSubscription:
         self._case_light_tracking = False
         self._case_light_callback = None
         self._melody_callback = None
+        self._heater_events = HeaterEvents()
         self._melody_error_latched = False
         self._case_light_generation = 0
         self._settings = {}
@@ -191,12 +194,15 @@ class MoonrakerSubscription:
                 continue
             self._frozen_status.pop(name, None)
             field = self._usage_fields.get(name)
-            if field is None:
+            retained = set(self._base_subscription.get(name) or ())
+            if field is not None:
+                retained.add(field)
+            if not retained:
                 self._status.pop(name, None)
             else:
                 values = self._status[name]
                 for key in tuple(values):
-                    if key != field:
+                    if key not in retained:
                         values.pop(key, None)
 
     def set_thermal_tracking(self, enabled):
@@ -205,7 +211,10 @@ class MoonrakerSubscription:
             self._thermal_generation += 1
             generation, epoch = self._thermal_generation, self._epoch
             self._thermal_objects = tuple(name for name, cfg in self._settings.items()
-                if enabled and name in self._objects and name not in self._base_subscription
+                if enabled and name in self._objects
+                and (name not in self._base_subscription or
+                     (self._base_subscription[name] is not None
+                      and 'power' not in self._base_subscription[name]))
                 and isinstance(cfg, dict) and 'heater_pin' in cfg)
             names = self._thermal_objects
             objects = self._subscription_objects()
@@ -289,6 +298,14 @@ class MoonrakerSubscription:
             except Exception:
                 logging.exception('Buzzer event observer failed')
 
+    def emit_operation_melody(self, name, epoch):
+        if name not in ('HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL'):
+            return
+        with self._lock:
+            current = self._state == 'ready' and epoch == self._epoch
+        if current:
+            self._emit_melody(name, epoch)
+
     def _melody_transition(self, previous, current, webhooks):
         """Called with the state lock held for live deltas only, never bootstrap."""
         name = None
@@ -314,6 +331,7 @@ class MoonrakerSubscription:
     def _invalidate(self, error):
         with self._lock:
             self._thermal_objects = ()
+            self._heater_events.reset()
             self._usage_fields = {}
             self._thermal_generation += 1
             self._state = 'disconnected'
@@ -334,6 +352,7 @@ class MoonrakerSubscription:
             raise MoonrakerError('Invalid status notification')
         callback = None
         melody = None
+        heater_melodies = []
         with self._lock:
             previous_print = self._status.get('print_stats', {}).get('state')
             previous_light = copy.deepcopy(self._status.get('output_pin case_light'))
@@ -346,6 +365,13 @@ class MoonrakerSubscription:
                 for name, fields in status.items():
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
                     self._frozen_status.pop(name, None)
+            if replace:
+                self._heater_events.reset()
+            for name in status:
+                if heater_name(name):
+                    events = self._heater_events.update(name, self._status[name],
+                        baseline=replace or self._subscribing or self._state != 'ready')
+                    heater_melodies.extend(events)
             self._prune_thermal_status()
             self._eventtime = eventtime
             self._revision += 1
@@ -362,6 +388,8 @@ class MoonrakerSubscription:
             callback()
         if melody is not None:
             self._emit_melody(melody, melody_epoch)
+        for event in heater_melodies:
+            self._emit_melody(event, melody_epoch)
 
     def _notification(self, message):
         if 'id' in message:
@@ -675,6 +703,8 @@ class MoonrakerSubscription:
                         self._pending_deadlines[self._id] = time.monotonic() + (getattr(future, 'request_timeout', None) or ttl)
                 future.dispatch_stage='send_attempted'
                 connection.send(json.dumps(envelope))
+                if method == 'printer.gcode.script' and contains_homing(params.get('script')):
+                    self.emit_operation_melody('HOMING', epoch)
                 if not completion and not future.done():
                     future.set_result(None)
             except Exception as exc:
@@ -756,6 +786,7 @@ class MoonrakerSubscription:
         available = [name for name in names if name in OBJECTS or name in ('mmu', 'mmu_machine', 'mcu') or
                      name.startswith('mcu ') or name.startswith('temperature_sensor ') or
                      name.startswith('temperature_fan ') or
+                     name.startswith('heater_generic ') or
                      name.startswith('mmu_leds ') or
                      re.fullmatch(r'unit\d+_mmu_exit_leds', name) or
                      (name.startswith('extruder') and name[8:].isdigit())]
@@ -772,6 +803,9 @@ class MoonrakerSubscription:
         with self._lock:
             self._base_subscription = {name: (['save_config_pending', 'save_config_pending_items']
                                                if name == 'configfile' else None) for name in available}
+            for name in available:
+                if name.startswith('heater_generic '):
+                    self._base_subscription[name] = ['temperature', 'target']
             from maintenance_usage import usage_metrics
             metrics, _ = usage_metrics(names,settings)
             self._usage_fields = {getattr(m, 'source', m.device): m.field for m in metrics}

@@ -187,4 +187,4 @@ component identities and evidence; no acceptance JSON is updated by CI.
 The LCD presents paginated component results/evidence and returns to the originating
 Check printer row. The existing 120 s dwell is not extended automatically.
 
-Optional heater telemetry is subscribed through the existing WebSocket only for an explicit thermal check. The temporary temperature/target/power fields make dispatch-time checks cover configured generic heaters too. Finishing or cancelling the check releases them; ordinary case-light subscription changes preserve the active lease.
+Generic heater temperature/target fields are subscribed for completion notifications. Additional power telemetry is leased through the existing WebSocket for an explicit thermal check unless usage tracking already supplies it. Finishing or cancelling the check releases only its additional fields; ordinary case-light subscription changes preserve the active lease.

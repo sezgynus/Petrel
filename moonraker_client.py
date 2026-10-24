@@ -1,4 +1,5 @@
 """Bounded HTTP transport and serialized, observable command execution."""
+import logging
 from concurrent.futures import Future
 import json
 import math
@@ -42,6 +43,7 @@ class MoonrakerClient:
         self._queue = Queue(maxsize=queue_size)
         self._stop = Event()
         self._lock = Lock()
+        self.script_dispatch_callback = None
         self.connected = False
         self.last_error = None
         self.command_results = Queue()
@@ -165,6 +167,11 @@ class MoonrakerClient:
                         payload = {'script': rest}
                         mutated = True
                     dispatched = True
+                    if path == '/printer/gcode/script' and self.script_dispatch_callback is not None:
+                        try:
+                            self.script_dispatch_callback(payload.get('script', ''))
+                        except Exception:
+                            logging.exception('Script sound observer failed')
                     result = self.request('POST', path, payload,
                                           request_timeout=request_timeout)
                     future.cleanup_complete = True

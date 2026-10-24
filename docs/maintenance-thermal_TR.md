@@ -197,4 +197,4 @@ kimlik ve kanıtlarını tek sonuç olayı altında saklar. CI fiziksel kabul
 JSON'unu değiştirmez. LCD'de alt sonuçlar ve kanıtlar sayfalı incelenir;
 Back önceki Check printer satırına döner. Mevcut 120 sn bekleme otomatik uzatılmaz.
 
-İsteğe bağlı ısıtıcı telemetrisi, yalnız açıkça başlatılan termal test boyunca mevcut WebSocket üzerinden izlenir. Geçici sıcaklık/hedef/güç alanları, gönderim anındaki kontrollerin yapılandırılmış genel ısıtıcıları da kapsamasını sağlar. Test bitince veya iptal edilince izleme kaldırılır; kasa ışığı aboneliğindeki değişiklikler etkin izlemeyi korur.
+Genel ısıtıcıların sıcaklık/hedef alanları tamamlanma bildirimleri için izlenir. Ek güç telemetrisi, kullanım takibi zaten sağlamıyorsa, açıkça başlatılan termal test için mevcut WebSocket üzerinden geçici izlenir. Test bitince veya iptal edilince yalnız ek alanlar bırakılır; kasa ışığı aboneliğindeki değişiklikler etkin izlemeyi korur.

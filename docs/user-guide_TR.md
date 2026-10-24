@@ -206,7 +206,7 @@ kuyruk biriktirmeden değiştirir. Emergency alarmının özel tam sesli önceli
 korunur ve normal melodiler alarmı kesemez. Bilinmeyen isimler kuyruğa alınmadan
 `ValueError` üretir.
 
-Altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
+On bir melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 
 | Melodi | Tetikleyici |
 |---|---|
@@ -216,6 +216,11 @@ Altı melodi uygulama ve abone olunan yazıcı olaylarına bağlanmıştır:
 | `ERROR` | Canlı baskının `error` olması veya Klipper shutdown bildirimi. |
 | `BOOT` | Açılış tamamlanıp buzzer ayarları okunduğunda; işlem başına bir kez. |
 | `SHUTDOWN` | Petrel kapatmasının onaylanması; güç isteği gönderilmeden hemen önce. |
+| `HEATING_DONE` | Her ısıtıcının pozitif hedefine ulaşması; dashboard ile ortak 2 °C giriş / 3 °C çıkış histerezisi. |
+| `COOLING_DONE` | Hedef tam sıfırken daha önce sıcak görülen ısıtıcının 50 °C, bed’in 40 °C altına inişi. |
+| `HOMING` | Kalibrasyon hazırlığı dahil Petrel G28 komutunun korumalı yerel gönderime ulaşması. |
+| `PROBE_SUCCESS` | Doğrulanmış mesh/vida ölçümü, kabul edilmiş manuel prob ofseti veya başarılı prob tanılaması. |
+| `PROBE_FAIL` | Prob komutunun sunucu tarafından hata ile sonuçlanması veya başarısız prob tanılaması. |
 
 Mevcut WebSocket durum/lifecycle bildirimleri ve UI callback’leri kullanılır;
 yeni polling, sorgu veya G-code makrosu eklenmez. İlk bağlantı, yeniden bağlantı
@@ -224,6 +229,23 @@ shutdown aynı hata için tek ses üretir; sıradan bağlantı kaybı hata melod
 değildir. Yeni bağlantı kurulduktan sonra eski oturumdan gecikmiş bildirimler
 elenir. Ses mevcut sınırlı PWM işçisinde asenkron çalar; Buzzer Enabled/Disabled
 ve Volume ayarlarına uyar. Emergency alarmının önceliği korunur.
+
+Isıtıcılar çevrimlerini bağımsız izler; dashboard ile aynı `heater_ready()`
+hesabı kullanılır. Hedef başına bir kez ses üretilir; dalgalanma tekrar kurmaz.
+Soğuma takibi sıcak/kapalı durum gözlenince veya sıcak ısıtıcı kapatılınca kurulur;
+ilk/yeniden bağlantıdaki soğuk snapshot eski bir soğumayı duyurmaz. Yeni hedef
+önceki takibi değiştirir. Genel ısıtıcıların sıcaklık/hedef alanları mevcut
+aboneliğe eklenir; güç telemetrisi termal test/kullanım izniyle sınırlı kalır.
+Aynı anda gelen aynı bildirimler ses kuyruğu biriktirmek yerine birleşebilir.
+
+Homing sesi yerel G28 gönderimini belirtir; motor hareketini kanıtlamaz, içeriği
+bilinmeyen homing makrolarını veya başka istemcilerden başlatılanları kapsamaz.
+Prob bildirimleri mevcut işlem sonuçlarından üretilir; yeni sorgu veya zamanlayıcı
+eklenmez. Her temas yerine tüm işlem duyurulur. Vida ölçümünün başarılı olması
+yatağın düz olduğu anlamına gelmez. Kullanıcı iptali, zaman aşımı, bağlantı kaybı
+ve doğrulanamayan/bozuk sonuçlar prob hatası sayılmaz. Klipper shutdown genel
+ERROR alarmını kullanır; özel emergency alarmının önceliği daha yüksektir.
+Filament bitişi ve katman değişimi henüz bağlanmaz.
 
 Kapanış melodisi güç isteğinden önce başlar; ses için kapatma geciktirilmez.
 Pi’nin gücü de kesiliyorsa melodi yarıda kalabilir. Ani elektrik kesilmesinde

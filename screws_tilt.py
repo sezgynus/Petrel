@@ -1,4 +1,5 @@
 """Four-corner screws tilt session using authoritative Klipper RPC results."""
+from buzzer_notifications import emit_operation, confirmed_command_failure
 from operation_guards import motion_dispatch_guard
 import math
 import re
@@ -127,6 +128,7 @@ class ScrewsTiltSession:
             return
         if not self.pending.done():
             return
+        completed, phase = self.pending, self.phase
         try:
             payload = self.pending.result()
             if self.phase == 'measuring':
@@ -137,7 +139,10 @@ class ScrewsTiltSession:
                 return
             self._read_results(payload)
             self.phase, self.message = 'complete', ''
+            emit_operation(p, 'PROBE_SUCCESS', self.epoch)
         except Exception:
+            if phase == 'measuring' and confirmed_command_failure(completed):
+                emit_operation(p, 'PROBE_FAIL', self.epoch)
             self.results = {}
             self.phase, self.message = 'error', 'Calculation failed; check log'
         self.pending = None

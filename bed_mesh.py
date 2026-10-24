@@ -1,4 +1,5 @@
 """Completion-tracked bed calibration and read-only profile snapshots."""
+from buzzer_notifications import emit_operation, confirmed_command_failure
 from operation_guards import motion_dispatch_guard, config_save_guard
 import copy
 import logging
@@ -285,6 +286,8 @@ class BedMeshSession:
                 return
         if not self.pending.done():
             return
+        completed = self.pending
+        completed_phase = self.phase
         try:
             result = self.pending.result()
             phase = self.phase
@@ -307,6 +310,7 @@ class BedMeshSession:
                     self.profile_name = confirmed_name
                     self.mesh = self._calibrated_mesh = mesh
                     self.phase, self.message = 'complete', ''
+                    emit_operation(p, 'PROBE_SUCCESS', self.epoch)
                 else:
                     self.phase, self.message = 'listed', ''
             elif phase == 'save_check':
@@ -331,6 +335,8 @@ class BedMeshSession:
                 return
             self.revision += 1
         except Exception:
+            if completed_phase == 'measuring' and confirmed_command_failure(completed):
+                emit_operation(p, 'PROBE_FAIL', self.epoch)
             logging.exception('Bed mesh operation failed in phase %s', self.phase)
             message = ('Save unconfirmed; check after restart' if self.phase == 'saving'
                        else 'Stop unconfirmed; check printer' if self.phase == 'stopping'

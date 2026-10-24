@@ -217,6 +217,7 @@ class PrinterData:
         self._jog_restore = None
         self._jog_state_name = '_PETREL_JOG_' + uuid.uuid4().hex
         self.state = PrinterState()
+        self.client.script_dispatch_callback = self._script_sound_dispatch
         self.maintenance_book = MaintenanceBook(self._maintenance_worker)
         self.maintenance_assessment = MaintenanceAssessment()
         self._maintenance_panel_api = None
@@ -1851,6 +1852,11 @@ class PrinterData:
         if gcode.strip() == 'G28':
             return self.subscription.request('printer.gcode.script', {'script': gcode + '\nM400'}, guard=guard)
         return self.subscription.notify('printer.gcode.script', {'script': gcode}, guard=guard)
+
+    def _script_sound_dispatch(self, script):
+        from buzzer_notifications import contains_homing, emit_operation
+        if contains_homing(script):
+            emit_operation(self, 'HOMING', self.state.epoch)
 
     def sendGCode(self, gcode, cleanup=None, report_error=True, dispatch_guard=None):
         if cleanup is None and self.jog_recovery_required:

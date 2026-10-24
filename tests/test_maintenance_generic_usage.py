@@ -119,7 +119,7 @@ class UsageSubscriptions(unittest.TestCase):
         request = next(r for r in sock.sent if r['method'] == 'printer.objects.subscribe')
         objects = request['params']['objects']
         self.assertEqual(objects['output_pin arbitrary'], ['value'])
-        self.assertEqual(objects['heater_generic chamber'], ['power'])
+        self.assertEqual(objects['heater_generic chamber'], ['temperature', 'target', 'power'])
         self.assertEqual(objects['fan_generic aux'], ['speed'])
         self.assertEqual(sub.snapshot()['status']['output_pin case_light']['value'], .5)
         sub.request = Mock(side_effect=lambda *a, **k: Future())
@@ -127,7 +127,7 @@ class UsageSubscriptions(unittest.TestCase):
         sub.set_thermal_tracking(True)
         sub.set_case_light_tracking(False)
         sub.set_thermal_tracking(False)
-        self.assertEqual(sub.request.call_args.args[1]['objects']['heater_generic chamber'], ['power'])
+        self.assertEqual(sub.request.call_args.args[1]['objects']['heater_generic chamber'], ['temperature', 'target', 'power'])
         self.assertIn('output_pin case_light', sub.snapshot()['status'])
         sub._merge({'heater_generic chamber': {'power': .8}}, 11)
         self.assertEqual(sub.snapshot()['status']['heater_generic chamber']['power'], .8)

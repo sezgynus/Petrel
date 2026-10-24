@@ -1,4 +1,5 @@
 """Explicit manual-probe session; no automatic motion or command replay."""
+from buzzer_notifications import emit_operation, confirmed_command_failure
 from operation_guards import motion_dispatch_guard, config_save_guard
 import math
 import time
@@ -183,6 +184,9 @@ class ProbeWizard:
                 # A rejected TESTZ does not end an active Klipper manual session.
                 # Keep the controls available without replaying the failed step.
                 self.phase = 'active' if action == 'step' and self.active() else 'error'
+                if (self.phase == 'error' and action in ('start', 'step', 'accept')
+                        and confirmed_command_failure(future)):
+                    emit_operation(self.printer, 'PROBE_FAIL', self.epoch)
                 self.message = ('Restore G-code state from Recovery' if recovery
                                 else 'Step not applied' if self.phase == 'active'
                                 else 'Command failed; check printer')
@@ -227,6 +231,7 @@ class ProbeWizard:
                 if config.get('save_config_pending') and 'z_offset' in (items.get(self.section) or {}):
                     self.accepted_offset = items[self.section]['z_offset']
                     self.phase, self.message = 'accepted', 'Offset accepted; save separately'
+                    emit_operation(self.printer, 'PROBE_SUCCESS', self.epoch)
                 else:
                     if time.monotonic() - started <= timeout:
                         return

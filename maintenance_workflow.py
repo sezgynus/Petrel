@@ -3,6 +3,7 @@
 A command completion is not physical acceptance. User questions have no clock.
 Fresh queue/lifecycle evidence is acquired before every explicit dispatch.
 """
+from buzzer_notifications import emit_operation
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from time import monotonic
@@ -258,6 +259,9 @@ class FirmwareWorkflow:
             return False, 'workflow_worker_rejected'
 
     def _finish(self, status, reason, evidence=(), restored=False):
+        if self.domain == 'probe' and status in ('PASSED', 'FAILED'):
+            emit_operation(self._printer, 'PROBE_SUCCESS' if status == 'PASSED' else 'PROBE_FAIL',
+                           self._row.epoch)
         result = WorkflowResult(self.feature_id, self._row.device, status, reason,
                                 restored, tuple(evidence or self._evidence)[:12])
         self._phase = self._future = self._command = None
