@@ -44,22 +44,31 @@ class BuzzerViewMixin:
                               lambda event: self._emergency_buzzer_feedback(),
                               priority=100)
 
-    def _save_buzzer(self, values):
+    def _save_buzzer(self, values, *, toggle=False):
+        """Persist to panel Flash; only verified readback commits the saved state."""
         if getattr(self, '_buzzer_save_future', None) is not None:
             raise RuntimeError('Buzzer save already pending')
+        values.validate()
         if values != getattr(self, '_buzzer_saved', None):
             if getattr(self.lcd, 'SUPPORTS_NONBLOCKING_FLASH', None) is True:
-                self._buzzer_save_target = values
                 self._panel_flash_lcd = self.lcd
+                # begin_flash_write_verified may return an already-failed
+                # Future (queue full / disconnected); handle it in the poll.
                 self._buzzer_save_future = self.lcd.begin_flash_write_verified(
                     self.lcd.BUZZER_SETTINGS_ADDRESS, values.encode())
+                self._buzzer_save_target = values
+                self._buzzer_save_is_toggle = toggle
                 self._display_save_message = 'Saving...'
                 self._buzzer_values = values
             else:
                 self.lcd.save_buzzer_settings(values)
                 self._buzzer_values = self._buzzer_saved = values
+                self._buzzer_save_error = False
+                self._display_save_message = ''
         else:
             self._buzzer_values = values
+            self._buzzer_save_error = False
+            self._display_save_message = ''
         player = getattr(self, '_buzzer_player', None)
         if player is not None:
             player.cancel()
@@ -68,7 +77,7 @@ class BuzzerViewMixin:
 
     def _buzzer_rows(self):
         settings = self._buzzer_settings()
-        return [('Buzzer', 'On' if settings.enabled else 'Off', True),
+        return [('Buzzer', 'Enabled' if settings.enabled else 'Disabled', True),
                 ('Volume', str(settings.volume) + '%', True),
                 ('Click tone', TONES[settings.click], True),
                 ('Encoder tone', TONES[settings.encoder], True)]
@@ -83,8 +92,8 @@ class BuzzerViewMixin:
             return False
         if selection == 4 and event == self.ENCODER_DIFF_ENTER:
             try:
-                self._save_buzzer(replace(self._buzzer_settings(), enabled=not self._buzzer_enabled()))
-                self._display_save_message = ''
+                self._save_buzzer(replace(self._buzzer_settings(), enabled=not self._buzzer_enabled()),
+                                  toggle=True)
             except (OSError, TimeoutError, T5UIC1ProtocolError):
                 self._display_save_message = 'Not saved. Press to retry'
             self.Draw_Display_Menu()
