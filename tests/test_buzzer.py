@@ -144,7 +144,7 @@ class BuzzerMenuTests(unittest.TestCase):
         self.assertEqual(view._buzzer_rows()[0], ('Buzzer', 'Disabled', True))
         view.Draw_Display_Menu()
         labels = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
-        self.assertIn('Disabled', labels)
+        self.assertTrue(any(text.strip() == 'Disabled' for text in labels))
 
     def test_async_toggle_waits_for_verified_flash_and_survives_reload(self):
         view = self.view()
