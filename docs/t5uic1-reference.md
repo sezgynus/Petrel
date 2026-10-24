@@ -322,6 +322,7 @@ changed setting, never on encoder movement or idle dim/wake.
 | `0x0200..0x03FF` | Icon-library block metadata | 512 bytes |
 | `0x0400..0x040F` | Buzzer settings (PETBZR02) | 16 bytes |
 | `0x0410..0x047F` | Legacy buzzer padding (reserved) | 112 bytes |
+| `0x0480..0x048F` | Event sound disabled bits (PETEVT01) | 16 bytes |
 
 The Display record contains the magic/version `PETDSPL2`, brightness (0–100),
 idle minutes (0 = Off, otherwise 1–60), dim brightness (0–100), one reserved byte and a CRC32. Legacy `KDWDSPL1` records retain brightness/timeout and default dim brightness to 10%, without an automatic flash write. The 16-byte allocation is unchanged. These
@@ -339,3 +340,19 @@ readable through their 16-byte legacy prefixes; they are migrated to a
 Raspberry Pi hardware PWM worker drives the physical buzzer. The optional
 Klipper virtual Buzzer extra forwards compatible `SET_PIN` requests to it.
 
+
+### Runtime Flash scheduling
+
+All settings share one bounded asynchronous write/ACK/readback queue. The UI
+caps its tick interval at 50 ms while a Flash job is pending, including after
+menu-specific interval changes and the input that starts a save. A successful
+save still requires exact readback; neither a timeout nor a write ACK alone
+marks the setting saved.
+
+Both the native C broker and Python fallback recognize transmitted Data Flash
+and picture-programming commands. They defer subsequent TX and their own
+liveness probes until the programming ACK, for at most 3 seconds. A pending
+pre-write liveness deadline is cleared. A lost programming ACK releases the
+transport at that bound so the driver can reconcile the value by reading it;
+it does not trigger an automatic rewrite. Outside programming, ordinary
+liveness timeout/reconnect behavior remains active.

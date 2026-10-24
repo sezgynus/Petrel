@@ -40,7 +40,7 @@ struct broker {
     int listener, uart, client, backend;
     bool online, tty_ready, configuring, needs_config, tx_busy;
     unsigned turn, baud, tx_epoch, tx_count;
-    double probe_at, probe_deadline, uart_retry, backend_retry, aux_ready, tx_deadline, rx_retry;
+    double probe_at, probe_deadline, uart_retry, backend_retry, aux_ready, tx_deadline, rx_retry, flash_until;
     struct queue display_tx, display_rx, aux_tx;
     struct frame *active;
     uint8_t rx[4096], aux_rx[LIMIT];
@@ -122,7 +122,7 @@ static void disconnect_transport(struct broker *b, const char *reason)
     b->online = b->tty_ready = b->configuring = b->tx_busy = false;
     b->needs_config = true;
     b->rx_size = b->aux_head = b->aux_size = 0;
-    b->probe_deadline = b->aux_ready = b->rx_retry = 0;
+    b->probe_deadline = b->aux_ready = b->rx_retry = b->flash_until = 0;
     b->uart_retry = b->backend_retry = now() + 1;
 }
 static bool control(struct broker *b, unsigned op, uint32_t epoch, const uint8_t *data, size_t size)
@@ -250,8 +250,21 @@ static int open_uart(const char *path)
 fail:
     { int error = errno; close(fd); errno = error; return -1; }
 }
+static bool flash_busy(struct broker *b)
+{
+    return now() < b->flash_until;
+}
+static void flash_started(struct broker *b)
+{
+    /* Programming can block the panel CPU: no probes or following commands
+     * until ACK, with a bounded fallback when the write ACK is lost. */
+    b->flash_until = now() + 3.0;
+    b->probe_deadline = 0;
+    b->probe_at = b->flash_until + 2.0;
+}
 static bool transmit(struct broker *b)
 {
+    if (flash_busy(b)) return true;
     if (!b->active) {
         bool aux_ready = b->aux_tx.head && now() >= b->aux_ready;
         if (b->display_tx.head && (!b->turn || !aux_ready)) b->active = pop(&b->display_tx);
@@ -290,11 +303,21 @@ static bool transmit(struct broker *b)
             if (f->last) b->tx_deadline = b->aux_ready;
         }
     }
+    if (f->kind == DISPLAY && f->size >= 9 &&
+        ((f->data[1] == 0x31 && f->data[2] == 0xa5) || f->data[1] == 0x33))
+        flash_started(b);
     free(f);
     return ok;
 }
 static bool response(struct broker *b, const uint8_t *data, size_t size)
 {
+    if ((data[1] == 0x31 && size == 9 && data[2] == 0xa5 &&
+         data[3] == 'O' && data[4] == 'K') ||
+        (data[1] == 0x33 && size == 8 && data[2] == 'O' && data[3] == 'K')) {
+        b->flash_until = 0;
+        b->probe_deadline = 0;
+        b->probe_at = now() + 2.0;
+    }
     if (data[1] == 0 && size == 8 && data[2] == 'O' && data[3] == 'K') {
         if (!b->online) { b->needs_config = true; b->tty_ready = false; }
         b->online = true; b->probe_deadline = 0;
@@ -387,7 +410,7 @@ static void loop(struct broker *b)
             if (b->uart < 0) b->uart_retry = current + 1;
             else b->probe_at = 0;
         }
-        if (b->uart >= 0) {
+        if (b->uart >= 0 && !flash_busy(b)) {
             if (b->probe_deadline && current >= b->probe_deadline) {
                 errno = ETIMEDOUT; disconnect_transport(b, "panel handshake");
             } else if (current >= b->probe_at) {
@@ -399,12 +422,12 @@ static void loop(struct broker *b)
         if (!backend_tick(b)) { disconnect_transport(b, "kernel backend"); continue; }
         struct pollfd fds[] = {
             {b->listener, POLLIN, 0}, {b->client, POLLIN | (b->display_rx.head ? POLLOUT : 0), 0},
-            {b->uart, POLLIN | ((b->active || b->display_tx.head || (b->aux_tx.head && current >= b->aux_ready)) ? POLLOUT : 0), 0},
+            {b->uart, POLLIN | ((!flash_busy(b) && (b->active || b->display_tx.head || (b->aux_tx.head && current >= b->aux_ready))) ? POLLOUT : 0), 0},
             {b->backend, (!b->tx_busy && !b->configuring ? POLLIN : 0) |
                 (!b->tx_busy && b->tty_ready && b->aux_size && current >= b->rx_retry ? POLLOUT : 0), 0}
         };
         double wait = .1;
-        if (b->uart >= 0) { shorten(b->probe_at, current, &wait); shorten(b->probe_deadline, current, &wait); }
+        if (b->uart >= 0) { shorten(b->flash_until, current, &wait); shorten(b->probe_at, current, &wait); shorten(b->probe_deadline, current, &wait); }
         else shorten(b->uart_retry, current, &wait);
         if (b->backend < 0) shorten(b->backend_retry, current, &wait);
         if (b->aux_tx.head) shorten(b->aux_ready, current, &wait);

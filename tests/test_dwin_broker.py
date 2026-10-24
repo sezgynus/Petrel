@@ -48,6 +48,67 @@ class BrokerContracts(unittest.TestCase):
         broker.aux_ready_at = 0
         return broker
 
+    def test_flash_programming_defers_probes_and_following_packets_until_ack(self):
+        broker = self.broker()
+        broker.probe_deadline = 10.5
+        broker.probe_at = 10
+        broker.client = object()
+        broker.online = True
+        broker.display_rx = FrameQueue()
+        broker.rx = bytearray()
+        broker._client_events = Mock()
+        write = HEADER + b'\x31\xa5\x04\x80test' + TAIL
+        following = HEADER + b'\x3d' + TAIL
+        broker.display_tx.append(write)
+        broker.display_tx.append(following)
+        broker.uart.write.side_effect = lambda data: len(data)
+        with patch('dwin_broker.time.monotonic', return_value=10):
+            broker._transmit()
+        self.assertIsNone(broker.probe_deadline)
+        self.assertEqual(broker.flash_until, 13)
+        broker.selector = Mock()
+        broker.selector.select.return_value = []
+        broker.auxiliary = None
+        broker._disconnect = Mock()
+        with patch('dwin_broker.time.monotonic', return_value=11.8):
+            broker.step(0)
+            broker._transmit()
+            broker._disconnect.assert_not_called()
+            self.assertEqual(broker.uart.write.call_count, 1)
+            broker.uart.read.return_value = HEADER + b'\x31\xa5OK' + TAIL
+            broker._receive()
+            broker._transmit()
+        self.assertEqual(broker.uart.write.call_args.args[0], following)
+        self.assertFalse(broker._flash_busy())
+        self.assertEqual(broker.display_rx.pop()[0], HEADER + b'\x31\xa5OK' + TAIL)
+
+    def test_lost_flash_ack_releases_transport_for_readback_without_rewriting(self):
+        broker = self.broker()
+        write = HEADER + b'\x31\xa5\x04\x80test' + TAIL
+        read = HEADER + b'\x32\xa5\x04\x80\x04' + TAIL
+        broker.display_tx.append(write)
+        broker.display_tx.append(read)
+        broker.uart.write.side_effect = lambda data: len(data)
+        with patch('dwin_broker.time.monotonic', return_value=10):
+            broker._transmit()
+        with patch('dwin_broker.time.monotonic', return_value=12.99):
+            broker._transmit()
+            self.assertEqual(broker.uart.write.call_count, 1)
+        with patch('dwin_broker.time.monotonic', return_value=13.01):
+            broker._transmit()
+        self.assertEqual([c.args[0] for c in broker.uart.write.call_args_list], [write, read])
+
+    def test_partial_flash_write_arms_guard_after_complete_frame(self):
+        broker = self.broker()
+        write = HEADER + b'\x31\xa5\x04\x80test' + TAIL
+        broker.display_tx.append(write)
+        broker.uart.write.side_effect = [2, len(write)-2]
+        with patch('dwin_broker.time.monotonic', return_value=10):
+            broker._transmit()
+            self.assertFalse(broker._flash_busy())
+            broker._transmit()
+            self.assertTrue(broker._flash_busy())
+
     def test_partial_uart_write_finishes_before_other_channel(self):
         broker = self.broker()
         done = Mock()

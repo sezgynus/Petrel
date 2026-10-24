@@ -130,3 +130,9 @@ portun kaldırılmasının engellenmesi; sürekli trafikte CPU/RAM/gecikme. Kern
 makine testleri bu kontrollerin yerine geçmez.
 
 Ekran soketi, Picture Flash yüklemeleri sırasında Petrel'in `serial.flush()` çağrısı için taşıma katmanına özel bir aktarım tamamlama bariyeri de destekler: tek NUL isteği, önceki ekran komutları fiziksel UART'tan gönderildikten sonra onaylanır. Kontrol baytları DWIN komutu olarak aktarılmaz. İsteğe bağlı C broker, depo güncellendikten sonra Petrel servisinin açılış kancasıyla yenilenir.
+
+Data Flash veya resim belleği yazılırken broker, sonraki komutları ve bağlantı
+yoklamalarını yazma onayına kadar bekletir (en fazla 3 saniye). Böylece yazma
+gecikmesi ekran ve yardımcı tty bağlantısını kesmez. Onay kaybolursa taşıma
+katmanı geri okuma için açılır; bu sınırlı pencere dışında normal bağlantı
+kaybı denetimi sürer.

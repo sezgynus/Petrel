@@ -68,6 +68,7 @@ class Broker:
         self.aux_ready_at = 0
         self.online = False
         self.probe_at = 0
+        self.flash_until = 0
         self.probe_deadline = None
         self.reconnect_at = 0
 
@@ -107,15 +108,24 @@ class Broker:
         self.active = None
         self.aux_tx = FrameQueue()
         self.probe_deadline = None
+        self.flash_until = 0
         self.reconnect_at = time.monotonic() + 1
         if self.auxiliary is not None:
             self.auxiliary.disconnected()
 
+    def _flash_busy(self):
+        return time.monotonic() < getattr(self, 'flash_until', 0)
+
+    def _flash_started(self):
+        self.flash_until = time.monotonic() + 3.0
+        self.probe_deadline = None
+        self.probe_at = self.flash_until + 2.0
+
     def _uart_events(self):
         self.selector.modify(self.uart.fileno(), selectors.EVENT_READ |
-                             (selectors.EVENT_WRITE if self.active is not None
+                             (selectors.EVENT_WRITE if not self._flash_busy() and (self.active is not None
                               or self.display_tx.frames or (self.aux_tx.frames
-                                  and time.monotonic() >= self.aux_ready_at) else 0), 'uart')
+                                  and time.monotonic() >= self.aux_ready_at)) else 0), 'uart')
 
     def _ack_drain(self):
         if self.client is not None:
@@ -123,6 +133,8 @@ class Broker:
             self._client_events()
 
     def _transmit(self):
+        if self._flash_busy():
+            return
         if self.active is None:
             aux_ready = self.aux_tx.frames and time.monotonic() >= self.aux_ready_at
             if self.display_tx.frames and (self.turn == 0 or not aux_ready):
@@ -131,7 +143,14 @@ class Broker:
                 queue = self.aux_tx
             else:
                 return
-            self.active = queue.pop()
+            data, complete = queue.pop()
+            if data.startswith((HEADER + b'\x31\xa5', HEADER + b'\x33')):
+                previous = complete
+                def complete():
+                    self._flash_started()
+                    if previous is not None:
+                        previous()
+            self.active = data, complete
             self.turn = 1 - self.turn
         data, complete = self.active
         if data == b'\x00' and complete is not None:
@@ -157,6 +176,11 @@ class Broker:
             if response is None:
                 break
             command, payload = response
+            if ((command == 0x31 and payload == b'\xa5OK')
+                    or (command == 0x33 and payload == b'OK')):
+                self.flash_until = 0
+                self.probe_deadline = None
+                self.probe_at = time.monotonic() + 2.0
             if command == 0x00 and payload == b'OK':
                 was_online = self.online
                 self.online = True
@@ -180,7 +204,7 @@ class Broker:
                 self.probe_at = 0
             except OSError:
                 self.reconnect_at = now + 1
-        if self.uart is not None:
+        if self.uart is not None and not self._flash_busy():
             if self.probe_deadline is not None and now >= self.probe_deadline:
                 self._disconnect()
             elif now >= self.probe_at:

@@ -131,6 +131,43 @@ class NativeBrokerTests(unittest.TestCase):
         self.assertEqual(client.recv(512), b'DWIN1')
         return client
 
+    def check_flash_guard(self, lost_ack):
+        self.ready()
+        client = self.connect_ui()
+        write = b'\xaa\x31\xa5\x04\x80test' + TAIL
+        following = b'\xaa\x32\xa5\x04\x80\x04' + TAIL
+        client.send(write)
+        self.pump(lambda: write in self.commands)
+        client.send(following)
+        started = time.monotonic()
+        self.answer_probes = False  # A panel programming Flash cannot answer probes.
+        before = len(self.commands)
+        self.pump(lambda: time.monotonic() - started >= 1.8)
+        self.assertNotIn(following, self.commands)
+        self.assertFalse(any(frame[1] == 0 for frame in self.commands[before:]))
+        self.assertEqual(self.closures, 0)
+        if not lost_ack:
+            os.write(self.master, b'\xaa\x31\xa5OK' + TAIL)
+        self.pump(lambda: following in self.commands)
+        self.answer_probes = True
+        self.assertEqual(self.closures, 0)
+        reply = b'\xaa\x32\xa5\x04\x80\x04test' + TAIL
+        os.write(self.master, reply)
+        received = bytearray()
+        def received_reply():
+            if select.select([client], [], [], 0)[0]:
+                packet = client.recv(512)
+                self.assertTrue(packet, 'Flash write disconnected the UI')
+                received.extend(packet)
+            return reply in received
+        self.pump(received_reply)
+
+    def test_delayed_flash_ack_does_not_disconnect_ui_or_auxiliary(self):
+        self.check_flash_guard(False)
+
+    def test_lost_flash_ack_allows_bounded_readback_recovery(self):
+        self.check_flash_guard(True)
+
     def test_binary_tx_rx_baud_and_exact_epoch_ack(self):
         self.ready()
         self.echo = True

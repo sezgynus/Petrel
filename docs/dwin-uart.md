@@ -126,3 +126,9 @@ navigation; Petrel-only restart; panel power loss/recovery; busy-port removal re
 and CPU/RAM/latency under sustained traffic. Kernel VM tests do not replace these checks.
 
 The display socket also supports a transport-only drain barrier used by Petrel's `serial.flush()` during Picture Flash uploads: a single NUL request is acknowledged only after preceding display commands have drained from the physical UART. Neither control byte is forwarded as a DWIN command. The optional C broker is refreshed by the installed Petrel service's startup hook after updating the repository.
+
+During Data Flash or picture programming, the broker holds following commands
+and liveness probes until the programming acknowledgement (bounded at 3 s).
+This prevents a programming delay from disconnecting both the display and the
+auxiliary tty. A lost acknowledgement releases the transport for readback;
+normal disconnect detection remains active outside that bounded window.

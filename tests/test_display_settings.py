@@ -6,6 +6,32 @@ from test_capabilities import display, snapshot
 from test_regressions import ui
 
 class DisplaySettingsTests(unittest.TestCase):
+    def test_flash_cadence_survives_menu_overrides_and_early_tick_returns(self):
+        from ui_events import UIEventLoop
+        view = display(snapshot())
+        view._uart_online = True
+        view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
+        view.lcd.flash_busy.return_value = True
+        view._loop = UIEventLoop(Mock(), Mock(), Mock(), Mock(), interval=.5)
+        def screen_tick():
+            view._loop.set_interval(.5)
+        view._ui_tick_body = screen_tick
+        view._ui_tick()
+        self.assertEqual(view._loop._interval, .05)
+        view.lcd.flash_busy.return_value = False
+        view._ui_tick()
+        self.assertEqual(view._loop._interval, .5)
+        view._process_input_untraced = lambda event: None
+        view._trace_maintenance_ui = Mock()
+        view.lcd.flash_busy.return_value = True
+        view._process_input(None)
+        self.assertEqual(view._loop._interval, .05)
+        view._loop._interval = .02
+        view.lcd.flash_busy.return_value = True
+        view._ui_tick_body = lambda: None
+        view._ui_tick()
+        self.assertEqual(view._loop._interval, .02)
+
     def test_record_integrity_and_ranges(self):
         for brightness in (0, 1, 50, 100):
             for minutes in (0, 1, 60):

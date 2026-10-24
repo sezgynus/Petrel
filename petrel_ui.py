@@ -905,6 +905,14 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._tick_state_update = changed
         return changed
 
+    def _cap_flash_interval(self):
+        # Apply after screen-specific intervals and immediately after input:
+        # a settings RPC must not advance at the 500ms dashboard cadence.
+        if (getattr(self, '_uart_online', False)
+                and getattr(self.lcd, 'SUPPORTS_NONBLOCKING_FLASH', None) is True
+                and self.lcd.flash_busy() and hasattr(self, '_loop')):
+            self._loop.cap_interval(.05)
+
     def _ui_tick(self):
         self._tick_active = True
         self._tick_state_update = None
@@ -912,6 +920,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._ui_tick_body()
         finally:
             self._tick_active = False
+            self._cap_flash_interval()
             if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
                    for name in ('maintenance_pulse', 'maintenance_reader')):
                 if hasattr(self, '_loop'):
@@ -1578,6 +1587,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 trace.emit('ui_handler_error',{'type':type(error).__name__})
             raise
         finally:
+            self._cap_flash_interval()
             self._trace_maintenance_ui('input_after',event)
 
     def EachMomentUpdate(self):
