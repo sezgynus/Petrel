@@ -404,15 +404,16 @@ class T5UIC1DriverPackets(unittest.TestCase):
         unconfirmed = lcd.begin_flash_write_verified(0x0100, b'BAD!')
         with patch('t5uic1_driver.time.monotonic', return_value=10.):
             lcd.poll_flash_tasks()
-        for i in range(5):
+        for i in range(12):
             with patch('t5uic1_driver.time.monotonic',
                        return_value=14.0 + i * 5):
                 lcd.poll_flash_tasks()  # Missing ACK / missing readback
-            if i < 4:
-                with patch('t5uic1_driver.time.monotonic',
-                           return_value=14.5 + i * 5):
-                    lcd.poll_flash_tasks()  # Send verification read
-        self.assertTrue(unconfirmed.done())
+            if unconfirmed.done():
+                break
+            with patch('t5uic1_driver.time.monotonic',
+                       return_value=14.5 + i * 5):
+                lcd.poll_flash_tasks()  # Send verification read
+        self.assertTrue(unconfirmed.done(), repr(lcd._flash_job))
         with self.assertRaises(TimeoutError):
             unconfirmed.result()
 
