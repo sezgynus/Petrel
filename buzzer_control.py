@@ -61,7 +61,7 @@ class Settings:
                     return cls(bool(raw[11]), *raw[8:11]).validate()
                 # Old format stored a Klipper output name, which only implied
                 # enabled/disabled. Do not revive the obsolete pin selector.
-                return cls(bool(raw[11:-4].split(b'\\0', 1)[0]),
+                return cls(bool(raw[11:-4].split(b'\0', 1)[0]),
                            *raw[8:11]).validate()
 
             # Legacy 128-byte settings used a CRC at byte 124. Read only
@@ -70,12 +70,12 @@ class Settings:
             # Identify padded PETBZR02 precisely (four zero padding bytes),
             # never accept a damaged modern 16-byte record as a valid save.
             if len(raw) == RECORD_SIZE and magic == b'PETBZR02':
-                if raw[12:] == b'\\0' * 4 and raw[11] in (0, 1):
+                if raw[12:] == b'\0' * 4 and raw[11] in (0, 1):
                     return cls(bool(raw[11]), *raw[8:11]).validate()
             elif len(raw) == RECORD_SIZE and magic in (b'PETBZR01', b'KDWBZR01'):
                 # Prefix of the old name-string record. The field begins at
                 # byte 11; its nonempty prefix means that sound was enabled.
-                return cls(bool(raw[11:].split(b'\\0', 1)[0]),
+                return cls(bool(raw[11:].split(b'\0', 1)[0]),
                            *raw[8:11]).validate()
             return None
         except (ValueError, TypeError):
