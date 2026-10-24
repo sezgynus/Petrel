@@ -287,9 +287,29 @@ class T5UIC1DriverPackets(unittest.TestCase):
             second.result()
         self.assertEqual(len(lcd.serial.frames), 1)
         self.assertFalse(lcd.flash_busy())
-        rejected = lcd.begin_flash_read(0x0100, 4)
-        with self.assertRaises(TimeoutError):
-            rejected.result()
+        # Failure of one transaction must not poison *every subsequent*
+        # Display/Buzzer/NFC settings write until the entire LCD reconnects.
+        # No queued transaction from the failed batch may silently restart.
+        retried = lcd.begin_flash_write_verified(0x0100, b'ABCD')
+        self.assertFalse(retried.done())
+        with patch('t5uic1_driver.time.monotonic', return_value=21):
+            self.assertTrue(lcd.poll_flash_tasks())
+        self.assertEqual(lcd.serial.frames[-1][1], 0x31)
+        lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + T5UIC1Display.TAIL)
+        lcd.poll_flash_tasks()
+        lcd.poll_flash_tasks()
+        self.assertEqual(lcd.serial.frames[-1][1], 0x32)
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x04ABCD'
+                                 + T5UIC1Display.TAIL)
+        lcd.poll_flash_tasks()
+        self.assertEqual(retried.result(), b'ABCD')
+        # A later unrelated setting still works on the same connection.
+        buzzer = lcd.begin_flash_read(0x0400, 2)
+        lcd.poll_flash_tasks()
+        lcd.serial.chunks.append(b'\xaa\x32\xa5\x04\x00\x02\x12\x34'
+                                 + T5UIC1Display.TAIL)
+        lcd.poll_flash_tasks()
+        self.assertEqual(buzzer.result(), b'\x12\x34')
 
     def test_flash_write_picture_write_and_orientation_ack_parsing(self):
         lcd = driver()
