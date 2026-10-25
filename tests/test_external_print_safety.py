@@ -7,6 +7,37 @@ from test_capabilities import snapshot, display, printer
 
 
 class ExternalPrintSafetyTests(unittest.TestCase):
+    def test_external_start_drops_stale_idle_operation_feedback(self):
+        v = display(snapshot())
+        v.checkkey = v.Control
+        v._action_feedback = Mock()
+        v._action_on_accept = Mock()
+        v._pending_start = ('stale', 1, 0)
+        v._start_error_visible = True
+        v.pd.last_command_error = 'Old control command rejected'
+        v.pd.status = 'printing'
+        v.Goto_PrintProcess = Mock(side_effect=lambda: setattr(v, 'checkkey', v.PrintProcess))
+        v._present_print_state()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        self.assertIsNone(v._action_feedback)
+        self.assertIsNone(v._action_on_accept)
+        self.assertIsNone(v._pending_start)
+        self.assertFalse(v._start_error_visible)
+        self.assertIsNone(v.pd.last_command_error)
+
+    def test_print_start_guard_is_revoked_by_external_job(self):
+        p = printer(snapshot())
+        p._files_loaded = True
+        p.file_error = False
+        p.files = [{'path': 'a.gcode'}]
+        p.postREST = Mock()
+        p.openAndPrintFile('a.gcode')
+        guard = p.postREST.call_args.kwargs['dispatch_guard']
+        self.assertTrue(guard())
+        source = p.subscription.snapshot.return_value
+        source['status']['print_stats']['state'] = 'printing'
+        self.assertFalse(guard())
+
     def test_tune_dispatch_guard_rejects_job_change_after_submission(self):
         source = snapshot()
         source['status']['print_stats'].update(

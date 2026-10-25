@@ -160,7 +160,9 @@ class ThumbnailTests(unittest.TestCase):
         view=self.make();view._preview_choice=0
         view.pd.postREST=Mock(return_value=Future())
         view.HMI_File_Preview();view.HMI_File_Preview()
-        view.pd.postREST.assert_called_once_with('/printer/print/start',json={'filename':'a.gcode'})
+        self.assertEqual(view.pd.postREST.call_args.args, ('/printer/print/start',))
+        self.assertEqual(view.pd.postREST.call_args.kwargs['json'], {'filename': 'a.gcode'})
+        self.assertTrue(view.pd.postREST.call_args.kwargs['dispatch_guard']())
 
     def test_deleted_file_or_epoch_change_blocks_print(self):
         for changed_epoch in (False,True):

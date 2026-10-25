@@ -1609,7 +1609,10 @@ class PrinterData:
             raise ValueError('Selected file is no longer available')
         if self.status in ('printing', 'paused', 'pausing'):
             raise ValueError('A print is already active')
-        return self.postREST('/printer/print/start', json={'filename': path})
+        # An external client can start a job after selection but before the
+        # queued HTTP request leaves MoonrakerClient.
+        return self.postREST('/printer/print/start', json={'filename': path},
+                             dispatch_guard=idle_dispatch_guard(self))
 
     def print_job_identity(self):
         """Stable for a print despite status updates; changes across observed jobs."""

@@ -69,7 +69,10 @@ class FileTests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_ENTER)
         result.HMI_SelectFile()
         result.HMI_SelectFile()
-        result.pd.postREST.assert_called_once_with('/printer/print/start', json={'filename': 'a.gcode'})
+        self.assertEqual(result.pd.postREST.call_args.args,
+                         ('/printer/print/start',))
+        self.assertEqual(result.pd.postREST.call_args.kwargs['json'], {'filename': 'a.gcode'})
+        self.assertTrue(result.pd.postREST.call_args.kwargs['dispatch_guard']())
         self.assertEqual(result.pd.file_name, '')
         result.Goto_PrintProcess.assert_not_called()
         future.set_result({'result': 'ok'})

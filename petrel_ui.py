@@ -1820,6 +1820,14 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             if self.checkkey == self.PrintProcess:
                 self._focus_print_tick()
             elif self._active_print_requires_focus():
+                # Discard idle-menu RPC feedback and local-start errors before
+                # they can overwrite the externally started job dashboard.
+                self._action_feedback = None
+                self._action_on_accept = None
+                self._action_silent = False
+                self._pending_start = None
+                self._start_error_visible = False
+                self.pd.last_command_error = None
                 self.Goto_PrintProcess()
         elif status == 'complete':
             if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
@@ -3988,10 +3996,16 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             if self._refresh_file_snapshot():
                 self.Redraw_SD_List()
         if self.pd.last_command_error:
-            self._offline = True
-            self._show_message('Command failed; check log')
-            self.pd.last_command_error = None
-            return
+            if self.pd.status in ('printing', 'paused', 'pausing'):
+                # An asynchronous idle operation must never cover active Print.
+                logging.warning('Printer command failed during print: %s',
+                                self.pd.last_command_error)
+                self.pd.last_command_error = None
+            else:
+                self._offline = True
+                self._show_message('Command failed; check log')
+                self.pd.last_command_error = None
+                return
         if getattr(self, '_offline', False):
             self._offline = False
             self.HMI_StartFrame(False)
