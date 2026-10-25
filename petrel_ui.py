@@ -1788,7 +1788,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             return False
         if self.checkkey in (self.PrintProcess, self.Tune, self.TuneEdit,
                              self.PrintErrorDetails, self.Print_window,
-                             self.PowerConfirm, self.NFCGateMenu):
+                             self.NFCGateMenu):
             return False
         return not (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False))
 
@@ -1804,8 +1804,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False)
                 and status in ('printing', 'paused', 'pausing')):
             return
-        if (self.checkkey == self.PowerConfirm
-                and getattr(self, '_power_origin', None) == self.MMUMenu):
+        if status in ('printing', 'paused', 'pausing') and self.checkkey == self.PowerConfirm:
+            self._power_print_takeover()
             return
         if status in ('printing', 'paused', 'pausing'):
             if self.checkkey == self.PrintProcess:

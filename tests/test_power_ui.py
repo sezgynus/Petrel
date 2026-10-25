@@ -29,6 +29,22 @@ class PowerUITests(unittest.TestCase):
         self.assertFalse(result._power_confirm_yes)
         result.pd.power_off_if_on.assert_not_called()
 
+    def test_external_print_closes_power_dialog_instead_of_restoring_control(self):
+        for origin in ('Control', 'MMUMenu'):
+            result = self.view()
+            result.checkkey = getattr(result, origin)
+            result._open_power_hold_popup()
+            result.pd.status = 'printing'
+            result.Goto_PrintProcess = Mock(
+                side_effect=lambda: setattr(result, 'checkkey', result.PrintProcess))
+            result._update_ui_state = Mock()
+            result._focus_tick_quiet = Mock()
+            with self.subTest(origin=origin):
+                self.assertTrue(result._power_popup_tick())
+                self.assertEqual(result.checkkey, result.PrintProcess)
+                self.assertIsNone(result._power_origin)
+                result.pd.power_off_if_on.assert_not_called()
+
     def test_confirmation_yes_powers_off_and_no_restores_origin(self):
         result = self.view()
         result.checkkey = result.PowerConfirm

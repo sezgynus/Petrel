@@ -105,6 +105,14 @@ class PowerShortcutMixin:
         started = getattr(self, '_power_hold_started', None)
         if started is None:
             return False
+        # The hold animation otherwise bypasses normal state presentation.
+        current = self.pd.subscription.snapshot()['status'].get('print_stats', {})
+        if current.get('state') in ('printing', 'paused', 'pausing'):
+            self._clear_power_hold(restore=False)
+            self._update_ui_state()
+            self.Goto_PrintProcess()
+            self.lcd.update()
+            return True
         deadline = getattr(self, '_remote_power_hold_deadline', None)
         if deadline is not None and time.monotonic() >= deadline:
             # Missing browser release/network loss cancels rather than powers off.
@@ -160,7 +168,22 @@ class PowerShortcutMixin:
             return 'Operation is running'
         return None
 
+    def _power_print_takeover(self):
+        """Drop stale power controls without restoring the now-unsafe origin."""
+        self._power_origin = None
+        self._power_focus = False
+        self._power_hold_popup = False
+        self._power_confirm_yes = False
+        self._power_blocked = None
+        self._power_shutdown_requested = False
+        self.Goto_PrintProcess()
+        self.lcd.update()
+
     def _open_power_hold_popup(self):
+        self._update_ui_state()
+        if self.pd.status in ('printing', 'paused', 'pausing'):
+            self._power_print_takeover()
+            return
         self._power_origin = self.checkkey
         self._power_origin_epoch = self.pd.state.epoch
         self._power_confirm_yes = False
@@ -178,6 +201,9 @@ class PowerShortcutMixin:
         for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'):
             getattr(self.pd,name).update()
         self._focus_tick_quiet()
+        if self.pd.status in ('printing', 'paused', 'pausing'):
+            self._power_print_takeover()
+            return True
         if self.pd.state.epoch != self._power_origin_epoch:
             self._power_origin = self.MainMenu
             self._restore_power_origin()

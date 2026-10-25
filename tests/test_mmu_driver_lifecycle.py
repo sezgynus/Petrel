@@ -111,15 +111,16 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         v.pd.power_off_if_on.assert_not_called()
         v.pd.subscription.request.assert_not_called()
 
-    def test_periodic_print_updates_do_not_overwrite_mmu_power_popup(self):
+    def test_external_print_preempts_mmu_power_popup(self):
         fixture = power.MMUPowerIntegrationTests()
         v, _ = fixture.view()
         fixture.popup(v)
         v.pd.status = 'printing'
-        v.Goto_PrintProcess = Mock()
+        v.Goto_PrintProcess = Mock(side_effect=lambda: setattr(v, 'checkkey', v.PrintProcess))
         v._present_print_state()
-        self.assertEqual(v.checkkey, v.PowerConfirm)
-        v.Goto_PrintProcess.assert_not_called()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        self.assertFalse(v._power_hold_popup)
+        v.Goto_PrintProcess.assert_called_once()
 
     def test_offline_tick_clears_power_focus_and_retains_read_only_mmu_back(self):
         fixture = power.MMUPowerIntegrationTests()
