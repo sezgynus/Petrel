@@ -221,6 +221,112 @@ class PowerShortcutTests(unittest.TestCase):
         v.Draw_Motion_Menu.assert_called_once()
         v.pd.sendGCode.assert_not_called()
 
+    def test_print_tune_back_short_click_is_not_stolen_by_power_hold_tick(self):
+        v = self.view()
+        source = v.pd.subscription.snapshot.return_value
+        source['status']['print_stats'].update(
+            state='printing', filename='part.gcode',
+            print_duration=40, total_duration=50)
+        v.pd.update_variable()
+        v._sync_fan_animation = Mock()
+        v.checkkey = v.PrintProcess
+        v.select_print.set(0)
+        self.input(v, 'press', 1)  # Open Tune via the real UI dispatcher.
+        self.assertEqual(v.checkkey, v.Tune)
+        v.select_tune.set(0)  # Back in the title bar.
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed()
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.05):
+            self.assertTrue(v._power_hold_tick())
+            self.assertEqual(v.checkkey, v.Tune)
+            self.assertIsNotNone(v._power_hold_started)
+        with patch.object(ui.time, 'monotonic', return_value=10.1):
+            v._button_released()
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        self.assertIsNone(v._power_hold_started)
+
+    def test_print_stop_back_short_click_does_not_reopen_stop(self):
+        v = self.view()
+        source = v.pd.subscription.snapshot.return_value
+        source['status']['print_stats'].update(
+            state='paused', filename='part.gcode',
+            print_duration=40, total_duration=50)
+        v.pd.update_variable()
+        v.checkkey = v.Print_window
+        v._stop_job_identity = v.pd.print_job_identity()
+        v.pd.HMI_flag.select_flag = False
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed()
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.05):
+            self.assertTrue(v._power_hold_tick())
+            self.assertEqual(v.checkkey, v.Print_window)
+        with patch.object(ui.time, 'monotonic', return_value=10.1):
+            v._button_released()
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        v.pd.cancel_job.assert_not_called()
+
+    def test_print_short_hold_preserves_current_tune_until_release(self):
+        v = self.view()
+        source = v.pd.subscription.snapshot.return_value
+        source['status']['print_stats'].update(
+            state='printing', filename='part.gcode', total_duration=60)
+        v.pd.update_variable()
+        v.checkkey = v.Tune
+        v._tune_job_identity = v.pd.print_job_identity()
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed()
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.6):
+            self.assertTrue(v._power_hold_tick())
+            self.assertEqual(v.checkkey, v.Tune)
+            v._button_released()
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.Tune)
+        v.pd.power_off_if_on.assert_not_called()
+        self.assertFalse(getattr(v, '_power_hold_popup', False))
+
+    def test_print_long_power_hold_does_not_abandon_tune_or_open_shutdown(self):
+        v = self.view()
+        source = v.pd.subscription.snapshot.return_value
+        source['status']['print_stats'].update(
+            state='printing', filename='part.gcode', total_duration=60)
+        v.pd.update_variable()
+        v.checkkey = v.Tune
+        v._tune_job_identity = v.pd.print_job_identity()
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed()
+            self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=11.3):
+            self.assertTrue(v._power_hold_tick())
+            self.assertEqual(v.checkkey, v.Tune)
+            v._button_released()
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.Tune)
+        v.pd.power_off_if_on.assert_not_called()
+        self.assertFalse(getattr(v, '_power_hold_popup', False))
+
+    def test_print_start_mid_hold_preempts_and_discards_late_click(self):
+        v = self.view()
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed()
+            self.drain(v)
+        source = v.pd.subscription.snapshot.return_value
+        source['status']['print_stats'].update(
+            state='printing', filename='new.gcode', total_duration=0)
+        v.pd.update_variable()
+        with patch.object(ui.time, 'monotonic', return_value=10.05):
+            self.assertTrue(v._power_hold_tick())
+            self.assertEqual(v.checkkey, v.PrintProcess)
+        with patch.object(ui.time, 'monotonic', return_value=10.1):
+            v._button_released()
+            self.drain(v)
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        v.pd.power_off_if_on.assert_not_called()
+
     def test_printing_and_operation_guards_block_shutdown(self):
         for busy in ('printing','paused','operation','start'):
             with self.subTest(busy=busy):

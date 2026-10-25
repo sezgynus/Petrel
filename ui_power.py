@@ -46,6 +46,7 @@ class PowerShortcutMixin:
         if visible and cancelled:
             self._event_buzzer_melody('POWER_HOLD_CANCEL')
         self._power_hold_started = None
+        self._power_hold_print_active = False
         self._remote_power_hold_active = False
         self._remote_power_hold_deadline = None
         self._power_hold_visible = False
@@ -74,6 +75,12 @@ class PowerShortcutMixin:
                 self.lcd.update()
             return True
         if event.kind == 'button_down':
+            # A short encoder click is dispatched on release. While already
+            # printing, its power-hold tick must not leave Tune/Stop/MMU before
+            # that release is interpreted as a click on the original screen.
+            stats = self.pd.subscription.snapshot()['status'].get('print_stats', {})
+            self._power_hold_print_active = stats.get('state') in ('printing', 'paused', 'pausing')
+            self._power_hold_preempted = False
             self._power_hold_started = event.value / 1000
             self._power_hold_epoch = event.epoch
             self._power_hold_pixels = 0
@@ -86,11 +93,23 @@ class PowerShortcutMixin:
             return False
         wake_only = getattr(self, '_power_wake_only', False)
         self._power_wake_only = False
+        preempted = getattr(self, '_power_hold_preempted', False)
+        self._power_hold_preempted = False
+        print_origin = getattr(self, '_power_hold_print_active', False)
         completed = event.value >= self.POWER_OFF_HOLD_MS
         if completed and not getattr(self, '_power_hold_ready', False):
             self._event_buzzer_melody('POWER_HOLD_READY')
         self._clear_power_hold(restore=not completed, cancelled=not completed)
+        if preempted:
+            # A print started during an idle power gesture: its late release
+            # must not activate the selected Print-screen button.
+            return True
         if event.value >= self.POWER_OFF_HOLD_MS:
+            if print_origin:
+                # A deliberately long press while printing cannot shut down
+                # the printer, but must not discard the current print editor.
+                self.lcd.update()
+                return True
             if self.checkkey != self.PowerConfirm:
                 self._open_power_hold_popup()
             self.lcd.update()
@@ -108,7 +127,14 @@ class PowerShortcutMixin:
         # The hold animation otherwise bypasses normal state presentation.
         current = self.pd.subscription.snapshot()['status'].get('print_stats', {})
         if current.get('state') in ('printing', 'paused', 'pausing'):
+            if (getattr(self, '_power_hold_print_active', False)
+                    and not self._active_print_requires_focus()):
+                # Already printing when the button was pressed: this is an
+                # ordinary encoder click until release. No power overlay,
+                # redraw, or premature Print-screen navigation is allowed.
+                return True
             self._clear_power_hold(restore=False)
+            self._power_hold_preempted = True
             self._update_ui_state()
             self.Goto_PrintProcess()
             self.lcd.update()
