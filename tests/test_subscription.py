@@ -70,6 +70,23 @@ class SubscriptionTests(unittest.TestCase):
             {'save_variables': {'variables': {'mmu_state_filament_remaining_color': '0000ff'}}}, 11]})
         self.assertEqual(client.snapshot()['status']['save_variables']['variables']['mmu_state_filament_remaining_color'], '0000ff')
 
+    def test_job_generation_changes_for_new_jobs_not_pause_or_resume(self):
+        c = self.subscription()
+        c._state = 'ready'
+        c._merge({'print_stats': dict(state='printing', filename='part.gcode',
+                                      print_duration=10, total_duration=10)}, 1, replace=True)
+        first = c.snapshot()['print_job_generation']
+        c._merge({'print_stats': {'state': 'paused', 'print_duration': 13}}, 2)
+        c._merge({'print_stats': {'state': 'printing', 'print_duration': 15}}, 3)
+        self.assertEqual(c.snapshot()['print_job_generation'], first)
+        # A complete->new start can arrive entirely between LCD ticks.
+        c._merge({'print_stats': {'state': 'complete'}}, 4)
+        c._merge({'print_stats': {'state': 'printing', 'print_duration': 0,
+                                   'total_duration': 0}}, 5)
+        self.assertEqual(c.snapshot()['print_job_generation'], first + 1)
+        c._merge({'print_stats': {'filename': 'another.gcode'}}, 6)
+        self.assertEqual(c.snapshot()['print_job_generation'], first + 2)
+
     def test_immediate_dispatch_rejects_invalid_guard_and_changed_connection(self):
         client = self.subscription()
         connection = FakeSocket()

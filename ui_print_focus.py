@@ -249,6 +249,7 @@ class PrintFocusMixin:
             if label == 'Stopping':
                 return  # Inactive control: never re-submit cancellation.
             if label=='Tune':
+                self._tune_job_identity = self.pd.print_job_identity()
                 self.checkkey=self.Tune;self.select_tune.reset();self._focus_tune_open()
             elif label=='MMU':
                 self._focus_error_open()
@@ -257,6 +258,7 @@ class PrintFocusMixin:
                 self._focus_submit('pause',target,lambda:(self.pd.pause_job if target else self.pd.resume_job)(report_error=False))
                 self._focus_draw_buttons()
             elif label=='Stop':
+                self._stop_job_identity = self.pd.print_job_identity()
                 self.checkkey=self.Print_window
                 self.pd.HMI_flag.select_flag=False
                 self.Popup_window_PauseOrStop()
@@ -318,6 +320,8 @@ class PrintFocusMixin:
         if self._quiet_blinks and hasattr(self,'_loop'):self._loop.set_interval(.1)
 
     def _focus_tune_open(self):
+        if getattr(self, '_tune_job_identity', None) is None:
+            self._tune_job_identity = self.pd.print_job_identity()
         self.checkkey=self.Tune
         self._sync_fan_animation(False)
         self.Clear_Popup_Area();self.Draw_Title('Tune', back=True)
@@ -375,6 +379,10 @@ class PrintFocusMixin:
             cache[key]=token
 
     def _focus_tune_input(self):
+        identity = getattr(self, '_tune_job_identity', None)
+        if identity is not None and not self.pd.print_job_matches(identity):
+            self.Goto_PrintProcess()
+            return
         event=self.get_encoder_state();rows=self._focus_tune_rows()
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             self.select_tune.now=max(0,min(len(rows)-1,self.select_tune.now+getattr(self,"_rotation_steps",1)*(1 if event==self.ENCODER_DIFF_CW else -1)))
@@ -407,6 +415,10 @@ class PrintFocusMixin:
         self._focus_text(text,(272-len(text)*12)//2,167,self.lcd.font12x24)
 
     def _focus_edit_input(self):
+        identity = getattr(self, '_tune_job_identity', None)
+        if identity is not None and not self.pd.print_job_matches(identity):
+            self.Goto_PrintProcess()
+            return
         event=self.get_encoder_state();s=self._tune_edit
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             delta=s.step*getattr(self,'_encoder_move_value',1)*(1 if event==self.ENCODER_DIFF_CW else -1)
@@ -423,6 +435,7 @@ class PrintFocusMixin:
         self.lcd.update()
 
     def _focus_error_open(self):
+        self._error_job_identity = self.pd.print_job_identity()
         self._focus_full_error=self._focus_error()
         self._focus_error_scroll=0;self._focus_error_choice=1;self.checkkey=self.PrintErrorDetails
         self._focus_error_draw()
@@ -452,6 +465,10 @@ class PrintFocusMixin:
                                  y + 7, color=0x10C4 if self._focus_error_choice == i else 0xFFFF)
 
     def _focus_error_input(self):
+        identity = getattr(self, '_error_job_identity', None)
+        if identity is not None and not self.pd.print_job_matches(identity):
+            self.Goto_PrintProcess()
+            return
         event = self.get_encoder_state()
         previous_scroll = self._focus_error_scroll
         previous_choice = self._focus_error_choice
@@ -497,6 +514,10 @@ class PrintFocusMixin:
             self._focus_text(label,x+36,254)
 
     def _focus_stop_input(self):
+        identity = getattr(self, '_stop_job_identity', None)
+        if identity is not None and not self.pd.print_job_matches(identity):
+            self.Goto_PrintProcess()
+            return
         event=self.get_encoder_state()
         if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
             selected = event == self.ENCODER_DIFF_CW
@@ -506,7 +527,8 @@ class PrintFocusMixin:
         elif event==self.ENCODER_DIFF_ENTER:
             if self.pd.HMI_flag.select_flag:
                 future = self._action(
-                    'Cancel', self.pd.cancel_job,
+                    'Cancel', (lambda: self.pd.cancel_job(expected_job=identity))
+                    if identity is not None else self.pd.cancel_job,
                     lambda: self.pd.status == 'cancelled',
                     confirmation_timeout=None, silent=True,
                     on_accept=self._restore_action_screen)

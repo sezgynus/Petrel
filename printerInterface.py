@@ -1611,7 +1611,31 @@ class PrinterData:
             raise ValueError('A print is already active')
         return self.postREST('/printer/print/start', json={'filename': path})
 
-    def cancel_job(self):
+    def print_job_identity(self):
+        """Stable for a print despite status updates; changes across observed jobs."""
+        snap = self.subscription.snapshot()
+        stats = snap.get('status', {}).get('print_stats', {})
+        if (snap.get('state') != 'ready'
+                or stats.get('state') not in ('printing', 'paused', 'pausing')):
+            return None
+        try:
+            elapsed = float(stats.get('print_duration', 0))
+            total = float(stats.get('total_duration', 0))
+            if not math.isfinite(elapsed) or not math.isfinite(total):
+                return None
+        except (TypeError, ValueError):
+            return None
+        return (snap['epoch'], snap.get('print_job_generation'),
+                stats.get('filename'), elapsed, total)
+
+    def print_job_matches(self, identity):
+        current = self.print_job_identity()
+        return (identity is not None and current is not None
+                and current[:3] == identity[:3]
+                and current[3] + .001 >= identity[3]
+                and current[4] + .001 >= identity[4])
+
+    def cancel_job(self, expected_job=None):
         """Submit cancellation over WebSocket; retain real RPC errors.
 
         The response can be delayed by blocking Klipper macros.  HTTP's
@@ -1627,13 +1651,18 @@ class PrinterData:
             return future
         epoch = snapshot['epoch']
         filename = snapshot['status'].get('print_stats', {}).get('filename')
+        if expected_job is not None and not self.print_job_matches(expected_job):
+            future = Future()
+            future.set_exception(ValueError('Print job changed; cancel rejected'))
+            return future
 
         def still_same_job():
             current = self.subscription.snapshot()
             stats = current['status'].get('print_stats', {})
             return (current['state'] == 'ready' and current['epoch'] == epoch
                     and stats.get('filename') == filename
-                    and stats.get('state') in ('printing', 'paused', 'pausing'))
+                    and stats.get('state') in ('printing', 'paused', 'pausing')
+                    and (expected_job is None or self.print_job_matches(expected_job)))
 
         return self.subscription.request('printer.print.cancel', guard=still_same_job)
 

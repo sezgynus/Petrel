@@ -185,6 +185,19 @@ class PrintFocusTests(unittest.TestCase):
         view.lcd.draw_bitmap.assert_not_called()
         view.lcd.draw_text.assert_not_called()
 
+    def test_stop_confirmation_from_old_job_cannot_cancel_new_job(self):
+        v, data = self.view()
+        data['print_job_generation'] = 12
+        v._stop_job_identity = v.pd.print_job_identity()
+        v.checkkey = v.Print_window
+        v.pd.HMI_flag.select_flag = True
+        data['print_job_generation'] = 13
+        v.pd.cancel_job = Mock()
+        v.Goto_PrintProcess = Mock(side_effect=lambda: setattr(v, 'checkkey', v.PrintProcess))
+        v._focus_stop_input()
+        v.pd.cancel_job.assert_not_called()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+
     def test_cancel_waits_through_macro_and_only_completes_on_print_status(self):
         v, data = self.view()
         future = Future()

@@ -7,6 +7,38 @@ from test_capabilities import snapshot, display, printer
 
 
 class ExternalPrintSafetyTests(unittest.TestCase):
+    def test_job_identity_changes_and_stale_cancel_is_rejected(self):
+        from concurrent.futures import Future
+        source = snapshot()
+        source['status']['print_stats'].update(
+            state='printing', filename='old.gcode', print_duration=100, total_duration=100)
+        source['print_job_generation'] = 7
+        p = printer(source)
+        p.subscription.request.return_value = Future()
+        old = p.print_job_identity()
+        self.assertTrue(p.print_job_matches(old))
+        source['status']['print_stats'].update(
+            filename='new.gcode', print_duration=0, total_duration=0)
+        source['print_job_generation'] = 8
+        self.assertFalse(p.print_job_matches(old))
+        returned = p.cancel_job(expected_job=old)
+        self.assertTrue(returned.done())
+        self.assertIsInstance(returned.exception(), ValueError)
+        p.subscription.request.assert_not_called()
+
+    def test_print_origin_mmu_rejects_new_job_generation(self):
+        source = snapshot()
+        source['status']['print_stats'].update(
+            state='printing', filename='part.gcode', print_duration=90)
+        source['print_job_generation'] = 3
+        v = display(source)
+        v.checkkey = v.PrintProcess
+        v.Enter_MMU_Menu()
+        self.assertFalse(v._active_print_requires_focus())
+        source['print_job_generation'] = 4
+        v.pd.status = 'printing'
+        self.assertTrue(v._active_print_requires_focus())
+
     def test_stale_idle_dispatch_refused(self):
         for change in ('printing', 'paused', 'pausing', 'active_sd', 'pause_resume', 'epoch', 'disconnected'):
             source = snapshot()

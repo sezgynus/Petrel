@@ -122,6 +122,7 @@ class MMUViewMixin:
 
     def Enter_MMU_Menu(self, page='home'):
         self._mmu_return_print = getattr(self, 'checkkey', None) in (self.PrintProcess, self.PrintErrorDetails)
+        self._mmu_job_identity = self.pd.print_job_identity() if self._mmu_return_print else None
         self.checkkey = self.MMUMenu
         self._mmu_page = page
         self._mmu_selection = 0

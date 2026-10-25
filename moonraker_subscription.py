@@ -86,6 +86,7 @@ class MoonrakerSubscription:
         self._id = 0
         self._epoch = 0
         self._revision = 0
+        self._print_job_generation = 0
         self._file_revision = 0
         self._file_changes = OrderedDict()
         self._file_change_floor = 0
@@ -120,6 +121,7 @@ class MoonrakerSubscription:
         with self._lock:
             return {'state': self._state, 'error': self._error,
                     'revision': self._revision, 'epoch': self._epoch,
+                    'print_job_generation': self._print_job_generation,
                     'file_revision': self._file_revision,
                     'power_devices': dict(self._power_devices),
                     'power_off_serial': dict(self._power_off_serial)}
@@ -142,6 +144,7 @@ class MoonrakerSubscription:
                       'status': copy.deepcopy(self._status),
                       'objects': list(self._objects), 'revision': self._revision,
                       'epoch': self._epoch, 'software_version': self._software_version,
+                      'print_job_generation': self._print_job_generation,
                       'file_revision': self._file_revision,
                       'power_devices': dict(self._power_devices),
                       'power_off_serial': dict(self._power_off_serial)}
@@ -393,6 +396,21 @@ class MoonrakerSubscription:
                         baseline=replace or self._subscribing or self._state != 'ready')
                     heater_melodies.extend(events)
             self._prune_thermal_status()
+            if 'print_stats' in status:
+                new_stats = self._status.get('print_stats', {})
+                prior = previous_stats or {}
+                active = ('printing', 'paused', 'pausing')
+                if new_stats.get('state') in active:
+                    def restarted_counter(name):
+                        old, new = prior.get(name), new_stats.get(name)
+                        return (type(old) in (int, float) and type(new) in (int, float)
+                                and math.isfinite(old) and math.isfinite(new)
+                                and new + .001 < old)
+                    if (prior.get('state') not in active
+                            or prior.get('filename') != new_stats.get('filename')
+                            or restarted_counter('print_duration')
+                            or restarted_counter('total_duration')):
+                        self._print_job_generation += 1
             self._eventtime = eventtime
             self._revision += 1
             if self._state == 'ready' and not replace and not self._subscribing:

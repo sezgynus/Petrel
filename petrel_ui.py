@@ -1786,11 +1786,19 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         """Do not carry a stale idle menu into a job started externally."""
         if self.pd.status not in ('printing', 'paused', 'pausing'):
             return False
-        if self.checkkey in (self.PrintProcess, self.Tune, self.TuneEdit,
-                             self.PrintErrorDetails, self.Print_window,
-                             self.NFCGateMenu):
+        if self.checkkey in (self.PrintProcess, self.NFCGateMenu):
             return False
-        return not (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False))
+        if self.checkkey in (self.Tune, self.TuneEdit, self.PrintErrorDetails, self.Print_window):
+            identity = (getattr(self, '_stop_job_identity', None)
+                        if self.checkkey == self.Print_window else
+                        getattr(self, '_error_job_identity', None)
+                        if self.checkkey == self.PrintErrorDetails else
+                        getattr(self, '_tune_job_identity', None))
+            return identity is not None and not self.pd.print_job_matches(identity)
+        if self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False):
+            identity = getattr(self, '_mmu_job_identity', None)
+            return identity is not None and not self.pd.print_job_matches(identity)
+        return True
 
     def _present_print_state(self):
         status = self.pd.status
@@ -1802,7 +1810,8 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             # An idle Info overlay must not capture Print-screen encoder events.
             self._cancel_nfc_share_popup(redraw=False)
         if (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False)
-                and status in ('printing', 'paused', 'pausing')):
+                and status in ('printing', 'paused', 'pausing')
+                and not self._active_print_requires_focus()):
             return
         if status in ('printing', 'paused', 'pausing') and self.checkkey == self.PowerConfirm:
             self._power_print_takeover()
@@ -1810,7 +1819,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if status in ('printing', 'paused', 'pausing'):
             if self.checkkey == self.PrintProcess:
                 self._focus_print_tick()
-            elif self.checkkey not in (self.Tune, self.TuneEdit, self.PrintErrorDetails, self.Print_window):
+            elif self._active_print_requires_focus():
                 self.Goto_PrintProcess()
         elif status == 'complete':
             if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
