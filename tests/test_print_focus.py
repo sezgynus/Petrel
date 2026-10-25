@@ -92,7 +92,8 @@ class PrintFocusTests(unittest.TestCase):
         v._focus_tune_open();v._tune_edit=v.pd.print_settings()[0];v._tune_target=125;v.checkkey=v.TuneEdit
         v._show_message=Mock();v._focus_edit_input()
         self.assertEqual(v._quiet_edits['speed']['target'],125)
-        v.pd.set_print_setting.assert_called_once_with('speed',125,report_error=False)
+        v.pd.set_print_setting.assert_called_once_with('speed',125,report_error=False,
+                                                       expected_job=v._tune_job_identity)
         future.set_exception(ValueError('Rejected'));v._focus_tune_tick()
         self.assertNotIn('speed',v._quiet_edits);self.assertIn('speed',v._quiet_blinks)
         v._show_message.assert_not_called()

@@ -392,7 +392,7 @@ class PrintFocusMixin:
             if s is None:self.Goto_PrintProcess()
             elif s.toggle:
                 target=not bool(getattr(self,'_quiet_edits',{}).get(s.key,{}).get('target',s.value))
-                self._focus_submit(s.key,int(target),lambda:self.pd.set_print_setting(s.key,int(target),report_error=False));self._focus_tune_tick()
+                self._focus_submit(s.key,int(target),lambda:self.pd.set_print_setting(s.key,int(target),report_error=False, **({'expected_job': identity} if identity is not None else {})));self._focus_tune_tick()
             else:
                 self._tune_edit=s
                 self._tune_target=getattr(self,'_quiet_edits',{}).get(s.key,{}).get('target',s.value)
@@ -430,7 +430,7 @@ class PrintFocusMixin:
             self._focus_edit_value()
         elif event==self.ENCODER_DIFF_ENTER:
             target=self._tune_target
-            self._focus_submit(s.key,target,lambda:self.pd.set_print_setting(s.key,target,report_error=False))
+            self._focus_submit(s.key,target,lambda:self.pd.set_print_setting(s.key,target,report_error=False, **({'expected_job': identity} if identity is not None else {})))
             self.checkkey=self.Tune;self._focus_tune_open()
         self.lcd.update()
 

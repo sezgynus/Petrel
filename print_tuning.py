@@ -80,14 +80,18 @@ def settings(printer):
     return tuple(result)
 
 
-def set_value(printer, key, value, report_error=True):
+def set_value(printer, key, value, report_error=True, expected_job=None):
     setting = next((s for s in settings(printer) if s.key == key), None)
     if setting is None or printer.connection_error:
         raise ValueError('Print setting is unavailable')
     value = float(value)
     if not math.isfinite(value) or not setting.minimum <= value <= setting.maximum:
         raise ValueError('Print setting is outside its range')
+    if expected_job is not None and not printer.print_job_matches(expected_job):
+        raise ValueError('Print job changed; tune rejected')
     kwargs = {} if report_error else {'report_error': False}
+    if expected_job is not None:
+        kwargs['dispatch_guard'] = lambda: printer.print_job_matches(expected_job)
     send = lambda script: printer.sendGCode(script, **kwargs)
     if key == 'speed': return printer.set_feedrate(value, **kwargs)
     if key == 'flow': return send('M221 S{:g}'.format(value))

@@ -7,6 +7,23 @@ from test_capabilities import snapshot, display, printer
 
 
 class ExternalPrintSafetyTests(unittest.TestCase):
+    def test_tune_dispatch_guard_rejects_job_change_after_submission(self):
+        source = snapshot()
+        source['status']['print_stats'].update(
+            state='printing', filename='part.gcode', print_duration=30, total_duration=30)
+        source['print_job_generation'] = 5
+        p = printer(source)
+        token = p.print_job_identity()
+        p.set_print_setting('speed', 125, expected_job=token)
+        guard = p.sendGCode.call_args.kwargs['dispatch_guard']
+        self.assertTrue(guard())
+        source['print_job_generation'] = 6
+        self.assertFalse(guard())
+        p.sendGCode.reset_mock()
+        with self.assertRaises(ValueError):
+            p.set_print_setting('speed', 125, expected_job=token)
+        p.sendGCode.assert_not_called()
+
     def test_job_identity_changes_and_stale_cancel_is_rejected(self):
         from concurrent.futures import Future
         source = snapshot()
