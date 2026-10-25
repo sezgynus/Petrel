@@ -832,9 +832,12 @@ class MMUUITests(unittest.TestCase):
         v.Goto_PrintProcess.assert_called_once()
 
     def test_print_origin_mmu_recovery_remains_available(self):
-        v, _ = self.make()
-        v._mmu_return_print = True
-        v.pd.status = 'paused'
+        v, data = self.make()
+        data['status']['print_stats'].update(state='paused', filename='part.gcode')
+        v.pd.update_variable()
+        v.checkkey = v.PrintProcess
+        v.Enter_MMU_Menu('recover')
+        self.assertIsNotNone(v._mmu_job_identity)
         v._present_print_state()
         self.assertEqual(v.checkkey, v.MMUMenu)
 

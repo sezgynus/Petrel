@@ -115,6 +115,7 @@ class PrintScreenTests(unittest.TestCase):
         result = self.display('printing')
         result.HMI_StartFrame(False)
         result.checkkey = result.Tune
+        result._tune_job_identity = result.pd.print_job_identity()
         data = result.pd.subscription.snapshot.return_value
         data['status']['gcode_move']['speed_factor'] = .75
         result.EachMomentUpdate()
