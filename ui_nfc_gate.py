@@ -535,6 +535,11 @@ class NFCGateViewMixin:
         for name in ('bed_mesh', 'screws_tilt', 'probe_wizard', 'mmu_session'):
             getattr(self.pd, name).update()
         self._focus_tick_quiet()
+        if self.pd.status in ('printing', 'paused', 'pausing'):
+            # An idle gate-selection popup is not a print-time navigation path.
+            self._nfc_gate_close()
+            self.Goto_PrintProcess()
+            return True
         if self.pd.state.epoch != popup['epoch'] or not self.pd.state.ready:
             self._nfc_gate_close()
             return True

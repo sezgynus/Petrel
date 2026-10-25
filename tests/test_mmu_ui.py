@@ -823,11 +823,29 @@ class MMUUITests(unittest.TestCase):
         self.press(v, 2)
         v.pd.subscription.request.assert_not_called()
 
-    def test_print_state_update_does_not_take_over_mmu_page(self):
+    def test_external_print_takes_over_idle_mmu_page(self):
         v, _ = self.make()
+        v.Goto_PrintProcess = Mock(side_effect=lambda: setattr(v, 'checkkey', v.PrintProcess))
+        v.pd.status = 'printing'
+        v._present_print_state()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        v.Goto_PrintProcess.assert_called_once()
+
+    def test_print_origin_mmu_recovery_remains_available(self):
+        v, _ = self.make()
+        v._mmu_return_print = True
         v.pd.status = 'paused'
         v._present_print_state()
         self.assertEqual(v.checkkey, v.MMUMenu)
+
+    def test_back_after_external_print_returns_to_print_screen(self):
+        v, _ = self.make()
+        v.Goto_MainMenu = Mock()
+        v.Goto_PrintProcess = Mock(side_effect=lambda: setattr(v, 'checkkey', v.PrintProcess))
+        v.pd.status = 'printing'
+        v._mmu_back()
+        v.Goto_PrintProcess.assert_called_once()
+        v.Goto_MainMenu.assert_not_called()
 
     def test_mmu_error_pause_stays_on_print_with_recovery_button(self):
         v, data = self.make(print_state='pause_locked', reason_for_pause='Filament missing')

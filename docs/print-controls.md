@@ -9,6 +9,7 @@
 3. **Pause / Resume** act directly. **Stop** opens confirmation with **Back** initially selected.
 4. After confirming Stop, Print stays live with an inactive **Stopping** button until printer state confirms cancellation. Do not submit cancellation again while waiting.
 5. When the job completes or is cancelled, select **Close** to return Home.
+6. A job started externally (e.g. in Mainsail) while browsing an idle menu switches Petrel to Print. Print-origin MMU recovery stays available, returning to Print. Idle-only Prepare and Control commands are rejected if the job starts before dispatch.
 
 ![Example Print and Tune workflow](assets/framed/print-controls-demo.gif)
 

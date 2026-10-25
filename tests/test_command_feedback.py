@@ -213,7 +213,8 @@ class FeedbackTests(unittest.TestCase):
         result.dwin_zoffset = 0
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_ENTER)
         result.HMI_Zoffset()
-        result.pd.sendGCode.assert_called_once_with('SET_GCODE_OFFSET Z=1.25 MOVE=1')
+        self.assertEqual(result.pd.sendGCode.call_args.args, ('SET_GCODE_OFFSET Z=1.25 MOVE=1',))
+        self.assertIn('dispatch_guard', result.pd.sendGCode.call_args.kwargs)
         result.pd.sendGCode.reset_mock()
         for value in (float('nan'), float('inf'), 21):
             with self.assertRaises(ValueError):
@@ -232,7 +233,8 @@ class FeedbackTests(unittest.TestCase):
         self.assertEqual(result._zoffset_target, 126)
         result.get_encoder_state.return_value = result.ENCODER_DIFF_ENTER
         result.HMI_Zoffset()
-        result.pd.sendGCode.assert_called_once_with('SET_GCODE_OFFSET Z=1.26 MOVE=1')
+        self.assertEqual(result.pd.sendGCode.call_args.args, ('SET_GCODE_OFFSET Z=1.26 MOVE=1',))
+        self.assertIn('dispatch_guard', result.pd.sendGCode.call_args.kwargs)
         result._open_zoffset(0, 4)
         self.assertEqual(result._zoffset_target, 0)
 

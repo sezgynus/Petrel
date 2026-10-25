@@ -61,3 +61,26 @@ def config_save_guard(printer, config, owner, verify=None):
         except (KeyError, TypeError, ValueError):
             return False
     return guard
+
+
+def idle_dispatch_guard(printer):
+    """Recheck idle-only commands on enqueue and immediately before dispatch."""
+    initial = printer.subscription.snapshot()
+    epoch = initial.get('epoch')
+
+    def guard():
+        try:
+            current = printer.subscription.snapshot()
+            status = current['status']
+            return (current['state'] == 'ready'
+                    and current['epoch'] == epoch == printer.state.epoch
+                    and not printer.connection_error
+                    and status['print_stats']['state'] in ('standby', 'complete', 'cancelled', 'error')
+                    and status.get('virtual_sdcard', {}).get('is_active') is not True
+                    and status.get('pause_resume', {}).get('is_paused') is not True)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            return False
+
+    if not guard():
+        raise ValueError('Printer must be idle for this operation')
+    return guard

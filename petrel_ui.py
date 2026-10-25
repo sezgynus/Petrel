@@ -1501,6 +1501,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.HMI_StartFrame(False)
             self.lcd.update()
             return False
+        if self._active_print_requires_focus():
+            # User input can race the normal 500 ms state update.
+            self._present_print_state()
+            self.lcd.update()
+            return False
         return True
 
     def _encoder_acceleration_cap(self):
@@ -1772,14 +1777,27 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
     def MBASE(self, L):
         return 49 + self.MLINE * L
 
+    def _active_print_requires_focus(self):
+        """Do not carry a stale idle menu into a job started externally."""
+        if self.pd.status not in ('printing', 'paused', 'pausing'):
+            return False
+        if self.checkkey in (self.PrintProcess, self.Tune, self.TuneEdit,
+                             self.PrintErrorDetails, self.Print_window,
+                             self.PowerConfirm, self.NFCGateMenu):
+            return False
+        return not (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False))
+
     def _present_print_state(self):
         status = self.pd.status
         self.last_status = status
         self._print_error_visible = False
         self.pd.HMI_flag.done_confirm_flag = False
         self.pd.HMI_flag.pause_flag = self.pd.printingIsPaused()
-        if (self.checkkey == self.MMUMenu or
-                (self.checkkey == self.PowerConfirm and getattr(self, '_power_origin', None) == self.MMUMenu)):
+        if (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False)
+                and status in ('printing', 'paused', 'pausing')):
+            return
+        if (self.checkkey == self.PowerConfirm
+                and getattr(self, '_power_origin', None) == self.MMUMenu):
             return
         if status in ('printing', 'paused', 'pausing'):
             if self.checkkey == self.PrintProcess:
@@ -2042,10 +2060,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             elif self.select_prepare.now > 0 and self._menus['prepare'][self.select_prepare.now - 1][0].startswith('PRESET:'):
                 profile = int(self._menus['prepare'][self.select_prepare.now - 1][0].split(':', 1)[1])
                 name = self.pd.material_preset[profile].name
-                self._action('Preheat ' + name, lambda profile=profile: self.pd.preheat_preset(profile), silent=True)
+                self._action('Preheat ' + name, lambda profile=profile: self.pd.preheat_preset(profile, idle_only=True), silent=True)
 
             elif self.select_prepare.now == self.PREPARE_CASE_COOL:  # Cool
-                self._action('Cooldown', self.pd.cooldown, silent=True)
+                self._action('Cooldown', lambda: self.pd.cooldown(idle_only=True), silent=True)
 
         self.lcd.update()
 
@@ -2578,7 +2596,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         if event == self.ENCODER_DIFF_ENTER:
             value = self.pd.HMI_ValueStruct.Fan_speed
             if mode != -2:
-                self._action("Fan speed", lambda: self.pd.setFanSpeed(value), silent=True)
+                self._action("Fan speed", lambda: self.pd.setFanSpeed(value, idle_only=mode == -1), silent=True)
                 self.checkkey = self.TemperatureID if mode == -1 else self.Tune
                 self.Draw_Temperature_Menu() if mode == -1 else self.Draw_Tune_Menu()
         elif event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
@@ -2615,7 +2633,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             else:  # tune
                 self.checkkey = self.Tune
                 self._draw_thermal_target(self.pd.HMI_ValueStruct.E_Temp,self.MBASE(temp_line),self.lcd.Color_Bg_Black)
-            self._action("Hotend target", lambda: self.pd.setExtTemp(self.pd.HMI_ValueStruct.E_Temp), silent=True)
+            self._action("Hotend target", lambda: self.pd.setExtTemp(self.pd.HMI_ValueStruct.E_Temp, idle_only=self.pd.HMI_ValueStruct.show_mode == -1), silent=True)
             return
 
         elif (encoder_diffState == self.ENCODER_DIFF_CW):
@@ -2661,7 +2679,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             else:  # tune
                 self.checkkey = self.Tune
                 self._draw_thermal_target(self.pd.HMI_ValueStruct.Bed_Temp,self.MBASE(bed_line),self.lcd.Color_Bg_Black)
-            self._action("Bed target", lambda: self.pd.setBedTemp(self.pd.HMI_ValueStruct.Bed_Temp), silent=True)
+            self._action("Bed target", lambda: self.pd.setBedTemp(self.pd.HMI_ValueStruct.Bed_Temp, idle_only=self.pd.HMI_ValueStruct.show_mode == -1), silent=True)
             return
 
         elif (encoder_diffState == self.ENCODER_DIFF_CW):
@@ -2714,7 +2732,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.checkkey = self.Motion
             self.select_motion.reset()
         elif event == self.ENCODER_DIFF_ENTER:
-            self._action("Motion limit", lambda: self.pd.set_motion_limit(self._motion_field, self._motion_target), silent=True)
+            self._action("Motion limit", lambda: self.pd.set_motion_limit(self._motion_field, self._motion_target, idle_only=True), silent=True)
             self.checkkey = self.Motion
         elif event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
             step = setting[3]
@@ -2857,7 +2875,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
 
         zoff_line = getattr(self, '_zoffset_edit_row', zoff_line)
         if (encoder_diffState == self.ENCODER_DIFF_ENTER): #if (applyencoder(encoder_diffstate, offset_value))
-            self._action("Runtime Z offset", lambda: self.pd.setZOffset(self._zoffset_target / 100.0), silent=True)
+            self._action("Runtime Z offset", lambda: self.pd.setZOffset(self._zoffset_target / 100.0, idle_only=self.pd.HMI_ValueStruct.show_mode == -4), silent=True)
 
             self.checkkey = self.Prepare if self.pd.HMI_ValueStruct.show_mode == -4 else self.Tune
             self._draw_offset_value(self._zoffset_target,self.MBASE(zoff_line),self.lcd.Color_Bg_Black)
@@ -3910,6 +3928,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self.index_prepare = self.index_tune = self.index_control = self.MROWS
             self._offline = True
         self._poll_mmu()
+        if self._active_print_requires_focus():
+            # The MMU screen used to consume the print state edge without
+            # changing screens, leaving idle menus reachable during a job.
+            self._present_print_state()
         if self.checkkey == self.MMUMenu:
             self._offline = bool(self.pd.connection_error)
             if self.last_status != self.pd.status:

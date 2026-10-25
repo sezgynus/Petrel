@@ -9,6 +9,7 @@
 3. **Pause / Resume** doğrudan çalışır. **Stop** onay açar; başlangıçta **Back** seçilidir.
 4. Stop onayından sonra yazıcı durumu iptali doğrulayana kadar Print ekranı, devre dışı **Stopping** düğmesiyle güncellenmeye devam eder. Beklerken iptal komutunu tekrar göndermeyin.
 5. Baskı tamamlandığında veya iptal edildiğinde **Close** ile Home'a dönün.
+6. Boştaki menü açıkken Mainsail gibi haricî bir istemciden baskı başlatılması Petrel'i Print ekranına geçirir. Baskıdan açılan MMU kurtarma ekranı kullanılabilir ve Print'e döner. Prepare ve Control içindeki yalnızca boşta çalışabilen komutlar, gönderim öncesinde baskı başlarsa reddedilir.
 
 ![Print ve Tune örnek akışı](assets/framed/print-controls-demo.gif)
 

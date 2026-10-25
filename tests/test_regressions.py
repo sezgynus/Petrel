@@ -85,12 +85,14 @@ class RegressionContracts(unittest.TestCase):
     def test_temperature_menu_applies_hotend_target(self):
         display = self.display(-1)
         display.HMI_ETemp()
-        display.pd.sendGCode.assert_called_once_with('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=205')
+        self.assertEqual(display.pd.sendGCode.call_args.args, ('SET_HEATER_TEMPERATURE HEATER=extruder TARGET=205',))
+        self.assertIn('dispatch_guard', display.pd.sendGCode.call_args.kwargs)
 
     def test_temperature_menu_applies_bed_target(self):
         display = self.display(-1)
         display.HMI_BedTemp()
-        display.pd.sendGCode.assert_called_once_with('SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=65')
+        self.assertEqual(display.pd.sendGCode.call_args.args, ('SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=65',))
+        self.assertIn('dispatch_guard', display.pd.sendGCode.call_args.kwargs)
 
     def test_tune_applies_hotend_target(self):
         display = self.display(0)

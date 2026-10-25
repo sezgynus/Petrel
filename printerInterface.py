@@ -14,7 +14,7 @@ from concurrent.futures import Future, CancelledError
 from threading import Lock
 from display_numbers import js_round
 from background_reads import ReadWorker, ReadPending
-from operation_guards import motion_dispatch_guard
+from operation_guards import motion_dispatch_guard, idle_dispatch_guard
 from motion_settings import PARAMETERS, validate as validate_motion
 from moonraker_client import MoonrakerClient, MoonrakerError
 from moonraker_subscription import MoonrakerSubscription
@@ -1681,12 +1681,12 @@ class PrinterData:
                 available.append((field, argument, label, step, value))
         return tuple(available)
 
-    def set_motion_limit(self, field, value, report_error=True):
+    def set_motion_limit(self, field, value, report_error=True, idle_only=False):
         setting = next((item for item in self.motion_settings() if item[0] == field), None)
         if setting is None:
             raise ValueError('Motion setting is unavailable')
         value = validate_motion(field, value)
-        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        send = lambda script: self._send_control_gcode(script, report_error=report_error, idle_only=idle_only)
         return send('SET_VELOCITY_LIMIT {}={:g}'.format(setting[1], value))
 
     def home(self, homeZ=False): #fixed using gcode
@@ -1875,19 +1875,27 @@ class PrinterData:
         return self.postREST('/printer/gcode/script', json={'script': gcode},
                              report_error=report_error, dispatch_guard=dispatch_guard)
 
+    def _send_control_gcode(self, script, *, report_error=True, idle_only=False):
+        if idle_only:
+            return self.sendGCode(script, report_error=report_error,
+                                  dispatch_guard=idle_dispatch_guard(self))
+        if report_error:
+            return self.sendGCode(script)
+        return self.sendGCode(script, report_error=False)
+
     def disable_all_heaters(self):
         if not self.capabilities.has_heaters:
             return None
         return self.sendGCode('TURN_OFF_HEATERS')
 
-    def cooldown(self):
+    def cooldown(self, idle_only=False):
         commands = []
         if self.capabilities.has_heaters:
             commands.append('TURN_OFF_HEATERS')
         if self.capabilities.fan:
             commands.append(self._fan_command(0))
         if commands:
-            return self.sendGCode('\n'.join(commands))
+            return self._send_control_gcode('\n'.join(commands), idle_only=idle_only)
 
     def zero_fan_speeds(self):
         if self.HAS_FAN:
@@ -1900,10 +1908,10 @@ class PrinterData:
             raise ValueError('Fan speed is out of range')
         return 'M106 S{:g}'.format(percent * 255 / 100)
 
-    def setFanSpeed(self, percent, report_error=True):
+    def setFanSpeed(self, percent, report_error=True, idle_only=False):
         if not self.HAS_FAN:
             raise ValueError('Fan is unavailable')
-        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        send = lambda script: self._send_control_gcode(script, report_error=report_error, idle_only=idle_only)
         return send(self._fan_command(percent))
 
     def preheat(self, profile):
@@ -1912,11 +1920,11 @@ class PrinterData:
             raise ValueError('Unknown preheat profile')
         return self.preHeat(preset.bed_temp, preset.hotend_temp)
 
-    def preheat_preset(self, index):
+    def preheat_preset(self, index, idle_only=False):
         if not isinstance(index, int) or not 0 <= index < len(self.material_preset):
             raise ValueError('Unknown preheat preset')
         preset = self.material_preset[index]
-        return self.preHeat(preset.bed_temp, preset.hotend_temp)
+        return self.preHeat(preset.bed_temp, preset.hotend_temp, **({'idle_only': True} if idle_only else {}))
 
     def discard_preset_edits(self, profile):
         if self._settings_save is not None:
@@ -1959,7 +1967,7 @@ class PrinterData:
         self.settings_error = None
         return True
 
-    def setExtTemp(self, target, toolnum=None, report_error=True):
+    def setExtTemp(self, target, toolnum=None, report_error=True, idle_only=False):
         heater = self.capabilities.active_hotend
         if toolnum is not None:
             name = 'extruder' + (str(toolnum) if toolnum else '')
@@ -1967,18 +1975,18 @@ class PrinterData:
         if heater is None:
             raise ValueError('Hotend is unavailable')
         value = heater.validate_target(target)
-        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        send = lambda script: self._send_control_gcode(script, report_error=report_error, idle_only=idle_only)
         return send('SET_HEATER_TEMPERATURE HEATER={} TARGET={:g}'.format(heater.name, value))
 
-    def setBedTemp(self, target, report_error=True):
+    def setBedTemp(self, target, report_error=True, idle_only=False):
         heater = self.capabilities.bed
         if heater is None:
             raise ValueError('Heated bed is unavailable')
         value = heater.validate_target(target)
-        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        send = lambda script: self._send_control_gcode(script, report_error=report_error, idle_only=idle_only)
         return send('SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={:g}'.format(value))
 
-    def preHeat(self, bedtemp, exttemp, toolnum=None, fan_speed=None):
+    def preHeat(self, bedtemp, exttemp, toolnum=None, fan_speed=None, idle_only=False):
         # Validate the whole preset before sending any command.
         commands = []
         if self.capabilities.bed:
@@ -1996,13 +2004,13 @@ class PrinterData:
         if fan_speed is not None and self.capabilities.fan:
             commands.append(self._fan_command(fan_speed))
         if commands:
-            return self.sendGCode('\n'.join(commands))
+            return self._send_control_gcode('\n'.join(commands), idle_only=idle_only)
 
-    def setZOffset(self, offset, report_error=True):
+    def setZOffset(self, offset, report_error=True, idle_only=False):
         offset = float(offset)
         if not math.isfinite(offset) or not self.Z_PROBE_OFFSET_RANGE_MIN <= offset <= self.Z_PROBE_OFFSET_RANGE_MAX:
             raise ValueError('Runtime Z offset is outside the supported range')
-        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        send = lambda script: self._send_control_gcode(script, report_error=report_error, idle_only=idle_only)
         return send('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
 
 

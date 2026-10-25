@@ -167,7 +167,8 @@ class MMUViewMixin:
             self.Draw_MMU_Menu()
         else:
             self._mmu_canvas_page = None
-            if getattr(self, '_mmu_return_print', False):
+            if (getattr(self, '_mmu_return_print', False)
+                    or self.pd.status in ('printing', 'paused', 'pausing')):
                 self._mmu_return_print = False
                 self.Goto_PrintProcess()
             else:
