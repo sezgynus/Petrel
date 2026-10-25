@@ -1694,12 +1694,11 @@ class PrinterData:
         fr = float(fr)
         if not math.isfinite(fr) or fr <= 0:
             raise ValueError('Feedrate percentage must be positive')
-        send = (lambda script: self.sendGCode(
-            script, report_error=report_error, dispatch_guard=dispatch_guard)
-                if dispatch_guard is not None else
-                (self.sendGCode if report_error else
-                 lambda script: self.sendGCode(script, report_error=False)))
-        return send('M220 S{:g}'.format(fr))
+        script = 'M220 S{:g}'.format(fr)
+        if dispatch_guard is not None:
+            return self.sendGCode(script, report_error=report_error,
+                                  dispatch_guard=dispatch_guard)
+        return self.sendGCode(script) if report_error else self.sendGCode(script, report_error=False)
 
     def motion_settings(self):
         if not self.state.ready:
