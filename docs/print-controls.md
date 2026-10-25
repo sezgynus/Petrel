@@ -112,3 +112,5 @@ Handle `Power_OFF_Printer_After_Job` in your own end-print power macro using you
 These are offline emulator outputs from the real UI with example states. [Production commands](ui-emulator.md#refresh-pngs-frames-and-gifs) and [complete gallery](screenshots.md).
 
 Print-session identity does not use `print_duration`: pause and elapsed-time corrections cannot falsely invalidate Tune, Stop or MMU recovery. New jobs are distinguished by session/state transitions, filename and a reset in total job duration. If no valid active-print identity is available, actionable print submenus safely return to Print.
+
+A short encoder click during an active print no longer triggers the power-hold takeover before button release. Short clicks in Tune, Stop, or MMU act only on that screen; long holds cannot power off while printing. When a print begins during an idle power hold, the hold and late release are safely cancelled.

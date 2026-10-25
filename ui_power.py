@@ -106,9 +106,12 @@ class PowerShortcutMixin:
             return True
         if event.value >= self.POWER_OFF_HOLD_MS:
             if print_origin:
-                # A deliberately long press while printing cannot shut down
-                # the printer, but must not discard the current print editor.
-                self.lcd.update()
+                # Keep an intentional print submenu (Tune/Stop/MMU). A stale
+                # idle screen must still yield to an externally started job.
+                if self._active_print_requires_focus():
+                    self._power_print_takeover()
+                else:
+                    self.lcd.update()
                 return True
             if self.checkkey != self.PowerConfirm:
                 self._open_power_hold_popup()

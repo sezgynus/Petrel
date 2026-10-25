@@ -257,6 +257,7 @@ class PowerShortcutTests(unittest.TestCase):
         v.checkkey = v.Print_window
         v._stop_job_identity = v.pd.print_job_identity()
         v.pd.HMI_flag.select_flag = False
+        v.pd.cancel_job = Mock()
         with patch.object(ui.time, 'monotonic', return_value=10):
             v._button_pressed()
             self.drain(v)
