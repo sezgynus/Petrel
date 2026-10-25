@@ -98,10 +98,9 @@ Start with [Contributing](CONTRIBUTING.md), [tests](tests/README.md), [PNG/GIF r
 
 Startup connection delays and explicit Klipper errors have separate [recovery behavior](docs/klipper-recovery.md); normal boot does not automatically restart firmware.
 
-## Credits and license
+<a id="credits-and-license"></a>
+## Project origin and license
 
-This project grew from [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) and [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD). Original copyright notices and Git history are retained.
-
-Integrations use [Klipper](https://github.com/Klipper3d/klipper), [Moonraker](https://github.com/Arksine/moonraker), [Mainsail](https://github.com/mainsail-crew/mainsail), [Happy Hare](https://github.com/moggieuk/Happy-Hare) and [Spoolman](https://github.com/Donkie/Spoolman).
+Petrel originated from [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) and [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD), and is developed independently with its own architecture and feature set. Original copyright notices and Git history are retained.
 
 Licensed under **GNU GPL v3.0**; see [LICENSE](LICENSE).

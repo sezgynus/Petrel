@@ -98,10 +98,9 @@ Bağlantı kurulurken Moonraker nesne listesi ve yapılandırma okunur; yeniden 
 
 Açılış bağlantı bekleyişi ve açık Klipper hatası farklı [kurtarma davranışı](docs/klipper-recovery_TR.md) kullanır; normal boot firmware'i otomatik yeniden başlatmaz.
 
-## Katkılar ve lisans
+<a id="katkılar-ve-lisans"></a>
+## Projenin kökeni ve lisans
 
-Proje [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) ve [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD) çalışmalarından gelişti. Özgün telif bildirimleri ve Git geçmişi korunur.
-
-Entegrasyonlarda [Klipper](https://github.com/Klipper3d/klipper), [Moonraker](https://github.com/Arksine/moonraker), [Mainsail](https://github.com/mainsail-crew/mainsail), [Happy Hare](https://github.com/moggieuk/Happy-Hare) ve [Spoolman](https://github.com/Donkie/Spoolman) kullanılır.
+Petrel, [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) ve [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD) projelerinden doğmuş; kendi mimarisi ve özellikleriyle bağımsız olarak geliştirilmektedir. Özgün telif bildirimleri ve Git geçmişi korunur.
 
 **GNU GPL v3.0** lisanslıdır; [LICENSE](LICENSE) dosyasına bakın.
