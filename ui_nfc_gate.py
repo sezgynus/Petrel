@@ -32,6 +32,11 @@ class NFCGateViewMixin:
         if existing and existing['phase'] in ('checking', 'writing'):
             return
         self._update_ui_state()
+        live = self.pd.subscription.snapshot()['status']
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                or live['print_stats']['state'] in ('printing', 'paused', 'pausing')
+                or live.get('virtual_sdcard', {}).get('is_active') is True):
+            return  # A background NFC scan must never take focus from Print.
         self._display_activity()
         # The home MMU percentage belongs to a gate, not directly to a
         # Spoolman ID. Resolve the scanned spool once against Happy Hare's
@@ -488,6 +493,11 @@ class NFCGateViewMixin:
         self.lcd.update()
 
     def _nfc_gate_input(self, event):
+        self._update_ui_state()
+        if self.pd.status in ('printing', 'paused', 'pausing'):
+            self._nfc_gate_close()
+            self.Goto_PrintProcess()
+            return
         if self._display_activity():
             return
         # NFC gate input branches off before the normal UI's shared buzzer

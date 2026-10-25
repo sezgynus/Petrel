@@ -1636,6 +1636,11 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                 self._rfid_assignment_event()
             return
         if event.kind in ('nfc_share_done', 'nfc_share_failed', 'nfc_share_cancelled'):
+            if (getattr(self, '_nfc_share_popup', None)
+                    and self.pd.subscription.snapshot()['status']['print_stats']['state']
+                    in ('printing', 'paused', 'pausing')):
+                self._cancel_nfc_share_popup(redraw=False)
+                return
             if getattr(self, '_nfc_share_popup', None):
                 if event.kind in ('nfc_share_done', 'nfc_share_cancelled'):
                     if event.kind == 'nfc_share_done':
@@ -1793,6 +1798,9 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         self._print_error_visible = False
         self.pd.HMI_flag.done_confirm_flag = False
         self.pd.HMI_flag.pause_flag = self.pd.printingIsPaused()
+        if status in ('printing', 'paused', 'pausing') and getattr(self, '_nfc_share_popup', None):
+            # An idle Info overlay must not capture Print-screen encoder events.
+            self._cancel_nfc_share_popup(redraw=False)
         if (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False)
                 and status in ('printing', 'paused', 'pausing')):
             return

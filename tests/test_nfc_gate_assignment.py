@@ -492,11 +492,22 @@ class GateUITests(unittest.TestCase):
             self.assertEqual(view._nfc_gate_popup['phase'], 'error')
             view.pd.subscription.request.assert_not_called()
 
+    def test_active_print_scan_does_not_take_over_print_screen(self):
+        for state in ('printing', 'paused', 'pausing'):
+            with self.subTest(state=state):
+                view, data = self.make()
+                view.checkkey = view.PrintProcess
+                data['status']['print_stats']['state'] = state
+                view._nfc_gate_result()
+                self.assertEqual(view.checkkey, view.PrintProcess)
+                self.assertIsNone(getattr(view, '_nfc_gate_popup', None))
+
     def test_printing_is_blocked_and_cancel_while_checking_never_assigns(self):
         view, data = self.make()
         data['status']['print_stats']['state'] = 'printing'
         view._nfc_gate_result()
-        self.assertEqual(view._nfc_gate_popup['operations'], [None])
+        self.assertIsNone(getattr(view, '_nfc_gate_popup', None))
+        self.assertEqual(view.checkkey, view.Info)
         view.pd.subscription.request.assert_not_called()
         view, _ = self.make()
         view._nfc_gate_result()

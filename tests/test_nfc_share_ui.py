@@ -112,6 +112,22 @@ class NFCShareUITests(unittest.TestCase):
         view.lcd.update.assert_called_once()
         core.cancel_share.assert_not_called()
 
+    def test_external_print_closes_share_and_releases_encoder(self):
+        for mode in ('waiting', 'failed'):
+            with self.subTest(mode=mode):
+                view, core = self.screen()
+                core.share_ndef_uri.return_value = Future()
+                view._start_nfc_share_popup()
+                view._nfc_share_popup = mode
+                view.pd.status = 'printing'
+                view.Goto_PrintProcess = Mock(side_effect=lambda: setattr(view, 'checkkey', view.PrintProcess))
+                view._present_print_state()
+                self.assertIsNone(view._nfc_share_popup)
+                self.assertEqual(view.checkkey, view.PrintProcess)
+                core.cancel_share.assert_called_once()
+                view._process_input_untraced(InputEvent('nfc_share_failed', 0, 0, 0))
+                self.assertIsNone(view._nfc_share_popup)
+
     def test_failed_share_stays_visible_and_press_cancels(self):
         view, core = self.screen()
         core.share_ndef_uri.return_value = Future()
