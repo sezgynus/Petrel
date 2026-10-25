@@ -225,14 +225,21 @@ class PowerShortcutTests(unittest.TestCase):
         for busy in ('printing','paused','operation','start'):
             with self.subTest(busy=busy):
                 v=self.view();v.Draw_Control_Menu=Mock()
-                if busy in ('printing','paused'):v.pd.status=busy
+                if busy in ('printing','paused'):
+                    source=v.pd.subscription.snapshot.return_value
+                    source['status']['print_stats']['state']=busy
+                    v.pd.update_variable()
                 if busy=='operation':v._action_feedback=Mock()
                 if busy=='start':v._pending_start=Mock()
                 self.gesture(v,1.3)
-                self.assertTrue(v._power_blocked)
-                self.input(v,'rotate',-1);self.input(v,'press',1)
+                if busy in ('printing','paused'):
+                    self.assertEqual(v.checkkey,v.PrintProcess)
+                    self.assertFalse(getattr(v,'_power_hold_popup',False))
+                else:
+                    self.assertTrue(v._power_blocked)
+                    self.input(v,'rotate',-1);self.input(v,'press',1)
+                    self.assertEqual(v.checkkey,v.Control)
                 v.pd.power_off_if_on.assert_not_called()
-                self.assertEqual(v.checkkey,v.Control)
 
     def test_epoch_change_during_hold_discards_release_and_clears_bar(self):
         v=self.view();v._dispatch_input=Mock()
