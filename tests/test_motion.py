@@ -61,7 +61,8 @@ class MotionTests(unittest.TestCase):
         result.pd.sendGCode.assert_not_called()
         result.get_encoder_state.return_value = result.ENCODER_DIFF_ENTER
         result.HMI_MotionValue()
-        result.pd.sendGCode.assert_called_once_with('SET_VELOCITY_LIMIT VELOCITY=151')
+        self.assertEqual(result.pd.sendGCode.call_args.args, ("SET_VELOCITY_LIMIT VELOCITY=151",))
+        self.assertTrue(result.pd.sendGCode.call_args.kwargs['dispatch_guard']())
         self.assertEqual(result.checkkey, result.Motion)
 
     def test_cruise_ratio_encoder_never_reaches_one(self):
@@ -77,7 +78,8 @@ class MotionTests(unittest.TestCase):
         self.assertEqual(result._motion_target, .99)
         result.get_encoder_state.return_value = result.ENCODER_DIFF_ENTER
         result.HMI_MotionValue()
-        result.pd.sendGCode.assert_called_once_with('SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0.99')
+        self.assertEqual(result.pd.sendGCode.call_args.args, ("SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0.99",))
+        self.assertTrue(result.pd.sendGCode.call_args.kwargs['dispatch_guard']())
 
     def test_menu_values_follow_status_and_labels_are_klipper_specific(self):
         result = display(data())

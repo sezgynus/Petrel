@@ -123,8 +123,9 @@ class RegressionContracts(unittest.TestCase):
         display.pd.HMI_ValueStruct.show_mode = -1
         display.pd.HMI_ValueStruct.E_Temp = 205
         display.HMI_ETemp()
-        display.pd.sendGCode.assert_called_once_with(
-            'SET_HEATER_TEMPERATURE HEATER=extruder1 TARGET=205')
+        self.assertEqual(display.pd.sendGCode.call_args.args,
+                         ('SET_HEATER_TEMPERATURE HEATER=extruder1 TARGET=205',))
+        self.assertTrue(display.pd.sendGCode.call_args.kwargs['dispatch_guard']())
 
     def test_preset_edits_do_not_heat_printer(self):
         for profile in (0, 1):

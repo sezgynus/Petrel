@@ -860,5 +860,6 @@ class CapabilityMenuTests(unittest.TestCase):
         result.pd.HMI_ValueStruct.Fan_speed = 50
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_ENTER)
         result.HMI_FanSpeed()
-        result.pd.sendGCode.assert_called_once_with('M106 S127.5')
+        self.assertEqual(result.pd.sendGCode.call_args.args, ("M106 S127.5",))
+        self.assertTrue(result.pd.sendGCode.call_args.kwargs['dispatch_guard']())
 
