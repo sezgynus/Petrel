@@ -10,6 +10,7 @@
 4. Stop onayından sonra yazıcı durumu iptali doğrulayana kadar Print ekranı, devre dışı **Stopping** düğmesiyle güncellenmeye devam eder. Beklerken iptal komutunu tekrar göndermeyin.
 5. Baskı tamamlandığında veya iptal edildiğinde **Close** ile Home'a dönün.
 6. Boştaki menü açıkken Mainsail gibi haricî bir istemciden baskı başlatılması Petrel'i Print ekranına geçirir. Baskıdan açılan MMU kurtarma ekranı kullanılabilir ve Print'e döner. Prepare ve Control içindeki yalnızca boşta çalışabilen komutlar, gönderim öncesinde baskı başlarsa reddedilir.
+7. Baskı başladığında açık Power onayı veya NFC Sharing penceresi kapatılır; NFC makara gate ataması Print ekranını devralamaz. MMU kurtarma, Stop onayı ve Tune düzenlemeleri açıldıkları baskı oturumuna bağlıdır. Yeni baskı başlarsa eski kontroller komut göndermeden Print'e döner. Kuyruktaki baskı başlatma ve Tune komutları da gönderim anında yeniden doğrulanır.
 
 ![Print ve Tune örnek akışı](assets/framed/print-controls-demo.gif)
 
