@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="900" viewBox="0 0 1100 900" role="img" aria-labelledby="title description">
+<title id="title">Petrel default Raspberry Pi wiring</title>
+<desc id="description">Standard 40-pin Raspberry Pi header, top view. Physical pin 1 is lower left and pin 40 upper right. Encoder A GPIO21 pin40, encoder B GPIO16 pin36, button GPIO20 pin38, hardware PWM buzzer driver GPIO19 pin35. UART GPIO14 pin8 goes to display RX and GPIO15 pin10 goes to display TX. Display power uses pin2 5V and pin6 GND.</desc>
+<style>text{font-family:Arial,DejaVu Sans,sans-serif;fill:#edf2f7}.muted{fill:#b9c5d2}.small{font-size:16px}.pin-number{font-size:14px;text-anchor:middle}.heading{font-size:18px;font-weight:bold}.value{font-size:20px}.rule{stroke:#3e4b59;stroke-width:1}</style>
+<rect width="1100" height="900" rx="20" fill="#18212b"/>
+<text x="50" y="55" font-size="30" font-weight="bold">Petrel · Default wiring</text>
+<text x="50" y="86" class="small muted">Raspberry Pi 40-pin header · top view · physical pin numbers shown at the connector</text>
+<rect x="50" y="105" width="1000" height="170" rx="14" fill="#222e3a" stroke="#526272"/>
+<g id="pin-2" class="power"><text x="94" y="126" class="pin-number">2</text><rect x="80" y="136" width="28" height="28" rx="5" fill="#e96b68"/><circle cx="94" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-1"><text x="94" y="255" class="pin-number">1</text><rect x="80" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="94" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-4"><text x="142" y="126" class="pin-number">4</text><rect x="128" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="142" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-3"><text x="142" y="255" class="pin-number">3</text><rect x="128" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="142" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-6" class="ground"><text x="190" y="126" class="pin-number">6</text><rect x="176" y="136" width="28" height="28" rx="5" fill="#8c9aaa"/><circle cx="190" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-5"><text x="190" y="255" class="pin-number">5</text><rect x="176" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="190" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-8" class="uart"><text x="238" y="126" class="pin-number">8</text><rect x="224" y="136" width="28" height="28" rx="5" fill="#57c8dd"/><circle cx="238" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-7"><text x="238" y="255" class="pin-number">7</text><rect x="224" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="238" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-10" class="uart"><text x="286" y="126" class="pin-number">10</text><rect x="272" y="136" width="28" height="28" rx="5" fill="#57c8dd"/><circle cx="286" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-9"><text x="286" y="255" class="pin-number">9</text><rect x="272" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="286" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-12"><text x="334" y="126" class="pin-number">12</text><rect x="320" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="334" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-11"><text x="334" y="255" class="pin-number">11</text><rect x="320" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="334" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-14"><text x="382" y="126" class="pin-number">14</text><rect x="368" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="382" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-13"><text x="382" y="255" class="pin-number">13</text><rect x="368" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="382" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-16"><text x="430" y="126" class="pin-number">16</text><rect x="416" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="430" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-15"><text x="430" y="255" class="pin-number">15</text><rect x="416" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="430" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-18"><text x="478" y="126" class="pin-number">18</text><rect x="464" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="478" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-17"><text x="478" y="255" class="pin-number">17</text><rect x="464" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="478" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-20"><text x="526" y="126" class="pin-number">20</text><rect x="512" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="526" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-19"><text x="526" y="255" class="pin-number">19</text><rect x="512" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="526" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-22"><text x="574" y="126" class="pin-number">22</text><rect x="560" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="574" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-21"><text x="574" y="255" class="pin-number">21</text><rect x="560" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="574" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-24"><text x="622" y="126" class="pin-number">24</text><rect x="608" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="622" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-23"><text x="622" y="255" class="pin-number">23</text><rect x="608" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="622" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-26"><text x="670" y="126" class="pin-number">26</text><rect x="656" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="670" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-25"><text x="670" y="255" class="pin-number">25</text><rect x="656" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="670" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-28"><text x="718" y="126" class="pin-number">28</text><rect x="704" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="718" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-27"><text x="718" y="255" class="pin-number">27</text><rect x="704" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="718" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-30"><text x="766" y="126" class="pin-number">30</text><rect x="752" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="766" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-29"><text x="766" y="255" class="pin-number">29</text><rect x="752" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="766" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-32"><text x="814" y="126" class="pin-number">32</text><rect x="800" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="814" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-31"><text x="814" y="255" class="pin-number">31</text><rect x="800" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="814" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-34"><text x="862" y="126" class="pin-number">34</text><rect x="848" y="136" width="28" height="28" rx="5" fill="#526272"/><circle cx="862" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-33"><text x="862" y="255" class="pin-number">33</text><rect x="848" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="862" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-36" class="encoder"><text x="910" y="126" class="pin-number">36</text><rect x="896" y="136" width="28" height="28" rx="5" fill="#7cd6b1"/><circle cx="910" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-35" class="buzzer"><text x="910" y="255" class="pin-number">35</text><rect x="896" y="200" width="28" height="28" rx="5" fill="#efbe67"/><circle cx="910" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-38" class="button"><text x="958" y="126" class="pin-number">38</text><rect x="944" y="136" width="28" height="28" rx="5" fill="#c09de9"/><circle cx="958" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-37"><text x="958" y="255" class="pin-number">37</text><rect x="944" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="958" cy="214" r="5" fill="#101820"/></g>
+<g id="pin-40" class="encoder"><text x="1006" y="126" class="pin-number">40</text><rect x="992" y="136" width="28" height="28" rx="5" fill="#7cd6b1"/><circle cx="1006" cy="150" r="5" fill="#101820"/></g>
+<g id="pin-39"><text x="1006" y="255" class="pin-number">39</text><rect x="992" y="200" width="28" height="28" rx="5" fill="#526272"/><circle cx="1006" cy="214" r="5" fill="#101820"/></g>
+<text x="50" y="306" class="small muted">Pin 1: lower left → Pin 39: lower right. Pin 2: upper left → Pin 40: upper right.</text>
+<text x="70" y="354" class="heading">Physical pin</text><text x="270" y="354" class="heading">BCM / function</text><text x="620" y="354" class="heading">Connect to</text>
+<line x1="50" y1="372" x2="1050" y2="372" class="rule"/>
+<g id="power-connection"><circle cx="65" cy="400" r="6" fill="#e96b68"/><text id="power-physical" x="90" y="407" class="value">2</text><text id="power-bcm" x="270" y="407" class="value">5 V</text><text x="620" y="407" class="value">Display VCC</text></g>
+<g id="ground-connection"><circle cx="65" cy="444" r="6" fill="#8c9aaa"/><text id="ground-physical" x="90" y="451" class="value">6</text><text id="ground-bcm" x="270" y="451" class="value">GND</text><text x="620" y="451" class="value">Common ground</text></g>
+<g id="uart-tx-connection"><circle cx="65" cy="488" r="6" fill="#57c8dd"/><text id="uart-tx-physical" x="90" y="495" class="value">8</text><text id="uart-tx-bcm" x="270" y="495" class="value">GPIO14 / TX</text><text x="620" y="495" class="value">Display RX</text></g>
+<g id="uart-rx-connection"><circle cx="65" cy="532" r="6" fill="#57c8dd"/><text id="uart-rx-physical" x="90" y="539" class="value">10</text><text id="uart-rx-bcm" x="270" y="539" class="value">GPIO15 / RX</text><text x="620" y="539" class="value">Display TX</text></g>
+<g id="encoder-a-connection"><circle cx="65" cy="576" r="6" fill="#7cd6b1"/><text id="encoder-a-physical" x="90" y="583" class="value">40</text><text id="encoder-a-bcm" x="270" y="583" class="value">GPIO21</text><text x="620" y="583" class="value">Encoder A</text></g>
+<g id="encoder-b-connection"><circle cx="65" cy="620" r="6" fill="#7cd6b1"/><text id="encoder-b-physical" x="90" y="627" class="value">36</text><text id="encoder-b-bcm" x="270" y="627" class="value">GPIO16</text><text x="620" y="627" class="value">Encoder B</text></g>
+<g id="encoder-button-connection"><circle cx="65" cy="664" r="6" fill="#c09de9"/><text id="encoder-button-physical" x="90" y="671" class="value">38</text><text id="encoder-button-bcm" x="270" y="671" class="value">GPIO20</text><text x="620" y="671" class="value">Encoder button</text></g>
+<g id="buzzer-connection"><circle cx="65" cy="708" r="6" fill="#efbe67"/><text id="buzzer-physical" x="90" y="715" class="value">35</text><text id="buzzer-bcm" x="270" y="715" class="value">GPIO19 / PWM1</text><text x="620" y="715" class="value">Buzzer driver input</text></g>
+<line x1="50" y1="744" x2="1050" y2="744" class="rule"/>
+<text x="50" y="786" class="small">GPIO19 is the control input to a suitable buzzer driver; share the ground connection.</text>
+<text x="50" y="817" class="small">UART is crossed: Pi TX → display RX; Pi RX ← display TX.</text>
+<text x="50" y="848" class="small muted">Existing installations may use other encoder pins. Keep wiring and configure.sh settings aligned.</text>
+<text x="50" y="875" class="small muted">BCM identifiers and physical header numbers are different. This drawing uses the current install defaults.</text>
+</svg>

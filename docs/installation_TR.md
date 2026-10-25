@@ -21,7 +21,11 @@ Uyumlu DWIN T5UIC1 panel, UART/GPIO erişimli Linux SBC, Python 3.11+ ve çalı�
 | VCC | 5 V |
 | GND | GND |
 
-GPIO numaraları **BCM numaralarıdır**. Encoder pinleri yapılandırma sırasında değiştirilebilir. Fiziksel bağlantılar için [bağlantı görsellerine](../images/) bakın.
+GPIO numaraları **BCM numaralarıdır**. Aşağıdaki çizim güncel kurulum varsayılanlarını ve fiziksel konnektör konumlarını gösterir. Encoder pinleri yapılandırma sırasında değiştirilebilir; güncellerken mevcut kablolamanızı koruyun.
+
+![BCM ve fiziksel konnektör pin numaralarıyla güncel Petrel varsayılan bağlantısı](../images/petrel-wiring.svg)
+
+Eski [bağlantı fotoğrafları ve GPIO çizimi](../images/README_TR.md), farklı pin atamaları kullanan tarihsel kurulum örnekleridir; yeni varsayılan kablolama için yukarıdaki çizimi kullanın.
 
 `sudo raspi-config` içinde seri donanımı etkinleştirin, seri giriş konsolunu kapatın ve yeniden başlatın. Pi ve işletim sisteminizde GPIO14/15'i hangi UART aygıtının kullandığını doğrulayın. Kurulum `/dev/ttyS0` önerir; kendi kurulumunuza uygun aygıtı seçin.
 

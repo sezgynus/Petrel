@@ -2,10 +2,12 @@
 """Render short, reproducible real-UI example workflows; no printer connection."""
 from pathlib import Path
 import logging
+import sys
 import time
 from unittest.mock import patch
 from PIL import Image
-from render_docs_screenshots import ROOT, canvas, sample, finish, workflow_view
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.render_docs_screenshots import ROOT, canvas, sample, finish, workflow_view
 from dwin_emulator.presentation import with_frame
 
 
@@ -16,6 +18,39 @@ def save(name, frames, durations):
     framed=[with_frame(frame) for frame in frames]
     framed[0].save(destination,save_all=True,append_images=framed[1:],duration=durations,loop=0,disposal=2)
     print(destination)
+
+
+def mmu_error_scroll_frames():
+    """Scroll the real error reader, return to header Back, then to Print."""
+    view = workflow_view('error-long')
+    frames, durations = [finish(view, False)], [1400]
+    view._rotation_steps = 1
+    maximum = max(0, len(view._focus_error_lines) - 15)
+    view.get_encoder_state.return_value = view.ENCODER_DIFF_CW
+    for index in range(maximum + 1):
+        view._focus_error_input()
+        if index % 4 == 0:
+            frames.append(finish(view, False))
+            durations.append(650)
+    # CW selects MMU recovery. Returning requires real CCW input all the way
+    # past the first text position; do not assign the selection directly.
+    view.get_encoder_state.return_value = view.ENCODER_DIFF_CCW
+    for index in range(maximum + 2):
+        view._focus_error_input()
+        if index % 4 == 0 or view._focus_error_choice:
+            frames.append(finish(view, False))
+            durations.append(650)
+        if view._focus_error_choice:
+            break
+    if view._focus_error_scroll != 0 or view._focus_error_choice != 1:
+        raise RuntimeError('Error-reader walkthrough did not select header Back')
+    view.get_encoder_state.return_value = view.ENCODER_DIFF_ENTER
+    view._focus_error_input()
+    if view.checkkey != view.PrintProcess:
+        raise RuntimeError('Error-reader Back did not return to Print')
+    frames.append(finish(view))
+    durations.append(1800)
+    return frames, durations
 
 
 def main():
@@ -37,15 +72,7 @@ def main():
                     else: v._focus_tune_tick()
                     frames.append(finish(v,False));durations.append(200 if tick<.8 else 1600)
         save('rejected-controls-demo.gif',frames,durations)
-        # A long error is scrolled using the actual encoder handler, then Back.
-        v=workflow_view('error-long');frames=[finish(v,False)];durations=[1400]
-        v.get_encoder_state.return_value=v.ENCODER_DIFF_CW
-        for i in range(max(0,len(v._focus_error_lines)-15)+1):
-            v._focus_error_input()
-            if i%4==0 or v._focus_error_choice:
-                frames.append(finish(v,False));durations.append(650)
-        v.get_encoder_state.return_value=v.ENCODER_DIFF_ENTER;v._focus_error_input()
-        frames.append(finish(v));durations.append(1800)
+        frames,durations = mmu_error_scroll_frames()
         save('mmu-error-scroll-demo.gif',frames,durations)
         # Native animation channel is sampled at elapsed times, not hand-drawn frames.
         v=canvas(sample());v.Goto_MainMenu();frames=[];durations=[];elapsed=0

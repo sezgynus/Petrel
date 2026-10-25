@@ -21,7 +21,11 @@ Use a compatible DWIN T5UIC1 panel, a Linux SBC with UART/GPIO, Python 3.11+ and
 | VCC | 5 V |
 | GND | GND |
 
-GPIO numbers are **BCM numbers**. Encoder pins can be changed during configuration. See [wiring illustrations](../images/) for the physical connections.
+GPIO numbers are **BCM numbers**. The following diagram shows the current installer defaults and their physical header positions. Encoder pins can be changed during configuration; preserve your existing wiring when updating.
+
+![Current Petrel default wiring, with BCM and physical header pin numbers](../images/petrel-wiring.svg)
+
+The old [wiring photos and GPIO drawing](../images/README.md) are historical installation examples with different pin assignments; use the diagram above for new default wiring.
 
 In `sudo raspi-config`, enable serial hardware and disable the serial login console, then reboot. Confirm which UART device uses GPIO14/15 on your Pi and OS. The installer suggests `/dev/ttyS0`; choose the device appropriate for your installation.
 
