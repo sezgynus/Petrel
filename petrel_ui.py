@@ -1794,10 +1794,10 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
                         getattr(self, '_error_job_identity', None)
                         if self.checkkey == self.PrintErrorDetails else
                         getattr(self, '_tune_job_identity', None))
-            return identity is not None and not self.pd.print_job_matches(identity)
+            return identity is None or not self.pd.print_job_matches(identity)
         if self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False):
             identity = getattr(self, '_mmu_job_identity', None)
-            return identity is not None and not self.pd.print_job_matches(identity)
+            return identity is None or not self.pd.print_job_matches(identity)
         return True
 
     def _present_print_state(self):

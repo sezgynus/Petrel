@@ -110,3 +110,5 @@ Handle `Power_OFF_Printer_After_Job` in your own end-print power macro using you
 ![Rejected value, job switch and Pause command blink red twice](assets/framed/rejected-controls-demo.gif)
 
 These are offline emulator outputs from the real UI with example states. [Production commands](ui-emulator.md#refresh-pngs-frames-and-gifs) and [complete gallery](screenshots.md).
+
+Print-session identity does not use `print_duration`: pause and elapsed-time corrections cannot falsely invalidate Tune, Stop or MMU recovery. New jobs are distinguished by session/state transitions, filename and a reset in total job duration. If no valid active-print identity is available, actionable print submenus safely return to Print.

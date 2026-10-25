@@ -33,6 +33,7 @@ class PrintFocusTests(unittest.TestCase):
         v=display(data);v.lcd.DWIN_WIDTH=272;v.lcd.DWIN_HEIGHT=480
         v._sync_thumbnail_cache=Mock();v._print_thumbnail_key=None
         v._sync_fan_animation=Mock();v.checkkey=v.PrintProcess
+        v._stop_job_identity = v.pd.print_job_identity()
         v.get_encoder_state=Mock(return_value=v.ENCODER_DIFF_ENTER)
         return v,data
 
@@ -185,6 +186,46 @@ class PrintFocusTests(unittest.TestCase):
         view.lcd.show_icon.assert_not_called()
         view.lcd.draw_bitmap.assert_not_called()
         view.lcd.draw_text.assert_not_called()
+
+    def test_tune_back_survives_duration_correction_and_remains_on_print(self):
+        v, data = self.view()
+        v.select_print.set(0)
+        v._focus_print_input()
+        self.assertEqual(v.checkkey, v.Tune)
+        identity = v._tune_job_identity
+        data['status']['print_stats']['print_duration'] = 12
+        data['status']['print_stats']['total_duration'] = 170
+        v.pd.update_variable()
+        self.assertTrue(v.pd.print_job_matches(identity))
+        self.assertFalse(v._active_print_requires_focus())
+        v._present_print_state()
+        self.assertEqual(v.checkkey, v.Tune)
+        v.select_tune.set(0)
+        v._focus_tune_input()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        v._present_print_state()
+        self.assertEqual(v.checkkey, v.PrintProcess)
+
+    def test_tune_edit_and_stop_confirmation_survive_duration_correction(self):
+        v, data = self.view()
+        v._focus_tune_open()
+        token = v._tune_job_identity
+        data['status']['print_stats']['print_duration'] = 1
+        data['status']['print_stats']['total_duration'] = 200
+        v.pd.update_variable()
+        v._tune_edit = v.pd.print_settings()[0]
+        v._tune_target = 110
+        v.checkkey = v.TuneEdit
+        v.pd.set_print_setting = Mock(return_value=Future())
+        v._focus_edit_input()
+        v.pd.set_print_setting.assert_called_once_with(
+            'speed', 110, report_error=False, expected_job=token)
+        v.checkkey = v.Print_window
+        v._stop_job_identity = token
+        v.pd.HMI_flag.select_flag = True
+        v.pd.cancel_job = Mock(return_value=Future())
+        v._focus_stop_input()
+        v.pd.cancel_job.assert_called_once_with(expected_job=token)
 
     def test_stop_confirmation_from_old_job_cannot_cancel_new_job(self):
         v, data = self.view()

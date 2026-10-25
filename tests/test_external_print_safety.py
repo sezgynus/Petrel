@@ -7,6 +7,28 @@ from test_capabilities import snapshot, display, printer
 
 
 class ExternalPrintSafetyTests(unittest.TestCase):
+    def test_missing_job_identity_never_authorizes_active_print_editors(self):
+        data = snapshot()
+        data['status']['print_stats'].update(state='printing', filename='job.gcode')
+        p = printer(data)
+        token = p.print_job_identity()
+        self.assertIsNotNone(token)
+        del data['print_job_generation']
+        self.assertIsNone(p.print_job_identity())
+        self.assertFalse(p.print_job_matches(token))
+        v = display(data)
+        v.checkkey = v.Tune
+        v.pd.status = 'printing'
+        v._tune_job_identity = None
+        self.assertTrue(v._active_print_requires_focus())
+        v.checkkey = v.Print_window
+        v._stop_job_identity = None
+        self.assertTrue(v._active_print_requires_focus())
+        v.checkkey = v.MMUMenu
+        v._mmu_return_print = True
+        v._mmu_job_identity = None
+        self.assertTrue(v._active_print_requires_focus())
+
     def test_external_start_drops_stale_idle_operation_feedback(self):
         v = display(snapshot())
         v.checkkey = v.Control
@@ -155,10 +177,12 @@ class ExternalPrintSafetyTests(unittest.TestCase):
                 self.assertTrue(v._active_print_requires_focus())
         v._mmu_return_print = True
         v.checkkey = v.MMUMenu
-        self.assertFalse(v._active_print_requires_focus())
-        for screen in (v.PrintProcess, v.Tune, v.TuneEdit, v.PrintErrorDetails, v.Print_window):
+        self.assertTrue(v._active_print_requires_focus())
+        for screen in (v.Tune, v.TuneEdit, v.PrintErrorDetails, v.Print_window):
             v.checkkey = screen
-            self.assertFalse(v._active_print_requires_focus())
+            self.assertTrue(v._active_print_requires_focus())
+        v.checkkey = v.PrintProcess
+        self.assertFalse(v._active_print_requires_focus())
 
 
 if __name__ == '__main__':

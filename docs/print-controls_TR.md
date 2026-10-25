@@ -110,3 +110,5 @@ Switch sadece `SET_PIN PIN=<exact name> VALUE=0|1` gönderir. O anda ısıtıcı
 ![Reddedilen ayar, iş switchi ve Pause komutunun iki kırmızı yanıp sönmesi](assets/framed/rejected-controls-demo.gif)
 
 Bunlar gerçek UI'dan örnek durumlarla üretilen çevrimdışı emülatör çıktılarıdır. [Üretim komutları](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme) ve [tam galeri](screenshots_TR.md).
+
+Baskı oturumu kimliğinde `print_duration` kullanılmaz: duraklatma ve süre düzeltmeleri Tune, Stop veya MMU kurtarma ekranlarını yanlışlıkla geçersiz kılmaz. Yeni işler oturum/durum geçişleri, dosya adı ve toplam iş süresinin sıfırlanmasıyla ayırt edilir. Geçerli aktif baskı kimliği bulunamazsa işlem yapılabilir baskı alt menüleri güvenli şekilde Print'e döner.

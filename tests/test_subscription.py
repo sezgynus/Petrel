@@ -87,6 +87,23 @@ class SubscriptionTests(unittest.TestCase):
         c._merge({'print_stats': {'filename': 'another.gcode'}}, 6)
         self.assertEqual(c.snapshot()['print_job_generation'], first + 2)
 
+    def test_duration_correction_does_not_replace_live_print(self):
+        c = self.subscription()
+        c._state = 'ready'
+        c._merge({'print_stats': dict(state='printing', filename='same.gcode',
+                                     print_duration=70, total_duration=120)}, 1, replace=True)
+        generation = c.snapshot()['print_job_generation']
+        c._merge({'print_stats': {'print_duration': 20, 'total_duration': 125}}, 2)
+        self.assertEqual(c.snapshot()['print_job_generation'], generation)
+        c._merge({'print_stats': {'state': 'paused',
+                                  'print_duration': 19, 'total_duration': 130}}, 3)
+        c._merge({'print_stats': {'state': 'printing',
+                                  'print_duration': 30, 'total_duration': 140}}, 4)
+        self.assertEqual(c.snapshot()['print_job_generation'], generation)
+        # Same filename, new run: reset of the total job clock distinguishes it.
+        c._merge({'print_stats': {'print_duration': 0, 'total_duration': 0}}, 5)
+        self.assertEqual(c.snapshot()['print_job_generation'], generation + 1)
+
     def test_immediate_dispatch_rejects_invalid_guard_and_changed_connection(self):
         client = self.subscription()
         connection = FakeSocket()

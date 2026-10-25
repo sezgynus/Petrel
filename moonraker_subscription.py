@@ -408,7 +408,7 @@ class MoonrakerSubscription:
                                 and new + .001 < old)
                     if (prior.get('state') not in active
                             or prior.get('filename') != new_stats.get('filename')
-                            or restarted_counter('print_duration')
+                            # print_duration can be recalculated after a pause.
                             or restarted_counter('total_duration')):
                         self._print_job_generation += 1
             self._eventtime = eventtime

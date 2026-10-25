@@ -1621,22 +1621,19 @@ class PrinterData:
         if (snap.get('state') != 'ready'
                 or stats.get('state') not in ('printing', 'paused', 'pausing')):
             return None
-        try:
-            elapsed = float(stats.get('print_duration', 0))
-            total = float(stats.get('total_duration', 0))
-            if not math.isfinite(elapsed) or not math.isfinite(total):
-                return None
-        except (TypeError, ValueError):
+        epoch = snap.get('epoch')
+        generation = snap.get('print_job_generation')
+        filename = stats.get('filename')
+        if (type(epoch) is not int or epoch < 0
+                or type(generation) is not int or generation < 1
+                or not isinstance(filename, str) or not filename):
             return None
-        return (snap['epoch'], snap.get('print_job_generation'),
-                stats.get('filename'), elapsed, total)
+        # Duration telemetry can be corrected within a single print.
+        return (epoch, generation, filename)
 
     def print_job_matches(self, identity):
         current = self.print_job_identity()
-        return (identity is not None and current is not None
-                and current[:3] == identity[:3]
-                and current[3] + .001 >= identity[3]
-                and current[4] + .001 >= identity[4])
+        return identity is not None and current is not None and identity == current
 
     def cancel_job(self, expected_job=None):
         """Submit cancellation over WebSocket; retain real RPC errors.

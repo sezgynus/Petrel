@@ -248,6 +248,10 @@ class PrintFocusMixin:
             label=self._focus_buttons()[self.select_print.now][0]
             if label == 'Stopping':
                 return  # Inactive control: never re-submit cancellation.
+            if label in ('Tune', 'MMU', 'Stop') and self.pd.status in ('printing', 'paused', 'pausing'):
+                # A missing token may not authorize an active-job editor.
+                if self.pd.print_job_identity() is None:
+                    return
             if label=='Tune':
                 self._tune_job_identity = self.pd.print_job_identity()
                 self.checkkey=self.Tune;self.select_tune.reset();self._focus_tune_open()
@@ -322,6 +326,10 @@ class PrintFocusMixin:
     def _focus_tune_open(self):
         if getattr(self, '_tune_job_identity', None) is None:
             self._tune_job_identity = self.pd.print_job_identity()
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                and self._tune_job_identity is None):
+            self.Goto_PrintProcess()
+            return
         self.checkkey=self.Tune
         self._sync_fan_animation(False)
         self.Clear_Popup_Area();self.Draw_Title('Tune', back=True)
@@ -380,7 +388,8 @@ class PrintFocusMixin:
 
     def _focus_tune_input(self):
         identity = getattr(self, '_tune_job_identity', None)
-        if identity is not None and not self.pd.print_job_matches(identity):
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                and (identity is None or not self.pd.print_job_matches(identity))):
             self.Goto_PrintProcess()
             return
         event=self.get_encoder_state();rows=self._focus_tune_rows()
@@ -416,7 +425,8 @@ class PrintFocusMixin:
 
     def _focus_edit_input(self):
         identity = getattr(self, '_tune_job_identity', None)
-        if identity is not None and not self.pd.print_job_matches(identity):
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                and (identity is None or not self.pd.print_job_matches(identity))):
             self.Goto_PrintProcess()
             return
         event=self.get_encoder_state();s=self._tune_edit
@@ -466,7 +476,8 @@ class PrintFocusMixin:
 
     def _focus_error_input(self):
         identity = getattr(self, '_error_job_identity', None)
-        if identity is not None and not self.pd.print_job_matches(identity):
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                and (identity is None or not self.pd.print_job_matches(identity))):
             self.Goto_PrintProcess()
             return
         event = self.get_encoder_state()
@@ -515,7 +526,8 @@ class PrintFocusMixin:
 
     def _focus_stop_input(self):
         identity = getattr(self, '_stop_job_identity', None)
-        if identity is not None and not self.pd.print_job_matches(identity):
+        if (self.pd.status in ('printing', 'paused', 'pausing')
+                and (identity is None or not self.pd.print_job_matches(identity))):
             self.Goto_PrintProcess()
             return
         event=self.get_encoder_state()

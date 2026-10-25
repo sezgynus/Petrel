@@ -47,7 +47,8 @@ def snapshot(hotend=True, bed=True, fan=True, probe=False, multiple=False):
         objects += ['probe', 'bed_mesh']
         settings['bltouch'] = {'z_offset': 2.3}
     return {'state': 'ready', 'error': None, 'epoch': 1, 'revision': 1,
-            'file_revision': 0, 'objects': objects, 'status': status, 'settings': settings}
+            'print_job_generation': 1, 'file_revision': 0,
+            'objects': objects, 'status': status, 'settings': settings}
 
 
 def printer(data):
