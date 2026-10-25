@@ -10,15 +10,13 @@ The configurator adds no background work to the running UI.
 
 ![Petrel Kconfig main menu](assets/configuration/main-menu.png)
 
-The screenshots show an existing installation. Displayed values and user paths are
-examples, not a complete list of first-install defaults; choose values for your wiring
-and installation. Menu labels remain in English in both language guides.
+The screenshots capture the current Kconfig terminal UI with clean first-install Kconfig defaults, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
 
 ## Navigate and apply
 
 Use arrows and Enter to navigate/edit, Space to toggle, `?` for help, `S` to save,
 and `Q` to exit. The menu contains connections/power, encoder/presets, maintenance
-counters, hardware PWM buzzer, display tools, DWIN auxiliary UART and apply options. Settings that depend
+counters, hardware PWM buzzer, Klipper virtual buzzer, display tools, DWIN auxiliary UART, NFC and apply options. Settings that depend
 on a disabled feature are hidden; their saved values are retained for re-enabling.
 
 Existing settings are read from `~/.config/Petrel/Petrel.env`. Saving in menuconfig
@@ -54,9 +52,13 @@ path. Use the actual pin assignments of your wiring.
 
 Select the buzzer pin only among GPIO12 (PWM0), 13 (PWM1), 18 (PWM0), or 19 (PWM1), default GPIO19. The pin cannot conflict with encoder A/B or button. Kconfig configures the physical pin and boot overlay; the LCD controls Enabled/Disabled, volume and tones only. Reboot after changing boot overlay. No Klipper output pin is required.
 
+![Hardware PWM GPIO selection](assets/configuration/buzzer-pwm.png)
+
 ### Klipper virtual buzzer
 
 **Virtual SET_PIN Buzzer Klipper extra** defaults to **on**. When applied it installs the independent `[petrel_buzzer Buzzer]` Klipper extra, without a physical Klipper pin. Existing `SET_PIN PIN=Buzzer VALUE=... CYCLE_TIME=...` macros work unchanged; Jinja status compatibility is not supplied. Remove the previous `[pwm_cycle_time Buzzer]` section yourself before manually restarting Klipper. Disable this option to remove only the Petrel-managed Klipper module/config; native LCD buzzer settings remain functional.
+
+![Optional virtual SET_PIN buzzer extra](assets/configuration/virtual-buzzer.png)
 
 ### Maintenance usage counters
 
@@ -75,11 +77,11 @@ reveals its bind address and port settings. See the [emulator guide](ui-emulator
 
 ### DWIN auxiliary UART
 
-Toggle installation of the Linux serial port. The checked example below selects
-installation; save, exit and confirm Apply to perform it. Unchecking and applying
+Toggle installation of the Linux serial port. The default below is unchecked. Check
+it to select installation; save, exit and confirm Apply to perform it. Unchecking and applying
 removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
 
-![DWIN auxiliary UART enabled in Kconfig](assets/configuration/auxiliary-uart.png)
+![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)
 
 ## Preservation and failures
 
@@ -117,3 +119,15 @@ A supplied file can be a partial overlay: absent symbols retain the imported
 settings. Invalid/unknown settings fail before application. `--no-restart` skips only
 the final Petrel restart, not transport transitions required by a component installer.
 API-key records and other opaque settings are retained from the target machine.
+
+## NFC
+
+Enable **NFC reader support (libnfc)** to install the runtime dependency; it defaults off. This option does not select the reader, change its wiring or require the DWIN auxiliary UART. Configure model, interface, port and Test connection separately on **Home → Device → NFC Settings**. [NFC usage](user-guide.md#nfc-and-rfid) and [LCD examples](screenshots.md#nfc-tags-and-spool-assignment) cover the runtime flow. Turning the setup option off removes the managed dependency while retaining reader preferences.
+
+![Optional NFC reader dependency in Kconfig](assets/configuration/nfc.png)
+
+## Reproducing configuration captures
+
+`python tools/render_configuration_screenshots.py` captures the actual menuconfig curses output in an isolated Linux PTY. It requires Kconfiglib 14.1.0, pyte 0.8.2, Pillow and the DejaVu Sans Mono system font. It uses no installed environment, does not save or apply configuration, and stages all ten captures before replacing published images. This is separate from the LCD emulator. CI runs it during full documentation publication.
+
+![Apply/restart preference, without applying it](assets/configuration/apply-options.png)

@@ -38,15 +38,22 @@ For manual application testing, stop the installed service first so only one pro
 
 ```bash
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 cd ~/Petrel
 ~/petrel-env/bin/python run.py \
   --serial-port /dev/ttyS0 \
-  --encoder-pins 21 19 \
+  --encoder-pins 21 16 \
   --button-pin 20 \
   --moonraker-url http://127.0.0.1:7125
 ```
 
 After exiting the manual process, restart the installed service with `sudo systemctl start Petrel.service`. Use `run.py --help` for available options; CLI values override environment values. Test movement, calibration and MMU changes on appropriate hardware in addition to automated tests.
+
+When the auxiliary UART is installed, keep its broker running and select the display socket explicitly as above; an SSH shell does not inherit the service drop-in. Without a broker, use the physical UART directly. See [manual transport ownership](assets/README.md#manual-transport-ownership).
 
 ## Screenshots and documentation
 
@@ -95,3 +102,11 @@ Reading an NDEF URI in NFC Tools did not initially cause Android to offer/open t
 ## Home menu ordering contract
 
 Info is always the final home entry. Insert new features before Info; RFID immediately precedes Info. `tests/test_rfid_emergency.py` preserves this ordering.
+
+## Commit titles and wiring compatibility
+
+Use `type(scope): description`, for example `feat(ui): ...`, `fix(nfc): ...`, `fix(dwin): ...` or `docs(guides): ...`. The signing bot preserves the message; it does not repair its format. `docs(nfc):` is an explicit NFC-only publishing opt-in, so do not use it for general documentation work.
+
+New encoder wiring uses A/B GPIO21/16 and buzzer GPIO19. Existing A/B GPIO21/19 installations remain supported with a different non-conflicting buzzer PWM pin; do not silently rewire an existing installation.
+
+For a full audit, a `docs(audit):` commit on master explicitly opts into generation of all LCD PNGs/GIFs and Kconfig captures before the signing bot amends that same commit. Generated assets, galleries and static bilingual/link checks must succeed first. Normal commits keep the existing signing behavior. Wait for the complete regression result on the final signed SHA. The standalone Documentation Render action remains available for later refreshes.

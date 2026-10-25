@@ -10,16 +10,13 @@ plan işi eklemez.
 
 ![Petrel Kconfig ana menüsü](assets/configuration/main-menu.png)
 
-Görüntüler mevcut bir kurulumu gösterir. Görünen değerler ve kullanıcı yolları
-örnektir; ilk kurulum varsayılanlarının tamamını temsil etmez. Kendi bağlantınıza
-ve kurulumunuza uygun değerleri seçin. Menü etiketleri her iki dildeki rehberde de
-İngilizce olarak gösterilir.
+Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
 
 ## Gezinme ve uygulama
 
 Oklar ve Enter ile gezinin/düzenleyin, Space ile seçenek değiştirin, `?` ile yardımı
 açın, `S` ile kaydedin, `Q` ile çıkın. Bağlantı/güç, enkoder/preset, bakım sayaçları,
-donanımsal PWM buzzer, ekran araçları, DWIN yardımcı UART ve uygulama seçenekleri menüleri bulunur.
+donanımsal PWM buzzer, Klipper virtual buzzer, ekran araçları, DWIN yardımcı UART, NFC ve uygulama seçenekleri menüleri bulunur.
 Kapalı özelliğe bağlı ayarlar gizlenir; tekrar açıldıklarında kayıtlı değerleri korunur.
 
 Mevcut ayarlar `~/.config/Petrel/Petrel.env` dosyasından alınır. Menuconfig içinde
@@ -55,9 +52,13 @@ yolunu ise kendi kurulumunuza göre ayarlayın. Gerçek kablolamanızdaki pinler
 
 Buzzer pinini yalnızca GPIO12 (PWM0), 13 (PWM1), 18 (PWM0) veya 19 (PWM1) arasından seçin; varsayılan GPIO19. Enkoder A/B veya butonla çakışamaz. Fiziksel pini ve boot overlay'ini Kconfig ayarlar; LCD'de yalnız Enabled/Disabled, volume ve tonlar değişir. Boot overlay'i değişmişse reboot gereklidir. Klipper output pin kullanılmaz.
 
+![Donanımsal PWM GPIO seçimi](assets/configuration/buzzer-pwm.png)
+
 ### Klipper virtual buzzer
 
 **Virtual SET_PIN Buzzer Klipper extra** seçeneği varsayılan **açık** gelir. Apply sonrasında gerçek Klipper GPIO'su kullanmadan `[petrel_buzzer Buzzer]` extra'sını kurar. Eski `SET_PIN PIN=Buzzer VALUE=... CYCLE_TIME=...` makroları değişmeden çalışır; Jinja uyumluluğu eklenmez. Klipper restart öncesi eski `[pwm_cycle_time Buzzer]` bölümünü kendiniz silin. Seçenek kapatılırsa yalnız Petrel yönetimli Klipper modülü/config kaldırılır, LCD buzzer etkilenmez.
+
+![İsteğe bağlı virtual SET_PIN buzzer extra’sı](assets/configuration/virtual-buzzer.png)
 
 ### Maintenance usage counters
 
@@ -77,12 +78,12 @@ Remote display açıldığında dinleme adresi ve port ayarları görünür. Ayr
 
 ### DWIN auxiliary UART
 
-Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki işaretli örnek kurulumu
-seçer; işlemi yapmak için kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
+Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki varsayılan örnek işaretsizdir.
+Kurulumu seçmek için işaretleyin; kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
 uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
 [UART rehberine](dwin-uart_TR.md) bakın.
 
-![Kconfig içinde etkin seçilmiş DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
+![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
 
 ## Koruma ve hatalar
 
@@ -121,3 +122,15 @@ Verilen dosya kısmi olabilir: bulunmayan semboller içeri alınan değerlerini 
 Geçersiz/bilinmeyen ayarlar uygulama öncesinde reddedilir. `--no-restart`, bileşen
 installer'ının gerektirdiği bağlantı değişimini değil, yalnız son Petrel restart'ını
 atlar. API anahtarı ve menüde yer almayan diğer ayarlar hedef makineden korunur.
+
+## NFC
+
+**NFC reader support (libnfc)** çalışma bağımlılığını kurar; varsayılan kapalıdır. Okuyucuyu veya kablolamasını seçmez, DWIN yardımcı UART gerektirmez. Model, arayüz, port ve Test connection ayrıca **Home → Device → NFC Settings** üzerinden ayarlanır. [NFC kullanımı](user-guide_TR.md#nfc-ve-rfid) ve [LCD örnekleri](screenshots_TR.md#nfc-kartları-ve-makara-atama) çalışma akışını anlatır. Kurulum seçeneği kapatıldığında okuyucu tercihleri korunarak yönetilen bağımlılık kaldırılır.
+
+![Kconfig isteğe bağlı NFC okuyucu bağımlılığı](assets/configuration/nfc.png)
+
+## Yapılandırma görsellerini yeniden üretme
+
+`python tools/render_configuration_screenshots.py`, gerçek menuconfig curses çıktısını izole Linux PTY içinde yakalar. Kconfiglib 14.1.0, pyte 0.8.2, Pillow ve DejaVu Sans Mono sistem fontu gerekir. Kurulu ortam dosyası okunmaz, yapılandırma kaydedilmez/uygulanmaz; on görsel de hazırlanmadan yayımlanmış dosyalar değiştirilmez. LCD emülatöründen ayrı bir araçtır. CI tam doküman yayınında çalıştırır.
+
+![Uygulanmadan gösterilen Apply/restart tercihi](assets/configuration/apply-options.png)

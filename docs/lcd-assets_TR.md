@@ -38,6 +38,11 @@ Normal kullanımda otomatik eşitleme yeterlidir. Geliştirici tanılaması içi
 
 ```sh
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
@@ -47,6 +52,11 @@ Referans export dosyasının kendisini incelemek için servis kapalıyken açık
 
 ```sh
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/2.ICO && sudo systemctl start Petrel.service
 ```
 
@@ -61,4 +71,8 @@ Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO --libr
 
 ## Ardışık yönetilen ID’ler
 
-Güncel kütüphanede 0–199 ID’lerinde 200 ikon vardır; 200–255 boştur. PETICO05 metadata sürümü, eşitleme öncesinde eski yerleşik ID’lerle yeni açılış karelerinin başlatılmasını önler. JPEG baytları ve UI davranışları korunur. [Güncel ikon envanterine](../assets/icons/README_TR.md) bakın.
+Güncel kütüphanede 0–185 ID’lerinde 186 ikon vardır; 186–255 boştur. PETICO06 metadata sürümü, yeni açılış kareleri başlamadan önce PETICO05 dahil eski yerleşik dizinleri geçersiz sayar. Güncel çıktı 12 blok kaplar. [Güncel ikon envanterine](../assets/icons/README_TR.md) bakın.
+
+### Manuel bağlantı sahipliği
+
+Bu komutları yazıcı boşta iken Petrel servis kullanıcısıyla çalıştırın. Yardımcı UART kuruluysa `Petrel-dwin.service` çalışır kalsın ve yukarıdaki gibi display socket açıkça seçilsin: SSH kabuğu UI servisinin drop-in ortamını devralmaz. Böylece fiziksel UART’ın tek sahibi korunur ve yardımcı UART/NFC istemcileri kopmaz. Broker yoksa socket değişkenini kaldırın ve yapılandırılmış fiziksel UART’ı doğrudan kullanın. Broker sahipken fiziksel UART’ı doğrudan açmayın. Yükleme kısayolu olarak broker’ı durdurmayın; yardımcı istemcilerin bağlantısını keser. Hata Petrel’i inceleme için kapalı bırakır; sorunu çözünce başlatın. `reload_icons.py --boot`, 0 ve 1 numaralı slotlarla kütüphane 2’yi açıkça onarır; `--boot` yoksa mevcut ikon/ortak sayfa davranışı korunur. Panel ayarları ve fontlar korunur.

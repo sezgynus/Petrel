@@ -42,8 +42,16 @@ After reinstalling panel resources, force a reload of the managed icons over SSH
 
 ```bash
 sudo systemctl stop Petrel.service
-~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
-sudo systemctl start Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py --boot && sudo systemctl start Petrel.service
 ```
 
 The tool reads the configured UART, rebuilds library 2 and reloads its blocks and the shared slot-1 page. Display settings are preserved.
+
+### Manual transport ownership
+
+Run these commands as the Petrel service user, while the printer is idle. With the auxiliary UART installed, leave `Petrel-dwin.service` running and explicitly use its display socket as above: an SSH shell does not inherit the UI service drop-in. This retains one physical UART owner and avoids hanging up auxiliary/NFC clients. Without a broker, unset the socket variable and use the configured physical UART directly. Never open that UART directly while the broker owns it. Do not stop the broker as an upload shortcut; it disconnects auxiliary clients. Failure leaves Petrel stopped for inspection; restart only after resolving the error. `reload_icons.py --boot` explicitly restores slots 0 and 1 plus library 2; without `--boot`, its existing icon/shared-page behavior is retained. Panel settings and fonts are preserved.

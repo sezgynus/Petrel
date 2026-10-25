@@ -1,5 +1,7 @@
 # Source audit fixes
 
+> Historical snapshot from 19 October 2026. Branch/master statements below describe that date; the fixes are now in master. For current behavior see the [user guide](user-guide.md).
+
 [English](source-audit-fixes-2026-10-19.md) · [Türkçe](source-audit-fixes-2026-10-19_TR.md)
 
 Branch: `fix/source-audit-2026-10-19`. Base: `bc5e395`. Hardware acceptance is pending; master is unchanged. Regression checks run in GitHub Actions only.

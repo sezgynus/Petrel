@@ -15,6 +15,7 @@ from print_tuning import JOB_PINS
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--frame',action='store_true')
+    parser.add_argument('--output', type=Path, help='Write to a separate validation file')
     args=parser.parse_args()
     logging.getLogger().setLevel(logging.ERROR)
     data=sample(mmu=True)
@@ -59,14 +60,22 @@ def main():
         data['status']['mmu'].update(print_state='pause_locked',reason_for_pause='Unload failed: toolhead sensor still active after filament retraction. Check filament path and recover MMU state before resuming.')
         data['status']['print_stats']['state']='paused';v.pd.update_variable();v._focus_print_tick();capture()
         v.select_print.set(1);enter(v.HMI_Printing);capture()
-        enter(v._focus_error_input);capture()
+        # Error details opens with header Back selected. Turn to the recovery
+        # action before Enter, as a real encoder user must do.
+        v.get_encoder_state.return_value=v.ENCODER_DIFF_CW
+        v._focus_error_input()
+        enter(v._focus_error_input)
+        assert v.checkkey == v.MMUMenu, 'Recovery action did not open MMU'
+        capture()
         v._mmu_back();v.select_print.set(2);enter(v.HMI_Printing);capture()
         enter(v.HMI_PauseOrStop);v._open_power_hold_popup();capture()
-    target=Path(__file__).resolve().parents[1]/'docs/assets/print-controls-demo.gif'
+    target=args.output or Path(__file__).resolve().parents[1]/'docs/assets/print-controls-demo.gif'
     if args.frame:
         from dwin_emulator.presentation import with_frame
         frames=[with_frame(frame) for frame in frames]
-        target=target.parent/'framed'/target.name;target.parent.mkdir(exist_ok=True)
+        if args.output is None:
+            target=target.parent/'framed'/target.name
+    target.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(target,save_all=True,append_images=frames[1:],duration=durations,loop=0,disposal=2)
     print(target)
 

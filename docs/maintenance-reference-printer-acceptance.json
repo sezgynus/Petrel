@@ -773,7 +773,7 @@
       "reference": "confirmed",
       "status": "accepted",
       "adapter": "implemented",
-      "note": "Reference-backed hardware capability; no physical operator acceptance recorded.",
+      "note": "Initial capability assessment had no operator acceptance; superseded by the dated physical acceptance evidence below.",
       "acceptance": {
         "date": "2026-10-16",
         "source": "user_explicit_physical_observation",
@@ -2604,7 +2604,7 @@
       "reference": "conditional",
       "status": "accepted",
       "adapter": "implemented",
-      "note": "Reference-backed hardware capability; no physical operator acceptance recorded.",
+      "note": "Initial capability assessment had no operator acceptance; superseded by the dated physical acceptance evidence below.",
       "acceptance": {
         "date": "2026-10-16",
         "source": "user_explicit_physical_observation",

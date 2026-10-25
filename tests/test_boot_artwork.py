@@ -30,6 +30,37 @@ class BootArtworkTests(unittest.TestCase):
         lcd.write_flash.assert_not_called()
 
     @patch('boot_artwork.time.sleep')
+    def test_explicit_repair_overwrites_matching_boot_and_invalidates_first(self, _):
+        import hashlib
+        record = boot_artwork.MAGIC + hashlib.sha256(boot_artwork.SOURCE.read_bytes()).digest()
+        flash = {boot_artwork.ADDRESS: record}
+        lcd = Mock()
+        lcd.read_flash.side_effect = lambda address, size: flash.get(address, bytes(size))
+        lcd.write_flash.side_effect = lambda address, value: flash.update({address: value})
+        self.assertTrue(boot_artwork.sync(lcd, force=True))
+        lcd.store_sram_as_picture.assert_called_once_with(0, timeout=5)
+        writes = lcd.write_flash.call_args_list
+        self.assertEqual(writes[0].args, (boot_artwork.ADDRESS, bytes(boot_artwork.SIZE)))
+        self.assertEqual(writes[-1].args, (boot_artwork.ADDRESS, record))
+        names = [call[0] for call in lcd.mock_calls]
+        self.assertLess(names.index('write_flash'), names.index('write_sram'))
+
+    @patch('boot_artwork.time.sleep')
+    def test_failed_forced_repair_leaves_checkpoint_invalid(self, _):
+        import hashlib
+        record = boot_artwork.MAGIC + hashlib.sha256(boot_artwork.SOURCE.read_bytes()).digest()
+        flash = {boot_artwork.ADDRESS: record}
+        lcd = Mock()
+        lcd.read_flash.side_effect = lambda address, size: flash.get(address, bytes(size))
+        lcd.write_flash.side_effect = lambda address, value: flash.update({address: value})
+        lcd.store_sram_as_picture.side_effect = TimeoutError('no ACK')
+        with self.assertRaises(TimeoutError):
+            boot_artwork.sync(lcd, force=True)
+        self.assertEqual(flash[boot_artwork.ADDRESS], bytes(boot_artwork.SIZE))
+        with self.assertRaisesRegex(RuntimeError, 'already failed'):
+            boot_artwork.sync(lcd, force=True)
+
+    @patch('boot_artwork.time.sleep')
     def test_failed_picture_write_does_not_mark_image_loaded_or_retry_in_process(self, _):
         lcd = Mock()
         lcd.read_flash.return_value = bytes(boot_artwork.SIZE)

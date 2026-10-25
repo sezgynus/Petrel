@@ -18,7 +18,7 @@ Testi hazırlamak donanım çalıştırmaz. Controller ön kontrolü ve açık S
 
 ## Çizim ve etkileşim
 
-Back satırı master ile aynı y=31–83 alanındadır. Önceki seçim/cihaza döner; kökteki Back ana menüde Maintenance kutusunu geri seçer. Ana satırlar sabit kalırken bakım alt görünümü kayar. Eski büyük Maintenance kutuları yerine mevcut küçük Graphite ikonları yeniden kullanılır. Girişte büyük yazıcı çizimi yer kaplamaz.
+Back, güncel menülerle ortak üst bar okudur; girişte seçilidir ve içerik satırı kaplamaz. Önceki seçim/cihaza döner; kökteki Back ana menüde Maintenance kutusunu geri seçer. Ana satırlar sabit kalırken bakım alt görünümü kayar. Eski büyük Maintenance kutuları yerine mevcut küçük Graphite ikonları yeniden kullanılır. Girişte büyük yazıcı çizimi yer kaplamaz.
 
 Metin, çubuk ve seçim çizgisi ayrı imzalarla önbelleklenir. Değişmeyen seçimler arasında enkoder yalnızca eski/yeni ince seçim çizgisini çizer; ikon ve metni tekrar göndermez, tüm ekranı temizlemez. Görünür pencere değiştiğinde yalnızca dashboard üzerindeki içerik yenilenir. Çubuk imzası panel pikseline yuvarlanır. Eylem kimliği değişmiş ENTER yanlış hedefi çalıştırmak yerine yeniden çizer. Controller aşaması değişince güvenli ilk seçim geri gelir. Genel güç/kurtarma ve etkin işlem polling davranışı korunur.
 
@@ -32,7 +32,7 @@ Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretm
 
 ## Teşhis sunumu ve ortak görseller
 
-Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Ardışık ID taşıması sonrasında Maintenance ortak master ikonları 13, 31 ve 163 kullanır. Güncel kütüphane/çıktı 200 ikon ve 12 bloktur (384 KiB); tam eşleştirme yönetilen ikon envanterindedir.
+Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Maintenance ortak ikonları `lcd_resources.py` içindeki anlamlı sabitlerle seçer. Güncel kütüphane/çıktı 186 ikon ve 12 bloktur (384 KiB); tam eşleştirme yönetilen ikon envanterindedir.
 
 ## Tüm alt menülerde artımlı güncelleme
 
@@ -40,7 +40,7 @@ Enkoder dönüşü çizilmiş modeli kullanır; ENTER eylem kimliğini gönderme
 
 ## Anlamlı ikonlar
 
-Küçük 20x20 Graphite ikonları 164–167; Check printer, Diagnostics, Recommendations ve Care schedule girişlerini ayırır. Master çizgi kalınlığı/uçları ve paleti, baseline 4:2:0 JPEG kaynakları, mevcut kütüphane ID’si ve değişmeyen 9 blok alanı kullanılır. Alt menü ikonları eylem, konu, test özelliği ve bakım işi sözleşmelerinden seçilir: ısıtıcı, tabla, fan, eksen/homing, prob, filament, sürücü, host, buzzer, ışık, geçmiş ve depolama ilgili mevcut ikonu kullanır. Info yalnız gerçek Details için kullanılır; bilinmeyen eyleme ve sayısal veriye Info atanmaz. Bakım/menü etiketleri LCD’nin native metnidir.
+Küçük 20x20 Graphite ikonları 104–107; Check printer, Diagnostics, Recommendations ve Care schedule girişlerini ayırır. Master çizgi kalınlığı/uçları ve paleti, baseline 4:2:0 JPEG kaynakları, mevcut kütüphane ID’si ve güncel 12 blok alanı kullanılır. Alt menü ikonları eylem, konu, test özelliği ve bakım işi sözleşmelerinden seçilir: ısıtıcı, tabla, fan, eksen/homing, prob, filament, sürücü, host, buzzer, ışık, geçmiş ve depolama ilgili mevcut ikonu kullanır. Info yalnız gerçek Details için kullanılır; bilinmeyen eyleme ve sayısal veriye Info atanmaz. Bakım/menü etiketleri LCD’nin native metnidir.
 
 ## Salt okunur raporlar
 

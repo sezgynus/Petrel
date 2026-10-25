@@ -11,7 +11,7 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q .
 ```
 
-On an installed Pi, replace `python3` with `~/petrel-env/bin/python`. The suite uses isolated state and simulated serial/GPIO/network connections. It does not connect to or move the printer. Local Unix-socket tests require an environment that allows Unix sockets; otherwise those integration checks are skipped.
+On an installed Pi, replace `python3` with `~/petrel-env/bin/python`. The suite uses isolated state and simulated serial/GPIO/network connections. It does not connect to or move the printer. The supported full-suite environment is Linux with Unix sockets, PTYs and native build dependencies, as configured in GitHub Actions. Some tests explicitly skip unavailable features, but socket/PTY permission failures are not universally skipped and can fail the suite in restricted environments.
 
 ## What the suite checks
 

@@ -32,7 +32,7 @@ Telemetry sampling, estimate algorithms and command increments are unchanged. Ma
 
 ## Validation
 
-CI regressions compare rounding boundaries against the JavaScript runtime, preserve raw command values and check label pixel bounds. The full suite, Maintenance measurements and all documentation screen renders run in CI. Physical display testing remains separate; this report does not claim hardware validation.
+CI regressions compare rounding boundaries against the JavaScript runtime, preserve raw command values and check label pixel bounds. The normal regression workflow runs the full suite and Maintenance measurements, but does not regenerate documentation images. Full PNG/GIF publication is manual through Documentation Render; NFC-only publication requires a successful exact-SHA regression and the `docs(nfc):` opt-in. The `docs(audit):` signing path can fold a full render into the same commit. Strict published parity currently covers 24 Maintenance scenes with `PETREL_VERIFY_PUBLISHED_SCREENS=1`, not every scene on every push. Physical display testing remains separate; this report does not claim hardware validation.
 
 Z and Z offset fields start at up to three decimals and reduce precision until the text fits. Raw values/commands are unchanged. Dashboard formatting only runs when the raw input changes, using a bounded two-field cache. Fixed-width padding and existing field erasure prevent stale digits. Mesh and temperature policies are retained.
 
@@ -44,4 +44,4 @@ Below the X/Y/Z icons (x = icon X + 3..16, y = 470..472) a 14×3 px bar reflects
 
 ## Indicator audit fixes
 
-Wi-Fi queue failures and cancellations no longer interrupt the UI tick: signal becomes unknown and the five-second retry interval remains in force. Info uses the same Wi-Fi cache without a second iw probe. Maintenance header clears invalidate clock, Wi-Fi and Klipper caches together. Titles fit the 23-character region before Wi-Fi; longer titles end in an ellipsis. CI renders screenshots once, after regressions; published-image parity tests inspect repository assets before any regeneration.
+Wi-Fi queue failures and cancellations no longer interrupt the UI tick: signal becomes unknown and the five-second retry interval remains in force. Info uses the same Wi-Fi cache without a second iw probe. Maintenance header clears invalidate clock, Wi-Fi and Klipper caches together. Titles fit the 23-character region before Wi-Fi; longer titles end in an ellipsis. Published-image checks inspect repository assets; an explicitly requested render then refreshes captures and verifies strict Maintenance parity before publication. See the [render contract](ui-emulator.md#refresh-pngs-frames-and-gifs).

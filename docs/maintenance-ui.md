@@ -18,7 +18,7 @@ Preparing a check does not actuate hardware. Controller preflight and explicit S
 
 ## Drawing and interaction
 
-The Back row matches master at y=31–83. It returns to the prior selection/device; root Back restores the main-menu Maintenance tile. Root rows stay fixed while only the care subview scrolls. Existing small Graphite icons are reused instead of the former large Maintenance tiles. No large printer illustration occupies the entry screen.
+Back uses the fixed title-bar arrow shared by current menus, selected on entry; it consumes no content row. It returns to the prior selection/device; root Back restores the main-menu Maintenance tile. Root rows stay fixed while only the care subview scrolls. Existing small Graphite icons are reused instead of the former large Maintenance tiles. No large printer illustration occupies the entry screen.
 
 Rendering caches independent text, bar and cursor signatures. Turning between unchanged choices redraws only the old/new thin cursor strips; it does not resend icons or text or clear the full frame. A changed viewport repaints only the content above the dashboard. Progress is quantized to panel pixels before comparing draw signatures. ENTER against changed action identities redraws instead of dispatching the wrong target. Controller phase changes restore safe first focus. Global power/recovery and active operation polling remain unchanged.
 
@@ -32,7 +32,7 @@ The empty-evidence root does not build an assessment report or controller plan. 
 
 ## Diagnostic presentation and shared artwork
 
-Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Maintenance uses shared master icons 13, 31 and 163 after the dense ID migration. The current library/export has 200 icons and 12 blocks (384 KiB); see the managed icon inventory for the complete mapping.
+Successful information reads open their measured facts directly, without another Details selection. Familiar labels and declared units replace internal evidence keys. Pi warning bits are explained as current/history host warnings, never as a 24 V PSU diagnosis. Result/history status and restoration flags use plain language; registered diagnostic fields receive explicit labels and units. Long text wraps and full instructions remain reachable. Maintenance selects shared icons by semantic constants in `lcd_resources.py`. The current library/export has 186 icons and 12 blocks (384 KiB); see the managed icon inventory for the complete mapping.
 
 ## Incremental updates across all submenus
 
@@ -40,7 +40,7 @@ Encoder rotation reuses the displayed model; ENTER still rebuilds and validates 
 
 ## Semantic icons
 
-Small 20x20 Graphite icons 164–167 identify Check printer, Diagnostics, Recommendations and Care schedule. They use master line weight/caps and palette, baseline 4:2:0 JPEG sources, the existing library ID and unchanged 9-block footprint. Submenu icons are selected from action, topic, test feature and service task contracts: heaters, bed, fan, axes/homing, probe, filament, driver, host, buzzer, lights, history and storage use their corresponding existing icons. Info is used only for actual Details; unknown actions and numeric facts do not receive an Info fallback. Care and menu labels remain native LCD text.
+Small 20x20 Graphite icons 104–107 identify Check printer, Diagnostics, Recommendations and Care schedule. They use master line weight/caps and palette, baseline 4:2:0 JPEG sources, the existing library ID and current 12-block footprint. Submenu icons are selected from action, topic, test feature and service task contracts: heaters, bed, fan, axes/homing, probe, filament, driver, host, buzzer, lights, history and storage use their corresponding existing icons. Info is used only for actual Details; unknown actions and numeric facts do not receive an Info fallback. Care and menu labels remain native LCD text.
 
 ## Read-only reports
 

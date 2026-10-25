@@ -111,7 +111,7 @@ seçilen bileşenleri kurar/kaldırır ve ayarları yazar. Kaydetmeden çıkmak 
 sorusunu reddetmek mevcut kurulumu korur. **Apply options** menüsü çalışan Petrel'in
 son yeniden başlatmasını denetler; Klipper otomatik yeniden başlatılmaz. Otomatik
 kurulum, koruma ve hata davranışı için [yapılandırma rehberine](configuration_TR.md)
-bakın. Parlaklık/kısma ayarları LCD'de **Home → Display** altında kalır.
+bakın. Parlaklık/kısma ayarları LCD'de **Home → Device** altında kalır.
 
 Menüde bulunmayan ayarlar için harici ortam dosyasını düzenleyin. `export` kullanmadan düz `KEY=value` satırları yazın:
 
@@ -121,7 +121,7 @@ Menüde bulunmayan ayarlar için harici ortam dosyasını düzenleyin. `export` 
 | `MOONRAKER_API_KEY` | Gerekiyorsa kimlik doğrulama anahtarı / boş |
 | `PETREL_REQUEST_TIMEOUT` | Saniye cinsinden istek zaman aşımı / `5` |
 | `PETREL_SERIAL_PORT` | Yapılandırılmış UART / kurulum `/dev/ttyS0` önerir |
-| `PETREL_ENCODER_PINS` | BCM numaralarıyla encoder A/B / `21 19` |
+| `PETREL_ENCODER_PINS` | BCM numaralarıyla encoder A/B / `21 16` |
 | `PETREL_BUTTON_PIN` | BCM numarasıyla encoder düğmesi / `20` |
 | `PETREL_BUZZER_GPIO` | Donanımsal PWM buzzer GPIO12/13/18/19, varsayılan `19` |
 | `PETREL_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/Petrel/presets.json` |

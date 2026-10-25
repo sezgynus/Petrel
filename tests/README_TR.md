@@ -11,7 +11,7 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q .
 ```
 
-Kurulu Pi'de `python3` yerine `~/petrel-env/bin/python` kullanın. Testler izole durum ve taklit seri/GPIO/ağ bağlantıları kullanır. Yazıcıya bağlanmaz veya hareket ettirmez. Yerel Unix soket testleri bunlara izin veren ortam gerektirir; aksi durumda ilgili entegrasyon kontrolleri atlanır.
+Kurulu Pi'de `python3` yerine `~/petrel-env/bin/python` kullanın. Testler izole durum ve taklit seri/GPIO/ağ bağlantıları kullanır. Yazıcıya bağlanmaz veya hareket ettirmez. Tam test paketi için desteklenen ortam, GitHub Actions’taki gibi Unix soketlerine ve PTY’ye izin veren, native derleme bağımlılıkları kurulu Linux’tur. Bazı testler eksik özelliği açıkça atlar; socket/PTY izin hataları her testte atlanmaz ve kısıtlı ortamda paketi başarısız yapabilir.
 
 ## Test kapsamı
 

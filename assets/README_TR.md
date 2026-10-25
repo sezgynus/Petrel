@@ -42,8 +42,16 @@ Panel kaynaklarını yeniden kurduktan sonra yönetilen ikonları SSH üzerinden
 
 ```bash
 sudo systemctl stop Petrel.service
-~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
-sudo systemctl start Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py --boot && sudo systemctl start Petrel.service
 ```
 
 Araç yapılandırılmış UART’ı okur, kütüphane 2’yi oluşturup bloklarını ve ortak slot-1 sayfasını yeniden yükler. Ekran ayarları korunur.
+
+### Manuel bağlantı sahipliği
+
+Bu komutları yazıcı boşta iken Petrel servis kullanıcısıyla çalıştırın. Yardımcı UART kuruluysa `Petrel-dwin.service` çalışır kalsın ve yukarıdaki gibi display socket açıkça seçilsin: SSH kabuğu UI servisinin drop-in ortamını devralmaz. Böylece fiziksel UART’ın tek sahibi korunur ve yardımcı UART/NFC istemcileri kopmaz. Broker yoksa socket değişkenini kaldırın ve yapılandırılmış fiziksel UART’ı doğrudan kullanın. Broker sahipken fiziksel UART’ı doğrudan açmayın. Yükleme kısayolu olarak broker’ı durdurmayın; yardımcı istemcilerin bağlantısını keser. Hata Petrel’i inceleme için kapalı bırakır; sorunu çözünce başlatın. `reload_icons.py --boot`, 0 ve 1 numaralı slotlarla kütüphane 2’yi açıkça onarır; `--boot` yoksa mevcut ikon/ortak sayfa davranışı korunur. Panel ayarları ve fontlar korunur.

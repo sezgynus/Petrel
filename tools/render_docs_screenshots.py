@@ -109,7 +109,7 @@ def canvas(data=None):
     v.pd.subscription.responses_since.return_value = (0, ())
     v.pd.subscription.request.side_effect = lambda *a, **k: Future()
     v.pd.refresh_system_info = Mock(return_value=False)
-    v.pd.system_info.update(petrel='v4.0.0', moonraker='v0.11.0', mainsail='v2.19.0',
+    v.pd.system_info.update(petrel='v7.0.0', moonraker='v0.11.0', mainsail='v2.19.0',
                            network='Online', ip='192.168.1.50', wifi_ssid='Workshop', wifi_rssi=-58,
                            host_cpu=18, host_ram=42, host_temp=46.2,
                            mcus=({'name': 'mcu', 'load': 1.4, 'temperature': 42.1, 'version': 'v0.13.0'},

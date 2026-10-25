@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from icon_library import sync_library
 from shared_artwork import sync as sync_shared_artwork
+from boot_artwork import sync as sync_boot_artwork
 from tools.flash_icon_library import ManualDisplay
 from tools.lcd_connection import configured_port
 
@@ -16,6 +17,8 @@ from tools.lcd_connection import configured_port
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial-port', default=configured_port())
+    parser.add_argument('--boot', action='store_true',
+                        help='Also force repair of boot picture slot 0')
     args = parser.parse_args()
     if not args.serial_port:
         parser.error('UART not configured')
@@ -26,6 +29,9 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(message)s')
     lcd = ManualDisplay(args.serial_port)
     try:
+        lcd.set_animation_mask(0)
+        if args.boot:
+            sync_boot_artwork(lcd, force=True)
         sync_library(lcd, force=True, automatic=False)
         sync_shared_artwork(lcd, force=True)
     finally:

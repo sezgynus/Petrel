@@ -10,10 +10,11 @@
 | [Kurulum ve yapılandırma](installation_TR.md) | Bağlantı, kurulum, harici ayarlar, güncellemeler ve sorun giderme |
 | [Kconfig yapılandırma menüsü](configuration_TR.md) | Menüde gezinme, ayarları kaydetme ve uygulama, isteğe bağlı bileşenler ve otomatik yapılandırma |
 | [DWIN yardımcı UART](dwin-uart_TR.md) | İsteğe bağlı Linux seri portunu kurma/kaldırma, programlardan erişim, baud hızları ve bağlantı sınırları |
-| [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Display, Info, ışık ve güç |
+| [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Device, Info, ışık ve güç |
 | [Maintenance kullanımı](user-guide_TR.md#maintenance) | Bakım planları, donanım kontrolleri, sonuçlar, diagnostik, öneriler ve güncel ekranlar |
 | [Maintenance fiziksel kabulü](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
 | [MMU ve filament](mmu-guide_TR.md) | Happy Hare kanalları, makara atama, takım eşlemesi, EndlessSpool ve kurtarma |
+| [NFC kartları ve paylaşım](user-guide_TR.md#nfc-ve-rfid) | Acil durdurma, makara kartı/gate, telefonla bağlantı paylaşma; [Kconfig kurulumu](configuration_TR.md#nfc) ve LCD Device → NFC Settings |
 | [LCD uyumluluğu](lcd-assets_TR.md) | Desteklenen ekranı seçme ve panel kaynaklarını kontrol etme |
 | [Orijinal DWIN kaynaklarına dönüş](restore-stock-dwin_TR.md) | Kalıcı Flash uyarısı, Creality DWIN_SET paketi ve LCD microSD geri yükleme adımları |
 | [Print ve Tune](print-controls_TR.md) | Baskı ekranı, çalışma zamanı ayarları ve isteğe bağlı politika switchleri |

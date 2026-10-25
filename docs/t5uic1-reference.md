@@ -284,8 +284,8 @@ generate the same `0x11` text rendering used before the migration.
 
 The native `0x14` implementation is available separately as `draw_number()`.
 The original migration kept UI behavior unchanged; the current UI now uses
-native animation channel **0** for boot icons **195–199** and channel **1** for
-dashboard fan frames **180–187**. Fan intervals follow the percentage in 10 ms
+native animation channel **0** for boot icons **181–185** and channel **1** for
+dashboard fan frames **166–173**. Fan intervals follow the percentage in 10 ms
 units; unchanged intervals send no new command and 0% stops animation. The
 boot animation is stopped during actual icon uploads and restarted by the next
 boot stage. Info uses virtual Area 1 for the shared slot-1 JPEG: `0x25` decodes it once, and `0x26` copies clipped QR regions while scrolling. EAN-13 and extended UART remain available protocol APIs; availability alone does not imply a current UI feature.
@@ -311,8 +311,7 @@ panel before being made part of normal UI behavior.
 `load_display_settings()` returns `(brightness_percent, idle_minutes, dim_brightness_percent)` or `None`
 for a blank/invalid record. `save_display_settings(brightness_percent,
 idle_minutes, dim_brightness_percent=10)` validates bounds, writes the final record and checks an exact
-readback; a mismatch raises `OSError`. The UI calls this only when confirming a
-changed setting, never on encoder movement or idle dim/wake.
+readback; a mismatch raises `OSError`. This is the synchronous helper/fallback. With the production driver (`SUPPORTS_NONBLOCKING_FLASH=True`), confirmation of a changed setting queues `begin_flash_write_verified()` and `_poll_panel_flash()` collects the Future without blocking the UI owner on ACK/readback. Encoder movement and idle dim/wake do not save settings. Use the symbolic animation constants in `lcd_resources.py` instead of hard-coded IDs.
 
 | Data Flash range | Owner | Size |
 | --- | --- | --- |

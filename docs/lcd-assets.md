@@ -38,6 +38,11 @@ Automatic synchronization is the normal path. For developer diagnostics, the fol
 
 ```sh
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
@@ -47,6 +52,11 @@ To inspect the reference export itself, pass `--file` explicitly with the servic
 
 ```sh
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py --file ~/Petrel/assets/emulator/2.ICO && sudo systemctl start Petrel.service
 ```
 
@@ -61,4 +71,8 @@ The [stock inventory](lcd-assets.json) records the resources previously audited 
 
 ## Compact managed IDs
 
-The current library has 200 icons at IDs 0–199; 200–255 are free. The PETICO05 metadata version prevents old resident IDs from starting new boot frames before synchronization. JPEG bytes and UI behavior are preserved. See the [current icon inventory](../assets/icons/README.md).
+The current library has 186 icons at IDs 0–185; 186–255 are free. The PETICO06 metadata version rejects older resident directories, including PETICO05, before new boot frames can start. The current export occupies 12 blocks. See the [current icon inventory](../assets/icons/README.md).
+
+### Manual transport ownership
+
+Run these commands as the Petrel service user, while the printer is idle. With the auxiliary UART installed, leave `Petrel-dwin.service` running and explicitly use its display socket as above: an SSH shell does not inherit the UI service drop-in. This retains one physical UART owner and avoids hanging up auxiliary/NFC clients. Without a broker, unset the socket variable and use the configured physical UART directly. Never open that UART directly while the broker owns it. Do not stop the broker as an upload shortcut; it disconnects auxiliary clients. Failure leaves Petrel stopped for inspection; restart only after resolving the error. `reload_icons.py --boot` explicitly restores slots 0 and 1 plus library 2; without `--boot`, its existing icon/shared-page behavior is retained. Panel settings and fonts are preserved.

@@ -2,8 +2,7 @@
 
 [Türkçe](ui-native-profiling_TR.md)
 
-Analysis branch: `analysis/ui-native-profiling`, based on C broker revision
-`80a3641`. No UI algorithm has been moved to C. These tools are diagnostic only;
+The tools are available on current `master`. The original analysis branch `analysis/ui-native-profiling` based on `80a3641` is historical; switching to it replaces the whole application, not just the profiler. For historical A/B work, pin full revisions in separate checkouts and record both SHAs. No UI algorithm has been moved to C. These tools are diagnostic only;
 profiling is off by default and is not an installation dependency.
 
 ## Three separate passes
@@ -28,7 +27,7 @@ and approximate action count; compare medians and run-to-run variation.
 ```bash
 cd ~/Petrel
 git fetch origin
-git switch analysis/ui-native-profiling
+git switch master
 git pull --ff-only
 sudo systemctl restart Petrel.service
 sleep 30

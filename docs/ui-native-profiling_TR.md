@@ -2,7 +2,7 @@
 
 [English](ui-native-profiling.md)
 
-Analiz dalı: `analysis/ui-native-profiling`; taban C broker commit'i `80a3641`.
+Araçlar güncel `master` içindedir. `80a3641` tabanlı `analysis/ui-native-profiling` dalı tarihseldir; bu dala geçmek yalnız profiler’ı değil bütün uygulamayı değiştirir. Tarihsel A/B ölçümü için ayrı checkout’larda tam revision sabitleyin ve iki SHA’yı kaydedin.
 Henüz UI algoritması C'ye taşınmadı. Araçlar yalnız tanılama içindir; profil
 varsayılan olarak kapalıdır ve kurulum bağımlılığı değildir.
 
@@ -28,7 +28,7 @@ medyanları ve tekrarlar arasındaki değişkenliği karşılaştırın.
 ```bash
 cd ~/Petrel
 git fetch origin
-git switch analysis/ui-native-profiling
+git switch master
 git pull --ff-only
 sudo systemctl restart Petrel.service
 sleep 30

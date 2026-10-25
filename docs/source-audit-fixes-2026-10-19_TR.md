@@ -1,5 +1,7 @@
 # Kaynak audit düzeltmeleri
 
+> 19 Ekim 2026 tarihli geçmiş kaydıdır. Aşağıdaki dal/master ifadeleri o tarihin durumunu anlatır; düzeltmeler artık master içindedir. Güncel davranış için [kullanım rehberine](user-guide_TR.md) bakın.
+
 [English](source-audit-fixes-2026-10-19.md) · [Türkçe](source-audit-fixes-2026-10-19_TR.md)
 
 Branch: `fix/source-audit-2026-10-19`. Taban: `bc5e395`. Donanım kabulü bekleniyor; master değişmedi. Regresyon kontrolleri yalnız GitHub Actions üzerinde çalışır.

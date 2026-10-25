@@ -111,7 +111,7 @@ settings. Exit without saving, or decline Apply, to keep the current installatio
 The **Apply options** menu controls the final restart of a running Petrel; Klipper is
 never restarted automatically. See the [configuration guide](configuration.md) for
 unattended setup, preservation and failure handling. Brightness/dimming remain on
-the LCD under **Home → Display**.
+the LCD under **Home → Device**.
 
 For settings not listed in the menu, edit the external environment file. Use plain `KEY=value` lines, without `export`:
 
@@ -121,7 +121,7 @@ For settings not listed in the menu, edit the external environment file. Use pla
 | `MOONRAKER_API_KEY` | Authentication key if required / empty |
 | `PETREL_REQUEST_TIMEOUT` | Request timeout in seconds / `5` |
 | `PETREL_SERIAL_PORT` | Configured UART / installer suggests `/dev/ttyS0` |
-| `PETREL_ENCODER_PINS` | Encoder A/B in BCM numbering / `21 19` |
+| `PETREL_ENCODER_PINS` | Encoder A/B in BCM numbering / `21 16` |
 | `PETREL_BUTTON_PIN` | Encoder button in BCM numbering / `20` |
 | `PETREL_BUZZER_GPIO` | Native Pi PWM buzzer GPIO12/13/18/19, default `19` |
 | `PETREL_SETTINGS_FILE` | Local preset fallback / `~/.config/Petrel/presets.json` |

@@ -38,7 +38,7 @@ Stop Petrel before manual diagnostic uploads. `tools/reload_icons.py` forces che
 |---|---|---|
 | Dashboard hotend / bed | 9 / 10 | 18×18; old unused 20×20 setting variants were removed |
 | MMU normal / selected | 98 / 99 | 110×100 |
-| Display normal / selected | 56 / 57 | 110×100 |
+| Device normal / selected | 56 / 57 | 110×100 |
 | Folder; MCU; machine; host; software; power | 100; 101; 102; 103; 54; 55 | Folder 20×18, others 20×20 |
 | Spool flanges / empty spool | 58–64 / 65 | Widths 1–7, height 52 / 42×52 |
 | Maintenance check / diagnostics / advice / care | 104–107 | 20×20 |

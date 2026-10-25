@@ -38,15 +38,22 @@ Uygulamayı manuel denerken UART ve encoderi tek süreç kullansın diye önce k
 
 ```bash
 sudo systemctl stop Petrel.service
+if systemctl is-active --quiet Petrel-dwin.service; then
+  export PETREL_DWIN_SOCKET=/run/petrel-dwin/display.sock
+else
+  unset PETREL_DWIN_SOCKET
+fi
 cd ~/Petrel
 ~/petrel-env/bin/python run.py \
   --serial-port /dev/ttyS0 \
-  --encoder-pins 21 19 \
+  --encoder-pins 21 16 \
   --button-pin 20 \
   --moonraker-url http://127.0.0.1:7125
 ```
 
 Manuel süreçten çıktıktan sonra `sudo systemctl start Petrel.service` ile kurulu servisi başlatın. Seçenekler için `run.py --help` kullanın; CLI değerleri ortam değerlerinden önceliklidir. Hareket, kalibrasyon ve MMU değişikliklerini otomatik testlere ek olarak uygun donanımda deneyin.
+
+Yardımcı UART kuruluysa broker çalışır kalsın ve yukarıdaki gibi display socket açıkça seçilsin; SSH kabuğu servis drop-in ortamını devralmaz. Broker yoksa fiziksel UART doğrudan kullanılır. [Manuel bağlantı sahipliğine](assets/README_TR.md#manuel-bağlantı-sahipliği) bakın.
 
 ## Ekran görüntüleri ve dokümantasyon
 
@@ -95,3 +102,11 @@ NFC Tools içinde NDEF URI okunmasına rağmen Android başlangıçta URL açmay
 ## Ana menü sıralama sözleşmesi
 
 Info her zaman son ana menü öğesidir. Yeni özellikleri Info'dan önce ekleyin; RFID, Info'nun hemen önündedir. Bu sıralama `tests/test_rfid_emergency.py` ile korunur.
+
+## Commit başlıkları ve kablo uyumluluğu
+
+`tür(kapsam): açıklama` biçimini kullanın: `feat(ui): ...`, `fix(nfc): ...`, `fix(dwin): ...` veya `docs(guides): ...`. İmza botu mesajı korur; biçimini düzeltmez. `docs(nfc):`, yalnız NFC yayınını açıkça etkinleştirir; genel doküman değişikliklerinde kullanmayın.
+
+Yeni encoder kablolaması A/B GPIO21/16 ve buzzer GPIO19 kullanır. Eski A/B GPIO21/19 kurulumları, çakışmayan başka bir buzzer PWM piniyle desteklenir; mevcut kurulumun kablolamasını sessizce değiştirmeyin.
+
+Tam denetim için master’daki `docs(audit):` başlığı, imza botu aynı commit’i imzalamadan önce tüm LCD PNG/GIF ve Kconfig görsellerinin üretilmesini açıkça seçer. Üretim, galeriler ve statik iki dil/bağlantı kontrolleri önce başarılı olmalıdır. Normal commit’lerin mevcut imza davranışı korunur. Son imzalı SHA’nın tam regresyon sonucunu bekleyin. Ayrı Documentation Render eylemi sonraki yenilemeler için kullanılabilir kalır.

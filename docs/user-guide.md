@@ -27,7 +27,7 @@ A 14×3 px bar below each X/Y/Z icon indicates Klipper homing status: **cyan** m
 
 The fan icon uses panel-native animation; its speed follows the fan percentage, rounded to 10 ms intervals. Unchanged intervals send no new command; 0% stops it.
 
-A 4×4 px dot immediately to the **right of the header clock** shows the **Klipper connection**: cyan = ready, amber = connecting, muted red = disconnected/shutdown/error, grey = unknown. This uses the existing Moonraker subscription state, independently of Wi-Fi, and updates only if the state changes. The dot is a native filled rectangle, not an extra icon asset.
+An 8×8 px icon immediately to the **right of the header clock** shows the **Klipper connection**. It reuses the progress-bar end icons: filled when Klipper is ready without an error, track otherwise (connecting, disconnected, shutdown, error or unknown). It uses existing Moonraker subscription state, independently of Wi-Fi RSSI, and redraws only when its state changes.
 
 A compact Wi-Fi icon beside the header clock shows host RSSI using the same thresholds as Info: **strong** (≥ −60 dBm, three active arcs), **medium** (−70 to below −60 dBm, two arcs) or **poor** (below −70 dBm, one arc). No signal-strength icon is shown when Wi-Fi is disconnected or signal information is unavailable. Ethernet connectivity is independent of this indicator. Its native icon is refreshed only when the band changes.
 
@@ -167,13 +167,14 @@ During measurement, each probe result appears at its corresponding point. On com
 
 Printing must be stopped. Pending configuration changes do not block calibration. Saving is allowed only when the pending change is the accepted probe offset. Saving restarts Klipper; this is separate from the temporary runtime Z offset.
 
-## Display settings
+<a id="display-settings"></a>
+## Device settings
 
 The top bar shows the Raspberry Pi's local system time in **HH:MM** format.
 
 <p align="center"><img src="assets/screens/framed/display.png" width="360" alt="Brightness and idle dimming"></p>
 
-Open **Home → Display**:
+Open **Home → Device**:
 
 | Setting | Use |
 |---|---|
@@ -189,7 +190,7 @@ The first encoder movement or click after idle dimming wakes the display without
 
 **Device → Buzzer** now switches the buzzer **Enabled/Disabled** directly, with no output selector. **Volume**, **Click tone**, and **Encoder tone** remain editable when off. Press an item, rotate and press again to save. Volume is 0–100% in 10% steps (100% uses 50% physical PWM duty). Tone options are Off, Tick, Short beep, Low, High, Double. Preferences persist in panel Flash.
 
-The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback uses the short NFC_TAG_READ melody and respects master Buzzer Enabled/Disabled and Volume. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects the master Buzzer switch and the Emergency card alarm checkbox (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
+The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle_time`, `output_pin`, or Moonraker G-code. Choose a fixed buzzer GPIO from 12/13/18/19 in `./configure.sh` (**Buzzer hardware PWM**). The installer sets up the device-tree overlay and PWM service access; reboot the Pi when boot options change. NFC card feedback waits for the asynchronous Spoolman lookup: a match selects only NFC_SPOOL_MATCH; no match or lookup failure selects only NFC_TAG_READ. Enrollment uses NFC_TAG_READ. Master Buzzer Enabled/Disabled, Volume and the selected event switch apply; a muted cue has no fallback. A registered emergency-stop tag instead triggers a ~1.5 s, full-volume two-tone sweep followed by a double high alert using the Raspberry Pi hardware PWM worker. It preempts ordinary feedback, remains audible even after Klipper enters shutdown, and respects the master Buzzer switch and the Emergency card alarm checkbox (not Volume or tone preferences). Clicks never accumulate an unbounded sound queue.
 
 ### Named buzzer melodies
 
@@ -553,9 +554,10 @@ When the configured Moonraker power device turns on, Petrel starts nonblocking L
 
 Real UI emulator output with example data. [Original panel PNGs](screenshots.md) and [reproduction](ui-emulator.md#refresh-pngs-frames-and-gifs).
 
-### NFC and RFID (experimental)
+<a id="nfc-and-rfid-experimental"></a>
+### NFC and RFID
 
-**Info → NFC** and **Home → NFC** share one background owner using the public
+The **NFC status section in Info** and **Home → NFC** share one background owner using the public
 libnfc C API directly through ctypes. No `nfc-poll`, `nfc-scan-device`, shell or
 stdout parser is used. Keep other NFC tools closed. The system libnfc shared
 library is required; no compiler or development headers are needed on the Pi.
@@ -666,13 +668,10 @@ performs radio scans; there is no PN532 unsolicited UART event mode yet.
 
 
 The latest card's protocol, complete UID/ID (up to 32 bytes), ATQA and SAK update
-live; the identity remains after removal. Each card presentation plays the short
-NFC_TAG_READ melody using the global buzzer switch and Volume, independently of
-click/encoder tone choices. A held card sounds once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
+live; the identity remains after removal. Each card presentation selects one cue after the asynchronous lookup: NFC_SPOOL_MATCH for a matched spool, otherwise NFC_TAG_READ (also on lookup failure). Enrollment uses NFC_TAG_READ. The global buzzer switch, Volume and selected event switch apply; click/encoder tone choices are independent and a muted cue has no fallback. A held card sounds once; two missed scans of its own technology rearm the same card. IDs are not UUIDs, and ATQA/SAK do not
 prove a particular MIFARE chip. Only changed fields are drawn; no card memory is
 written or persisted. Scanning continues after leaving the page, and shutdown
-aborts pending libnfc I/O before closing the reader. Press to return Home. The
-experimental tile reuses the Info icon; screenshots do not yet show these pages.
+aborts pending libnfc I/O before closing the reader. Select the header Back arrow and press to return Home. The NFC tile uses its own normal/selected icons (112/113). See the [NFC gallery](screenshots.md#nfc-tags-and-spool-assignment) for current examples.
 
 ### Emergency stop tag
 
@@ -686,8 +685,7 @@ The single assigned UID is stored atomically in `nfc-actions.json` alongside
 the NFC settings and survives Petrel restarts. Presenting that tag sends
 Moonraker's `printer.emergency_stop` API request directly from NFC Core,
 independently of the visible menu or print state. The existing priority path
-does not wait behind ordinary G-code commands. A saved emergency tag retains
-priority even during enrollment and cannot be captured as a replacement.
+does not wait behind ordinary G-code commands. During explicit emergency-tag enrollment, an already registered emergency card is captured for confirmation without sending shutdown. Outside that flow, including spool-tag enrollment, emergency priority remains active. Canceling emergency enrollment restores normal handling.
 The backend emits one arrival per presentation; remove and retap to trigger
 another request. No confirmation dialog delays the emergency action.
 

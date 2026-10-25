@@ -32,7 +32,7 @@ Telemetri toplama sıklığı, tahmin algoritması ve komut adımları değişti
 
 ## Doğrulama
 
-CI regresyonları JavaScript çalışma zamanı ile yuvarlama sınırlarını, ham komut değerlerini ve etiketlerin piksel sınırlarını karşılaştırır. Tam test paketi, Maintenance ölçümleri ve tüm dokümantasyon ekran renderları CI içinde çalışır. Fiziksel ekran testi ayrıca gerekir; bu rapor donanım testi yapıldığını iddia etmez.
+CI regresyonları JavaScript çalışma zamanı ile yuvarlama sınırlarını, ham komut değerlerini ve etiketlerin piksel sınırlarını karşılaştırır. Normal regresyon iş akışı tam test paketini ve Maintenance ölçümlerini çalıştırır; doküman görsellerini yeniden üretmez. Tam PNG/GIF yayını Documentation Render üzerinden manueldir; yalnız NFC yayını başarılı aynı-SHA regresyonu ve `docs(nfc):` başlığı gerektirir. `docs(audit):` imzalama yolu tam üretimi aynı commit içine alabilir. Sıkı yayımlanmış görsel eşliği `PETREL_VERIFY_PUBLISHED_SCREENS=1` ile 24 Maintenance sahnesini kapsar; her push’ta tüm sahneleri kapsamaz. Fiziksel ekran testi ayrıca gerekir; bu rapor donanım testi yapıldığını iddia etmez.
 
 Z ve Z offset alanları en fazla üç ondalıktan başlayıp metin sığana kadar hassasiyeti azaltır. Ham değer/komut değiştirilmez. Dashboard biçimlendirmesi yalnız ham değer değişince hesaplanır; iki alan için sınırlı önbellek kullanılır. Sabit genişlikte boşluk dolgusu ve mevcut alan temizliği eski rakam kalıntılarını önler. Mesh ve sıcaklık kuralları korunur.
 
@@ -44,4 +44,4 @@ X/Y/Z ikonlarının altında (x = ikon X + 3..16, y = 470..472) bulunan 14×3 pi
 
 ## Gösterge denetimi düzeltmeleri
 
-Wi-Fi okuma kuyruğu hataları ve iptaller arayüz çevrimini kesmez; sinyal bilinmiyor olur ve beş saniyelik tekrar aralığı korunur. Info aynı Wi-Fi önbelleğini kullanır, ikinci bir iw sorgusu başlatmaz. Maintenance üst şeridi temizlediğinde saat, Wi-Fi ve Klipper önbellekleri birlikte geçersizleştirilir. Başlıklar Wi-Fi bölgesinden önceki 23 karakterlik alana sığdırılır; uzunsa üç noktayla kısaltılır. CI ekranları yalnız bir kez, regresyonlardan sonra üretir; yayımlanmış görsel eşliği testi repodaki görselleri değişmeden denetler.
+Wi-Fi okuma kuyruğu hataları ve iptaller arayüz çevrimini kesmez; sinyal bilinmiyor olur ve beş saniyelik tekrar aralığı korunur. Info aynı Wi-Fi önbelleğini kullanır, ikinci bir iw sorgusu başlatmaz. Maintenance üst şeridi temizlediğinde saat, Wi-Fi ve Klipper önbellekleri birlikte geçersizleştirilir. Başlıklar Wi-Fi bölgesinden önceki 23 karakterlik alana sığdırılır; uzunsa üç noktayla kısaltılır. Yayımlanmış görsel kontrolleri repodaki dosyaları inceler; açıkça istenen üretim, görselleri yenileyip yayından önce sıkı Maintenance eşliğini doğrular. [Üretim sözleşmesine](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme) bakın.

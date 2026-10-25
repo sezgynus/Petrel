@@ -31,11 +31,13 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install render dependencies
-        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2
+        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2 kconfiglib==14.1.0 pyte==0.8.2
       - name: Compile Python sources
         run: python -m compileall -q .
       - name: Render documentation screenshots
         run: python tools/render_docs_screenshots.py
+      - name: Capture current Kconfig menus
+        run: python tools/render_configuration_screenshots.py
       - name: Render documentation animations
         run: |
           python tools/render_print_controls.py
@@ -45,6 +47,8 @@ jobs:
         env:
           PETREL_VERIFY_PUBLISHED_SCREENS: '1'
         run: python -m unittest discover -s tests -p test_maintenance_published_docs.py -v
+      - name: Check bilingual documentation and navigation
+        run: python tools/check_documentation.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -54,6 +58,7 @@ jobs:
             docs/assets/screens/framed/*.png
             docs/assets/*.gif
             docs/assets/framed/*.gif
+            docs/assets/configuration/*.png
             docs/screenshots.md
             docs/screenshots_TR.md
           retention-days: 7

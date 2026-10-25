@@ -38,7 +38,7 @@ Elle tanılama yüklemesinden önce Petrel’i durdurun. `tools/reload_icons.py`
 |---|---|---|
 | Dashboard hotend / tabla | 9 / 10 | 18×18; kullanılmayan eski 20×20 ayar sürümleri kaldırıldı |
 | MMU normal / seçili | 98 / 99 | 110×100 |
-| Ekran normal / seçili | 56 / 57 | 110×100 |
+| Device normal / seçili | 56 / 57 | 110×100 |
 | Klasör; MCU; makine; sunucu; yazılım; güç | 100; 101; 102; 103; 54; 55 | Klasör 20×18, diğerleri 20×20 |
 | Makara flanşları / boş makara | 58–64 / 65 | 1–7 genişlik, 52 yükseklik / 42×52 |
 | Bakım kontrol / tanılama / öneri / servis | 104–107 | 20×20 |

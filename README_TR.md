@@ -40,7 +40,8 @@ Arayüz mevcut enkoderi ve panelin native çizim komutlarını kullanır. Host �
 | Hazırlık ve kalibrasyon | Homing, motorlar, XYZ/ekstrüder hareketi, Live jog, preset/soğutma, bed mesh, dört köşe vida ayarı ve probe-offset kalibrasyonu |
 | Happy Hare MMU | Canlı filament yolu/purge, gate'ler, yükleme/boşaltma, bypass, tool map, EndlessSpool, kullanıcı seçimiyle kurtarma, desteklenen LED'ler ve çoklu üniteler |
 | Spoolman | Makara ID'leri ve gate malzeme/rengi; Happy Hare/Spoolman entegrasyonu sağlıyorsa kalan yüzde |
-| Ekran ve sistem | Parlaklık/karartma, buzzer/tonlar, ağ/host/MCU/yazılım durumu, QR bağlantısı ve yazıcı boşta iken Petrel güncellemeleri |
+| NFC | İsteğe bağlı okuyucuyla acil durdurma kartı, Spoolman kart eşleme ve gate atama; desteklenen PN532 ile Petrel bağlantısını telefona paylaşma. [Kullanım](docs/user-guide_TR.md#nfc-ve-rfid) · [Ayarlar](docs/configuration_TR.md#nfc) |
+| Device ve sistem | Parlaklık/karartma, buzzer/tonlar, ağ/host/MCU/yazılım durumu, QR bağlantısı ve yazıcı boşta iken Petrel güncellemeleri |
 | Işık ve güç | Yapılandırılmış PWM kasa ışığı ve Moonraker güç cihazı; onaylı enkoder basılı tutma ve aktif baskıda kapatma engeli |
 | Maintenance | Kurulu donanıma göre kılavuzlu kontroller, bakım ilerlemesi, okunabilir sonuçlar/diagnostik ve kayıtlı öneriler |
 | After Job | Üç isteğe bağlı politika switchi; yalnız pinleri değiştirir, iş sonundaki eylemleri makrolarınız yapar |

@@ -40,7 +40,8 @@ The interface uses the existing encoder and native panel drawing commands. The h
 | Prepare and calibrate | Homing, steppers, XYZ/extruder movement, Live jog, presets/cooldown, bed mesh, four-corner screw adjustment and probe-offset calibration |
 | Happy Hare MMU | Live filament path/purge, gates, load/unload, bypass, tool map, EndlessSpool, explicit recovery, supported LEDs and multiple units |
 | Spoolman | Spool IDs and gate material/color; remaining percentage when the Happy Hare/Spoolman integration supplies it |
-| Display and system | Brightness/dimming, buzzer/tones, network/host/MCU/software status, QR link and idle-time Petrel updates |
+| NFC | Optional reader for emergency-stop tags, Spoolman tag binding and gate assignment; share the Petrel link to a phone with a supported PN532. [Usage](docs/user-guide.md#nfc-and-rfid) · [Setup](docs/configuration.md#nfc) |
+| Device and system | Brightness/dimming, buzzer/tones, network/host/MCU/software status, QR link and idle-time Petrel updates |
 | Light and power | Configured PWM case light and Moonraker power device; encoder hold with confirmation and active-print blocking |
 | Maintenance | Capability-based guided checks, care progress, readable results/diagnostics and recorded recommendations |
 | After Job | Three optional policy switches; only set pins, while your macros perform end-print actions |

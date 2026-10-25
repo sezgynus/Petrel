@@ -27,7 +27,7 @@ X/Y/Z simgelerinin altındaki 14×3 piksellik çizgi Klipper referans durumunu b
 
 Fan simgesi panelin kendi animasyonuyla döner; hız fan yüzdesinden hesaplanır ve 10 ms aralıklara yuvarlanır. Aynı interval için yeniden komut gönderilmez; %0’da durur.
 
-Saatin **hemen sağındaki 4×4 piksellik nokta**, **Klipper bağlantısını** gösterir: turkuaz = hazır, amber = bağlanıyor, soluk kırmızı = bağlantı kesildi/shutdown/hata, gri = durum bilinmiyor. Mevcut Moonraker abonelik durumunu kullanır; Wi-Fi'dan bağımsızdır ve yalnız durum değişiminde güncellenir. Nokta yeni ikon dosyası değil, panelin yerel dolu dikdörtgen çizimidir.
+Saatin **hemen sağındaki 8×8 piksellik simge**, **Klipper bağlantısını** gösterir. Mevcut ilerleme çubuğu uç ikonları kullanılır: Klipper hazır ve hatasızsa dolu, diğer durumlarda (bağlanıyor, bağlantı kesildi, shutdown, hata veya bilinmiyor) boş kanal simgesi. Mevcut Moonraker abonelik durumundan beslenir, Wi-Fi RSSI’dan bağımsızdır ve yalnız durum değişince yeniden çizilir.
 
 Saatin yanındaki küçük Wi-Fi simgesi, Info ekranıyla aynı RSSI eşiklerini kullanır: **güçlü** (≥ −60 dBm, üç etkin yay), **orta** (−70 ile −60 dBm arası, iki yay) veya **zayıf** (−70 dBm altı, tek yay). Wi-Fi bağlantısı yoksa ya da RSSI bilinmiyorsa güç seviyesi simgesi gösterilmez. Ethernet bağlantısı bu göstergeden bağımsızdır. Yerel ikon yalnız seviye değiştiğinde yeniden çizilir.
 
@@ -167,13 +167,14 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 
 Baskı durmuş olmalıdır. Bekleyen yapılandırma değişiklikleri kalibrasyonu engellemez. Kayıt yalnızca bekleyen değişiklik kabul edilen prob ofsetinden oluşuyorsa yapılabilir. Kayıt Klipper'ı yeniden başlatır; geçici çalışma Z ofsetinden ayrıdır.
 
-## Ekran ayarları
+<a id="ekran-ayarları"></a>
+## Cihaz ayarları
 
 Üst bar, Raspberry Pi'nin yerel sistem saatini **SS:DD** biçiminde gösterir.
 
 <p align="center"><img src="assets/screens/framed/display.png" width="360" alt="Parlaklık ve boşta kısma"></p>
 
-**Home → Display** açın:
+**Home → Device** açın:
 
 | Ayar | Kullanım |
 |---|---|
@@ -189,7 +190,7 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 **Device → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **Enabled/Disabled** olarak ayarlar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
 
-Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi kısa NFC_TAG_READ melodisini kullanır; genel Buzzer Enabled/Disabled ve Volume ayarlarına uyar. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
+Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi asenkron Spoolman sorgusunu bekler: eşleşmede yalnız NFC_SPOOL_MATCH, eşleşme yoksa veya sorgu hatasında yalnız NFC_TAG_READ seçilir. Atama NFC_TAG_READ kullanır. Genel Buzzer Enabled/Disabled, Volume ve seçilen olay anahtarı geçerlidir; kapalı ses yerine başka ses çalmaz. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
 ### İsimli buzzer melodileri
 
@@ -555,9 +556,10 @@ Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 
 
 Örnek verilerle gerçek UI emülatörü çıktısıdır. [Özgün panel PNG'leri](screenshots_TR.md) ve [yeniden üretim](ui-emulator_TR.md#png-çerçeve-ve-gif-yenileme).
 
-### NFC ve RFID (deneysel)
+<a id="nfc-ve-rfid-deneysel"></a>
+### NFC ve RFID
 
-**Info → NFC** ve **Home → NFC**, ctypes üzerinden doğrudan libnfc C API'sini
+**Info içindeki NFC durum bölümü** ve **Home → NFC**, ctypes üzerinden doğrudan libnfc C API'sini
 kullanan tek bir arka plan yöneticisini paylaşır. `nfc-poll`, `nfc-scan-device`,
 shell veya konsol çıktısı ayrıştırıcısı kullanılmaz. Diğer NFC araçları kapalı
 olmalıdır. Sistem libnfc paylaşımlı kütüphanesi gerekir; Pi'de derleyici veya
@@ -666,14 +668,12 @@ PN532'den kendiliğinden UART olayı yöntemi henüz uygulanmadı.
 
 
 Son kartın protokolü, tam UID/ID'si (32 bayta kadar), ATQA ve SAK canlı güncellenir;
-kart uzaklaşınca kimlik kalır. Her kart sunumunda genel buzzer anahtarı ve Volume
-ayarına uyan NFC_TAG_READ melodisi çalar; click/encoder tonu seçiminden bağımsızdır.
+kart uzaklaşınca kimlik kalır. Her kart sunumunda asenkron sorgudan sonra tek ses seçilir: makara eşleşmesinde NFC_SPOOL_MATCH, diğer durumlarda NFC_TAG_READ (sorgu hatası dahil). Atama NFC_TAG_READ kullanır. Genel buzzer anahtarı, Volume ve seçilen olay anahtarı geçerlidir; click/encoder tonu bağımsızdır ve kapalı ses yerine başka ses çalmaz.
 Tutulan kart bir kez öter; kendi
 teknolojisindeki iki başarısız tarama aynı kart için yeniden bipi etkinleştirir. Kimlikler UUID değildir; ATQA/SAK kesin MIFARE çipini
 kanıtlamaz. Yalnız değişen alanlar çizilir; kart belleğine veya diske yazılmaz.
 Sayfadan çıkılınca tarama sürer; kapanışta bekleyen libnfc I/O'su iptal edilip port
-kapatılır. Basarak Home'a dönülür. Deneysel kutucuk Info simgesini kullanır;
-ekran görüntülerinde bu sayfalar henüz yoktur.
+kapatılır. Üst bardaki Back okunu seçip basarak Home’a dönün. NFC kutucuğu kendi normal/seçili ikonlarını (112/113) kullanır. Güncel örnekler [NFC galerisindedir](screenshots_TR.md#nfc-kartları-ve-makara-atama).
 
 ### Acil durdurma kartı
 
@@ -688,8 +688,7 @@ Tek kayıtlı UID, NFC ayarlarının yanındaki `nfc-actions.json` dosyasına at
 kaydedilir ve Petrel yeniden başlatıldığında korunur. Bu kart okutulunca NFC
 Core, açık menüden ve baskı durumundan bağımsız olarak Moonraker'ın
 `printer.emergency_stop` API isteğini gönderir. Mevcut öncelikli yol normal
-G-code komutlarının arkasında beklemez. Kayıtlı acil durdurma kartı tanımlama
-sırasında da önceliklidir; yeni kart olarak yakalanmaz. Backend her kart sunumu
+G-code komutlarının arkasında beklemez. Açık emergency kart ataması sırasında kayıtlı acil durdurma kartı shutdown göndermeden onay için yakalanır. Bu akışın dışında, spool kart ataması dahil, emergency önceliği sürer. Atama iptal edilince normal davranış geri gelir. Backend her kart sunumu
 için bir olay üretir; yeniden tetiklemek için kartı uzaklaştırıp tekrar okutun.
 Acil durdurma işleminde onay penceresi beklenmez. Kayıtlı EMG kartı okutulduğunda Raspberry Pi'nin donanım PWM buzzer'ı yaklaşık 1,5 saniye boyunca tam sesli, iki tonlu yükselip alçalan bir uyarı ve sonunda iki keskin yüksek ton çalar. Bu alarm, normal enkoder/NFC sesini keser; Klipper shutdown durumuna girse veya Moonraker isteği başarısız olsa bile çalışmaya devam edebilir. Device → Buzzer ana anahtarı Disabled ise veya Emergency card alarm kutusu kapalıysa ses çalmaz; Volume ve normal ton seçimleri alarmı etkilemez.
 
