@@ -307,7 +307,7 @@ class MMUSession:
             raise ValueError('MMU busy or recovery needed')
         if snap.get('status', {}).get('manual_probe', {}).get('is_active') or any(
                 getattr(getattr(p, name, None), 'pending', None)
-                for name in ('petrel.features.leveling.bed_mesh', 'petrel.features.leveling.screws_tilt', 'petrel.features.leveling.probe_wizard')):
+                for name in ('bed_mesh', 'screws_tilt', 'probe_wizard')):
             raise ValueError('Another operation is active')
         ps = snap.get('status', {}).get('print_stats', {}).get('state')
         if ps not in ('standby', 'complete', 'cancelled', 'error', 'paused', 'printing'):

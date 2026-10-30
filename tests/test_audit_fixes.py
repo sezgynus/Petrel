@@ -66,7 +66,7 @@ class AuditRegressionTests(unittest.TestCase):
 
     def test_power_guard_blocks_each_calibration_and_modal_recovery(self):
         p=printer(snapshot())
-        for name in ('petrel.features.leveling.bed_mesh','petrel.features.leveling.screws_tilt','petrel.features.leveling.probe_wizard','mmu_session'):
+        for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'):
             session=getattr(p,name);session.pending=Future()
             self.assertIsNotNone(p.power_off_block_reason());session.pending=None
         p._jog_restore='RESTORE_GCODE_STATE NAME=LCD_JOG MOVE=0'

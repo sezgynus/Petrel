@@ -66,7 +66,7 @@ def source_version(repo):
 
 def broker_binary(repo):
     digest = hashlib.sha256(platform.machine().encode())
-    for name in ('petrel.hardware.dwin.broker.c', 'Makefile'):
+    for name in ('dwin_broker.c', 'Makefile'):
         digest.update((repo / 'native' / name).read_bytes())
     return BROKER_DIRECTORY + '/broker-' + digest.hexdigest()[:12]
 

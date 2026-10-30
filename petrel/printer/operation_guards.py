@@ -32,7 +32,7 @@ def motion_dispatch_guard(printer, owner='', manual_active=False, position=False
             if owner != 'jog' and printer.jog_recovery_required:
                 return False
             if any(getattr(getattr(printer, name, None), 'pending', None)
-                   for name in ('petrel.features.leveling.bed_mesh', 'petrel.features.leveling.screws_tilt', 'petrel.features.leveling.probe_wizard', 'mmu_session') if name != owner):
+                   for name in ('bed_mesh', 'screws_tilt', 'probe_wizard', 'mmu_session') if name != owner):
                 return False
             mmu = status.get('mmu', {})
             if mmu and str(mmu.get('action', '')).lower() != 'idle':

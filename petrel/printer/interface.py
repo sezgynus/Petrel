@@ -961,7 +961,7 @@ class PrinterData:
         if (status.get('manual_probe', {}).get('is_active')
                 or self.jog_recovery_required
                 or any(getattr(getattr(self,name,None),'pending',None)
-                       for name in ('petrel.features.leveling.bed_mesh','petrel.features.leveling.screws_tilt','petrel.features.leveling.probe_wizard','mmu_session'))):
+                       for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'))):
             return 'Operation is running'
         mmu = status.get('mmu', {})
         if mmu and str(mmu.get('action', 'idle')).lower() not in ('idle','unknown'):

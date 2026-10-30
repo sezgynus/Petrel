@@ -227,7 +227,7 @@ class PowerShortcutMixin:
         if not getattr(self, '_power_hold_popup', False) or self.checkkey != self.PowerConfirm:
             return False
         self._update_ui_state()
-        for name in ('petrel.features.leveling.bed_mesh','petrel.features.leveling.screws_tilt','petrel.features.leveling.probe_wizard','mmu_session'):
+        for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'):
             getattr(self.pd,name).update()
         self._focus_tick_quiet()
         if self.pd.status in ('printing', 'paused', 'pausing'):
