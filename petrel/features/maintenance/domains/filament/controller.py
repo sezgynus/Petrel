@@ -493,7 +493,7 @@ class MaintenanceFilamentController(FirmwareWorkflow):
             return None
         if f=='E12':
             if self._operation is not None:
-                from petrel.features.mmu.state import MMUSession
+                from petrel.features.mmu.session import MMUSession
                 verifier = MMUSession(self._printer)
                 verifier.operation = self._operation
                 raw = self._printer.subscription.snapshot()

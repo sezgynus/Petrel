@@ -3,7 +3,8 @@ import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from petrel.features.maintenance.domains.thermal.controller import ThermalResult, MaintenancePhysicalRouter
+from petrel.features.maintenance.domains.thermal.controller import ThermalResult
+from petrel.features.maintenance.execution.physical_router import MaintenancePhysicalRouter
 from petrel.features.maintenance.records.book import MaintenanceBook
 from test_maintenance_controller import Worker, printer
 

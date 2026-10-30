@@ -14,7 +14,7 @@ import zipfile
 import test_maintenance_heater as thermal
 from test_maintenance_controller import Worker
 from petrel.features.maintenance.execution.controller import MaintenanceReadController
-from petrel.features.maintenance.domains.thermal.controller import MaintenancePhysicalRouter
+from petrel.features.maintenance.execution.physical_router import MaintenancePhysicalRouter
 from petrel.features.maintenance.diagnostics.test_trace import TestTrace, OwnerProxy, WorkerProxy, SubscriptionProxy, MAX_PENDING, clean
 from petrel.printer.interface import PrinterData
 

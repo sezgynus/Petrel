@@ -28,7 +28,7 @@ from petrel.moonraker.subscription import MoonrakerSubscription
 from petrel.features.leveling.probe_wizard import ProbeWizard
 from petrel.features.leveling.screws_tilt import ScrewsTiltSession
 from petrel.features.leveling.bed_mesh import BedMeshSession
-from petrel.features.mmu.state import MMUSession
+from petrel.features.mmu.session import MMUSession
 from petrel.features.temperature.preset_store import PresetStore
 from petrel.printer.state import PrinterState
 from petrel.printer.capabilities import PrinterCapabilities
@@ -44,7 +44,8 @@ from petrel.features.maintenance.domains.auxiliary.controller import Maintenance
 from petrel.features.maintenance.records.book import MaintenanceBook
 from petrel.features.maintenance.assessment.service import MaintenanceAssessment
 from petrel.features.maintenance.domains.pulse.controller import MaintenancePulseController
-from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter
+from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController
+from petrel.features.maintenance.execution.physical_router import MaintenancePhysicalRouter
 
 
 class PrinterData(

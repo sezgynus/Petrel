@@ -760,7 +760,7 @@ class MMUControlTests(unittest.TestCase):
             if case == 'error': s.pending.set_exception(RuntimeError('failed'))
             elif case == 'disconnect': data['epoch'] += 1
             elif case == 'gcode': p.subscription.responses_since.return_value = (1, ('!! no filament',))
-            with patch('petrel.features.mmu.state.time.monotonic', return_value=s.started + (301 if case == 'timeout' else 1)):
+            with patch('petrel.features.mmu.session.time.monotonic', return_value=s.started + (301 if case == 'timeout' else 1)):
                 s.update()
             self.assertEqual(s.phase, 'error')
             self.assertEqual(p.subscription.request.call_count, 1)

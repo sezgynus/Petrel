@@ -7,7 +7,8 @@ import unittest
 from test_maintenance_controller import printer, Worker
 from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _add
-from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter
+from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController
+from petrel.features.maintenance.execution.physical_router import MaintenancePhysicalRouter
 from petrel.features.maintenance.domains.thermal.measurements import ACTIVE
 
 class ThermalControllerTests(unittest.TestCase):
