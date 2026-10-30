@@ -1,3 +1,4 @@
+from test_regressions import nfc_backend
 import unittest
 from unittest.mock import Mock, patch
 
@@ -275,7 +276,7 @@ class RFIDTests(unittest.TestCase):
 
     def test_disabled_core_does_not_create_reader_or_poll_backend(self):
         pd = printer(snapshot())
-        with patch('petrel.printer.interface.installed_enabled', return_value=False):
+        with patch.object(nfc_backend, 'installed_enabled', return_value=False):
             self.assertTrue(pd.sync_nfc_event())
             self.assertFalse(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['nfc'], {'status': 'Disabled'})

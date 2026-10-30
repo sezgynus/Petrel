@@ -1,3 +1,4 @@
+from petrel.features.buzzer.control import Settings as BuzzerSettings
 from petrel.application.startup import PanelStartupMixin
 from petrel.application.tick import DisplayTickMixin
 from petrel.application.input import DisplayInputMixin

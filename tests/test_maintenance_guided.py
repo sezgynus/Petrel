@@ -1,3 +1,4 @@
+from test_regressions import maintenance_backend
 """Regression coverage for Stage-8 guided adapter consent; NO actuation."""
 import sys
 import unittest
@@ -56,7 +57,7 @@ class Stage8GuidedTests(unittest.TestCase):
         original = snapshot_with_devices()
         pd.maintenance = SimpleNamespace(snapshot=original)
         expected = (object(), object())
-        with patch.object(backend, 'guided_plan', return_value=expected) as planner:
+        with patch.object(maintenance_backend, 'guided_plan', return_value=expected) as planner:
             self.assertIs(pd.maintenance_guided_plan(), expected)
             planner.assert_called_once_with(original)
         self.assertIs(pd.maintenance.snapshot, original)

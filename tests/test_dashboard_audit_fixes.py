@@ -1,3 +1,4 @@
+from test_regressions import info_backend
 """Header lifecycle, title bounds and Wi-Fi read isolation regressions."""
 import unittest
 from concurrent.futures import CancelledError
@@ -28,7 +29,7 @@ class DashboardAuditFixes(unittest.TestCase):
         p=printer(snapshot())
         p.system_info.update(wifi_ssid='Latest',wifi_rssi=-59)
         p.client.get.return_value={'result':{'version_info':{}}}
-        with patch.object(backend,'wifi_info',side_effect=AssertionError('duplicate Wi-Fi read')) as probe:
+        with patch.object(info_backend, 'wifi_info',side_effect=AssertionError('duplicate Wi-Fi read')) as probe:
             p.refresh_system_info(force=True)
         probe.assert_not_called()
         self.assertEqual((p.system_info['wifi_ssid'],p.system_info['wifi_rssi']),('Latest',-59))

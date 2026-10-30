@@ -1,3 +1,4 @@
+from test_regressions import info_backend
 """Info rendering and asynchronous refresh regression coverage."""
 from concurrent.futures import Future
 import unittest
@@ -142,9 +143,9 @@ class InfoPendingReadTests(unittest.TestCase):
         data.subscription.lifecycle.return_value = {'epoch': 1}
         data.subscription.snapshot.reset_mock()
         data._system_info_refresh_at = 0
-        with patch.object(backend, 'network_info', return_value=('Online', '1.2.3.4')) as network, \
-                patch.object(backend, 'host_metrics', return_value=(12, 45)) as metrics, \
-                patch.object(backend, 'host_memory_usage', return_value=30) as memory:
+        with patch.object(info_backend, 'network_info', return_value=('Online', '1.2.3.4')) as network, \
+                patch.object(info_backend, 'host_metrics', return_value=(12, 45)) as metrics, \
+                patch.object(info_backend, 'host_memory_usage', return_value=30) as memory:
             for _ in range(4):
                 self.assertFalse(data.refresh_system_info())
             network.assert_not_called()

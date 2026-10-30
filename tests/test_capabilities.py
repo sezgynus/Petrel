@@ -1,3 +1,4 @@
+from test_regressions import info_backend
 from petrel.artwork.resources import ICON_SPOOL_EMPTY
 from read_fixture import ImmediateReadWorker
 import copy
@@ -96,14 +97,14 @@ class CapabilityTests(unittest.TestCase):
     def test_wifi_dashboard_refresh_reuses_background_read_and_is_throttled(self):
         data = snapshot()
         result = printer(data)
-        with patch.object(backend, 'wifi_info', return_value=('Workshop', -64.5)) as read, \
+        with patch.object(info_backend, 'wifi_info', return_value=('Workshop', -64.5)) as read, \
                 patch.object(backend.time, 'monotonic', return_value=100.0):
             self.assertTrue(result.refresh_wifi_status())
             self.assertEqual(result.system_info['wifi_ssid'], 'Workshop')
             self.assertEqual(result.system_info['wifi_rssi'], -64.5)
             self.assertFalse(result.refresh_wifi_status())
             read.assert_called_once()
-        with patch.object(backend, 'wifi_info', return_value=('Workshop', -54.0)) as read, \
+        with patch.object(info_backend, 'wifi_info', return_value=('Workshop', -54.0)) as read, \
                 patch.object(backend.time, 'monotonic', return_value=106.0):
             self.assertTrue(result.refresh_wifi_status())
             self.assertEqual(result.system_info['wifi_rssi'], -54.0)

@@ -26,10 +26,13 @@ def load_application():
         # Capture owners before patch.dict restores the import cache.
         startup = sys.modules[ui.PetrelDisplay._ensure_uart.__module__]
         dashboard = sys.modules[ui.PetrelDisplay.Draw_Status_Area.__module__]
-    return backend, ui, startup, dashboard
+        info_backend = sys.modules[backend.PrinterData.refresh_system_info.__module__]
+        nfc_backend = sys.modules[backend.PrinterData.get_nfc_core.__module__]
+        maintenance_backend = sys.modules[backend.PrinterData.maintenance_guided_plan.__module__]
+    return backend, ui, startup, dashboard, info_backend, nfc_backend, maintenance_backend
 
 
-backend, ui, startup, dashboard = load_application()
+backend, ui, startup, dashboard, info_backend, nfc_backend, maintenance_backend = load_application()
 
 
 class RegressionContracts(unittest.TestCase):

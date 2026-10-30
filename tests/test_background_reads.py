@@ -1,3 +1,4 @@
+from test_regressions import info_backend
 from concurrent.futures import Future
 from threading import Event
 import unittest
@@ -74,7 +75,7 @@ class BackgroundReadTests(unittest.TestCase):
                 p._read_worker = worker
                 p.client.get.side_effect = lambda *args: work()
                 p.getREST = lambda *args: work()
-                with patch.object(fixtures.backend, 'network_info', return_value=('online', '127.0.0.1')), patch.object(fixtures.backend, 'host_metrics', return_value=(0, 30)):
+                with patch.object(info_backend, 'network_info', return_value=('online', '127.0.0.1')), patch.object(info_backend, 'host_metrics', return_value=(0, 30)):
                     getattr(p, method)(**({'force': True} if method.startswith('refresh_') else {}))
                 self.assertTrue(entered.wait(1))
                 self.assertFalse(release.is_set())

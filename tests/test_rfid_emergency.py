@@ -1,3 +1,4 @@
+from test_regressions import nfc_backend
 """Emergency tag enrollment and home navigation regressions (no hardware)."""
 from concurrent.futures import Future
 from pathlib import Path
@@ -168,7 +169,7 @@ class EmergencyTagTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             pd = printer(snapshot())
             pd.subscription.request.return_value = Future()
-            with patch.object(printer_backend, 'installed_enabled', return_value=True), \
+            with patch.object(nfc_backend, 'installed_enabled', return_value=True), \
                     patch('petrel.features.nfc.core.settings_path', return_value=Path(tmp) / 'settings.json'):
                 core = pd.get_nfc_core()
             core.assign_global_action('emergency_stop', 'AA:BB')
