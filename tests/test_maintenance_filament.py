@@ -5,10 +5,10 @@ import unittest
 from unittest.mock import patch, Mock
 import test_maintenance_probe as fixture
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, _add, INFORMATION, USER
-from maintenance_filament import MaintenanceFilamentController, METHODS, filament_services
-from maintenance_filament_info import read_fields
-from maintenance_executor import read_only_adapters
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, _add, INFORMATION, USER
+from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController, METHODS, filament_services
+from petrel.features.maintenance.domains.filament.info import read_fields
+from petrel.features.maintenance.execution.executor import read_only_adapters
 
 
 class FilamentWorkflowTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class FilamentWorkflowTests(unittest.TestCase):
             (DeviceCapabilities(self.sensor,'filament',modes),),
             config_marker=id(self.p.state.settings))
         self.owner = MaintenanceFilamentController(self.p,self.worker,self.client)
-        p = patch('maintenance_filament.profile',return_value={})
+        p = patch('petrel.features.maintenance.domains.filament.controller.profile',return_value={})
         p.start()
         self.addCleanup(p.stop)
 
@@ -212,14 +212,14 @@ class FilamentInformationTests(unittest.TestCase):
 
     def test_humidity_is_real_sensor_evidence_not_filament_moisture(self):
         reply = {'result':{'eventtime':5.,'status':{'temperature_sensor chamber':{'humidity':40.}}}}
-        with patch('maintenance_filament_info.profile',return_value={'chamber_sensor':'temperature_sensor chamber'}):
+        with patch('petrel.features.maintenance.domains.filament.info.profile',return_value={'chamber_sensor':'temperature_sensor chamber'}):
             self.assertEqual(dict(read_fields('E15',reply))['humidity_pct'],40)
             reply['result']['status']['temperature_sensor chamber']['humidity'] = 200
             self.assertEqual(read_fields('E15',reply),())
 
     def test_usage_requires_linked_valid_records_and_real_spoolman_reply(self):
         data = {'material_history':[{'spool_id':4,'material':'PLA','used_mm':100.,'source':'imported-history'}]}
-        with patch('maintenance_filament_info.profile',return_value=data):
+        with patch('petrel.features.maintenance.domains.filament.info.profile',return_value=data):
             result = dict(read_fields('E13',{'result':{'spool_id':4}}))
             self.assertEqual(result['declared_used_mm'],100)
             self.assertFalse(result['wear_measured'])

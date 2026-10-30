@@ -3,11 +3,11 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import Mock,patch
 from test_capabilities import display,snapshot
-from maintenance_evidence_view import evidence_lines
-from maintenance_executor import _read_fields,read_only_adapters
-from maintenance_tmc_direct import register_evidence
-from maintenance_report import report_rows,section_from_lines
-from maintenance_experience import LABELS
+from petrel.features.maintenance.ui.evidence import evidence_lines
+from petrel.features.maintenance.execution.executor import _read_fields,read_only_adapters
+from petrel.features.maintenance.domains.motion.tmc import register_evidence
+from petrel.features.maintenance.ui.report import report_rows,section_from_lines
+from petrel.features.maintenance.ui.experience import LABELS
 
 CASES={
  'H11':(('power',.42),),
@@ -78,7 +78,7 @@ class DiagnosticContractCoverage(unittest.TestCase):
             for key,value in evidence:
                 if key=='register': continue  # Its matching hex field carries the value.
                 if feature=='S12' and key=='coverage':
-                    from maintenance_diagnostic_fields import diagnostic_lines
+                    from petrel.features.maintenance.ui.diagnostic_fields import diagnostic_lines
                     self.assertEqual(diagnostic_lines(feature,key,value), ())
                     continue  # Scope metadata belongs in documentation, not a reading row.
                 with self.subTest(feature=feature,key=key):
@@ -133,7 +133,7 @@ class DiagnosticContractCoverage(unittest.TestCase):
         self.assertIn('Button presses: 0',shown)
 
     def test_saved_usage_and_history_use_real_record_reader_contracts(self):
-        import maintenance_records as records
+        import petrel.features.maintenance.records.book as records
         book=NS(flush=Mock())
         with patch.object(records,'read_json',return_value={'sampled_on_s':{'fan':62,'extruder':3672},'sampled_print_s':7384}):
             usage=records.MaintenanceBook.read(book,'S12')

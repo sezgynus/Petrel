@@ -1,6 +1,6 @@
 """CI-only F12 adaptive five-step bracket regression."""
 import unittest
-from maintenance_f12 import F12Bracket
+from petrel.features.maintenance.domains.pulse.f12 import F12Bracket
 
 class F12BracketTests(unittest.TestCase):
     def test_first_moving_four_narrows_to_previous_step(self):

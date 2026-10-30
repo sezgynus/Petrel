@@ -4,9 +4,9 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
-from maintenance_guided import guided_plan
-from maintenance_pulse import compile_pulse, restored
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
+from petrel.features.maintenance.execution.guided import guided_plan
+from petrel.features.maintenance.domains.pulse.program import compile_pulse, restored
 
 
 def environment(features=('F01',), services=()):
@@ -93,8 +93,8 @@ class PhysicalPulseTests(unittest.TestCase):
         self.assertEqual(p.script.count('M106 S0'), 10)
         self.assertTrue(p.script.endswith('M106 S0\nM400'))
         self.assertTrue(restored(p, status))
-        from maintenance_f12 import F12Bracket
-        from maintenance_pulse import f12_round_program
+        from petrel.features.maintenance.domains.pulse.f12 import F12Bracket
+        from petrel.features.maintenance.domains.pulse.program import f12_round_program
         next_program = f12_round_program(p, F12Bracket(76, 101))
         self.assertEqual(next_program.pwm_levels, (81, 86, 91, 96, 101))
         self.assertEqual(next_program.script.count('G4 P2000'), 5)

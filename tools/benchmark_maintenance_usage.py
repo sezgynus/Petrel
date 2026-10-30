@@ -17,7 +17,7 @@ import tracemalloc
 from types import SimpleNamespace as NS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_records import MaintenanceBook, MAX_RECORD_BYTES
+from petrel.features.maintenance.records.book import MaintenanceBook, MAX_RECORD_BYTES
 
 
 def fixtures():

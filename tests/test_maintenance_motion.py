@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 import unittest
-from maintenance_motion import compile_motion, return_program, verify_motion
+from petrel.features.maintenance.domains.motion.program import compile_motion, return_program, verify_motion
 TOKEN='_PETREL_M_'+'a'*32
 
 def state_and_status():
@@ -202,7 +202,7 @@ class ClearedMeshRepresentationTests(unittest.TestCase):
     def test_http_and_frozen_subscription_empty_mesh_have_same_dispatch_result(self):
         from copy import deepcopy
         from types import MappingProxyType
-        from maintenance_motion import dispatch_compatible
+        from petrel.features.maintenance.domains.motion.program import dispatch_compatible
         self.state.settings['bed_mesh']={}
         self.status['bed_mesh']={'profile_name':'','mesh_min':[0,0],'mesh_max':[0,0]}
         row=self.row('M04')

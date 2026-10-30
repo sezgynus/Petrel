@@ -3,9 +3,9 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 import unittest
 from test_maintenance_heater import ThermalControllerTests
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _add
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _add
 from printer_state import PrinterState
-from maintenance_thermal import contract, pid_evidence
+from petrel.features.maintenance.domains.thermal.measurements import contract, pid_evidence
 from moonraker_subscription import MoonrakerSubscription
 
 class PIDControllerTests(ThermalControllerTests):

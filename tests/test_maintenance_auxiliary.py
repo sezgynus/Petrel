@@ -5,9 +5,9 @@ import unittest
 from unittest.mock import patch
 import test_maintenance_probe as fixture
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot,DeviceCapabilities,_add,USER
-from maintenance_auxiliary import MaintenanceAuxiliaryController,benign_button,servo_profile,tasks
-from maintenance_auxiliary_info import read_fields
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,DeviceCapabilities,_add,USER
+from petrel.features.maintenance.domains.auxiliary.controller import MaintenanceAuxiliaryController,benign_button,servo_profile,tasks
+from petrel.features.maintenance.domains.auxiliary.info import read_fields
 
 SERVO = {'object':'servo test','minimum_angle':30.,'maximum_angle':150.,'angles':[60.,120.]}
 TASK = {'id':'inspect_belt','label':'Inspect belt','steps':['Inspect for wear','Confirm fasteners secure']}
@@ -36,7 +36,7 @@ class AuxiliaryProfileTests(unittest.TestCase):
         self.assertEqual(tasks({'tasks':[dict(TASK,steps=['line\ncommand'])]}),())
 
     def test_ambient_monitor_returns_actual_value_not_heater_accuracy(self):
-        with patch('maintenance_auxiliary_info.profile',return_value={'ambient_sensor':'temperature_sensor room'}):
+        with patch('petrel.features.maintenance.domains.auxiliary.info.profile',return_value={'ambient_sensor':'temperature_sensor room'}):
             reply = {'result':{'eventtime':10.,'status':{'temperature_sensor room':{'temperature':23.5}}}}
             self.assertEqual(dict(read_fields('O05',reply))['ambient_c'],23.5)
             reply['result']['status']['temperature_sensor room']['temperature'] = None
@@ -59,7 +59,7 @@ class AuxiliaryWorkflowTests(unittest.TestCase):
         self.raw['status'].update(copy.deepcopy(self.status))
         self.p.state = PrinterState.from_snapshot(self.raw)
         self.data = {'version':1,'servos':[SERVO],'buttons':['gcode_button test'],'tasks':[TASK]}
-        p = patch('maintenance_auxiliary.profile',side_effect=lambda:copy.deepcopy(self.data))
+        p = patch('petrel.features.maintenance.domains.auxiliary.controller.profile',side_effect=lambda:copy.deepcopy(self.data))
         p.start()
         self.addCleanup(p.stop)
         devices = (DeviceCapabilities('servo test','actuator',_add(0,'O02',USER)),
@@ -127,7 +127,7 @@ class AuxiliaryWorkflowTests(unittest.TestCase):
         self.assertEqual(self.commands,[])
 
     def test_manual_service_requires_every_step_and_never_reports_sensor_health(self):
-        from ui_maintenance import MaintenanceViewMixin
+        from petrel.features.maintenance.ui.view import MaintenanceViewMixin
         view = MaintenanceViewMixin()
         view.pd = SimpleNamespace(maintenance_pulse=self.owner)
         self.arm('O06')

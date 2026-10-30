@@ -5,8 +5,8 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
 import tempfile
 import unittest
-import maintenance_records as records
-from maintenance_records import MaintenanceBook, read_json, write_json
+import petrel.features.maintenance.records.book as records
+from petrel.features.maintenance.records.book import MaintenanceBook, read_json, write_json
 from background_reads import ReadWorker
 from test_maintenance_ui_services import DeferredWorker
 
@@ -15,7 +15,7 @@ class ReauditRecordTests(unittest.TestCase):
     def setUp(self):
         tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
         self.root=Path(tmp.name)
-        context=patch('maintenance_records.root',return_value=self.root)
+        context=patch('petrel.features.maintenance.records.book.root',return_value=self.root)
         context.start();self.addCleanup(context.stop)
 
     def state(self):
@@ -88,7 +88,7 @@ class ReauditRecordTests(unittest.TestCase):
             if name=='maintenance-history.json':
                 calls.append(name);entered.set();release.wait(2)
             return original(name,data)
-        with patch('maintenance_records.write_json',side_effect=write):
+        with patch('petrel.features.maintenance.records.book.write_json',side_effect=write):
             book.record(self.result(),2,self.state())
             self.assertTrue(entered.wait(1))
             closer=Thread(target=book.close);closer.start()
@@ -104,7 +104,7 @@ class ReauditRecordTests(unittest.TestCase):
         def fail_history(name,data):
             if name=='maintenance-history.json':calls.append(name);raise OSError('disk')
             return original(name,data)
-        with patch('maintenance_records.write_json',side_effect=fail_history):
+        with patch('petrel.features.maintenance.records.book.write_json',side_effect=fail_history):
             with self.assertLogs(level='WARNING'):book.close()
         self.assertEqual(len(calls),1);self.assertGreater(book.errors,0)
         queued=len(worker.work);book.record(self.result(),2,self.state())

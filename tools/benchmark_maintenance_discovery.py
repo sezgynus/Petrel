@@ -55,7 +55,7 @@ def main():
     # Warming them prevents double-counting their dependencies as new
     # Maintenance allocations in this standalone synthetic process.
     import printer_state
-    import maintenance_cache
+    import petrel.features.maintenance.discovery.cache as maintenance_cache
 
     printer = SyntheticPrinter(opts.fans)
     tracer = None
@@ -67,7 +67,7 @@ def main():
         baseline = tracer.take_snapshot()
     gc.collect()
     rss_start = linux_memory_kib()
-    from maintenance_discovery import discover
+    from petrel.features.maintenance.discovery.discovery import discover
 
     durations = []
     snapshot = None

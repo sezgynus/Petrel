@@ -6,9 +6,9 @@ import copy
 import unittest
 
 from test_maintenance_controller import printer, Worker
-from maintenance_discovery import MaintenanceSnapshot, _add
-from maintenance_probe import MaintenanceProbeController, METHODS, LEVELING_ONLY, probe_measurement
-from maintenance_workflow import adapters
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, _add
+from petrel.features.maintenance.domains.probe import MaintenanceProbeController, METHODS, LEVELING_ONLY, probe_measurement
+from petrel.features.maintenance.execution.workflow import adapters
 
 
 class ProbeEvidenceTests(unittest.TestCase):
@@ -57,7 +57,7 @@ class ProbeWorkflowTests(unittest.TestCase):
                                              config_marker=id(self.p.state.settings))
         self.clock = 1000.
         self.patches = [patch(name,side_effect=lambda:self.clock)
-                       for name in ('maintenance_workflow.monotonic','maintenance_runtime.monotonic')]
+                       for name in ('petrel.features.maintenance.execution.workflow.monotonic','petrel.features.maintenance.execution.runtime.monotonic')]
         for p in self.patches:
             p.start()
             self.addCleanup(p.stop)
@@ -156,7 +156,7 @@ class ProbeWorkflowTests(unittest.TestCase):
         self.status['toolhead'].update(values['toolhead'])
         self.status['toolhead']['homed_axes']=''
         self.raw['status'].update(copy.deepcopy(self.status))
-        p=patch('maintenance_motion_controller.monotonic',side_effect=lambda:self.clock)
+        p=patch('petrel.features.maintenance.domains.motion.controller.monotonic',side_effect=lambda:self.clock)
         p.start()
         self.addCleanup(p.stop)
 

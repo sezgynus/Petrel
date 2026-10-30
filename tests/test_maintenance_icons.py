@@ -3,8 +3,8 @@ from lcd_resources import ICON_LIBRARY_ID
 import unittest
 from types import SimpleNamespace as NS
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice
-from maintenance_icons import icon_for,feature_icon,TOPICS
+from petrel.features.maintenance.ui.experience import Choice
+from petrel.features.maintenance.ui.icons import icon_for,feature_icon,TOPICS
 from lcd_resources import (ICON_MAINTENANCE_CHECK,ICON_MAINTENANCE_DIAGNOSTICS,
     ICON_MAINTENANCE_RECOMMENDATIONS,ICON_MAINTENANCE_CARE)
 

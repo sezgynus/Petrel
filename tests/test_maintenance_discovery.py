@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_cache import MaintenanceCache
-from maintenance_discovery import (
+from petrel.features.maintenance.discovery.cache import MaintenanceCache
+from petrel.features.maintenance.discovery.discovery import (
     discover, MaintenanceSnapshot, FEATURE_COUNT, NONE, AUTOMATIC,
     USER, EXTERNAL, CALIBRATION, INFORMATION,
 )

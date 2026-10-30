@@ -859,10 +859,10 @@ class MoonrakerSubscription:
             for name in available:
                 if name.startswith('heater_generic '):
                     self._base_subscription[name] = ['temperature', 'target']
-            from maintenance_usage import usage_metrics
+            from petrel.features.maintenance.records.usage import usage_metrics
             metrics, _ = usage_metrics(names,settings)
             self._usage_fields = {getattr(m, 'source', m.device): m.field for m in metrics}
-            from maintenance_travel import OBJECT
+            from petrel.features.maintenance.records.travel import OBJECT
             if OBJECT in names:
                 self._base_subscription[OBJECT] = ['session_id','x_mm','y_mm','z_mm',
                                                   'state','dropped_batches','coverage',

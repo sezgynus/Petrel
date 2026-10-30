@@ -4,8 +4,8 @@ from concurrent.futures import CancelledError
 from unittest.mock import patch,call
 from test_capabilities import display,printer,snapshot
 from test_regressions import ui,backend
-from maintenance_layout import draw_maintenance
-from maintenance_experience import Screen,Choice
+from petrel.features.maintenance.ui.layout import draw_maintenance
+from petrel.features.maintenance.ui.experience import Screen,Choice
 from lcd_resources import ICON_PROGRESS_FILL
 
 

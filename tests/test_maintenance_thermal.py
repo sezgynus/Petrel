@@ -1,5 +1,5 @@
 import unittest
-from maintenance_thermal import contract, sample, Sample, ThermalSeries
+from petrel.features.maintenance.domains.thermal.measurements import contract, sample, Sample, ThermalSeries
 
 class ThermalContractTests(unittest.TestCase):
     def setUp(self):

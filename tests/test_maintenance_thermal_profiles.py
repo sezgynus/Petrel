@@ -3,10 +3,10 @@ from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import unittest
-from maintenance_thermal_profiles import profile_services, profile_for
-from maintenance_thermal import contract
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _add
-from maintenance_heater import thermal_plan
+from petrel.features.maintenance.domains.thermal.profiles import profile_services, profile_for
+from petrel.features.maintenance.domains.thermal.measurements import contract
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _add
+from petrel.features.maintenance.domains.thermal.controller import thermal_plan
 
 class ThermalProfileTests(unittest.TestCase):
     def setUp(self):

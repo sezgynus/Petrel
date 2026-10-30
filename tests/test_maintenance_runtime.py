@@ -7,9 +7,9 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot
-from maintenance_safety import precheck
-from maintenance_runtime import (
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot
+from petrel.features.maintenance.execution.safety import precheck
+from petrel.features.maintenance.execution.runtime import (
     QueueEvidence, read_queue_evidence, conflicting_petrel_operation,
     live_safety_context,
 )

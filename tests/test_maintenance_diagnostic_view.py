@@ -3,8 +3,8 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import Mock
 from test_capabilities import display,snapshot
-from maintenance_evidence_view import evidence_lines
-from maintenance_experience import result_details
+from petrel.features.maintenance.ui.evidence import evidence_lines
+from petrel.features.maintenance.ui.experience import result_details
 
 class DiagnosticPresentation(unittest.TestCase):
     def test_thermal_values_keep_units_without_internal_field_names(self):
@@ -47,8 +47,8 @@ class DiagnosticPresentation(unittest.TestCase):
         self.assertIn('CPU load: 36.5 %',lines)
 
     def test_long_safe_text_is_wrapped_instead_of_clipped(self):
-        from maintenance_layout import _row
-        from maintenance_experience import Choice
+        from petrel.features.maintenance.ui.layout import _row
+        from petrel.features.maintenance.ui.experience import Choice
         d=display(snapshot());d._maintenance_init();d._maintenance_selection=0
         d.lcd.reset_mock()
         _row(d,'fact',Choice('Previous state not confirmed','none'),1,100,52,None)

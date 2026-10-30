@@ -1,9 +1,9 @@
 import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import patch
-from maintenance_discovery import MaintenanceSnapshot, CALIBRATION, _add
-from maintenance_filament import MaintenanceFilamentController, filament_services
-from maintenance_workflow import FirmwareWorkflow
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, CALIBRATION, _add
+from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController, filament_services
+from petrel.features.maintenance.execution.workflow import FirmwareWorkflow
 from test_maintenance_ui_services import DeferredWorker
 
 
@@ -20,7 +20,7 @@ class FilamentProfileIO(unittest.TestCase):
 
     def test_menu_uses_ready_target_tokens_without_profile_io(self):
         owner,_=self.make()
-        with patch('maintenance_filament.profile',side_effect=AssertionError('UI disk read')):
+        with patch('petrel.features.maintenance.domains.filament.controller.profile',side_effect=AssertionError('UI disk read')):
             for _ in range(10):
                 rows=owner.available()
                 self.assertEqual([(r.feature_id,r.device) for r in rows],
@@ -28,7 +28,7 @@ class FilamentProfileIO(unittest.TestCase):
 
     def test_explicit_start_defers_profile_load_to_existing_worker(self):
         owner,worker=self.make()
-        with patch('maintenance_filament.profile',return_value={'dryers':[]}) as profile, \
+        with patch('petrel.features.maintenance.domains.filament.controller.profile',return_value={'dryers':[]}) as profile, \
              patch.object(FirmwareWorkflow,'_prepare',return_value='prepared'):
             self.assertTrue(owner.start('E14','heater_generic dryer')[0])
             profile.assert_not_called()
@@ -38,7 +38,7 @@ class FilamentProfileIO(unittest.TestCase):
 
     def test_ready_records_exact_dryer_targets_only(self):
         state=NS(objects=('heater_generic dryer','fan'),settings={})
-        with patch('maintenance_filament.profile',return_value={'dryers':[
+        with patch('petrel.features.maintenance.domains.filament.controller.profile',return_value={'dryers':[
                 {'object':'fan'},{'object':'heater_generic dryer'}]}):
             tokens=filament_services(state)
         self.assertIn('maintenance.dryer_target:heater_generic dryer',tokens)

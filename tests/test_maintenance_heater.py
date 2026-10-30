@@ -6,9 +6,9 @@ import unittest
 
 from test_maintenance_controller import printer, Worker
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _add
-from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter
-from maintenance_thermal import ACTIVE
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _add
+from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter
+from petrel.features.maintenance.domains.thermal.measurements import ACTIVE
 
 class ThermalControllerTests(unittest.TestCase):
     def setUp(self):
@@ -31,8 +31,8 @@ class ThermalControllerTests(unittest.TestCase):
         self.heat = Future()
         self.p.subscription.request = self.request
         self.c = MaintenanceHeaterController(self.p, self.worker, self.client)
-        self.patches = [patch('maintenance_heater.monotonic', lambda: self.clock),
-                        patch('maintenance_runtime.monotonic', lambda: self.clock)]
+        self.patches = [patch('petrel.features.maintenance.domains.thermal.controller.monotonic', lambda: self.clock),
+                        patch('petrel.features.maintenance.execution.runtime.monotonic', lambda: self.clock)]
         for item in self.patches:
             item.start()
             self.addCleanup(item.stop)
@@ -364,7 +364,7 @@ class ThermalControllerTests(unittest.TestCase):
         self.armed()
         self.c.confirm()
         original = self.p.subscription.request
-        with self.assertLogs('maintenance_heater', level='ERROR') as logs:
+        with self.assertLogs('petrel.features.maintenance.domains.thermal.controller', level='ERROR') as logs:
             def checked_request(method, params=None, guard=None):
                 self.assertTrue(logs.output)
                 self.assertIn('feature=H01 heater=extruder', logs.output[0])
@@ -383,7 +383,7 @@ class ThermalControllerTests(unittest.TestCase):
         self.data['status']['extruder']['target'] = 200.
         self.c.poll()
         self.worker.drain()
-        with self.assertLogs('maintenance_heater', level='ERROR') as logs:
+        with self.assertLogs('petrel.features.maintenance.domains.thermal.controller', level='ERROR') as logs:
             self.c.poll()
         self.assertIn('thermal_target_drift', logs.output[0])
         self.assertIn('target=200.0', logs.output[0])
@@ -392,6 +392,6 @@ class ThermalControllerTests(unittest.TestCase):
     def test_logging_failure_cannot_suppress_emergency_stop(self):
         self.armed()
         self.c.confirm()
-        with patch('maintenance_heater._LOG.error', side_effect=RuntimeError('logger')):
+        with patch('petrel.features.maintenance.domains.thermal.controller._LOG.error', side_effect=RuntimeError('logger')):
             self.c._shutdown('diagnostic_probe')
         self.assertEqual(self.requests[-1][0], 'printer.emergency_stop')

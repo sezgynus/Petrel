@@ -9,10 +9,10 @@ from test_regressions import ui
 from test_t5uic1_driver import driver
 from dwin_emulator.assets import PanelAssets
 from dwin_emulator.framebuffer import Framebuffer
-from maintenance_experience import Choice,Screen
-from maintenance_assessment_store import ServicePolicy
-from maintenance_care_view import CareItem
-from maintenance_layout import draw_maintenance
+from petrel.features.maintenance.ui.experience import Choice,Screen
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.ui.care import CareItem
+from petrel.features.maintenance.ui.layout import draw_maintenance
 
 class MaintenancePixelUpdates(unittest.TestCase):
     @classmethod

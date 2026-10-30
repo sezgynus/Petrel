@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import Mock
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice
+from petrel.features.maintenance.ui.experience import Choice
 
 class MaintenanceUIFlows(unittest.TestCase):
     def view(self):
@@ -27,7 +27,7 @@ class MaintenanceUIFlows(unittest.TestCase):
         screen=d._maintenance_screen()
         index=next(i for i,c in enumerate(screen.choices) if c.action==action and (value is None or c.value==value))
         if screen.kind=='report':
-            from maintenance_report import report_rows,REPORT_VISIBLE_ROWS
+            from petrel.features.maintenance.ui.report import report_rows,REPORT_VISIBLE_ROWS
             maximum=max(0,len(report_rows(screen.sections,screen.choices))-REPORT_VISIBLE_ROWS)
             d._maintenance_report_position=maximum+index if index else 0
             d.Draw_Maintenance_Menu()

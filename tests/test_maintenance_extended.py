@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_discovery import (discover, AUTOMATIC, CALIBRATION,
+from petrel.features.maintenance.discovery.discovery import (discover, AUTOMATIC, CALIBRATION,
                                    EXTERNAL, INFORMATION, NONE, USER)
 
 

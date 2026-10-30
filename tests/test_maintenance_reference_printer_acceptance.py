@@ -288,7 +288,7 @@ class ReferenceAcceptanceTests(unittest.TestCase):
                           doc.read_text(encoding='utf-8'))
 
     def test_mmu_e11_e12_parked_without_fabricating_acceptance(self):
-        from maintenance_filament import METHODS
+        from petrel.features.maintenance.domains.filament.controller import METHODS
         data=ledger()
         entries={(e['feature_id'],e['target']):e for e in data['entries']}
         parked=data['evidence']['parked_mmu_workflows_2026_10_18']
@@ -805,7 +805,7 @@ class ReferenceAcceptanceTests(unittest.TestCase):
             self.assertFalse(by_target[key]['acceptance']['restore_verified'])
         self.assertEqual(by_target[('F04', 'fan_generic (not installed)')]
                          ['status'], 'not_applicable')
-        from maintenance_pulse import _FAN_STEP_MS
+        from petrel.features.maintenance.domains.pulse.program import _FAN_STEP_MS
         f02 = by_target[('F02', 'fan')]
         self.assertEqual(f02['status'], 'accepted')
         self.assertFalse(f02['retest_required'])

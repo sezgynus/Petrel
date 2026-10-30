@@ -6,12 +6,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_catalog import definition_for
-from maintenance_discovery import (
+from petrel.features.maintenance.discovery.catalog import definition_for
+from petrel.features.maintenance.discovery.discovery import (
     AUTOMATIC, CALIBRATION, EXTERNAL, INFORMATION, USER, _add,
     discover, MaintenanceSnapshot, DeviceCapabilities,
 )
-from maintenance_planner import (
+from petrel.features.maintenance.execution.planner import (
     AdapterRegistration, PlannedTest, build_plan, visible_plan,
 )
 

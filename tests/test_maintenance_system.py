@@ -6,12 +6,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock,patch
 import test_maintenance_probe as fixture
-from maintenance_records import MaintenanceBook,read_json
-from maintenance_system import read_fields,path_for
-from maintenance_panel import MaintenancePanelController,COLORS
-from maintenance_discovery import MaintenanceSnapshot,_add,USER
-from maintenance_services import parse_evidence
-from maintenance_catalog import definition_for
+from petrel.features.maintenance.records.book import MaintenanceBook,read_json
+from petrel.features.maintenance.domains.system import read_fields,path_for
+from petrel.features.maintenance.domains.panel import MaintenancePanelController,COLORS
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,_add,USER
+from petrel.features.maintenance.discovery.services import parse_evidence
+from petrel.features.maintenance.discovery.catalog import definition_for
 
 
 class SystemFieldTests(unittest.TestCase):
@@ -40,13 +40,13 @@ class SystemFieldTests(unittest.TestCase):
 
     def test_travel_never_falls_back_to_sampled_commanded_position(self):
         state = SimpleNamespace(objects=('motion_report',))
-        with patch('maintenance_system.travel_profile',return_value=None):
+        with patch('petrel.features.maintenance.domains.system.travel_profile',return_value=None):
             with self.assertRaises(ValueError):
                 path_for('S13',None,state)
         self.assertEqual(read_fields('S13',{'result':{'eventtime':1.,'status':{'motion_report':{'live_position':[1,2,3]}}}}),())
 
     def test_absent_warning_source_is_not_fabricated_zero(self):
-        from maintenance_executor import _read_fields
+        from petrel.features.maintenance.execution.executor import _read_fields
         self.assertEqual(_read_fields('S08',{'result':{'status':{'webhooks':{'state':'ready'}}}}),
                          (('webhooks_state','ready'),))
         fields = dict(_read_fields('S08',{'result':{'status':{
@@ -54,7 +54,7 @@ class SystemFieldTests(unittest.TestCase):
         self.assertEqual(fields['configuration_warnings'],2)
 
     def test_visual_lcd_method_is_registered_without_removing_information(self):
-        from maintenance_discovery import INFORMATION
+        from petrel.features.maintenance.discovery.discovery import INFORMATION
         self.assertTrue(definition_for('S16').methods & USER)
         self.assertTrue(definition_for('S16').methods & INFORMATION)
 
@@ -63,7 +63,7 @@ class RecordTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        p = patch('maintenance_records.root',return_value=Path(self.temp.name))
+        p = patch('petrel.features.maintenance.records.book.root',return_value=Path(self.temp.name))
         p.start()
         self.addCleanup(p.stop)
         self.worker = fixture.Worker()

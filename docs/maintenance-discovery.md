@@ -6,7 +6,7 @@
 
 ## Design constraints
 
-- `maintenance_discovery.py` is independent of the existing `printer_capabilities.py`. The latter must not be changed by Maintenance development.
+- `petrel/features/maintenance/discovery/discovery.py` is independent of the existing `printer_capabilities.py`. The latter must not be changed by Maintenance development.
 - `discover(state, services=())` only reads existing, authoritative `PrinterState` data from the Klipper/Moonraker subscription. It does **not** send G-code, issue discovery HTTP requests, copy configuration dictionaries, retain the input state, create threads, or open sockets.
 - Named Moonraker/Petrel services are enabled only by **positive API evidence** passed by the caller; an unverified service is not assumed available.
 - A result represents an available **method**, not a completed health check or permission to run a command. Test execution must independently enforce idle/printer state, device limits, connection epoch, actuator safety, and user approval.
@@ -16,7 +16,7 @@
 
 ## READY-epoch snapshot owner
 
-`maintenance_cache.py` provides `MaintenanceCache.get(state, services=())`. It loads the discovery module at the first READY epoch. A matching Klipper epoch, effective settings identity and positively confirmed service set reuse the **same** immutable snapshot; a new config/epoch or service set recomputes it. A disconnected state clears the result. The cache keeps only that snapshot, not its source state. The backend owns the snapshot throughout that READY epoch. Menu entry and exit only read it; disconnection invalidates it.
+`petrel/features/maintenance/discovery/cache.py` provides `MaintenanceCache.get(state, services=())`. It loads the discovery module at the first READY epoch. A matching Klipper epoch, effective settings identity and positively confirmed service set reuse the **same** immutable snapshot; a new config/epoch or service set recomputes it. A disconnected state clears the result. The cache keeps only that snapshot, not its source state. The backend owns the snapshot throughout that READY epoch. Menu entry and exit only read it; disconnection invalidates it.
 
 ## Method flags
 

@@ -4,7 +4,7 @@
 
 **Durum:** Bu modül fail-closed kabul ve oturum geçersizleştirme katmanıdır. Üretim okuyucuları ve fiziksel controller katmanları bunu kullanır; modülün kendisi komut göndermez veya UI çizmez.
 
-`maintenance_safety.py`, `SafetyContext`, `SafetyDecision`, `SafetySession`, `precheck` ve `MaintenanceSafetyCoordinator` tanımlar. Teste kabul için aynı Klipper epoch'u ve settings nesne işaretiyle READY, açıkça READY webhooks, boşta print istatistiği, kesin pasif virtual SD/pause, aktif manual probe veya meşgul MMU olmaması, pozitif olarak kontrol edilmiş iş kuyruğu ve diğer Petrel işlem çakışmalarının denetlenmiş olması gerekir. Kritik durum eksikse iyimser izin verilmez.
+`petrel/features/maintenance/execution/safety.py`, `SafetyContext`, `SafetyDecision`, `SafetySession`, `precheck` ve `MaintenanceSafetyCoordinator` tanımlar. Teste kabul için aynı Klipper epoch'u ve settings nesne işaretiyle READY, açıkça READY webhooks, boşta print istatistiği, kesin pasif virtual SD/pause, aktif manual probe veya meşgul MMU olmaması, pozitif olarak kontrol edilmiş iş kuyruğu ve diğer Petrel işlem çakışmalarının denetlenmiş olması gerekir. Kritik durum eksikse iyimser izin verilmez.
 
 Çağıran taraf güncel iş kuyruğu kanıtını `queue_checked=True` ile bildirmelidir. `job_queue=None` ancak bileşenin bulunmadığı pozitif olarak doğrulanınca uygundur; mevcut kuyruk bilinen güvenli durumda ve boş olmalıdır. Diğer Petrel operasyonları için de `operations_checked=True`, `conflicting_operation=False` açıkça gereklidir. Mevcut Executor entegrasyonu bu bayrakları gerçek kontrolle üretmelidir; körlemesine True vermek güvenlik sözleşmesini bozar.
 

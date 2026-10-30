@@ -8,8 +8,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot, INFORMATION, _add
-from maintenance_controller import MaintenanceReadController
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, INFORMATION, _add
+from petrel.features.maintenance.execution.controller import MaintenanceReadController
 
 
 class Worker:

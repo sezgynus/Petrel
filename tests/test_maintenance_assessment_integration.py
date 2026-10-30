@@ -1,8 +1,8 @@
 import unittest
 from types import SimpleNamespace
-from maintenance_assessment_service import MaintenanceAssessment
-from maintenance_heater import ThermalResult
-from maintenance_assessment import observations
+from petrel.features.maintenance.assessment.service import MaintenanceAssessment
+from petrel.features.maintenance.domains.thermal.controller import ThermalResult
+from petrel.features.maintenance.assessment.assessment import observations
 
 class AssessmentIntegrationTest(unittest.TestCase):
     def test_thermal_context_and_operation_survive_normalization(self):

@@ -4,19 +4,19 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
-from maintenance_records import MaintenanceBook, read_json, write_json
-from maintenance_evidence_view import evidence_lines
-from maintenance_experience import Screen, Choice
-from maintenance_report import ReportSection
-from maintenance_layout import draw_maintenance
-from maintenance_travel import OBJECT
+from petrel.features.maintenance.records.book import MaintenanceBook, read_json, write_json
+from petrel.features.maintenance.ui.evidence import evidence_lines
+from petrel.features.maintenance.ui.experience import Screen, Choice
+from petrel.features.maintenance.ui.report import ReportSection
+from petrel.features.maintenance.ui.layout import draw_maintenance
+from petrel.features.maintenance.records.travel import OBJECT
 from test_maintenance_ui_services import DeferredWorker
 import test_maintenance_ui_services as service_fixture
 
 
 class CurrentUsagePresentationTests(unittest.TestCase):
     def test_legacy_history_is_preserved_and_exported_but_not_in_current_usage(self):
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_records.Path.home', return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.book.Path.home', return_value=Path(folder)):
             device = 'filament_switch_sensor arbitrary'
             write_json('maintenance-sensor-usage.json',
                        dict(version=1, counter_id='a'*32, counts={device: 7}))

@@ -6,8 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_catalog import CATALOG, candidate_methods, definition_for
-from maintenance_discovery import (
+from petrel.features.maintenance.discovery.catalog import CATALOG, candidate_methods, definition_for
+from petrel.features.maintenance.discovery.discovery import (
     ALWAYS_HIDDEN, AUTOMATIC, USER, EXTERNAL, CALIBRATION,
     INFORMATION, NONE, FEATURE_COUNT, discover,
 )

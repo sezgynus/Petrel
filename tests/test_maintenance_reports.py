@@ -8,10 +8,10 @@ from test_capabilities import display,snapshot
 from test_t5uic1_driver import driver
 from dwin_emulator.assets import PanelAssets
 from dwin_emulator.framebuffer import Framebuffer
-from maintenance_experience import Choice,Screen
-from maintenance_report import (ReportSection,report_rows,section_from_lines,
+from petrel.features.maintenance.ui.experience import Choice,Screen
+from petrel.features.maintenance.ui.report import (ReportSection,report_rows,section_from_lines,
     report_navigation,REPORT_VISIBLE_ROWS,REPORT_TOP,REPORT_ROW_HEIGHT)
-from maintenance_layout import draw_maintenance,BG
+from petrel.features.maintenance.ui.layout import draw_maintenance,BG
 
 class MaintenanceReports(unittest.TestCase):
     def view(self,pixels=False):
@@ -87,7 +87,7 @@ class MaintenanceReports(unittest.TestCase):
         rows=report_rows(screen.sections,screen.choices)
         count=report_navigation(rows,screen.choices,0)[3]
         d.get_encoder_state=Mock(return_value=d.ENCODER_DIFF_CW)
-        with patch('maintenance_report.report_rows',side_effect=AssertionError('encoder reflow')):
+        with patch('petrel.features.maintenance.ui.report.report_rows',side_effect=AssertionError('encoder reflow')):
             d._menu_batch_steps=count-1;d.HMI_Maintenance_Menu()
             self.assertEqual(d._maintenance_report_position,count-1)
             d._menu_batch_steps=1;d.HMI_Maintenance_Menu()
@@ -158,7 +158,7 @@ class MaintenanceReports(unittest.TestCase):
         self.assertTrue(all(0<item.progress<1 and item.remaining>0 for item in screen.care))
 
     def test_host_units_are_readable_and_cpu_names_are_unambiguous(self):
-        from maintenance_evidence_view import evidence_lines
+        from petrel.features.maintenance.ui.evidence import evidence_lines
         lines=evidence_lines('S01',(('memory.available',193992),('cpu.cpu0',42.1)))
         self.assertIn('Memory available: 189.4 MiB',lines)
         self.assertIn('Core 0: 42.1 %',lines)

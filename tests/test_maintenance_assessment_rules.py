@@ -1,7 +1,7 @@
 import unittest
-from maintenance_assessment import Observation
-from maintenance_assessment_rules import observed_finding, metric_finding, MetricPolicy, trend_finding
-from maintenance_assessment_model import Evidence, Measurement
+from petrel.features.maintenance.assessment.assessment import Observation
+from petrel.features.maintenance.assessment.rules import observed_finding, metric_finding, MetricPolicy, trend_finding
+from petrel.features.maintenance.assessment.model import Evidence, Measurement
 
 class AssessmentRulesTest(unittest.TestCase):
     def item(self,feature,fields,status='OBSERVED'):

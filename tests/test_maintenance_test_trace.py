@@ -13,9 +13,9 @@ import zipfile
 
 import test_maintenance_heater as thermal
 from test_maintenance_controller import Worker
-from maintenance_controller import MaintenanceReadController
-from maintenance_heater import MaintenancePhysicalRouter
-from maintenance_test_trace import TestTrace, OwnerProxy, WorkerProxy, SubscriptionProxy, MAX_PENDING, clean
+from petrel.features.maintenance.execution.controller import MaintenanceReadController
+from petrel.features.maintenance.domains.thermal.controller import MaintenancePhysicalRouter
+from petrel.features.maintenance.diagnostics.test_trace import TestTrace, OwnerProxy, WorkerProxy, SubscriptionProxy, MAX_PENDING, clean
 from printerInterface import PrinterData
 
 
@@ -88,7 +88,7 @@ class TestRecorder(unittest.TestCase):
         self.arm()
         owner = self.fixture.c
         owner._phase = 'await_observation'
-        from maintenance_heater import THERMAL_GROUP, THERMAL_PRIMARY
+        from petrel.features.maintenance.domains.thermal.controller import THERMAL_GROUP, THERMAL_PRIMARY
         owner._component_metrics = tuple(
             (name, True, True, ((THERMAL_PRIMARY[name], 1.2),))
             for name in THERMAL_GROUP)
@@ -176,7 +176,7 @@ class TestRecorder(unittest.TestCase):
                 self.assertEqual(event['data']['rpc_code'],400)
 
     def test_motion_read_records_motor_mesh_and_velocity_guard_evidence(self):
-        from maintenance_test_trace import measurements
+        from petrel.features.maintenance.diagnostics.test_trace import measurements
         values=measurements({'result':{'status':{
             'toolhead':{'max_velocity':300},
             'stepper_enable':{'steppers':{'stepper_x':True,'stepper_y':True,'stepper_z':True}},
@@ -192,12 +192,12 @@ class TestRecorder(unittest.TestCase):
         self.assertEqual(clean('0/4096'),'0/4096')
         for value in ('64/64','0/0','7/9999','/etc/private','home/pi/private'):
             self.assertEqual(clean(value),'[omitted]')
-        from maintenance_test_trace import owner_snapshot
+        from petrel.features.maintenance.diagnostics.test_trace import owner_snapshot
         owner=SimpleNamespace(_evidence=(('trigger_phase','7/64'),))
         self.assertEqual(owner_snapshot(owner)['evidence'],[['trigger_phase','7/64']])
 
     def test_static_mmu_errors_and_spaced_ui_labels_survive_without_paths(self):
-        from maintenance_test_trace import error_info,measurements
+        from petrel.features.maintenance.diagnostics.test_trace import error_info,measurements
         self.assertEqual(error_info(ValueError('Unload filament first'))['code'],'mmu_unload_filament_first')
         self.assertEqual(error_info(ValueError('secret token=123'))['code'],'details_omitted')
         self.assertEqual(clean('Red seen / next'),'Red seen / next')
@@ -237,9 +237,9 @@ class TestRecorder(unittest.TestCase):
         self.assertEqual(self.fixture.requests[0][0],'printer.gcode.script')
 
     def test_rotated_files_survive_restart_and_report_rotation(self):
-        from maintenance_test_trace import MAX_LINE
+        from petrel.features.maintenance.diagnostics.test_trace import MAX_LINE
         self.trace.emit('first')
-        with patch('maintenance_test_trace.MAX_FILE',MAX_LINE):
+        with patch('petrel.features.maintenance.diagnostics.test_trace.MAX_FILE',MAX_LINE):
             self.trace.flush()
             for i in range(20):
                 self.trace.emit('fill',{'values':['x'*200]*8})
@@ -250,7 +250,7 @@ class TestRecorder(unittest.TestCase):
         self.assertTrue(any(e['event']=='first' for e in events))
 
     def test_preparatory_homing_keeps_original_feature_and_child_stage(self):
-        from maintenance_test_trace import owner_snapshot
+        from petrel.features.maintenance.diagnostics.test_trace import owner_snapshot
         child=SimpleNamespace(_phase='running',_row=SimpleNamespace(feature_id='M03'),
                               _homing=None,phase='running')
         owner=SimpleNamespace(_phase='homing_preparation',phase='running',

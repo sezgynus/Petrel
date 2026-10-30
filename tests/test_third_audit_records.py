@@ -7,8 +7,8 @@ import tempfile
 import unittest
 
 from background_reads import ReadWorker, MoonrakerError
-import maintenance_records as records
-from maintenance_records import MaintenanceBook, read_json
+import petrel.features.maintenance.records.book as records
+from petrel.features.maintenance.records.book import MaintenanceBook, read_json
 from test_maintenance_ui_services import DeferredWorker
 
 
@@ -17,7 +17,7 @@ class ThirdAuditRecords(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.folder = Path(tmp.name)
-        context = patch('maintenance_records.root', return_value=self.folder)
+        context = patch('petrel.features.maintenance.records.book.root', return_value=self.folder)
         context.start()
         self.addCleanup(context.stop)
         self.state = NS(settings={}, epoch=1, software_version='test')
@@ -66,7 +66,7 @@ class ThirdAuditRecords(unittest.TestCase):
         path = self.folder/'maintenance-history.json'
         previous = path.read_bytes()
         group = NS(components=tuple(self.result(i) for i in range(7)))
-        with patch('maintenance_records.MAX_RECORD_BYTES', 1024), self.assertLogs(level='WARNING'):
+        with patch('petrel.features.maintenance.records.book.MAX_RECORD_BYTES', 1024), self.assertLogs(level='WARNING'):
             self.save(book, worker, group)
         self.assertEqual(path.read_bytes(), previous)
         self.assertEqual(book.errors, 1)
@@ -88,7 +88,7 @@ class ThirdAuditRecords(unittest.TestCase):
             writes.append((name, current_thread()))
             return original(name, value)
         with patch('background_reads.monotonic', side_effect=lambda: clock[0]), patch(
-                'maintenance_records.write_json', side_effect=write):
+                'petrel.features.maintenance.records.book.write_json', side_effect=write):
             first = worker.submit(block)
             self.assertTrue(entered.wait(1))
             stale_work = Mock()

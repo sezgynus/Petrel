@@ -3,8 +3,8 @@ from unittest.mock import patch
 import unittest
 from test_maintenance_controller import printer, Worker
 from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, USER, AUTOMATIC, _add
-from maintenance_switches import MaintenanceSwitchController
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, AUTOMATIC, _add
+from petrel.features.maintenance.domains.switches import MaintenanceSwitchController
 
 class SwitchTests(unittest.TestCase):
     def setUp(self):
@@ -38,7 +38,7 @@ class SwitchTests(unittest.TestCase):
     def test_operator_paced_open_pressed_open_and_unlimited_wait(self):
         self.assertTrue(self.c.start('M01','stepper_x')[0])
         self.assertEqual(self.paths,[])
-        with patch('maintenance_switches.monotonic',return_value=100000):
+        with patch('petrel.features.maintenance.domains.switches.monotonic',return_value=100000):
             self.assertIsNone(self.c.poll())
         self.click()
         self.assertEqual(self.c.phase,'await_press')
@@ -81,7 +81,7 @@ class SwitchTests(unittest.TestCase):
         self.assertNotIn('/printer/query_endstops/status',self.paths)
 
     def test_reserved_m10_is_not_an_active_test_even_with_stale_discovery(self):
-        from maintenance_switches import switch_adapters, switch_plan
+        from petrel.features.maintenance.domains.switches import switch_adapters, switch_plan
         self.assertEqual([a.feature_id for a in switch_adapters()], ['M01'])
         self.assertEqual([r.feature_id for r in switch_plan(self.p.maintenance.snapshot)],
                          ['M01'])

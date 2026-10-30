@@ -6,11 +6,11 @@ from pathlib import Path
 from dataclasses import replace
 from types import SimpleNamespace as NS
 from unittest.mock import patch
-from maintenance_heater import ThermalResult
-from maintenance_reference import request
+from petrel.features.maintenance.domains.thermal.controller import ThermalResult
+from petrel.features.maintenance.assessment.reference import request
 from test_maintenance_ui_services import DeferredWorker
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice
+from petrel.features.maintenance.ui.experience import Choice
 from unittest.mock import Mock
 
 
@@ -44,7 +44,7 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(view._maintenance_page,'reference_wait')
 
     def test_reference_is_deferred_explicit_and_survives_worker_requests(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_reference.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.assessment.reference.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();state=NS(settings={})
             with self.assertRaises(ValueError): request(worker,'save',result(),state,current=lambda:True)
             save=request(worker,'save',result(),state,confirmed=True,current=lambda:True)
@@ -70,7 +70,7 @@ class ReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'session_changed'): f.result()
 
     def test_hardware_change_can_explicitly_remove_reference(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_reference.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.assessment.reference.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();state=NS(settings={})
             for operation in ('save','clear'):
                 f=request(worker,operation,result(),state,confirmed=True,current=lambda:True)
@@ -79,9 +79,9 @@ class ReferenceTests(unittest.TestCase):
             worker.run();self.assertEqual(f.result().heading,'No compatible reference')
 
     def test_new_measurement_invalidates_the_prior_comparison_finding(self):
-        from maintenance_assessment_service import MaintenanceAssessment
-        from maintenance_assessment_model import Finding
-        from maintenance_discovery import MaintenanceSnapshot
+        from petrel.features.maintenance.assessment.service import MaintenanceAssessment
+        from petrel.features.maintenance.assessment.model import Finding
+        from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot
         state=NS(epoch=1,settings={})
         snapshot=MaintenanceSnapshot(1,config_marker=id(state.settings))
         api=MaintenanceAssessment();api.ingest(result(),1,state)

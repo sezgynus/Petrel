@@ -1,8 +1,8 @@
 import unittest
 from types import SimpleNamespace
-from maintenance_motion_info import read_fields, path_for, tmc2208_faults
-from maintenance_executor import read_only_adapters
-from maintenance_discovery import INFORMATION
+from petrel.features.maintenance.domains.motion.info import read_fields, path_for, tmc2208_faults
+from petrel.features.maintenance.execution.executor import read_only_adapters
+from petrel.features.maintenance.discovery.discovery import INFORMATION
 
 def reply(values):
     return {'result': {'eventtime': 10., 'status': values}}
@@ -65,10 +65,10 @@ class MotionInformationTests(unittest.TestCase):
 
     def test_unverified_information_source_releases_session(self):
         from types import SimpleNamespace
-        from maintenance_executor import MaintenanceReadExecutor,read_only_adapters
-        from maintenance_discovery import MaintenanceSnapshot,INFORMATION,_add
-        from maintenance_planner import build_plan
-        from maintenance_safety import SafetyContext,MaintenanceSafetyCoordinator
+        from petrel.features.maintenance.execution.executor import MaintenanceReadExecutor,read_only_adapters
+        from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,INFORMATION,_add
+        from petrel.features.maintenance.execution.planner import build_plan
+        from petrel.features.maintenance.execution.safety import SafetyContext,MaintenanceSafetyCoordinator
         from test_maintenance_controller import printer
         backend,_=printer()
         snap=MaintenanceSnapshot(12,global_modes=_add(0,'M16',INFORMATION),

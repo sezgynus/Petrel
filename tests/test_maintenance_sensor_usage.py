@@ -4,14 +4,14 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
-from maintenance_sensor_usage import EVENT_BASIS, event_sample, SensorEventLedger
-from maintenance_usage import usage_metrics
-from maintenance_records import MaintenanceBook, read_json, write_json
-from maintenance_assessment_store import ServicePolicy, AssessmentStore
-from maintenance_ui_records import request
-from maintenance_care_view import care_items
-from maintenance_experience import Choice
-from maintenance_travel import OBJECT
+from petrel.features.maintenance.records.sensor_usage import EVENT_BASIS, event_sample, SensorEventLedger
+from petrel.features.maintenance.records.usage import usage_metrics
+from petrel.features.maintenance.records.book import MaintenanceBook, read_json, write_json
+from petrel.features.maintenance.assessment.store import ServicePolicy, AssessmentStore
+from petrel.features.maintenance.records.ui_requests import request
+from petrel.features.maintenance.ui.care import care_items
+from petrel.features.maintenance.ui.experience import Choice
+from petrel.features.maintenance.records.travel import OBJECT
 from test_maintenance_ui_services import DeferredWorker
 
 SENSOR = 'filament_switch_sensor arbitrary_name'
@@ -28,7 +28,7 @@ def state(count=0, *, session='a'*32, ready=True, active=True):
 class EventLedgerTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
-        self.home = patch('maintenance_records.Path.home', return_value=Path(self.folder.name))
+        self.home = patch('petrel.features.maintenance.records.book.Path.home', return_value=Path(self.folder.name))
         self.home.start()
         self.addCleanup(self.folder.cleanup)
         self.addCleanup(self.home.stop)
@@ -81,7 +81,7 @@ class EventLedgerTests(unittest.TestCase):
     def test_failed_atomic_write_retries_all_pending_counts_without_double_add(self):
         ledger = SensorEventLedger()
         ledger.note(state(10))
-        with patch('maintenance_records.write_json', side_effect=OSError('full')):
+        with patch('petrel.features.maintenance.records.book.write_json', side_effect=OSError('full')):
             with self.assertRaises(OSError): ledger.counters()
         ledger.note(state(12))
         self.assertEqual(ledger.counters()[EVENT_BASIS][SENSOR], 12)
@@ -168,7 +168,7 @@ class EventTransportTests(unittest.TestCase):
 
 class EventReminderTests(unittest.TestCase):
     def test_due_complete_pause_and_reconnect_keep_the_same_event_anchor(self):
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_ui_records.Path.home', return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.ui_requests.Path.home', return_value=Path(folder)):
             worker = DeferredWorker()
             policy = ServicePolicy('sensor', SENSOR, EVENT_BASIS, 3, 'user')
             usage = {EVENT_BASIS: {SENSOR: 10}, 'event_counter_id': 'a'*32,

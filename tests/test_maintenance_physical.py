@@ -8,10 +8,10 @@ from unittest.mock import Mock, patch
 from time import monotonic
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
-from maintenance_physical import MaintenancePulseController
-from maintenance_profiles import approved_integrations
-from maintenance_discovery import discover
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
+from petrel.features.maintenance.domains.pulse.controller import MaintenancePulseController
+from petrel.features.maintenance.discovery.profiles import approved_integrations
+from petrel.features.maintenance.discovery.discovery import discover
 from printer_state import PrinterState
 
 
@@ -91,7 +91,7 @@ class PhysicalControllerTests(unittest.TestCase):
         self.printer, self.client, self.worker, self.commands = setup()
         self.runner = MaintenancePulseController(self.printer, self.worker, self.client)
         self.clock = [monotonic()]
-        self.clock_patch = patch('maintenance_physical.monotonic',
+        self.clock_patch = patch('petrel.features.maintenance.domains.pulse.controller.monotonic',
                                  side_effect=lambda: self.clock[0])
         self.clock_patch.start()
         self.addCleanup(self.clock_patch.stop)
@@ -144,7 +144,7 @@ class PhysicalControllerTests(unittest.TestCase):
     def test_unanswered_initial_consent_stays_open_and_refreshes_on_click(self):
         # Both evidence freshness and controller deadlines use one virtual
         # clock; advancing a fake UI clock must not leave queue GETs on wall time.
-        runtime_clock = patch('maintenance_runtime.monotonic',
+        runtime_clock = patch('petrel.features.maintenance.execution.runtime.monotonic',
                               side_effect=lambda: self.clock[0])
         runtime_clock.start()
         self.addCleanup(runtime_clock.stop)
@@ -388,7 +388,7 @@ class PhysicalControllerTests(unittest.TestCase):
         self.assertEqual(len(self.commands), 1)
 
     def test_f12_kick_start_preflight_blocks_before_consent_or_gcode(self):
-        from maintenance_discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
+        from petrel.features.maintenance.discovery.discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
         old = self.printer.maintenance.snapshot
         self.printer.maintenance.snapshot = MaintenanceSnapshot(
             old.epoch, (DeviceCapabilities('fan', 'fan', _add(0, 'F12', USER)),),
@@ -405,11 +405,11 @@ class PhysicalControllerTests(unittest.TestCase):
 
     def test_f12_five_separately_verified_stages_and_next_round(self):
         # Match the queue evidence clock to the controller's simulated clock.
-        runtime_clock = patch('maintenance_runtime.monotonic',
+        runtime_clock = patch('petrel.features.maintenance.execution.runtime.monotonic',
                               side_effect=lambda: self.clock[0])
         runtime_clock.start()
         self.addCleanup(runtime_clock.stop)
-        from maintenance_discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
+        from petrel.features.maintenance.discovery.discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
         old = self.printer.maintenance.snapshot
         self.printer.maintenance.snapshot = MaintenanceSnapshot(
             old.epoch, (DeviceCapabilities('fan', 'fan', _add(0, 'F12', USER)),),
@@ -476,7 +476,7 @@ class PhysicalControllerTests(unittest.TestCase):
 
     def test_f02_user_observed_speed_steps_with_verified_restore(self):
         # Reuse the same bounded consent/dispatch/readback lifecycle as F01.
-        from maintenance_discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
+        from petrel.features.maintenance.discovery.discovery import _add, DeviceCapabilities, USER, MaintenanceSnapshot
         old = self.printer.maintenance.snapshot
         self.printer.maintenance.snapshot = MaintenanceSnapshot(
             old.epoch, (DeviceCapabilities('fan', 'fan',
@@ -512,7 +512,7 @@ class PhysicalControllerTests(unittest.TestCase):
         self.assertTrue(result.restore_verified)
 
     def test_s18_missing_or_mismatched_original_name_blocks_without_gcode(self):
-        from maintenance_physical import _resolve_pin_gcode_name
+        from petrel.features.maintenance.domains.pulse.controller import _resolve_pin_gcode_name
         self.configure_config_only_buzzer()
         settings = self.printer.state.settings['pwm_cycle_time alarm']
         self.assertEqual(_resolve_pin_gcode_name(
@@ -610,7 +610,7 @@ class PhysicalControllerTests(unittest.TestCase):
         self.assertEqual(self.commands, [])
 
     def configure_led_chain(self, *, managed=False):
-        from maintenance_discovery import discover
+        from petrel.features.maintenance.discovery.discovery import discover
         raw = self.printer.subscription.snapshot.return_value
         lights = [(0.0, 0.0, 0.3, 0.0), (0.1, 0.2, 0.0, 0.0),
                   (0.0, 0.35, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0)]

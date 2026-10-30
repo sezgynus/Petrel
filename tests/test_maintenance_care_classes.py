@@ -2,12 +2,12 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 import unittest
-from maintenance_care import family,tasks,task_label,inventory
-from maintenance_assessment_store import ServicePolicy
-from maintenance_ui_records import request
+from petrel.features.maintenance.records.care import family,tasks,task_label,inventory
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.records.ui_requests import request
 from test_maintenance_ui_services import DeferredWorker
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice
+from petrel.features.maintenance.ui.experience import Choice
 
 
 class CareClassTests(unittest.TestCase):
@@ -71,7 +71,7 @@ class CareClassTests(unittest.TestCase):
                 view._maintenance_dispatch(Choice('Review','service_review'))
                 policy=view._maintenance_context
                 self.assertEqual(policy.task_id,'sensor')
-                with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+                with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
                     worker=DeferredWorker()
                     future=request(worker,'save_policy',policy=policy,devices=devices)
                     worker.run();self.assertEqual(future.result()[0][0][0],policy)
@@ -79,8 +79,8 @@ class CareClassTests(unittest.TestCase):
     def test_legacy_task_labels_change_without_merging_policies_or_resetting_anchors(self):
         self.assertEqual(task_label('inspect_clean','stepper_x'),'Mechanical maintenance')
         self.assertEqual(task_label('inspect_clean','output_pin pump'),'Connected device maintenance')
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
-            from maintenance_assessment_store import AssessmentStore
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
+            from petrel.features.maintenance.assessment.store import AssessmentStore
             store=AssessmentStore(Path(folder)/'.config/Petrel/maintenance-assessment.json')
             policies=[ServicePolicy(task,'stepper_x','calendar_s',100,'user') for task in ('inspect_clean','lubricate')]
             for p in policies:

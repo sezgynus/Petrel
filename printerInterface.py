@@ -25,21 +25,21 @@ from mmu_control import MMUSession
 from preset_store import PresetStore
 from printer_state import PrinterState
 from printer_capabilities import PrinterCapabilities
-from maintenance_session import MaintenanceDiscoveryManager
-from maintenance_controller import MaintenanceReadController
-from maintenance_guided import guided_plan
-from maintenance_switches import MaintenanceSwitchController
-from maintenance_motion_controller import MaintenanceMotionController
-from maintenance_probe import MaintenanceProbeController
-from maintenance_resonance import MaintenanceResonanceController
-from maintenance_filament import MaintenanceFilamentController
-from maintenance_panel import MaintenancePanelController
-from maintenance_auxiliary import MaintenanceAuxiliaryController
-from maintenance_records import MaintenanceBook
-from maintenance_assessment_service import MaintenanceAssessment
-from maintenance_system import travel_profile
-from maintenance_physical import MaintenancePulseController
-from maintenance_heater import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
+from petrel.features.maintenance.discovery.session import MaintenanceDiscoveryManager
+from petrel.features.maintenance.execution.controller import MaintenanceReadController
+from petrel.features.maintenance.execution.guided import guided_plan
+from petrel.features.maintenance.domains.switches import MaintenanceSwitchController
+from petrel.features.maintenance.domains.motion.controller import MaintenanceMotionController
+from petrel.features.maintenance.domains.probe import MaintenanceProbeController
+from petrel.features.maintenance.domains.resonance import MaintenanceResonanceController
+from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController
+from petrel.features.maintenance.domains.panel import MaintenancePanelController
+from petrel.features.maintenance.domains.auxiliary.controller import MaintenanceAuxiliaryController
+from petrel.features.maintenance.records.book import MaintenanceBook
+from petrel.features.maintenance.assessment.service import MaintenanceAssessment
+from petrel.features.maintenance.domains.system import travel_profile
+from petrel.features.maintenance.domains.pulse.controller import MaintenancePulseController
+from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter, thermal_plan
 from rfid_reader import RFIDReader
 from nfc_core import NFCCore
 from nfc_settings import installed_enabled
@@ -630,7 +630,7 @@ class PrinterData:
             logging.error('Maintenance safety stop unconfirmed during shutdown')
         self.maintenance.clear()
         # TEMPORARY MAINTENANCE TEST TRACE: preserve shutdown tail.
-        trace = getattr(self,'maintenance_test_trace',None)
+        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
         if trace is not None:
             trace.stop()
         self.subscription.close()
@@ -677,23 +677,23 @@ class PrinterData:
     def toggle_maintenance_test_recording(self):
         if self.maintenance_pulse.pending or self.maintenance_reader.pending:
             return False
-        trace = getattr(self,'maintenance_test_trace',None)
+        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
         if trace is not None and trace.active:
             trace.stop()
         else:
             if trace is None:
-                from maintenance_test_trace import TestTrace
+                from petrel.features.maintenance.diagnostics.test_trace import TestTrace
                 trace = self.maintenance_test_trace = TestTrace(self)
             trace.start()
             trace.tick(self.state)
         return True
 
     def maintenance_test_recording_label(self):
-        trace = getattr(self,'maintenance_test_trace',None)
+        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
         return trace.label if trace is not None else 'Start test recording'
 
     def export_maintenance_test_recording(self):
-        trace = getattr(self,'maintenance_test_trace',None)
+        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
         return trace.exported() if trace is not None else None
     # END TEMPORARY MAINTENANCE TEST TRACE
 
@@ -702,7 +702,7 @@ class PrinterData:
         if book is not None:
             book.note(state,snapshot=getattr(getattr(self,'maintenance',None),'snapshot',None))
         # TEMPORARY MAINTENANCE TEST TRACE
-        trace = getattr(self,'maintenance_test_trace',None)
+        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
         if trace is not None:
             trace.tick(state)
 
@@ -732,7 +732,7 @@ class PrinterData:
             book = getattr(self,'maintenance_book',None)
             if book is not None:
                 book.record(result,method,self.state,plan)
-            assessment = getattr(self,'maintenance_assessment',None)
+            assessment = getattr(self,'petrel.features.maintenance.assessment.assessment',None)
             if assessment is not None:
                 try:
                     assessment.ingest(result,method,self.state)
@@ -741,7 +741,7 @@ class PrinterData:
         return result
 
     def maintenance_ui_records(self, operation, policy=None, history=False):
-        from maintenance_ui_records import request
+        from petrel.features.maintenance.records.ui_requests import request
         rows=tuple(self.maintenance_guided_plan())+tuple(self.maintenance_read_plan())
         devices=self.maintenance_service_devices(rows)
         return request(self._maintenance_worker,operation,policy=policy,devices=devices,history=history,
@@ -749,15 +749,15 @@ class PrinterData:
             filament_provider=self.maintenance_filament_usage)
 
     def maintenance_filament_usage(self):
-        from maintenance_filament_usage import recorded_filament
+        from petrel.features.maintenance.records.filament_usage import recorded_filament
         return recorded_filament(self.client)
 
     def maintenance_sensor_devices(self):
-        from maintenance_sensor_diagnostics import devices
+        from petrel.features.maintenance.domains.sensors.diagnostics import devices
         return devices(self.maintenance.snapshot)
 
     def maintenance_sensor_diagnostic(self,device):
-        from maintenance_sensor_diagnostics import read
+        from petrel.features.maintenance.domains.sensors.diagnostics import read
         if device not in self.maintenance_sensor_devices():
             raise ValueError('sensor_device_no_longer_available')
         state = self.state
@@ -771,10 +771,10 @@ class PrinterData:
                         x.startswith('extruder') and x[8:].isdigit())
         if device=='extruder' and extruders==('extruder',):
             bases += ('filament_mm',)
-        from maintenance_travel import installed, AXES, travel_device
+        from petrel.features.maintenance.records.travel import installed, AXES, travel_device
         if travel_device(device) in AXES and installed(self.state):
             return bases+('travel_mm',)
-        from maintenance_sensor_usage import event_sample
+        from petrel.features.maintenance.records.sensor_usage import event_sample
         sample=event_sample(self.state)
         if sample is not None and device in sample[1] and device not in sample[3]:
             bases += ('trigger_count',)
@@ -784,7 +784,7 @@ class PrinterData:
 
     def maintenance_service_devices(self,rows=()):
         snapshot=self.maintenance.snapshot
-        from maintenance_travel import installed, AXES
+        from petrel.features.maintenance.records.travel import installed, AXES
         return tuple(dict.fromkeys(
             (AXES if installed(self.state) else ())+
             tuple(getattr(snapshot,'care_devices',()))+
@@ -793,7 +793,7 @@ class PrinterData:
             tuple(r.device for r in rows if r.device is not None)))
 
     def maintenance_reference(self,operation,result,*,relative_limit=None,confirmed=False):
-        from maintenance_reference import request
+        from petrel.features.maintenance.assessment.reference import request
         snapshot=self.maintenance.snapshot
         identity=(getattr(snapshot,'epoch',None),getattr(snapshot,'config_marker',None))
         operation_id=getattr(result,'operation_id','')
@@ -816,7 +816,7 @@ class PrinterData:
             self.maintenance.snapshot,result.operation_id,result.finding)
 
     def _maintenance_assessment_rows(self):
-        from maintenance_heater import thermal_plan
+        from petrel.features.maintenance.domains.thermal.controller import thermal_plan
         rows=tuple(self.maintenance_read_plan())+tuple(self.maintenance_guided_plan())
         return tuple(dict.fromkeys(rows+thermal_plan(self.maintenance.snapshot)))
 
@@ -834,7 +834,7 @@ class PrinterData:
 
     def maintenance_guided_plan(self):
         # Passive target discovery only; not an actuation authorization.
-        owner = getattr(self, 'maintenance_pulse', None)
+        owner = getattr(self, 'petrel.features.maintenance.domains.pulse.program', None)
         return owner.available() if owner is not None else guided_plan(self.maintenance.snapshot)
 
     def start_maintenance_physical(self, feature_id, device=None, **kwargs):

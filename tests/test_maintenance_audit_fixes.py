@@ -4,13 +4,13 @@ from types import SimpleNamespace as NS
 from time import monotonic
 import unittest
 from unittest.mock import Mock, patch
-from maintenance_workflow import FirmwareWorkflow, SafetyViolation
-from maintenance_filament import MaintenanceFilamentController
-from maintenance_test_trace import PrinterProxy
+from petrel.features.maintenance.execution.workflow import FirmwareWorkflow, SafetyViolation
+from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController
+from petrel.features.maintenance.diagnostics.test_trace import PrinterProxy
 from printerInterface import PrinterData
-from maintenance_physical import PhysicalResult
-from maintenance_records import MaintenanceBook
-from maintenance_discovery import discover, CALIBRATION
+from petrel.features.maintenance.domains.pulse.controller import PhysicalResult
+from petrel.features.maintenance.records.book import MaintenanceBook
+from petrel.features.maintenance.discovery.discovery import discover, CALIBRATION
 
 
 class ConfigOnlyDiscoveryTests(unittest.TestCase):
@@ -126,10 +126,10 @@ class RuntimeSafetyTests(unittest.TestCase):
         owner = MaintenanceFilamentController(NS(), None, None)
         owner._row = NS(feature_id='E14',device='heater_generic dryer',epoch=1,config_marker=2)
         owner._dryer = Mock(return_value={'object':'heater_generic dryer','target':60,'ceiling':70})
-        with patch('maintenance_workflow.read_queue_evidence',return_value=object()):
+        with patch('petrel.features.maintenance.execution.workflow.read_queue_evidence',return_value=object()):
             for temperature,target in ((70,60),(65,80)):
                 with self.subTest(temperature=temperature,target=target):
-                    with patch('maintenance_filament.query',return_value=({'heater_generic dryer':{
+                    with patch('petrel.features.maintenance.domains.filament.controller.query',return_value=({'heater_generic dryer':{
                             'temperature':temperature,'target':target}},10)):
                         with self.assertRaisesRegex(SafetyViolation,'dryer_thermal_limit'):
                             owner.runtime_evidence()

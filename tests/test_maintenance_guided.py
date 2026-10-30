@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from maintenance_catalog import definition_for
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, USER, AUTOMATIC, _add
-from maintenance_guided import guided_adapters, guided_plan, GuidedConsentGate
-from maintenance_safety import SafetyContext
+from petrel.features.maintenance.discovery.catalog import definition_for
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, AUTOMATIC, _add
+from petrel.features.maintenance.execution.guided import guided_adapters, guided_plan, GuidedConsentGate
+from petrel.features.maintenance.execution.safety import SafetyContext
 
 
 def snapshot_with_devices(services=()):

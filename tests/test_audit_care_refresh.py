@@ -4,7 +4,7 @@ from concurrent.futures import Future
 from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
 from test_capabilities import display, snapshot
-from maintenance_assessment_store import ServicePolicy
+from petrel.features.maintenance.assessment.store import ServicePolicy
 
 class CareRefresh(unittest.TestCase):
     def make(self):

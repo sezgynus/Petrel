@@ -2,8 +2,8 @@
 import unittest
 from dataclasses import FrozenInstanceError
 from types import SimpleNamespace as NS
-from maintenance_discovery import discover, NONE
-from maintenance_usage import usage_metrics, MAX_TRACKED_METRICS
+from petrel.features.maintenance.discovery.discovery import discover, NONE
+from petrel.features.maintenance.records.usage import usage_metrics, MAX_TRACKED_METRICS
 
 
 class UsageContracts(unittest.TestCase):
@@ -54,9 +54,9 @@ class UsageSampling(unittest.TestCase):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
-        from maintenance_records import MaintenanceBook
+        from petrel.features.maintenance.records.book import MaintenanceBook
         from test_maintenance_ui_services import DeferredWorker
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_records.root', return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.book.root', return_value=Path(folder)):
             book = MaintenanceBook(DeferredWorker())
             names = ('fan', 'extruder', 'output_pin arbitrary', 'pwm_cycle_time tone')
             state = NS(ready=True, epoch=1, objects=names, settings={}, status={
@@ -84,14 +84,14 @@ class UsageSampling(unittest.TestCase):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
-        from maintenance_records import MaintenanceBook, write_json, read_json
+        from petrel.features.maintenance.records.book import MaintenanceBook, write_json, read_json
         from test_maintenance_ui_services import DeferredWorker
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_records.root', return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.book.root', return_value=Path(folder)):
             write_json('maintenance-usage.json', {'version': 1, 'sampled_on_s': {'fan': 123},
                 'sampled_print_s': 456, 'counter_id': 'a'*32})
             book = MaintenanceBook(DeferredWorker())
             book._usage = {'fan': 2., 'output_pin arbitrary': 3.}
-            with patch('maintenance_records.write_json', side_effect=OSError('disk')):
+            with patch('petrel.features.maintenance.records.book.write_json', side_effect=OSError('disk')):
                 with self.assertRaises(OSError): book.flush()
             self.assertEqual(book._usage['output_pin arbitrary'], 3.)
             book.flush()
@@ -157,13 +157,13 @@ class UsagePlannerAndReports(unittest.TestCase):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
-        from maintenance_assessment_store import AssessmentStore, ServicePolicy
-        from maintenance_ui_records import request
+        from petrel.features.maintenance.assessment.store import AssessmentStore, ServicePolicy
+        from petrel.features.maintenance.records.ui_requests import request
         from test_maintenance_ui_services import DeferredWorker
         device = 'output_pin arbitrary'
         policy = ServicePolicy('inspect_clean', device, 'sampled_on_s', 100, 'user')
         usage = {'counter_id': 'a'*32, 'sampled_on_s': {device: 100}, 'available_metrics': ()}
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_ui_records.Path.home', return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.ui_requests.Path.home', return_value=Path(folder)):
             worker = DeferredWorker()
             def call(op):
                 future = request(worker, op, policy=policy if op != 'load' else None,
@@ -187,11 +187,11 @@ class UsagePlannerAndReports(unittest.TestCase):
 
     def test_all_128_counters_reach_report_rows_without_name_truncation(self):
         from unittest.mock import Mock, patch
-        from maintenance_records import MaintenanceBook
-        from maintenance_evidence_view import evidence_lines
-        from maintenance_report import report_rows, section_from_lines
+        from petrel.features.maintenance.records.book import MaintenanceBook
+        from petrel.features.maintenance.ui.evidence import evidence_lines
+        from petrel.features.maintenance.ui.report import report_rows, section_from_lines
         counters = {'output_pin component_%03d'%i: float(i) for i in range(128)}
-        with patch('maintenance_records.read_json', return_value={'sampled_on_s': counters}):
+        with patch('petrel.features.maintenance.records.book.read_json', return_value={'sampled_on_s': counters}):
             fields = MaintenanceBook.read(NS(flush=Mock()), 'S12')
         lines = evidence_lines('S12', fields)
         rows = report_rows(section_from_lines('', lines))
@@ -203,7 +203,7 @@ class UsagePlannerAndReports(unittest.TestCase):
         self.assertNotIn('Counter slots free: 0', lines)
 
     def test_supported_and_observed_are_distinct_and_disconnect_pauses(self):
-        from maintenance_records import MaintenanceBook
+        from petrel.features.maintenance.records.book import MaintenanceBook
         from test_maintenance_ui_services import DeferredWorker
         book = MaintenanceBook(DeferredWorker())
         state = NS(ready=True, epoch=1, objects=('output_pin any',), settings={}, status={})
@@ -233,7 +233,7 @@ class UsageLEDContracts(unittest.TestCase):
             self.assertIsNone(m.active({m.device: {'enabled': True}}))
 
     def test_led_payload_budget_is_shared_and_exclusions_are_visible(self):
-        from maintenance_usage import MAX_LED_CHAIN, MAX_TRACKED_LEDS
+        from petrel.features.maintenance.records.usage import MAX_LED_CHAIN, MAX_TRACKED_LEDS
         names = tuple('neopixel chain%d'%i for i in range(6))
         settings = {name: {'chain_count': MAX_LED_CHAIN} for name in names}
         metrics, omitted = usage_metrics(names, settings)
@@ -273,10 +273,10 @@ class UsageResourceBounds(unittest.TestCase):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
-        from maintenance_records import MaintenanceBook, write_json, MAX_USAGE_COUNTERS
+        from petrel.features.maintenance.records.book import MaintenanceBook, write_json, MAX_USAGE_COUNTERS
         from test_maintenance_ui_services import DeferredWorker
-        from maintenance_evidence_view import evidence_lines
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_records.root', return_value=Path(folder)):
+        from petrel.features.maintenance.ui.evidence import evidence_lines
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.book.root', return_value=Path(folder)):
             values = {'fan_generic retired%03d'%i: float(i) for i in range(MAX_USAGE_COUNTERS)}
             write_json('maintenance-usage.json', {'version':1, 'sampled_on_s':values, 'counter_id':'a'*32})
             book = MaintenanceBook(DeferredWorker())
@@ -294,16 +294,16 @@ class UsageResourceBounds(unittest.TestCase):
 
     def test_inventory_is_reused_and_sampling_never_touches_disk(self):
         from unittest.mock import patch
-        from maintenance_records import MaintenanceBook
+        from petrel.features.maintenance.records.book import MaintenanceBook
         from test_maintenance_ui_services import DeferredWorker
         state = NS(ready=True,epoch=1,objects=('output_pin any',),settings={},status={
             'output_pin any':{'value':1.}})
         book = MaintenanceBook(DeferredWorker())
         snap = discover(state)
-        with patch('maintenance_records.read_json',side_effect=AssertionError('sampling I/O')):
+        with patch('petrel.features.maintenance.records.book.read_json',side_effect=AssertionError('sampling I/O')):
             book.note(state,0,snapshot=snap)
             self.assertIs(book._metrics,snap.usage_metrics)
-            with patch('maintenance_usage.usage_metrics',side_effect=AssertionError('rediscovery')):
+            with patch('petrel.features.maintenance.records.usage.usage_metrics',side_effect=AssertionError('rediscovery')):
                 for now in (1.,2.,3.): book.note(state,now,snapshot=snap)
         self.assertEqual(book._usage['output_pin any'],3.)
 

@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from maintenance_heater import ThermalResult, MaintenancePhysicalRouter
-from maintenance_records import MaintenanceBook
+from petrel.features.maintenance.domains.thermal.controller import ThermalResult, MaintenancePhysicalRouter
+from petrel.features.maintenance.records.book import MaintenanceBook
 from test_maintenance_controller import Worker, printer
 
 
@@ -25,9 +25,9 @@ class ThermalGroupRecordTests(unittest.TestCase):
             for feature in FEATURES)
         result = ThermalResult('H01', 'extruder', 'FAILED_METRIC',
             'thermal_group_seven_independent_results', True, (), children)
-        with patch('maintenance_records.read_json',
+        with patch('petrel.features.maintenance.records.book.read_json',
                    return_value={'version': 1, 'records': []}), patch(
-                       'maintenance_records.write_json') as saved:
+                       'petrel.features.maintenance.records.book.write_json') as saved:
             book.record(result, 1, state.state)
             self.assertEqual(len(worker.jobs), 1)
             worker.drain()

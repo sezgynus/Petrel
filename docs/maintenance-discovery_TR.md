@@ -6,7 +6,7 @@
 
 ## Tasarım sınırları
 
-- `maintenance_discovery.py`, mevcut `printer_capabilities.py` dosyasından bağımsızdır. Maintenance geliştirmesi mevcut yetenek sınıfını değiştirmez.
+- `petrel/features/maintenance/discovery/discovery.py`, mevcut `printer_capabilities.py` dosyasından bağımsızdır. Maintenance geliştirmesi mevcut yetenek sınıfını değiştirmez.
 - `discover(state, services=())`, Klipper/Moonraker aboneliğinden zaten alınmış `PrinterState` verilerini salt okunur şekilde kullanır. **G-code göndermez**, keşif için HTTP isteği oluşturmaz, yapılandırma sözlüklerini kopyalamaz, giriş durumuna referans saklamaz, thread veya soket açmaz.
 - Moonraker/Petrel servisleri yalnızca çağıranın sunduğu **olumlu API kanıtıyla** etkinleştirilir. Doğrulanmayan servis mevcut sayılmaz.
 - Sonuç, bir testin **yöntemini** tarif eder; başarılı sağlık testi veya komut yürütme izni değildir. Çalıştırma katmanı baskısız durum, cihaz sınırları, bağlantı epoch'u, aktüatör güvenliği ve kullanıcı onayını ayrıca denetleyecektir.
@@ -16,7 +16,7 @@
 
 ## READY dönemi snapshot yöneticisi
 
-`maintenance_cache.py`, `MaintenanceCache.get(state, services=())` arayüzünü sağlar. İlk READY döneminde keşif modülünü yükler. Klipper epoch’u, etkin ayar nesnesinin kimliği ve olumlu doğrulanmış servis kümesi aynıysa **aynı** değişmez snapshot döndürülür; yeni yapılandırma/epoch veya servis kümesi değişirse yeniden hesaplanır. Bağlantı kopmuş durum snapshot’ı temizler. Cache yalnızca sonuç nesnesini tutar, kaynak durumu saklamaz. Snapshot READY dönemi boyunca backend içinde korunur. Menüye girip çıkmak keşif yapmaz; bağlantı kesilince sonuç geçersiz kılınır.
+`petrel/features/maintenance/discovery/cache.py`, `MaintenanceCache.get(state, services=())` arayüzünü sağlar. İlk READY döneminde keşif modülünü yükler. Klipper epoch’u, etkin ayar nesnesinin kimliği ve olumlu doğrulanmış servis kümesi aynıysa **aynı** değişmez snapshot döndürülür; yeni yapılandırma/epoch veya servis kümesi değişirse yeniden hesaplanır. Bağlantı kopmuş durum snapshot’ı temizler. Cache yalnızca sonuç nesnesini tutar, kaynak durumu saklamaz. Snapshot READY dönemi boyunca backend içinde korunur. Menüye girip çıkmak keşif yapmaz; bağlantı kesilince sonuç geçersiz kılınır.
 
 ## Yöntem bayrakları
 

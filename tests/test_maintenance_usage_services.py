@@ -4,15 +4,15 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace as NS
 from unittest.mock import patch
-from maintenance_records import MaintenanceBook
-from maintenance_assessment_store import ServicePolicy
-from maintenance_ui_records import request
+from petrel.features.maintenance.records.book import MaintenanceBook
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.records.ui_requests import request
 from test_maintenance_ui_services import DeferredWorker
 
 
 class UsageServiceTests(unittest.TestCase):
     def test_print_samples_survive_restart_as_a_lower_bound_with_ledger_identity(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(folder)):
             book=MaintenanceBook(DeferredWorker())
             state=NS(ready=True,epoch=1,settings={},status={'print_stats':{'state':'printing'},
                 'virtual_sdcard':{'is_active':True},'pause_resume':{'is_paused':False}})
@@ -27,7 +27,7 @@ class UsageServiceTests(unittest.TestCase):
             self.assertEqual(book.service_counters()['sampled_print_s'],3.)
 
     def test_sampled_reminder_due_requires_matching_ledger_and_completion_counter(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();usage={'counter_id':'ledger-a','sampled_print_s':10.,'sampled_on_s':{'fan':20.}}
             policy=ServicePolicy('lubricate','stepper_z','sampled_print_s',100.,'user')
             def call(op):
@@ -44,7 +44,7 @@ class UsageServiceTests(unittest.TestCase):
             self.assertEqual(call('load')[2],'unknown')
 
     def test_calendar_completion_does_not_seed_a_different_usage_basis(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();calendar=ServicePolicy('inspect_clean','fan','calendar_s',100,'user')
             for op in ('save_policy','complete'):
                 f=request(worker,op,policy=calendar,devices=('fan',));worker.run();f.result()

@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 from types import SimpleNamespace
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, _add
-from maintenance_resonance import MaintenanceResonanceController, METHODS, read_spectrum, comparison
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, _add
+from petrel.features.maintenance.domains.resonance import MaintenanceResonanceController, METHODS, read_spectrum, comparison
 import test_maintenance_probe as probe_fixture
 
 
@@ -55,7 +55,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
             (DeviceCapabilities('adxl345','accelerometer',modes,1),),
             config_marker=id(self.p.state.settings))
         self.owner = MaintenanceResonanceController(self.p,self.worker,self.client)
-        self.profile_patch = patch('maintenance_resonance.read_profile',return_value={})
+        self.profile_patch = patch('petrel.features.maintenance.domains.resonance.read_profile',return_value={})
         self.profile_patch.start()
         self.addCleanup(self.profile_patch.stop)
 
@@ -151,7 +151,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
         self.assertEqual([x[0] for x in self.commands],['printer.gcode.script'])
 
     def test_r02_safety_trace_explains_a_real_print_guard_failure(self):
-        from maintenance_test_trace import owner_snapshot
+        from petrel.features.maintenance.diagnostics.test_trace import owner_snapshot
         self._running_r02()
         self.clock += 3.07
         self.raw['status']['print_stats']['state']='printing'
@@ -208,7 +208,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
         self.assertEqual(self.commands[-1][0],'printer.emergency_stop')
 
     def test_r02_actual_unsafe_queue_read_stops_without_retry(self):
-        from maintenance_runtime import QueueEvidence
+        from petrel.features.maintenance.execution.runtime import QueueEvidence
         self._running_r02()
         self.clock += 3.07
         self.assertIsNone(self.owner.poll())
@@ -369,9 +369,9 @@ class ResonanceWorkflowTests(unittest.TestCase):
         self.owner._row = SimpleNamespace(feature_id='R05',device='adxl345')
         self.owner._profile = {'mount_id':'fixed','belt_test':False}
         self.client.url = 'http://127.0.0.1:7125'
-        with patch('maintenance_workflow.FirmwareWorkflow.validate'), \
+        with patch('petrel.features.maintenance.execution.workflow.FirmwareWorkflow.validate'), \
                 patch.object(self.owner,'_key',return_value='a'*64), \
-                patch('maintenance_resonance.read_baselines',return_value={}):
+                patch('petrel.features.maintenance.domains.resonance.read_baselines',return_value={}):
             with self.assertRaisesRegex(ValueError,'compatible_resonance_baseline_missing'):
                 self.owner.validate(self.status,'start')
         self.assertEqual(self.commands,[])

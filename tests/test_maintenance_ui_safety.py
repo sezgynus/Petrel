@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import Mock
 from test_capabilities import display,snapshot
-from maintenance_assessment_model import Finding
+from petrel.features.maintenance.assessment.model import Finding
 
 class MaintenanceUISafety(unittest.TestCase):
     def view(self):
@@ -69,7 +69,7 @@ class MaintenanceUISafety(unittest.TestCase):
         self.assertEqual(d.checkkey,d.MaintenanceMenu)
 
     def test_external_measurement_preparation_mentions_instrument(self):
-        from maintenance_experience import preparation
+        from petrel.features.maintenance.ui.experience import preparation
         row=NS(feature_id='M06',method=4)
         self.assertIn('ruler',' '.join(preparation(row)))
         self.assertIn('travel path',' '.join(preparation(row)))
