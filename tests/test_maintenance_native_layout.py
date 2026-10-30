@@ -75,7 +75,7 @@ class NativeMaintenanceLayout(unittest.TestCase):
         d=self.view();self.set_plans(d)
         findings=tuple(NS(device='fan',state='attention') for _ in range(11))
         d.pd.maintenance_assessment_details.return_value=NS(findings=findings,trends=())
-        with patch('petrel.features.maintenance.ui.view.time',return_value=120):
+        with patch.dict(d._maintenance_service_screen.__globals__, {'time': lambda: 120}):
             screen=d._maintenance_screen()
         self.assertEqual([c.label for c in screen.choices],
             ['Back','Care schedule','Check printer','Diagnostics','Recommendations (11)'])
@@ -114,7 +114,7 @@ class NativeMaintenanceLayout(unittest.TestCase):
 
     def test_care_list_scrolls_all_five_policies_and_preserves_drawn_action(self):
         d=self.view();self.set_plans(d);d._maintenance_page='service'
-        with patch('petrel.features.maintenance.ui.view.time',return_value=120):
+        with patch.dict(d._maintenance_service_screen.__globals__, {'time': lambda: 120}):
             d.Draw_Maintenance_Menu()
             screen=d._maintenance_screen()
             self.assertEqual(sum(c.action=='service_task' for c in screen.choices),5)

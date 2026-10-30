@@ -5,15 +5,14 @@ from petrel.ui.numbers import fixed, js_round
 import textwrap
 from petrel.features.software_update.updater import SoftwareUpdate
 from petrel.features.info.qr import PROJECT_URL, draw_project_qr, extra_info_rows
-from petrel.features.nfc.share_view import NFCURIShareComponent
+from petrel.features.nfc.share_view import NFCShareViewMixin
 from petrel.artwork.shared import PICTURE_ID as SHARED_PICTURE_ID
 from petrel.features.info.system import wifi_signal_text
-import logging
 from petrel.hardware.dwin.driver import T5UIC1Display
 from petrel.artwork.resources import ICON_MCU, ICON_MACHINE, ICON_HOST, ICON_SOFTWARE
 
 
-class InfoViewMixin:
+class InfoViewMixin(NFCShareViewMixin):
     def HMI_Info(self):
         event = self.get_encoder_state()
         if event == self.ENCODER_DIFF_NO:
@@ -154,53 +153,6 @@ class InfoViewMixin:
             self._software_update = SoftwareUpdate(self.pd)
         return self._software_update
 
-    def _nfc_share_component(self):
-        component = getattr(self, '_nfc_uri_share', None)
-        if component is None:
-            component = NFCURIShareComponent(self.pd.get_nfc_core())
-            self._nfc_uri_share = component
-        return component
-
-    def _start_nfc_share_popup(self):
-        component = self._nfc_share_component()
-        if not component.visible:
-            return False
-        # Set popup state before submission; share events may arrive immediately.
-        self._nfc_share_popup = 'waiting'
-        try:
-            future = component.start(PROJECT_URL)
-            if future.done():
-                future.result()  # Handle immediate rejection without a backend event.
-        except Exception:
-            logging.exception('Unable to begin NFC URI share')
-            self._nfc_share_popup = 'failed'
-        self._draw_nfc_share_popup()
-        return True
-
-    def _draw_nfc_share_popup(self):
-        self._nfc_share_component().draw_popup(
-            self, failed=self._nfc_share_popup == 'failed')
-
-    def _finish_nfc_share_popup(self):
-        if not getattr(self, '_nfc_share_popup', None):
-            return
-        self._nfc_share_component().stop_animation()
-        self._nfc_share_popup = None
-        if self._uart_online and self.checkkey == self.Info:
-            self._info_render_scroll = None
-            self.Draw_Info_Menu()
-            self.lcd.update()
-
-    def _cancel_nfc_share_popup(self, redraw=True):
-        if not getattr(self, '_nfc_share_popup', None):
-            return
-        self._nfc_share_component().stop_animation()
-        self._nfc_share_popup = None
-        self._nfc_share_component().cancel()
-        if redraw and self._uart_online and self.checkkey == self.Info:
-            self._info_render_scroll = None
-            self.Draw_Info_Menu()
-            self.lcd.update()
 
     def _info_items(self):
         info = self.pd.system_info

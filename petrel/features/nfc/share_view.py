@@ -2,6 +2,9 @@
 
 The UI never owns libnfc handles. A Core event refreshes capability visibility.
 """
+
+import logging
+from petrel.features.info.qr import PROJECT_URL
 from petrel.artwork.resources import (ICON_NFC_SHARE_NORMAL, ICON_NFC_SHARE_SELECTED, ICON_LIBRARY_ID,
                            ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST)
 from petrel.ui.theme import show_icon as show_theme_icon
@@ -88,3 +91,54 @@ class NFCURIShareComponent:
                                     ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST,
                                     56, 116, 20)
             self._animation_lcd = lcd
+
+
+class NFCShareViewMixin:
+    """Existing Core-backed sharing popup lifecycle on the display owner."""
+    def _nfc_share_component(self):
+        component = getattr(self, '_nfc_uri_share', None)
+        if component is None:
+            component = NFCURIShareComponent(self.pd.get_nfc_core())
+            self._nfc_uri_share = component
+        return component
+
+    def _start_nfc_share_popup(self):
+        component = self._nfc_share_component()
+        if not component.visible:
+            return False
+        # Set popup state before submission; share events may arrive immediately.
+        self._nfc_share_popup = 'waiting'
+        try:
+            future = component.start(PROJECT_URL)
+            if future.done():
+                future.result()  # Handle immediate rejection without a backend event.
+        except Exception:
+            logging.exception('Unable to begin NFC URI share')
+            self._nfc_share_popup = 'failed'
+        self._draw_nfc_share_popup()
+        return True
+
+    def _draw_nfc_share_popup(self):
+        self._nfc_share_component().draw_popup(
+            self, failed=self._nfc_share_popup == 'failed')
+
+    def _finish_nfc_share_popup(self):
+        if not getattr(self, '_nfc_share_popup', None):
+            return
+        self._nfc_share_component().stop_animation()
+        self._nfc_share_popup = None
+        if self._uart_online and self.checkkey == self.Info:
+            self._info_render_scroll = None
+            self.Draw_Info_Menu()
+            self.lcd.update()
+
+    def _cancel_nfc_share_popup(self, redraw=True):
+        if not getattr(self, '_nfc_share_popup', None):
+            return
+        self._nfc_share_component().stop_animation()
+        self._nfc_share_popup = None
+        self._nfc_share_component().cancel()
+        if redraw and self._uart_online and self.checkkey == self.Info:
+            self._info_render_scroll = None
+            self.Draw_Info_Menu()
+            self.lcd.update()
