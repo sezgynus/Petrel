@@ -5,10 +5,10 @@ from unittest.mock import Mock, patch
 import unittest
 from test_recovery_ui import RecoveryUITests
 from test_thumbnail_preview import png
-from thumbnail_preview import load_preview, load_thumbnail, MAX_CANDIDATES
-from thumbnail_cache import ThumbnailCache
-from preview_metadata import PreviewData, PreviewDetails
-from petrel_version import client_version
+from petrel.features.files.thumbnail_preview import load_preview, load_thumbnail, MAX_CANDIDATES
+from petrel.features.files.thumbnail_cache import ThumbnailCache
+from petrel.features.files.metadata import PreviewData, PreviewDetails
+from petrel.version import client_version
 
 class AuditPresentationTests(unittest.TestCase):
     def test_recovery_focus_only_repaints_old_and_new_buttons(self):
@@ -39,8 +39,8 @@ class AuditPresentationTests(unittest.TestCase):
         loader=Mock(return_value=f);cache=ThumbnailCache(client,loader=loader)
         key=('a.gcode',1,100,None);cache.sync(1,[key],[key])
         lcd=Mock()
-        with patch('thumbnail_cache.time.monotonic',return_value=0):cache.tick(lcd);cache.tick(lcd)
-        with patch('thumbnail_cache.time.monotonic',return_value=10000):cache.tick(lcd)
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic',return_value=0):cache.tick(lcd);cache.tick(lcd)
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic',return_value=10000):cache.tick(lcd)
         self.assertEqual(loader.call_count,1)
         replacement=('a.gcode',2,100,None);cache.sync(1,[replacement],[replacement]);cache.tick(lcd)
         self.assertEqual(loader.call_count,2)
@@ -56,9 +56,9 @@ class AuditPresentationTests(unittest.TestCase):
 
     def test_version_is_cached_and_does_not_invent_release_when_git_unavailable(self):
         client_version.cache_clear();self.addCleanup(client_version.cache_clear)
-        with patch('petrel_version.subprocess.run',return_value=Mock(stdout='v6.0.0-2-g1234567\n')) as run:
+        with patch('petrel.version.subprocess.run',return_value=Mock(stdout='v6.0.0-2-g1234567\n')) as run:
             self.assertEqual(client_version(),'v6.0.0-2-g1234567')
             self.assertEqual(client_version(),'v6.0.0-2-g1234567');run.assert_called_once()
         client_version.cache_clear()
-        with patch('petrel_version.subprocess.run',side_effect=OSError('missing')):
+        with patch('petrel.version.subprocess.run',side_effect=OSError('missing')):
             self.assertEqual(client_version(),'unknown')

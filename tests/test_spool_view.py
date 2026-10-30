@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import Mock
 
-from spool_view import SpoolView
-from lcd_resources import ICON_SPOOL_EMPTY, SPOOL_LEFT_FLANGES, SPOOL_RIGHT_FLANGES
+from petrel.features.spoolman.spool_view import SpoolView
+from petrel.artwork.resources import ICON_SPOOL_EMPTY, SPOOL_LEFT_FLANGES, SPOOL_RIGHT_FLANGES
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
 
 
 class SpoolViewTests(unittest.TestCase):

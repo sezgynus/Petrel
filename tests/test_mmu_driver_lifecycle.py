@@ -6,7 +6,7 @@ import test_mmu_driver as packets
 import test_mmu_ui as fixtures
 import test_mmu_power_integration as power
 import test_regressions as application
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 
 class MMUDriverLifecycleTests(unittest.TestCase):

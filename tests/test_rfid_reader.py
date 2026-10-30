@@ -1,15 +1,15 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from rfid_reader import RFIDReader
-from nfc_settings import NFCSettings
-from libnfc_api import Target, decode_target
+from petrel.features.nfc.reader import RFIDReader
+from petrel.features.nfc.settings import NFCSettings
+from petrel.features.nfc.libnfc import Target, decode_target
 from test_capabilities import display, printer, snapshot
 
 
 class RFIDTests(unittest.TestCase):
     def test_worker_keeps_one_session_and_scans_every_advertised_type(self):
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -23,7 +23,7 @@ class RFIDTests(unittest.TestCase):
                 reader._stop.set()
             return {'uid': '01:02:03:04', 'type': 'ISO14443A'} if modulation[0] == 1 else None
         session.scan.side_effect = scan
-        with patch('nfc_backend.NFCSession', return_value=session) as factory:
+        with patch('petrel.features.nfc.backend.NFCSession', return_value=session) as factory:
             reader._run()
             factory.assert_called_once()
         expected = [(1, 1)]
@@ -35,9 +35,9 @@ class RFIDTests(unittest.TestCase):
         session.close.assert_called_once()
 
     def test_connection_probe_serializes_with_active_scan_and_restores_owner(self):
-        from nfc_settings import NFCSettings
+        from petrel.features.nfc.settings import NFCSettings
         config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -58,8 +58,8 @@ class RFIDTests(unittest.TestCase):
             return True
         session.scan.side_effect = scan
         session.close.side_effect = lambda: order.append('close')
-        with patch('nfc_backend.NFCSession', return_value=session) as factory, \
-                patch('nfc_backend.check_connection', side_effect=end_probe):
+        with patch('petrel.features.nfc.backend.NFCSession', return_value=session) as factory, \
+                patch('petrel.features.nfc.backend.check_connection', side_effect=end_probe):
             reader._run()
         factory.assert_called_once()
         self.assertEqual(order, ['scan', 'close', 'probe'])
@@ -67,9 +67,9 @@ class RFIDTests(unittest.TestCase):
         self.assertFalse(reader._probe_active)
 
     def test_connection_probe_is_single_flight_and_cancellable_before_start(self):
-        from nfc_settings import NFCSettings
+        from petrel.features.nfc.settings import NFCSettings
         config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -78,14 +78,14 @@ class RFIDTests(unittest.TestCase):
         with self.assertRaisesRegex(OSError, 'already in progress'):
             second.result()
         first.cancel()
-        with patch('nfc_backend.check_connection') as check:
+        with patch('petrel.features.nfc.backend.check_connection') as check:
             reader._run_probe()
         check.assert_not_called()
         self.assertFalse(reader._probe_active)
         reader.close()
 
     def test_fast_revisit_follows_last_successful_non_type_a_card(self):
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -101,7 +101,7 @@ class RFIDTests(unittest.TestCase):
                 return {'uid': '01:02', 'type': 'FeliCa'}
             return None
         session.scan.side_effect = scan
-        with patch('nfc_backend.NFCSession', return_value=session):
+        with patch('petrel.features.nfc.backend.NFCSession', return_value=session):
             reader._run()
         first = seen.index((7, 2))
         self.assertIn((8, 1), seen[first:])
@@ -112,7 +112,7 @@ class RFIDTests(unittest.TestCase):
 
     def test_rfid_tick_has_no_card_poll_and_core_event_updates_ui(self):
         import time
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         view = display(snapshot())
         view._loop = Mock()
         view._closed = False
@@ -143,7 +143,7 @@ class RFIDTests(unittest.TestCase):
         view.lcd.update.assert_called()
 
     def test_arrival_event_once_per_presentation_and_removal_uses_matching_mode(self):
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -177,13 +177,13 @@ class RFIDTests(unittest.TestCase):
             'NFC_TAG_READ',view._buzzer_values,priority=True)
 
     def test_card_beep_can_queue_behind_busy_click_player(self):
-        from buzzer_control import Player, Settings
+        from petrel.features.buzzer.control import Player, Settings
         subscription = Mock()
         subscription.snapshot.return_value = {
             'state': 'ready', 'epoch': 1,
             'settings': {'pwm_cycle_time buzzer': {}},
             'objects': ('pwm_cycle_time buzzer',)}
-        with patch('buzzer_control.Thread'):
+        with patch('petrel.features.buzzer.control.Thread'):
             player = Player(subscription)
         player.busy = True
         settings = Settings(enabled=True, volume=100, click=3)
@@ -231,7 +231,7 @@ class RFIDTests(unittest.TestCase):
             decode_target(target)
 
     def test_reader_retains_last_card_and_caches_unchanged_values(self):
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             reader = RFIDReader(feature_enabled=lambda: True,
                                 config_loader=lambda: NFCSettings(
                                     'PN532', 'UART', '/dev/test', 115200))
@@ -275,7 +275,7 @@ class RFIDTests(unittest.TestCase):
 
     def test_disabled_core_does_not_create_reader_or_poll_backend(self):
         pd = printer(snapshot())
-        with patch('printerInterface.installed_enabled', return_value=False):
+        with patch('petrel.printer.interface.installed_enabled', return_value=False):
             self.assertTrue(pd.sync_nfc_event())
             self.assertFalse(pd.sync_nfc_event())
             self.assertEqual(pd.system_info['nfc'], {'status': 'Disabled'})
@@ -285,7 +285,7 @@ class RFIDTests(unittest.TestCase):
         pd._rfid_reader.snapshot.assert_not_called()
 
     def test_info_nfc_redraw_only_on_core_identity_change(self):
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         view = display(snapshot())
         view.checkkey = view.Info
         view._uart_online = True

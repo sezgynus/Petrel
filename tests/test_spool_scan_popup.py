@@ -2,8 +2,8 @@ from concurrent.futures import Future
 from unittest import TestCase
 from unittest.mock import Mock
 from test_capabilities import display, snapshot
-from spoolman_tags import Spool
-from lcd_resources import ICON_LIBRARY_ID, ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST
+from petrel.features.spoolman.tags import Spool
+from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST
 
 
 class SpoolScanPopupTests(TestCase):

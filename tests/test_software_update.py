@@ -2,7 +2,7 @@ import unittest
 from concurrent.futures import Future
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from software_update import SoftwareUpdate
+from petrel.features.software_update.updater import SoftwareUpdate
 
 
 class UpdateTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class UpdateTests(unittest.TestCase):
         client.request.return_value = {'result': {'version_info': {name: item}}}
         return updater, client, item, snapshot
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_checks_and_updates_only_discovered_petrel_name(self, factory):
         updater, client, _, _ = self.make('petrel')
         factory.return_value = client
@@ -42,7 +42,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(updater.phase, 'restarting')
         self.assertEqual(client.request.call_args.args, ('POST', '/machine/update/client', {'name': 'petrel'}))
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_current_invalid_missing_and_printing_never_install(self, factory):
         for mode in ('current', 'invalid', 'missing', 'printing', 'paused'):
             updater, client, item, snapshot = self.make()
@@ -55,7 +55,7 @@ class UpdateTests(unittest.TestCase):
             self.assertNotEqual(updater.phase, 'available')
             self.assertFalse(any(call.args[1] == '/machine/update/client' for call in client.request.call_args_list))
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_pending_clicks_and_failed_upgrade_are_not_retried(self, factory):
         updater, client, _, _ = self.make()
         factory.return_value = client
@@ -69,7 +69,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(updater.phase, 'error')
         self.assertEqual(updater.label, 'Check for updates')
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_upgrade_failure_requires_fresh_check(self, factory):
         updater, client, _, _ = self.make()
         factory.return_value = client
@@ -80,7 +80,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(updater.message, 'Update unconfirmed; check Mainsail')
         self.assertEqual(updater.label, 'Check for updates')
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_dirty_repo_and_changed_epoch_block_upgrade(self, factory):
         updater, client, item, snapshot = self.make()
         factory.return_value = client
@@ -98,7 +98,7 @@ class UpdateTests(unittest.TestCase):
             captured[0]()
         client.request.assert_not_called()
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_dirty_recovery_requires_confirmation_and_scopes_soft_request(self, factory):
         updater, client, item, _ = self.make('petrel')
         factory.return_value = client
@@ -123,7 +123,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual([call.args[1] for call in client.request.call_args_list],
                          ['/machine/update/recover', '/machine/update/refresh'])
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_cancel_confirmation_and_state_change_never_recover(self, factory):
         updater, client, item, state = self.make()
         factory.return_value = client
@@ -138,7 +138,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(updater.phase, 'error')
         client.request.assert_not_called()
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_recovery_rechecks_dirty_state_and_rejects_other_updater(self, factory):
         for mode in ('clean', 'missing', 'wrong_name', 'printing', 'paused'):
             updater, client, item, state = self.make()
@@ -153,7 +153,7 @@ class UpdateTests(unittest.TestCase):
             updater.start(); updater.poll()
             client.request.assert_not_called()
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_recovery_timeout_never_automatically_retries(self, factory):
         updater, client, item, _ = self.make()
         factory.return_value = client
@@ -167,7 +167,7 @@ class UpdateTests(unittest.TestCase):
         client.request.assert_called_once_with('POST', '/machine/update/recover',
                                                {'name': 'Petrel', 'hard': False})
 
-    @patch('software_update.MoonrakerClient')
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_invalid_clean_repo_offers_and_performs_confirmed_soft_recovery(self, factory):
         updater, client, item, _ = self.make()
         factory.return_value = client

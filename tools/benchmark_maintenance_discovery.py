@@ -54,7 +54,7 @@ def main():
     # These modules are already present in the actual Petrel backend.
     # Warming them prevents double-counting their dependencies as new
     # Maintenance allocations in this standalone synthetic process.
-    import printer_state
+    import petrel.printer.state as printer_state
     import petrel.features.maintenance.discovery.cache as maintenance_cache
 
     printer = SyntheticPrinter(opts.fans)

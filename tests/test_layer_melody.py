@@ -1,8 +1,8 @@
 """Layer notifications use live reported deltas, never queries or Z inference."""
 from unittest import TestCase
 from unittest.mock import Mock
-from moonraker_subscription import MoonrakerSubscription
-from ui_events import InputEvent
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.ui.events import InputEvent
 
 
 class LayerMelodyTests(TestCase):

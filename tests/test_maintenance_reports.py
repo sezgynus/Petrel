@@ -6,8 +6,8 @@ from unittest.mock import Mock,patch
 from PIL import ImageChops
 from test_capabilities import display,snapshot
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
 from petrel.features.maintenance.ui.experience import Choice,Screen
 from petrel.features.maintenance.ui.report import (ReportSection,report_rows,section_from_lines,
     report_navigation,REPORT_VISIBLE_ROWS,REPORT_TOP,REPORT_ROW_HEIGHT)
@@ -120,7 +120,7 @@ class MaintenanceReports(unittest.TestCase):
         self.assertEqual(report_navigation(rows,choices,count)[0],0)
 
     @patch('time.localtime', return_value=(2026,1,1,12,0,0,3,1,-1))
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_incremental_scroll_wrap_focus_and_updates_match_clean_pixels(self,_,_clock):
         d=self.view(True);screen=self.screen(25)
         def compare():

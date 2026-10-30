@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from time import monotonic
 
 from petrel.features.maintenance.execution.safety import SafetyContext
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 
 
 _QUEUE_MAX_AGE = 3.0
@@ -66,7 +66,7 @@ def conflicting_petrel_operation(printer):
             return True
         if getattr(printer, '_settings_save', None) is not None:
             return True
-        for name in ('bed_mesh', 'screws_tilt', 'probe_wizard', 'mmu_session'):
+        for name in ('petrel.features.leveling.bed_mesh', 'petrel.features.leveling.screws_tilt', 'petrel.features.leveling.probe_wizard', 'mmu_session'):
             owner = getattr(printer, name, None)
             if owner is None:
                 return True  # An incomplete owner is not proof of safety.

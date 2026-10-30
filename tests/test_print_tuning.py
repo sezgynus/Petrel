@@ -1,7 +1,7 @@
 import unittest
 from test_capabilities import snapshot, printer
-from print_tuning import JOB_PINS, JOB_OBJECTS
-from moonraker_subscription import OBJECTS
+from petrel.features.printing.tuning import JOB_PINS, JOB_OBJECTS
+from petrel.moonraker.subscription import OBJECTS
 
 class PrintTuningTests(unittest.TestCase):
     def data(self):

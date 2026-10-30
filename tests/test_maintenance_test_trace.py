@@ -16,7 +16,7 @@ from test_maintenance_controller import Worker
 from petrel.features.maintenance.execution.controller import MaintenanceReadController
 from petrel.features.maintenance.domains.thermal.controller import MaintenancePhysicalRouter
 from petrel.features.maintenance.diagnostics.test_trace import TestTrace, OwnerProxy, WorkerProxy, SubscriptionProxy, MAX_PENDING, clean
-from printerInterface import PrinterData
+from petrel.printer.interface import PrinterData
 
 
 def unpack(trace):
@@ -156,7 +156,7 @@ class TestRecorder(unittest.TestCase):
         call.assert_called_once()
 
     def test_rpc_guard_and_server_errors_retain_safe_diagnostics(self):
-        from moonraker_client import MoonrakerError
+        from petrel.moonraker.client import MoonrakerError
         self.trace.start()
         for message,stage,expected in (
                 ('Printer state changed before command dispatch','guard_denied','rpc_guard_denied'),
@@ -356,7 +356,7 @@ class TestRecorderUI(unittest.TestCase):
 
 class TestRecorderHTTP(unittest.TestCase):
     def test_zip_endpoint_is_bounded_read_only_host_and_origin_protected(self):
-        from dwin_emulator.remote import RemoteDisplayServer
+        from petrel.emulator.remote import RemoteDisplayServer
         from test_remote_display import FakeEmulator
         emulator = FakeEmulator()
         provider = Mock(return_value=b'zip bytes')

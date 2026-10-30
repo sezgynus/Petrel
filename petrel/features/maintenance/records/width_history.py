@@ -1,5 +1,5 @@
 """Bounded, explicit width captures; never extrapolated lifetime usage."""
-from configuration_identity import stable_digest, legacy_digest
+from petrel.configuration_identity import stable_digest, legacy_digest
 import json
 from pathlib import Path
 from time import time

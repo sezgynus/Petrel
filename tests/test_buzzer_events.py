@@ -2,12 +2,12 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from moonraker_subscription import MoonrakerSubscription
-from moonraker_client import MoonrakerError
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.moonraker.client import MoonrakerError
 from test_regressions import ui
 
 Settings = ui.BuzzerSettings
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 from test_capabilities import display, snapshot
 from test_subscription import FakeSocket
 

@@ -1,7 +1,7 @@
 import copy
 from concurrent.futures import Future
 import unittest
-from printerInterface import PrinterData
+from petrel.printer.interface import PrinterData
 from test_capabilities import printer
 from test_probe_wizard import data as probe_data
 import test_bed_mesh as mesh_fixtures

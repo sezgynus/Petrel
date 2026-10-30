@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch
-from uart_startup import PanelProbe
+from petrel.hardware.dwin.startup import PanelProbe
 from test_uart import Port, Driver
 import test_uart_reconnect as reconnect
 from test_regressions import ui
@@ -9,23 +9,23 @@ from test_regressions import ui
 class FastStartupTests(unittest.TestCase):
     def probe(self):
         port = Port()
-        with patch('uart_startup.serial.Serial', return_value=port):
+        with patch('petrel.hardware.dwin.startup.serial.Serial', return_value=port):
             probe = PanelProbe('/dev/fake')
         self.addCleanup(probe.close)
         return probe, port
 
     def test_fast_handshakes_are_nonblocking_rate_limited_and_back_off(self):
         probe, port = self.probe()
-        with patch('uart_startup.time.monotonic', return_value=0):
+        with patch('petrel.hardware.dwin.startup.time.monotonic', return_value=0):
             probe.accelerate()
             self.assertIsNone(probe.poll())
-        with patch('uart_startup.time.monotonic', return_value=.1):
+        with patch('petrel.hardware.dwin.startup.time.monotonic', return_value=.1):
             self.assertIsNone(probe.poll())
         self.assertEqual(len(port.frames), 1)
-        with patch('uart_startup.time.monotonic', return_value=.15):
+        with patch('petrel.hardware.dwin.startup.time.monotonic', return_value=.15):
             probe.poll()
         self.assertEqual(len(port.frames), 2)
-        with patch('uart_startup.time.monotonic', return_value=11):
+        with patch('petrel.hardware.dwin.startup.time.monotonic', return_value=11):
             probe.poll()
         self.assertEqual(probe.next_send, 16)
 
@@ -40,8 +40,8 @@ class FastStartupTests(unittest.TestCase):
 
     def test_connected_driver_skips_sleep_and_second_handshake(self):
         port = Port()
-        with patch('t5uic1_driver.time.sleep') as sleep, patch('boot_artwork.sync'), patch('shared_artwork.sync'), \
-                patch('icon_library.sync_library'):
+        with patch('petrel.hardware.dwin.driver.time.sleep') as sleep, patch('petrel.artwork.boot.sync'), patch('petrel.artwork.shared.sync'), \
+                patch('petrel.artwork.icon_library.sync_library'):
             lcd = Driver('/dev/fake', connected_serial=port)
         self.addCleanup(lcd.close)
         self.assertNotIn((.750,), [c.args for c in sleep.call_args_list])

@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import ui_memory_profile as memory
+import petrel.diagnostics.memory_profile as memory
 from tools import profile_ui_resources as resources
 
 
@@ -16,7 +16,7 @@ class MemoryProfileTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             code = '''
 import json, pathlib, sys, tracemalloc
-from ui_memory_profile import start_from_environment
+from petrel.diagnostics.memory_profile import start_from_environment
 worker = start_from_environment({
     'PETREL_PROFILE_MEMORY_DIR': sys.argv[1],
     'PETREL_PROFILE_WARMUP_SECONDS': '1', 'PETREL_PROFILE_SECONDS': '1'})

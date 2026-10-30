@@ -8,8 +8,8 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-from buzzer_ipc import BuzzerServer, PACKET, decode
-from buzzer_control import Player, Settings
+from petrel.features.buzzer.ipc import BuzzerServer, PACKET, decode
+from petrel.features.buzzer.control import Player, Settings
 from klipper_extras.petrel_buzzer import PetrelBuzzer
 
 

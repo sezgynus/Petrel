@@ -106,7 +106,7 @@ class UsageSubscriptions(unittest.TestCase):
     def test_bootstrap_and_optional_leases_preserve_usage_fields(self):
         from concurrent.futures import Future
         from unittest.mock import Mock
-        from moonraker_subscription import MoonrakerSubscription
+        from petrel.moonraker.subscription import MoonrakerSubscription
         from test_subscription import FakeSocket
         sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
         self.addCleanup(sub.close)
@@ -254,7 +254,7 @@ class UsageLEDContracts(unittest.TestCase):
             self.assertIsNone(led.active({led.device: {'color_data': value}}))
 
     def test_led_subscription_and_discovery_use_identical_bounded_profiles(self):
-        from moonraker_subscription import MoonrakerSubscription
+        from petrel.moonraker.subscription import MoonrakerSubscription
         from test_subscription import FakeSocket
         sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
         self.addCleanup(sub.close)
@@ -312,7 +312,7 @@ class UsageThermalLease(unittest.TestCase):
     def test_power_subscription_seeds_missing_thermal_fields_without_overwriting_deltas(self):
         from concurrent.futures import Future
         from unittest.mock import Mock
-        from moonraker_subscription import MoonrakerSubscription
+        from petrel.moonraker.subscription import MoonrakerSubscription
         sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
         self.addCleanup(sub.close)
         name = 'heater_generic chamber'

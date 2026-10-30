@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import test_maintenance_probe as fixture
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,DeviceCapabilities,_add,USER
 from petrel.features.maintenance.domains.auxiliary.controller import MaintenanceAuxiliaryController,benign_button,servo_profile,tasks
 from petrel.features.maintenance.domains.auxiliary.info import read_fields

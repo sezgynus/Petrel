@@ -94,7 +94,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
 
     def _running_r02(self):
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         self.raw['settings']['resonance_tester']={'probe_points':[[50.,50.,20.]]}
         self.p.state=PrinterState.from_snapshot(self.raw)
         self.p.maintenance.snapshot=replace(self.p.maintenance.snapshot,
@@ -265,7 +265,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
     def test_r04_uses_only_klipper_native_shaper_recommendation(self):
         self.raw['settings']['resonance_tester']={'probe_points':[[50.,50.,20.]]}
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         self.p.state=PrinterState.from_snapshot(self.raw)
         self.p.maintenance.snapshot=replace(self.p.maintenance.snapshot,
                                             config_marker=id(self.p.state.settings))
@@ -286,7 +286,7 @@ class ResonanceWorkflowTests(unittest.TestCase):
     def test_r04_never_invents_missing_or_mismatched_klipper_recommendations(self):
         self.raw['settings']['resonance_tester']={'probe_points':[[50.,50.,20.]]}
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         self.p.state=PrinterState.from_snapshot(self.raw)
         self.p.maintenance.snapshot=replace(self.p.maintenance.snapshot,
                                             config_marker=id(self.p.state.settings))

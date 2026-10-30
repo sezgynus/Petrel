@@ -77,7 +77,7 @@ For JPEG changes preserve the [fan/button contracts](assets/icons/README.md#prin
 
 During PN532 read-only Type 4 NDEF URI emulation, Android sometimes identified the target as **Unknown FeliCa / NfcF**, rather than ISO14443A NDEF. Experiments compared target Mode `0x05` / `0x04`, ATQA `00 04` / `00 08`, and a PN532 mode-detector register intervention.
 
-The production path in `libnfc_api.py` retains the distribution's original `libnfc.so.6`, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` and SAK `0x20`. Immediately before **each** `nfc_target_init()` attempt, PN532 targets queue this masked write through `ctypes`:
+The production path in `petrel/features/nfc/libnfc.py` retains the distribution's original `libnfc.so.6`, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` and SAK `0x20`. Immediately before **each** `nfc_target_init()` attempt, PN532 targets queue this masked write through `ctypes`:
 
 ```python
 pn53x_write_register(device, 0x6301, 0x04, 0x04)

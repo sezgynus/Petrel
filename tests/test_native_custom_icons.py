@@ -1,11 +1,11 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 import ast
 from pathlib import Path
 import unittest
 from unittest.mock import Mock
-from dwin_emulator.assets import PanelAssets
-from lcd_resources import SPOOL_LEFT_FLANGES, SPOOL_RIGHT_FLANGES
-from spool_view import SpoolView
+from petrel.emulator.assets import PanelAssets
+from petrel.artwork.resources import SPOOL_LEFT_FLANGES, SPOOL_RIGHT_FLANGES
+from petrel.features.spoolman.spool_view import SpoolView
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,7 +31,7 @@ class NativeCustomIconTests(unittest.TestCase):
                 self.assertEqual((y, ih), (60, 52))
 
     def test_production_ui_no_longer_calls_atlas_renderers(self):
-        for path in [ROOT / 'petrel_ui.py', ROOT / 'spool_view.py', *ROOT.glob('ui_*.py')]:
+        for path in [ROOT / 'petrel/application/display.py', ROOT / 'petrel/features/spoolman/spool_view.py', *ROOT.glob('ui_*.py')]:
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):

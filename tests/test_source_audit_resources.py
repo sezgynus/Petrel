@@ -6,11 +6,11 @@ from unittest.mock import Mock, patch
 from concurrent.futures import Future
 import tempfile
 import unittest
-from background_reads import ReadWorker
+from petrel.printer.background_reads import ReadWorker
 from petrel.features.maintenance.records.book import MaintenanceBook, read_json
 from test_maintenance_ui_services import DeferredWorker
 from test_capabilities import printer, snapshot
-from software_update import SoftwareUpdate
+from petrel.features.software_update.updater import SoftwareUpdate
 
 class AuditResourceTests(unittest.TestCase):
     def test_unobserved_devices_have_no_fabricated_zero_counter(self):
@@ -54,7 +54,7 @@ class AuditResourceTests(unittest.TestCase):
         u=SoftwareUpdate(p)
         self.assertIsNone(u._worker)
         p._maintenance_worker.submit=Mock(side_effect=AssertionError('shared lane'))
-        with patch('software_update.ReadWorker') as factory:
+        with patch('petrel.features.software_update.updater.ReadWorker') as factory:
             lane=factory.return_value
             lane.submit.return_value=Future()
             u.start()
@@ -67,7 +67,7 @@ class AuditResourceTests(unittest.TestCase):
     def test_update_close_prevents_followup_requests_without_replaying(self):
         p=printer(snapshot());worker=DeferredWorker()
         u=SoftwareUpdate(p,worker=worker)
-        with patch('software_update.MoonrakerClient') as factory:
+        with patch('petrel.features.software_update.updater.MoonrakerClient') as factory:
             client=factory.return_value
             def get(path):
                 u._closed.set()

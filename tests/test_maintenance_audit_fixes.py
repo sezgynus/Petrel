@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 from petrel.features.maintenance.execution.workflow import FirmwareWorkflow, SafetyViolation
 from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController
 from petrel.features.maintenance.diagnostics.test_trace import PrinterProxy
-from printerInterface import PrinterData
+from petrel.printer.interface import PrinterData
 from petrel.features.maintenance.domains.pulse.controller import PhysicalResult
 from petrel.features.maintenance.records.book import MaintenanceBook
 from petrel.features.maintenance.discovery.discovery import discover, CALIBRATION

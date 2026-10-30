@@ -6,7 +6,7 @@ from test_capabilities import display,printer,snapshot
 from test_regressions import ui,backend
 from petrel.features.maintenance.ui.layout import draw_maintenance
 from petrel.features.maintenance.ui.experience import Screen,Choice
-from lcd_resources import ICON_PROGRESS_FILL
+from petrel.artwork.resources import ICON_PROGRESS_FILL
 
 
 class DashboardAuditFixes(unittest.TestCase):

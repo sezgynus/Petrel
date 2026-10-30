@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from time import time
-from configuration_identity import stable_digest, legacy_digest
+from petrel.configuration_identity import stable_digest, legacy_digest
 import json
 import math
 from petrel.features.maintenance.assessment.assessment import Observation

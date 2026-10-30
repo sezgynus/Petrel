@@ -3,8 +3,8 @@ from concurrent.futures import Future
 from unittest.mock import ANY, Mock, patch
 
 from test_capabilities import snapshot, printer, display
-from moonraker_client import MoonrakerError
-import screws_tilt
+from petrel.moonraker.client import MoonrakerError
+import petrel.features.leveling.screws_tilt as screws_tilt
 
 
 def data():
@@ -175,7 +175,7 @@ class ViewTests(unittest.TestCase):
         session.update()
         session.pending.set_result(payload())
         session.update()
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             view.Draw_Screws_Result()
         frames = view.lcd.MYSERIAL1.frames
         self.assertFalse(any(frame[1] == 0x08 for frame in frames))

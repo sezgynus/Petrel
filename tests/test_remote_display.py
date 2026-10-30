@@ -9,7 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from PIL import Image
-from dwin_emulator.remote import RemoteDisplayServer, DEFAULT_PORT, DEFAULT_HOST, resolve_bind_host
+from petrel.emulator.remote import RemoteDisplayServer, DEFAULT_PORT, DEFAULT_HOST, resolve_bind_host
 from run import parse_args
 
 
@@ -109,10 +109,10 @@ class RemoteDisplayTests(unittest.TestCase):
                 self.assertIn(token, page)
 
     def test_remote_hold_uses_server_measured_release_and_no_faked_duration(self):
-        with patch("dwin_emulator.remote.monotonic", return_value=100.0):
+        with patch("petrel.emulator.remote.monotonic", return_value=100.0):
             with self.request("/input", {"kind": "hold_start"}) as response:
                 self.assertEqual(response.status, 202)
-        with patch("dwin_emulator.remote.monotonic", return_value=101.3):
+        with patch("petrel.emulator.remote.monotonic", return_value=101.3):
             with self.request("/input", {"kind": "hold_end"}) as response:
                 self.assertEqual(response.status, 202)
         self.assertEqual(self.enqueue.call_args_list,
@@ -122,14 +122,14 @@ class RemoteDisplayTests(unittest.TestCase):
         self.assertEqual(err.exception.code, 409)
 
     def test_remote_hold_short_release_bypasses_rate_limit_and_cancel_is_safe(self):
-        with patch("dwin_emulator.remote.monotonic", return_value=500.0):
+        with patch("petrel.emulator.remote.monotonic", return_value=500.0):
             with self.request("/input", {"kind": "hold_start"}) as response:
                 self.assertEqual(response.status, 202)
-        with patch("dwin_emulator.remote.monotonic", return_value=500.01):
+        with patch("petrel.emulator.remote.monotonic", return_value=500.01):
             with self.request("/input", {"kind": "hold_end"}) as response:
                 self.assertEqual(response.status, 202)
         self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_end", 10)])
-        with patch("dwin_emulator.remote.monotonic", return_value=500.05):
+        with patch("petrel.emulator.remote.monotonic", return_value=500.05):
             with self.request("/input", {"kind": "hold_start"}) as response:
                 self.assertEqual(response.status, 202)
             with self.request("/input", {"kind": "hold_cancel"}) as response:
@@ -137,10 +137,10 @@ class RemoteDisplayTests(unittest.TestCase):
         self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_cancel", 1)])
 
     def test_remote_abandoned_hold_is_cancelled_not_powered_off(self):
-        with patch("dwin_emulator.remote.monotonic", return_value=400.0):
+        with patch("petrel.emulator.remote.monotonic", return_value=400.0):
             with self.request("/input", {"kind": "hold_start"}) as response:
                 self.assertEqual(response.status, 202)
-        with patch("dwin_emulator.remote.monotonic", return_value=415.0):
+        with patch("petrel.emulator.remote.monotonic", return_value=415.0):
             with self.request("/input", {"kind": "hold_end"}) as response:
                 self.assertEqual(response.status, 202)
         self.enqueue.assert_has_calls([call("hold_start", 1), call("hold_cancel", 1)])
@@ -252,7 +252,7 @@ class AllInterfaceBindingTests(unittest.TestCase):
 class TailscaleBindingTests(unittest.TestCase):
     def test_direct_tailscale_ip_is_detected_and_validated(self):
         result = Mock(stdout="100.115.12.34\n")
-        with patch("dwin_emulator.remote.subprocess.run", return_value=result) as cmd:
+        with patch("petrel.emulator.remote.subprocess.run", return_value=result) as cmd:
             self.assertEqual(resolve_bind_host("tailscale"), "100.115.12.34")
         cmd.assert_called_once_with(
             ["tailscale", "ip", "-4"], capture_output=True, text=True,
@@ -271,12 +271,12 @@ class TailscaleBindingTests(unittest.TestCase):
                       TimeoutExpired("tailscale", 3),
                       CalledProcessError(1, ["tailscale", "ip", "-4"])):
             with self.subTest(error=type(error).__name__), patch(
-                    "dwin_emulator.remote.subprocess.run", side_effect=error):
+                    "petrel.emulator.remote.subprocess.run", side_effect=error):
                 with self.assertRaisesRegex(RuntimeError, "Tailscale IPv4 unavailable"):
                     RemoteDisplayServer(FakeEmulator(), Mock(), port=0, host="tailscale")
         for wrong in ("192.168.1.4", "127.0.0.1", "100.129.2.1", "not-an-ip", ""):
             with self.subTest(wrong=wrong), patch(
-                    "dwin_emulator.remote.subprocess.run",
+                    "petrel.emulator.remote.subprocess.run",
                     return_value=Mock(stdout=wrong)):
                 with self.assertRaises(RuntimeError):
                     resolve_bind_host("tailscale")

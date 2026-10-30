@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class UIModularityTests(unittest.TestCase):
     def _class(self):
-        tree = ast.parse((ROOT / 'petrel_ui.py').read_text(encoding='utf-8'))
+        tree = ast.parse((ROOT / 'petrel/application/display.py').read_text(encoding='utf-8'))
         return next(
             node for node in tree.body
             if isinstance(node, ast.ClassDef) and node.name == 'PetrelDisplay'

@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from test_capabilities import display, snapshot
 from test_regressions import ui
 from test_t5uic1_driver import driver
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 
 class PowerShortcutTests(unittest.TestCase):
@@ -15,7 +15,7 @@ class PowerShortcutTests(unittest.TestCase):
         v._power_hold_popup = True
         v._power_blocked = None
         v._power_confirm_yes = False
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             v._draw_power_confirmation(buttons_only=True)
         frames = v.lcd.serial.frames
         self.assertEqual([frame[1] for frame in frames], [0x05, 0x23, 0x11, 0x05, 0x23, 0x11])
@@ -126,7 +126,7 @@ class PowerShortcutTests(unittest.TestCase):
         v._power_hold_ready = False
         v.checkkey = v.Control
         v.lcd.serial.frames.clear()
-        with patch('ui_power.time.monotonic', return_value=.85):
+        with patch('petrel.features.power.view.time.monotonic', return_value=.85):
             v._power_hold_tick()
         frames = v.lcd.serial.frames
         self.assertEqual(sum(frame[1] == 0x23 for frame in frames), 1)

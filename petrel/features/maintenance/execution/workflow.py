@@ -3,7 +3,7 @@
 A command completion is not physical acceptance. User questions have no clock.
 Fresh queue/lifecycle evidence is acquired before every explicit dispatch.
 """
-from buzzer_notifications import emit_operation
+from petrel.features.buzzer.notifications import emit_operation
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from time import monotonic

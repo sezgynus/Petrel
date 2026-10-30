@@ -3,8 +3,8 @@ import unittest
 
 from PIL import ImageChops
 
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
 

@@ -6,7 +6,7 @@
 
 ## Tasarım sınırları
 
-- `petrel/features/maintenance/discovery/discovery.py`, mevcut `printer_capabilities.py` dosyasından bağımsızdır. Maintenance geliştirmesi mevcut yetenek sınıfını değiştirmez.
+- `petrel/features/maintenance/discovery/discovery.py`, mevcut `petrel/printer/capabilities.py` dosyasından bağımsızdır. Maintenance geliştirmesi mevcut yetenek sınıfını değiştirmez.
 - `discover(state, services=())`, Klipper/Moonraker aboneliğinden zaten alınmış `PrinterState` verilerini salt okunur şekilde kullanır. **G-code göndermez**, keşif için HTTP isteği oluşturmaz, yapılandırma sözlüklerini kopyalamaz, giriş durumuna referans saklamaz, thread veya soket açmaz.
 - Moonraker/Petrel servisleri yalnızca çağıranın sunduğu **olumlu API kanıtıyla** etkinleştirilir. Doğrulanmayan servis mevcut sayılmaz.
 - Sonuç, bir testin **yöntemini** tarif eder; başarılı sağlık testi veya komut yürütme izni değildir. Çalıştırma katmanı baskısız durum, cihaz sınırları, bağlantı epoch'u, aktüatör güvenliği ve kullanıcı onayını ayrıca denetleyecektir.

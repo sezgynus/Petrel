@@ -6,7 +6,7 @@
 
 ## Design constraints
 
-- `petrel/features/maintenance/discovery/discovery.py` is independent of the existing `printer_capabilities.py`. The latter must not be changed by Maintenance development.
+- `petrel/features/maintenance/discovery/discovery.py` is independent of the existing `petrel/printer/capabilities.py`. The latter must not be changed by Maintenance development.
 - `discover(state, services=())` only reads existing, authoritative `PrinterState` data from the Klipper/Moonraker subscription. It does **not** send G-code, issue discovery HTTP requests, copy configuration dictionaries, retain the input state, create threads, or open sockets.
 - Named Moonraker/Petrel services are enabled only by **positive API evidence** passed by the caller; an unverified service is not assumed available.
 - A result represents an available **method**, not a completed health check or permission to run a command. Test execution must independently enforce idle/printer state, device limits, connection epoch, actuator safety, and user approval.

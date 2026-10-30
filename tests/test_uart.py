@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from t5uic1_driver import T5UIC1Display as Driver, T5UIC1TimeoutError
+from petrel.hardware.dwin.driver import T5UIC1Display as Driver, T5UIC1TimeoutError
 
 serial_module = Driver.__init__.__globals__['serial']
 
@@ -40,7 +40,7 @@ class UARTTests(unittest.TestCase):
         # from managed icon persistence, covered in test_managed_icon_library.py.
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
                 patch.object(Driver.__init__.__globals__['time'], 'sleep'), \
-                patch('boot_artwork.sync'), patch('shared_artwork.sync'), patch('icon_library.sync_library'):
+                patch('petrel.artwork.boot.sync'), patch('petrel.artwork.shared.sync'), patch('petrel.artwork.icon_library.sync_library'):
             return Driver('/dev/fake', **kwargs)
 
     def test_first_handshake_frame_and_fragmented_ack_with_noise(self):

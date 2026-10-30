@@ -7,8 +7,8 @@ from PIL import ImageChops
 from test_capabilities import display,snapshot
 from test_regressions import ui
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
 from petrel.features.maintenance.ui.experience import Choice,Screen
 from petrel.features.maintenance.assessment.store import ServicePolicy
 from petrel.features.maintenance.ui.care import CareItem
@@ -44,7 +44,7 @@ class MaintenancePixelUpdates(unittest.TestCase):
             choices=(Choice('Back','back'),)+tuple(Choice('Fan '+str(i),'prepare',
                 NS(feature_id='F02',device='fan'+str(i)),str(i)+' percent') for i in range(count)),kind=kind)
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     @patch.object(ui.time, 'strftime', return_value='12:34')
     def test_header_pixels_match_standard_title_rendering(self,clock,_):
         screen=self.menu(3)
@@ -66,19 +66,19 @@ class MaintenancePixelUpdates(unittest.TestCase):
         self.assertEqual(d.fb.snapshot()[0].getpixel((0,31)),
                          ref.fb.snapshot()[0].getpixel((0,31)))
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_list_scroll_forward_back_and_focus_match_fresh(self,_):
         screen=self.menu();d=self.view(screen)
         for selected in (1,5,6,7,8,7,3,1,0):
             d._maintenance_selection=selected;draw_maintenance(d,screen);self.equal_fresh(d,screen)
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_action_scroll_and_return_match_fresh(self,_):
         screen=self.menu(7,'detail');d=self.view(screen)
         for selected in (1,3,4,5,4,1,0):
             d._maintenance_selection=selected;draw_maintenance(d,screen);self.equal_fresh(d,screen)
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_row_value_and_live_option_count_changes_match_fresh(self,_):
         screen=self.menu(4);d=self.view(screen)
         choices=list(screen.choices);choices[2]=replace(choices[2],detail='Changed value')
@@ -86,7 +86,7 @@ class MaintenancePixelUpdates(unittest.TestCase):
         shorter=replace(updated,choices=updated.choices[:3]);draw_maintenance(d,shorter);self.equal_fresh(d,shorter)
         draw_maintenance(d,screen);self.equal_fresh(d,screen)
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_care_scroll_and_bar_change_match_fresh(self,_):
         items=tuple(CareItem(ServicePolicy('inspect_clean','fan'+str(i),'calendar_s',100,'user'),
             {'timestamp':1},'not_due','Fan '+str(i),'2 days left',.25,75) for i in range(6))

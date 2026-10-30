@@ -4,8 +4,8 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from moonraker_subscription import MoonrakerSubscription
-from printer_state import PrinterState
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.printer.state import PrinterState
 
 
 class ImmutableSubscriptionStateTests(unittest.TestCase):

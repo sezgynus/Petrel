@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import petrel.features.maintenance.records.book as records
 from petrel.features.maintenance.records.book import MaintenanceBook, read_json, write_json
-from background_reads import ReadWorker
+from petrel.printer.background_reads import ReadWorker
 from test_maintenance_ui_services import DeferredWorker
 
 

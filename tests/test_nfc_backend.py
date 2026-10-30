@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_backend import NFCBackend
-from nfc_settings import NFCSettings
+from petrel.features.nfc.backend import NFCBackend
+from petrel.features.nfc.settings import NFCSettings
 
 
 SERIAL = NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200)
@@ -12,7 +12,7 @@ USB = NFCSettings('PN53x USB', 'USB', 'pn53x_usb:001:003', 0)
 
 class NFCBackendTests(unittest.TestCase):
     def backend(self, **kwargs):
-        with patch('nfc_backend.Thread'):
+        with patch('petrel.features.nfc.backend.Thread'):
             return NFCBackend(**kwargs)
 
     def test_disabled_and_unconfigured_never_claim_hardware(self):
@@ -88,7 +88,7 @@ class NFCBackendTests(unittest.TestCase):
     def test_usb_discovery_runs_serialized_on_owner_without_unrelated_devices(self):
         reader = self.backend(feature_enabled=lambda: True,
                               config_loader=lambda: SERIAL)
-        with patch('libnfc_api.list_devices', return_value=(
+        with patch('petrel.features.nfc.libnfc.list_devices', return_value=(
                 'pn53x_usb:001:003', 'acr122_usb:001:005',
                 'pn532_uart:/dev/ttyUSB0:115200')):
             future = reader.discover_devices('PN53x USB', 'USB')

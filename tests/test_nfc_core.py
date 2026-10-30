@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_core import NFCCore, normalize_uid
+from petrel.features.nfc.core import NFCCore, normalize_uid
 
 
 def backend():

@@ -8,14 +8,14 @@ from time import monotonic, strftime, localtime, time
 import textwrap
 from petrel.features.maintenance.ui.experience import (Choice, Screen, grouped, label, device_name,
                                     preparation, result_summary, result_details, LABELS)
-from graphite_theme import show_icon
+from petrel.ui.theme import show_icon
 from petrel.features.maintenance.ui.care import care_items
 from petrel.features.maintenance.records.care import tasks as care_tasks, task_label
 from petrel.features.maintenance.ui.evidence import outcome_text
 from petrel.features.maintenance.ui.layout import draw_maintenance
 from petrel.features.maintenance.ui.icons import icon_for, feature_icon
 from petrel.features.maintenance.ui.report import ReportSection, section_from_lines, cached_report_rows, report_navigation
-from lcd_resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIONS, ICON_MAINTENANCE_DIAGNOSTICS
+from petrel.artwork.resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIONS, ICON_MAINTENANCE_DIAGNOSTICS
 
 
 class MaintenanceViewMixin:

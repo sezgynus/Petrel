@@ -1,9 +1,9 @@
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock
-from preview_metadata import PreviewData, PreviewDetails, details_from_metadata, amount, duration
-from thumbnail_preview import load_preview
-from thumbnail_cache import ThumbnailCache
+from petrel.features.files.metadata import PreviewData, PreviewDetails, details_from_metadata, amount, duration
+from petrel.features.files.thumbnail_preview import load_preview
+from petrel.features.files.thumbnail_cache import ThumbnailCache
 import test_thumbnail_preview as thumbnails
 from test_thumbnail_preview import png
 

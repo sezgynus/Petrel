@@ -4,10 +4,10 @@ from concurrent.futures import Future
 from unittest.mock import ANY, Mock, patch
 
 from test_capabilities import snapshot, printer, display
-from printer_state import PrinterState
-from bed_mesh import BedMeshSession, MeshData
-from moonraker_client import MoonrakerError
-from moonraker_subscription import MoonrakerSubscription
+from petrel.printer.state import PrinterState
+from petrel.features.leveling.bed_mesh import BedMeshSession, MeshData
+from petrel.moonraker.client import MoonrakerError
+from petrel.moonraker.subscription import MoonrakerSubscription
 
 
 def data():
@@ -120,7 +120,7 @@ class MeshTests(unittest.TestCase):
                 if case == 'stale':result['status']['bed_mesh']['profile_name'] = 'old'
                 else:result['status']['bed_mesh']['profiles'][session.profile_name]['points'] = [[1,2,3]]*3
                 session.pending.set_result(result)
-            with patch('bed_mesh.time.monotonic',return_value=session.started+(901 if case=='timeout' else 1)):
+            with patch('petrel.features.leveling.bed_mesh.time.monotonic',return_value=session.started+(901 if case=='timeout' else 1)):
                 session.update()
             self.assertIn(session.phase, ('error','interrupted'))
             self.assertIsNone(session.mesh)
@@ -472,7 +472,7 @@ class MeshViewTests(unittest.TestCase):
         self.assertEqual(point_label(123,5),'######')
 
     def test_mainsail_hsv_palette_stops_and_interpolation(self):
-        from ui_bed_mesh import mesh_color
+        from petrel.features.leveling.bed_mesh_view import mesh_color
         rgb = ('0000ff', '00ffff', '00ff00', 'ffff00', 'ff0000')
         for i, hex_color in enumerate(rgb):
             value = int(hex_color, 16)
@@ -485,7 +485,7 @@ class MeshViewTests(unittest.TestCase):
         self.assertNotEqual(mesh_color(-.005), mesh_color(0))
 
     def test_final_and_saved_mesh_colors_use_own_extrema(self):
-        from ui_bed_mesh import mesh_color
+        from petrel.features.leveling.bed_mesh_view import mesh_color
         for name, points in (('positive', [[.2, .3], [.3, .4]]),
                              ('negative', [[-.4, -.3], [-.3, -.2]]),
                              ('flat', [[.3, .3], [.3, .3]])):
@@ -742,7 +742,7 @@ class MeshSubmenuNavigationTests(unittest.TestCase):
 class MeshPacketBudgetTests(unittest.TestCase):
     def test_disk_blocks_cover_exact_clipped_circle_without_bitmap(self):
         from test_t5uic1_driver import driver as make_driver
-        from ui_bed_mesh import _mesh_disk_blocks
+        from petrel.features.leveling.bed_mesh_view import _mesh_disk_blocks
         for radius in (4, 5, 13, 23):
             for x0, y0, x1, y1 in ((-radius, -radius, radius, radius),
                                       (-2, -3, 3, 2)):
@@ -763,7 +763,7 @@ class MeshPacketBudgetTests(unittest.TestCase):
                 view.lcd = lcd
                 points = {(x, y): (x+y-size) * .02
                           for x in range(size) for y in range(size)}
-                with patch('t5uic1_driver.time.sleep'):
+                with patch('petrel.hardware.dwin.driver.time.sleep'):
                     view._draw_mesh_grid(size, size, points)
                 frames = lcd.MYSERIAL1.frames
                 self.assertLess(len(frames), max_frames)

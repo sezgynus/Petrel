@@ -25,15 +25,15 @@ from test_bed_mesh import data as mesh_snapshot
 from test_screws_tilt import data as screw_snapshot, payload as screw_results
 from test_mmu_control import mmu_snapshot, hardware_status, add_motor_status, add_led_status, add_multiple_units
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
-from bed_mesh import MeshData
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.features.leveling.bed_mesh import MeshData
 from test_regressions import ui as application_ui
 BuzzerSettings = application_ui.BuzzerSettings
-from preview_metadata import PreviewDetails, Filament
-from thumbnail_cache import ThumbnailCache
-from thumbnail_preview import image_jpeg
-from mmu_filament_view import filament_color
+from petrel.features.files.metadata import PreviewDetails, Filament
+from petrel.features.files.thumbnail_cache import ThumbnailCache
+from petrel.features.files.thumbnail_preview import image_jpeg
+from petrel.features.mmu.filament_view import filament_color
 
 SCENES = []
 
@@ -296,7 +296,7 @@ def printing(paused=False,tune=False,mmu=False,error=False,changing=False,comple
     data['objects'].append('firmware_retraction')
     data['settings']['firmware_retraction']={}
     data['status']['firmware_retraction']=dict(retract_length=2,retract_speed=35,unretract_extra_length=0,unretract_speed=25)
-    from print_tuning import JOB_PINS
+    from petrel.features.printing.tuning import JOB_PINS
     for name,_ in JOB_PINS:
         obj='output_pin '+name;data['objects'].append(obj);data['settings'][obj]={'pwm':False};data['status'][obj]={'value':0 if name.startswith('Power') else 1}
     if mmu:
@@ -697,7 +697,7 @@ def main():
     logging.getLogger().setLevel(logging.ERROR)
     args.output_directory.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='petrel-docs-') as temporary, \
-            patch.object(time, 'strftime', return_value='12:34'), patch('mmu_filament_view.time.monotonic', return_value=3.6):
+            patch.object(time, 'strftime', return_value='12:34'), patch('petrel.features.mmu.filament_view.time.monotonic', return_value=3.6):
         output=Path(temporary)
         errors=[]
         for name,group,en,tr,draw in selected_scenes:
@@ -712,7 +712,7 @@ def main():
         if errors:
             raise SystemExit('No images published; failed scenes: '+', '.join(n for n,_ in errors))
         if render_frames:
-            from dwin_emulator.presentation import with_frame
+            from petrel.emulator.presentation import with_frame
             staged_frames = output/'framed'; staged_frames.mkdir()
             # Finish presentation copies before publishing any panel image.
             for name in names:

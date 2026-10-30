@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock
 
 from test_regressions import ui
-from mmu_filament_view import MMUFilamentView
+from petrel.features.mmu.filament_view import MMUFilamentView
 
 
 class IdleMMUPollTests(unittest.TestCase):

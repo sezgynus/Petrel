@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import unittest
 from test_capabilities import display, snapshot
 from test_regressions import ui, backend
-from moonraker_subscription import MoonrakerSubscription
+from petrel.moonraker.subscription import MoonrakerSubscription
 
 
 class AuditLifecycleTests(unittest.TestCase):

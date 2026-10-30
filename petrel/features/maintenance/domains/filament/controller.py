@@ -11,7 +11,7 @@ from petrel.features.maintenance.discovery.discovery import AUTOMATIC, USER, EXT
 from petrel.features.maintenance.execution.workflow import FirmwareWorkflow, SafetyViolation, safe_name, query
 from petrel.features.maintenance.domains.motion.program import number, modal, vector
 from petrel.features.maintenance.execution.runtime import read_queue_evidence
-from mmu_control import MMUState
+from petrel.features.mmu.state import MMUState
 
 METHODS = {'E01':USER,'E02':EXTERNAL,'E03':USER,'E04':AUTOMATIC,
     'E05':AUTOMATIC,'E06':AUTOMATIC,'E07':USER,'E08':AUTOMATIC,
@@ -493,7 +493,7 @@ class MaintenanceFilamentController(FirmwareWorkflow):
             return None
         if f=='E12':
             if self._operation is not None:
-                from mmu_control import MMUSession
+                from petrel.features.mmu.state import MMUSession
                 verifier = MMUSession(self._printer)
                 verifier.operation = self._operation
                 raw = self._printer.subscription.snapshot()

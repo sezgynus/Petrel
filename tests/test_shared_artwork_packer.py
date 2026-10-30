@@ -109,7 +109,7 @@ class SharedArtworkPackerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder); source = root/'assets/shared-artwork'; source.mkdir(parents=True)
             self.source(source, 'other.jpg', (32,32))
-            output, layout = root/'assets/petrel_shared.jpg', root/'shared_artwork_layout.py'
+            output, layout = root/'assets/petrel_shared.jpg', root/'petrel/artwork/shared_layout.py'
             output.write_bytes(b'old JPEG'); layout.write_bytes(b'old layout')
             with patch.object(packer, 'ROOT', root), patch('sys.argv', ['pack_shared_artwork.py']):
                 with self.assertRaises(SystemExit):
@@ -135,7 +135,7 @@ class SharedArtworkPackerTests(unittest.TestCase):
 
     def test_shipped_outputs_match_the_input_folder(self):
         namespace = {}
-        exec((packer.ROOT/'shared_artwork_layout.py').read_bytes(), namespace)
+        exec((packer.ROOT/'petrel/artwork/shared_layout.py').read_bytes(), namespace)
         items = packer.load_sources(packer.ROOT/'assets/shared-artwork')
         self.assertEqual(packer.pack(items), namespace['BOXES'])
         self.assertEqual({item.path.name:item.digest for item in items}, namespace['SOURCE_SHA256'])

@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch, call
 import unittest
 import zlib
 
-from buzzer_control import Player, ADDRESS, RECORD_SIZE, LEGACY_RECORD_SIZE
-from buzzer_pwm import HardwarePWM, PWM_PINS
+from petrel.features.buzzer.control import Player, ADDRESS, RECORD_SIZE, LEGACY_RECORD_SIZE
+from petrel.features.buzzer.pwm import HardwarePWM, PWM_PINS
 from test_capabilities import snapshot, display
 from test_regressions import ui
 from test_t5uic1_driver import driver
@@ -330,7 +330,7 @@ class BuzzerMenuTests(unittest.TestCase):
         view._buzzer_player.play_emergency.assert_not_called()
 
     def test_input_plays_once_per_physical_event_and_never_for_stale_event(self):
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         view = self.view()
         view._buzzer_player = Mock()
         view._closed = False
@@ -375,7 +375,7 @@ class SoundWorkerTests(unittest.TestCase):
         pwm.tone.side_effect = lambda *a: sent.set()
         pwm.off.side_effect = lambda: off.set()
         moonraker = Mock()
-        with patch('buzzer_control.PATTERNS', ((), (), ((1000, 10),))):
+        with patch('petrel.features.buzzer.control.PATTERNS', ((), (), ((1000, 10),))):
             player = Player(moonraker, driver_factory=lambda: pwm)
             try:
                 self.assertTrue(player.play(Settings(), 'press'))
@@ -400,8 +400,8 @@ class SoundWorkerTests(unittest.TestCase):
                 alert_started.set()
         pwm.tone.side_effect = tone
         moonraker = Mock()
-        with patch('buzzer_control.PATTERNS', ((), (), ((800, 10),))), \
-             patch('buzzer_control.EMERGENCY_PATTERN',
+        with patch('petrel.features.buzzer.control.PATTERNS', ((), (), ((800, 10),))), \
+             patch('petrel.features.buzzer.control.EMERGENCY_PATTERN',
                    ((2200, .001), (0, .001), (1000, .001))):
             player = Player(moonraker, driver_factory=lambda: pwm)
             try:

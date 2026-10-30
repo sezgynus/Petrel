@@ -8,7 +8,7 @@ Her kaynak görseli buraya `.jpg` veya `.jpeg` olarak koyun. Repo kökünden ça
 python tools/pack_shared_artwork.py
 ```
 
-Araç hem `assets/petrel_shared.jpg` (Picture Flash slot 1) hem `shared_artwork_layout.py` dosyasını üretir. Kaynak JPEG'leri ve iki üretilen dosyayı birlikte commit edin. Üretim geliştiricinin çalıştırdığı bir işlemdir; kullanıcıya hazır çıktılar gelir ve servis değişen görseli otomatik yükler.
+Araç hem `assets/petrel_shared.jpg` (Picture Flash slot 1) hem `petrel/artwork/shared_layout.py` dosyasını üretir. Kaynak JPEG'leri ve iki üretilen dosyayı birlikte commit edin. Üretim geliştiricinin çalıştırdığı bir işlemdir; kullanıcıya hazır çıktılar gelir ve servis değişen görseli otomatik yükler.
 
 | Kaynak dosya adı | Üretilen dikdörtgen | Üretilen boyutlar |
 |---|---|---|

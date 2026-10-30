@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_core import NFCCore
+from petrel.features.nfc.core import NFCCore
 from test_nfc_core import backend
 from test_capabilities import display, printer, snapshot
 from test_regressions import backend as printer_backend
@@ -106,7 +106,7 @@ class EmergencyTagTests(unittest.TestCase):
             core.close()
 
     def test_card_feedback_observes_both_enrollment_flows_once(self):
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         with tempfile.TemporaryDirectory() as tmp:
             reader = backend()
             core = NFCCore(reader, actions_file=Path(tmp) / 'actions.json')
@@ -169,7 +169,7 @@ class EmergencyTagTests(unittest.TestCase):
             pd = printer(snapshot())
             pd.subscription.request.return_value = Future()
             with patch.object(printer_backend, 'installed_enabled', return_value=True), \
-                    patch('nfc_core.settings_path', return_value=Path(tmp) / 'settings.json'):
+                    patch('petrel.features.nfc.core.settings_path', return_value=Path(tmp) / 'settings.json'):
                 core = pd.get_nfc_core()
             core.assign_global_action('emergency_stop', 'AA:BB')
             # This goes directly through the existing prioritized emergency RPC
@@ -207,7 +207,7 @@ class EmergencyTagTests(unittest.TestCase):
             core.close()
 
     def test_rfid_home_artwork_is_distinct_and_both_states_are_bound(self):
-        from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
+        from petrel.artwork.resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
         from PIL import Image, ImageChops
         view = display(snapshot())
         entry = next(row for row in view._home_entries() if row[0] == 'RFID')

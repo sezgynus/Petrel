@@ -1,6 +1,6 @@
 import unittest
 
-from dwin_protocol import TAIL, aux_baud_divisor, aux_frames, take_response
+from petrel.hardware.dwin.protocol import TAIL, aux_baud_divisor, aux_frames, take_response
 
 
 class SharedProtocolTests(unittest.TestCase):

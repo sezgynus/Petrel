@@ -2,7 +2,7 @@ from concurrent.futures import Future
 from threading import Event
 import unittest
 from unittest.mock import Mock, patch
-import background_reads as reads
+import petrel.printer.background_reads as reads
 import test_capabilities as fixtures
 import test_files as files
 

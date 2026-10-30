@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 import tempfile
 
-import shared_artwork as artwork
+import petrel.artwork.shared as artwork
 
 
 class SharedArtworkTests(unittest.TestCase):
@@ -11,7 +11,7 @@ class SharedArtworkTests(unittest.TestCase):
         artwork._attempts.clear()
         self.addCleanup(artwork._attempts.clear)
 
-    @patch('shared_artwork.time.sleep')
+    @patch('petrel.artwork.shared.time.sleep')
     def test_sync_commits_only_after_picture_ack_and_skips_unchanged(self, _):
         lcd = Mock()
         memory = {}
@@ -28,7 +28,7 @@ class SharedArtworkTests(unittest.TestCase):
         self.assertTrue(artwork.sync(lcd, force=True))
         lcd.store_sram_as_picture.assert_called_once_with(1, timeout=5)
 
-    @patch('shared_artwork.time.sleep')
+    @patch('petrel.artwork.shared.time.sleep')
     def test_failed_picture_never_checkpoints_or_retries_in_same_process(self, _):
         lcd = Mock()
         lcd.read_flash.return_value = bytes(artwork.SIZE)
@@ -59,8 +59,8 @@ class SharedArtworkTests(unittest.TestCase):
             self.assertEqual(lcd.mock_calls, [])
 
     def test_ico_no_longer_contains_qr_and_reserved_flash_ranges_do_not_overlap(self):
-        from icon_library import build_library, METADATA_ADDRESS
-        import boot_artwork
+        from petrel.artwork.icon_library import build_library, METADATA_ADDRESS
+        import petrel.artwork.boot as boot_artwork
         # NFC interface ID 118 is a small communication glyph, not QR artwork.
         # A 20x20 directory entry cannot contain the former full QR image.
         entry = build_library()[106*16:107*16]

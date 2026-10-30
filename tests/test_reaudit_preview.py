@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import unittest
 import test_files as files
 from test_thumbnail_preview import png
-from thumbnail_preview import load_preview, MAX_CANDIDATES
+from petrel.features.files.thumbnail_preview import load_preview, MAX_CANDIDATES
 
 
 class ReauditPreviewTests(unittest.TestCase):

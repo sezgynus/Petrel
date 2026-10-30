@@ -10,8 +10,8 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from lcd_resources import ICON_LIBRARY_FILENAME, ICON_LIBRARY_ID
-from t5uic1_driver import T5UIC1Display
+from petrel.artwork.resources import ICON_LIBRARY_FILENAME, ICON_LIBRARY_ID
+from petrel.hardware.dwin.driver import T5UIC1Display
 from tools.pack_icon_library import BLOCK_SIZE, entries, validate_block_layout
 from tools.lcd_connection import configured_port
 
@@ -44,7 +44,7 @@ def upload(lcd, data, *, allow_cross_block=False, rewrite_last_byte=False,
     # Manual/diagnostic writes may overlap a previously committed library.
     # Invalidate its checkpoint before any Picture Flash overwrite so a
     # restart never animates from a stale directory. Runtime resyncs sources.
-    from icon_library import METADATA_ADDRESS, METADATA_SIZE
+    from petrel.artwork.icon_library import METADATA_ADDRESS, METADATA_SIZE
     invalid = bytes(METADATA_SIZE)
     lcd.write_flash(METADATA_ADDRESS, invalid)
     if lcd.read_flash(METADATA_ADDRESS, METADATA_SIZE) != invalid:
@@ -97,7 +97,7 @@ def main():
     if args.file:
         data = path.read_bytes()
     else:
-        from icon_library import build_library
+        from petrel.artwork.icon_library import build_library
         data = build_library(root / 'assets/icons')
     digest = hashlib.sha256(data).hexdigest()
     if args.sha256 and digest.lower() != args.sha256.lower():

@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import unittest
-from dwin_emulator.remote import PAGE
+from petrel.emulator.remote import PAGE
 
 ROOT = Path(__file__).resolve().parents[1]
 

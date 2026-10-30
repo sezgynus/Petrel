@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from pathlib import Path
 from PIL import Image, JpegImagePlugin
 from test_capabilities import display, snapshot
-from lcd_resources import ICON_LIBRARY_ID, ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST
+from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST
 
 
 class CardScanPopupTests(TestCase):

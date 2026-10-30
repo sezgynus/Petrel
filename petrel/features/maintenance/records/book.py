@@ -1,6 +1,6 @@
 """Bounded result history, sampled usage and sanitized explicit report export."""
 from collections.abc import Mapping
-from configuration_identity import stable_digest
+from petrel.configuration_identity import stable_digest
 import json
 import logging
 from pathlib import Path

@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 from PIL import ImageChops
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.artwork.resources import ICON_LIBRARY_ID
 
 
 class VisualRoundingTests(unittest.TestCase):
@@ -34,7 +34,7 @@ class VisualRoundingTests(unittest.TestCase):
                     self.assertLessEqual(max(image.getpixel(corner)), 31)
 
     def test_power_selection_matches_fresh_render_after_round_trip(self):
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             view = self.view()
             view._power_confirm_yes = False
             view._draw_power_confirmation()
@@ -51,7 +51,7 @@ class VisualRoundingTests(unittest.TestCase):
             self.assertIsNone(ImageChops.difference(before, self.capture(view)).getbbox())
 
     def test_stop_and_mmu_error_round_trips_leave_no_previous_selection(self):
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             for kind in ('stop', 'mmu'):
                 with self.subTest(kind=kind):
                     view = self.view()
@@ -76,7 +76,7 @@ class VisualRoundingTests(unittest.TestCase):
                     self.assertIsNone(ImageChops.difference(before, self.capture(view)).getbbox())
 
     def test_info_selection_round_trip_preserves_the_initial_pixels(self):
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             view = self.view()
             view._software_update = Mock(phase='current', label='Check for updates', message='')
             view._draw_info_update_button(332, False)

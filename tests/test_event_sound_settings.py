@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import Mock
-from event_sound_settings import ADDRESS, RECORD_SIZE, EVENTS, BITS, EventSounds
+from petrel.features.buzzer.event_settings import ADDRESS, RECORD_SIZE, EVENTS, BITS, EventSounds
 from test_capabilities import display, snapshot
 
 
@@ -42,8 +42,8 @@ class EventSoundRecordTests(TestCase):
         self.assertEqual(EventSounds.decode(muted.encode()), muted)
 
     def test_flash_record_is_disjoint_from_all_existing_settings(self):
-        from buzzer_control import ADDRESS as old, LEGACY_RECORD_SIZE
-        from icon_library import METADATA_ADDRESS, METADATA_SIZE
+        from petrel.features.buzzer.control import ADDRESS as old, LEGACY_RECORD_SIZE
+        from petrel.artwork.icon_library import METADATA_ADDRESS, METADATA_SIZE
         self.assertGreaterEqual(ADDRESS,old+LEGACY_RECORD_SIZE)
         self.assertGreaterEqual(ADDRESS,METADATA_ADDRESS+METADATA_SIZE)
         self.assertEqual(RECORD_SIZE,16)
@@ -160,7 +160,7 @@ class EventSoundUITests(TestCase):
             view._buzzer_player.play_melody.assert_not_called()
             view._buzzer_player.play_emergency.assert_not_called()
             view._event_sound_values=view._event_sound_settings().toggled(name)
-        from nfc_core import NFCCore
+        from petrel.features.nfc.core import NFCCore
         from test_nfc_core import backend
         with TemporaryDirectory() as folder:
             reader=backend();stop=Mock()

@@ -3,9 +3,9 @@ from unittest.mock import patch
 from test_capabilities import display, snapshot
 from test_regressions import ui
 from test_mmu_control import mmu_snapshot
-from printer_state import PrinterState
-from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
-from lcd_resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_PROGRESS_FILL
+from petrel.printer.state import PrinterState
+from petrel.ui.theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
+from petrel.artwork.resources import ICON_WIFI_POOR, ICON_WIFI_MEDIUM, ICON_WIFI_STRONG, ICON_PROGRESS_FILL
 from unittest.mock import call
 
 

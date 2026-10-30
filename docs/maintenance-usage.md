@@ -2,7 +2,7 @@
 
 [Türkçe](maintenance-usage_TR.md) · [Maintenance](user-guide.md#maintenance)
 
-Maintenance derives passive usage descriptors at Klipper READY from the actual object inventory. The same registry supplies the existing WebSocket subscription, collector and discovery snapshot. A physical-test permission is not a prerequisite for reading an output. No output is driven to collect usage, and opening a menu never performs discovery. `printer_capabilities.py` remains independent.
+Maintenance derives passive usage descriptors at Klipper READY from the actual object inventory. The same registry supplies the existing WebSocket subscription, collector and discovery snapshot. A physical-test permission is not a prerequisite for reading an output. No output is driven to collect usage, and opening a menu never performs discovery. `petrel/printer/capabilities.py` remains independent.
 
 ## Supported measurements
 

@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from nfc_core import NFCCore
-from spoolman_tags import SpoolmanTags, BindingConflict, describe, tag_uids, colors
+from petrel.features.nfc.core import NFCCore
+from petrel.features.spoolman.tags import SpoolmanTags, BindingConflict, describe, tag_uids, colors
 from test_nfc_core import backend
 from test_capabilities import display, snapshot
 
@@ -34,7 +34,7 @@ class ServiceTests(unittest.TestCase):
             if action == 'GET' and path == '/v1/spool':
                 query = parse_qs(payload.get('query', ''))
                 if 'tag' in query:
-                    from nfc_core import normalize_uid
+                    from petrel.features.nfc.core import normalize_uid
                     uid = normalize_uid(query['tag'][0])
                     result = [item for item in database.values() if uid in tag_uids(item)]
                 else:
@@ -246,7 +246,7 @@ class SpoolUITests(unittest.TestCase):
             core.close()
 
     def test_transfer_dialog_requires_separate_explicit_confirmation(self):
-        from spoolman_tags import BindingPlan
+        from petrel.features.spoolman.tags import BindingPlan
         selected = describe(spool())
         old = describe(spool(8, 'AA:BB'))
         plan = BindingPlan(selected, 'AA:BB', None, (old,))

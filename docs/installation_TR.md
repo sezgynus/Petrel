@@ -146,7 +146,7 @@ Düzenleme sonrası `sudo systemctl restart Petrel.service` ile yeniden başlat�
 
 ### Güncelleme ve eski kurulumdan geçiş
 
-Mevcut kurulum, sonraki Moonraker güncellemesinden sonra otomatik taşınır: eski updater bu sürümü indirir ve ilk servis açılışı ayrı bir geçiş işi başlatır. Ayarlar korunur, repo `~/Petrel` konumuna taşınır, `~/petrel-env` hazırlanır, `Petrel.service` kurulur ve Moonraker yeni updater kaydıyla yeniden başlatılır. Python bağımlılıkları için birkaç dakika bekleyin. Otomatik geçiş Pi üzerinde şifresiz sudo erişimi gerektirir; bu yoksa bir kez `sudo python3 ~/KlipperDWIN/petrel_migration.py --user "$USER"` çalıştırın. Mevcut bir Petrel kurulumunun üzerine yazılmaz. Servis geçişi başarısız olursa önceki kurulum geri yüklenir; ayrıntılar `journalctl -u Petrel-migration.service` içindedir.
+Mevcut kurulum, sonraki Moonraker güncellemesinden sonra otomatik taşınır: eski updater bu sürümü indirir ve ilk servis açılışı ayrı bir geçiş işi başlatır. Ayarlar korunur, repo `~/Petrel` konumuna taşınır, `~/petrel-env` hazırlanır, `Petrel.service` kurulur ve Moonraker yeni updater kaydıyla yeniden başlatılır. Python bağımlılıkları için birkaç dakika bekleyin. Otomatik geçiş Pi üzerinde şifresiz sudo erişimi gerektirir; bu yoksa bir kez `sudo python3 ~/KlipperDWIN/petrel/migration.py --user "$USER"` çalıştırın. Mevcut bir Petrel kurulumunun üzerine yazılmaz. Servis geçişi başarısız olursa önceki kurulum geri yüklenir; ayrıntılar `journalctl -u Petrel-migration.service` içindedir.
 
 Moonraker yapılandırmasını yeniden okuduktan sonra **Mainsail → Machine → Update Manager → Petrel** yolunu kullanın. Listeyi yenileyip güncelleyin; bağımlılıklar ve servis yeniden başlatması otomatik yapılır. Update Manager `master` dalını takip eder.
 

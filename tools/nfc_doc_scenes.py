@@ -1,7 +1,7 @@
 """NFC documentation scenes; registered for CI and the manual full render."""
 from concurrent.futures import Future
 from unittest.mock import Mock
-from spoolman_tags import Spool, BindingPlan
+from petrel.features.spoolman.tags import Spool, BindingPlan
 
 SPECS = (
     ('nfc-home', 'home', 'NFC card and action menu', 'NFC kart ve işlem menüsü'),
@@ -84,7 +84,7 @@ def register(scene, canvas, finish):
             elif mode.startswith('share_'):
                 core.get_capabilities.return_value = {'ndef_uri_emulation': True}
                 core.is_ready.return_value = True
-                from ui_nfc_share import NFCURIShareComponent
+                from petrel.features.nfc.share_view import NFCURIShareComponent
                 view._nfc_uri_share = NFCURIShareComponent(core)
                 view.pd.system_info['nfc'] = {'status': 'Connected', 'model': 'PN532',
                     'firmware': '1.6', 'hardware': 'PN532', 'library': '1.8.0',

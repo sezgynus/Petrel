@@ -1,7 +1,7 @@
 """Completion wakeups remain bounded and reliable under input backpressure."""
 import unittest
 from unittest.mock import Mock
-from ui_events import UIEventLoop, InputEvent
+from petrel.ui.events import UIEventLoop, InputEvent
 
 
 class CompletionQueueTests(unittest.TestCase):

@@ -10,7 +10,7 @@ surface used by this project: kernel firmware, `T5UIC1.CFG` hardware
 configuration, SD-card assets, memory regions and runtime UART commands.
 
 The intent is to keep panel configuration details out of UI code. Runtime
-communication belongs in `t5uic1_driver.py`; boot-time hardware settings and
+communication belongs in `petrel/hardware/dwin/driver.py`; boot-time hardware settings and
 installed assets belong to the display firmware bundle.
 
 ## Configuration layers
@@ -257,7 +257,7 @@ image content into picture slot `0x00..0x0F`.
 
 JPEG pictures and ICO libraries share Picture Flash. Library 2 uses slots 2–15;
 slot 0 holds managed Petrel boot artwork; slot 1 holds the shared UI JPEG page and the icon library starts at slot 2. Individual baseline JPEGs in `assets/icons/`
-are packed by `icon_library.py`, preserving each payload within one 32 KiB
+are packed by `petrel/artwork/icon_library.py`, preserving each payload within one 32 KiB
 block and reserving every block’s final byte. The packer reuses gaps with
 smaller images, independently of icon ID order.
 
@@ -311,7 +311,7 @@ panel before being made part of normal UI behavior.
 `load_display_settings()` returns `(brightness_percent, idle_minutes, dim_brightness_percent)` or `None`
 for a blank/invalid record. `save_display_settings(brightness_percent,
 idle_minutes, dim_brightness_percent=10)` validates bounds, writes the final record and checks an exact
-readback; a mismatch raises `OSError`. This is the synchronous helper/fallback. With the production driver (`SUPPORTS_NONBLOCKING_FLASH=True`), confirmation of a changed setting queues `begin_flash_write_verified()` and `_poll_panel_flash()` collects the Future without blocking the UI owner on ACK/readback. Encoder movement and idle dim/wake do not save settings. Use the symbolic animation constants in `lcd_resources.py` instead of hard-coded IDs.
+readback; a mismatch raises `OSError`. This is the synchronous helper/fallback. With the production driver (`SUPPORTS_NONBLOCKING_FLASH=True`), confirmation of a changed setting queues `begin_flash_write_verified()` and `_poll_panel_flash()` collects the Future without blocking the UI owner on ACK/readback. Encoder movement and idle dim/wake do not save settings. Use the symbolic animation constants in `petrel/artwork/resources.py` instead of hard-coded IDs.
 
 | Data Flash range | Owner | Size |
 | --- | --- | --- |

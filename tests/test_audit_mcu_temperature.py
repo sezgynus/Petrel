@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from test_capabilities import printer, snapshot, backend
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 
 class McuTemperatureIdentity(unittest.TestCase):
     def test_suffix_named_mcu_never_inherits_primary_temperature(self):

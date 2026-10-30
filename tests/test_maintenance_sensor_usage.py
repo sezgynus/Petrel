@@ -148,7 +148,7 @@ class EventLedgerTests(unittest.TestCase):
 
 class EventTransportTests(unittest.TestCase):
     def test_bootstrap_subscribes_extra_totals_without_per_sensor_status_sources(self):
-        from moonraker_subscription import MoonrakerSubscription
+        from petrel.moonraker.subscription import MoonrakerSubscription
         from test_subscription import FakeSocket
         sub = MoonrakerSubscription('http://localhost:7125', autostart=False)
         self.addCleanup(sub.close)

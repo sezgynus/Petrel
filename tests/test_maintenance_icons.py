@@ -1,11 +1,11 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 """Semantic Graphite icons and small artwork contracts for Maintenance."""
 import unittest
 from types import SimpleNamespace as NS
 from test_capabilities import display,snapshot
 from petrel.features.maintenance.ui.experience import Choice
 from petrel.features.maintenance.ui.icons import icon_for,feature_icon,TOPICS
-from lcd_resources import (ICON_MAINTENANCE_CHECK,ICON_MAINTENANCE_DIAGNOSTICS,
+from petrel.artwork.resources import (ICON_MAINTENANCE_CHECK,ICON_MAINTENANCE_DIAGNOSTICS,
     ICON_MAINTENANCE_RECOMMENDATIONS,ICON_MAINTENANCE_CARE)
 
 class MaintenanceSemanticIcons(unittest.TestCase):
@@ -47,7 +47,7 @@ class MaintenanceSemanticIcons(unittest.TestCase):
     def test_new_icons_are_small_baseline_420_and_inside_the_export(self):
         from pathlib import Path
         from PIL import Image,JpegImagePlugin
-        from dwin_emulator.assets import PanelAssets
+        from petrel.emulator.assets import PanelAssets
         root=Path(__file__).resolve().parents[1];assets=PanelAssets()
         for icon in (104,105,106,107):
             with Image.open(root/('assets/icons/%03d.jpg'%icon)) as im:

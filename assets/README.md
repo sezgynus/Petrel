@@ -20,7 +20,7 @@ Changed boot artwork is uploaded automatically to picture slot 0 on the first LC
 
 ## Shared UI artwork page
 
-`petrel_shared.jpg` occupies Picture Flash **slot 1**. Put source JPEGs in [`assets/shared-artwork`](shared-artwork/README.md) and run `python tools/pack_shared_artwork.py`. The tool packs sources compactly into a **272×480 portrait** page and generates filename-based constants such as `QR_BOX` / `QR_SIZE` in `shared_artwork_layout.py`. Geometry and the final JPEG's **32767-byte** limit are checked; overflow preserves the previous outputs. The physical output is a **480×272**, baseline 4:2:0 JPEG.
+`petrel_shared.jpg` occupies Picture Flash **slot 1**. Put source JPEGs in [`assets/shared-artwork`](shared-artwork/README.md) and run `python tools/pack_shared_artwork.py`. The tool packs sources compactly into a **272×480 portrait** page and generates filename-based constants such as `QR_BOX` / `QR_SIZE` in `petrel/artwork/shared_layout.py`. Geometry and the final JPEG's **32767-byte** limit are checked; overflow preserves the previous outputs. The physical output is a **480×272**, baseline 4:2:0 JPEG.
 
 The QR is absent from the ICO library; Info reads source coordinates and dimensions from the generated definitions. `python tools/render_project_qr.py` only refreshes the `qr.jpg` source and its SVG (developer dependency: CairoSVG); run the general packer afterwards. Adding other artwork does not require running the QR generator. Commit sources, JPEG page and layout module together; the service rejects a JPEG/layout SHA-256 mismatch.
 

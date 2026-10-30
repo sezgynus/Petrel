@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from test_capabilities import display, snapshot, printer, backend
-from info_qr import extra_info_rows
+from petrel.features.info.qr import extra_info_rows
 
 
 class InfoIncrementalTests(unittest.TestCase):
@@ -85,7 +85,7 @@ class InfoIncrementalTests(unittest.TestCase):
                               (step, scroll))
 
     def test_scrollbar_matches_maintenance_and_stays_outside_moving_content(self):
-        from graphite_theme import draw_scrollbar
+        from petrel.ui.theme import draw_scrollbar
         view = self.view()
         maximum = len(view._info_items()) + extra_info_rows() - 13
         for scroll in (0, maximum // 2, maximum, 0):

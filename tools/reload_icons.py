@@ -7,9 +7,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from icon_library import sync_library
-from shared_artwork import sync as sync_shared_artwork
-from boot_artwork import sync as sync_boot_artwork
+from petrel.artwork.icon_library import sync_library
+from petrel.artwork.shared import sync as sync_shared_artwork
+from petrel.artwork.boot import sync as sync_boot_artwork
 from tools.flash_icon_library import ManualDisplay
 from tools.lcd_connection import configured_port
 

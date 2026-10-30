@@ -49,7 +49,7 @@ Kalıcı kontrolcü değişikliği yoktur. Kaydı durdurunca özgün owner/clien
 Kodun tamamını kaldırmak için:
 
 - `petrel/features/maintenance/diagnostics/test_trace.py` ve `tests/test_maintenance_test_trace.py` dosyalarını kaldırın.
-- `printerInterface.py`, `petrel/features/maintenance/ui/view.py`, `petrel_ui.py` içindeki **TEMPORARY MAINTENANCE TEST TRACE** işaretli bağlantıları kaldırın; UI sarmalayıcılarını özgün yöntem adlarına geri taşıyın.
+- `petrel/printer/interface.py`, `petrel/features/maintenance/ui/view.py`, `petrel/application/display.py` içindeki **TEMPORARY MAINTENANCE TEST TRACE** işaretli bağlantıları kaldırın; UI sarmalayıcılarını özgün yöntem adlarına geri taşıyın.
 - Remote Display'deki `trace_provider`, ZIP endpoint ve indirme bağlantısını kaldırın.
 - Bu TR/EN rehber çiftini kaldırın.
 

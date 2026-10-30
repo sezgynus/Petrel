@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch

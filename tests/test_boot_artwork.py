@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-import boot_artwork
+import petrel.artwork.boot as boot_artwork
 
 
 class BootArtworkTests(unittest.TestCase):
@@ -11,7 +11,7 @@ class BootArtworkTests(unittest.TestCase):
     def tearDown(self):
         boot_artwork._attempts.clear()
 
-    @patch('boot_artwork.time.sleep')
+    @patch('petrel.artwork.boot.time.sleep')
     def test_picture_is_acknowledged_before_checkpoint_and_unchanged_image_skips(self, _):
         lcd = Mock()
         flash = {}
@@ -29,7 +29,7 @@ class BootArtworkTests(unittest.TestCase):
         lcd.store_sram_as_picture.assert_not_called()
         lcd.write_flash.assert_not_called()
 
-    @patch('boot_artwork.time.sleep')
+    @patch('petrel.artwork.boot.time.sleep')
     def test_explicit_repair_overwrites_matching_boot_and_invalidates_first(self, _):
         import hashlib
         record = boot_artwork.MAGIC + hashlib.sha256(boot_artwork.SOURCE.read_bytes()).digest()
@@ -45,7 +45,7 @@ class BootArtworkTests(unittest.TestCase):
         names = [call[0] for call in lcd.mock_calls]
         self.assertLess(names.index('write_flash'), names.index('write_sram'))
 
-    @patch('boot_artwork.time.sleep')
+    @patch('petrel.artwork.boot.time.sleep')
     def test_failed_forced_repair_leaves_checkpoint_invalid(self, _):
         import hashlib
         record = boot_artwork.MAGIC + hashlib.sha256(boot_artwork.SOURCE.read_bytes()).digest()
@@ -60,7 +60,7 @@ class BootArtworkTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'already failed'):
             boot_artwork.sync(lcd, force=True)
 
-    @patch('boot_artwork.time.sleep')
+    @patch('petrel.artwork.boot.time.sleep')
     def test_failed_picture_write_does_not_mark_image_loaded_or_retry_in_process(self, _):
         lcd = Mock()
         lcd.read_flash.return_value = bytes(boot_artwork.SIZE)

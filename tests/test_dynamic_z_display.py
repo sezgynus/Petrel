@@ -1,7 +1,7 @@
 """Adaptive Z precision, bounded redraws and retained raw observations."""
 import unittest
 from unittest.mock import patch
-from display_numbers import fit_decimal
+from petrel.ui.numbers import fit_decimal
 from test_capabilities import display, snapshot
 from test_regressions import ui
 

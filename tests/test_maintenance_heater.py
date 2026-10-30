@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import unittest
 
 from test_maintenance_controller import printer, Worker
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _add
 from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter
 from petrel.features.maintenance.domains.thermal.measurements import ACTIVE
@@ -288,7 +288,7 @@ class ThermalControllerTests(unittest.TestCase):
         self.assertEqual(self.requests, [])
 
     def test_backend_planning_does_not_require_controller_or_io(self):
-        from printerInterface import PrinterData
+        from petrel.printer.interface import PrinterData
         p = PrinterData.__new__(PrinterData)
         p.maintenance = self.p.maintenance
         rows = p.maintenance_guided_plan()

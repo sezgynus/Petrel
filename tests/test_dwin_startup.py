@@ -8,7 +8,7 @@ import unittest
 import weakref
 from unittest.mock import patch
 
-from dwin_broker import parse_arguments
+from petrel.hardware.dwin.broker import parse_arguments
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,7 +42,7 @@ class BrokerStartupTests(unittest.TestCase):
                 (['--port', '/dev/nonexistent', '--unknown'], 2, 'unrecognized arguments'),
                 (['--port'], 2, 'expected one argument')]:
             with self.subTest(argv=argv):
-                result = subprocess.run([sys.executable, 'dwin_broker.py', *argv],
+                result = subprocess.run([sys.executable, '-m', 'petrel.hardware.dwin.broker', *argv],
                                         cwd=ROOT, text=True, capture_output=True, timeout=10)
                 self.assertEqual(result.returncode, status, result.stdout + result.stderr)
                 self.assertIn(expected, result.stdout + result.stderr)
@@ -51,12 +51,12 @@ class BrokerStartupTests(unittest.TestCase):
         # A fresh interpreter is essential: unittest imports logging itself.
         script = textwrap.dedent('''
             import sys
-            from dwin_broker import parse_arguments
-            from dwin_aux_backend import AuxBackend
-            from dwin_diagnostics import log_exception
+            from petrel.hardware.dwin.broker import parse_arguments
+            from petrel.hardware.dwin.auxiliary import AuxBackend
+            from petrel.hardware.dwin.diagnostics import log_exception
             parse_arguments(['--port', '/dev/ttyAMA0'])
             assert 'logging' not in sys.modules, 'logging loaded during healthy startup'
-            for name in ('dwin_broker', 'dwin_aux_backend'):
+            for name in ('petrel.hardware.dwin.broker', 'petrel.hardware.dwin.auxiliary'):
                 try:
                     raise RuntimeError('original fault ' + name)
                 except RuntimeError:
@@ -66,7 +66,7 @@ class BrokerStartupTests(unittest.TestCase):
         result = subprocess.run([sys.executable, '-c', script], cwd=ROOT,
                                 text=True, capture_output=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for name in ('dwin_broker', 'dwin_aux_backend'):
+        for name in ('petrel.hardware.dwin.broker', 'petrel.hardware.dwin.auxiliary'):
             self.assertIn(f'ERROR:{name}:transport failed (test)', result.stderr)
             self.assertIn(f'RuntimeError: original fault {name}', result.stderr)
         self.assertEqual(result.stderr.count('Traceback (most recent call last):'), 2)

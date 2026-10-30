@@ -4,10 +4,10 @@ from concurrent.futures import Future
 from threading import Event
 from unittest import TestCase
 from unittest.mock import Mock
-from heater_events import HeaterEvents, heater_ready
-from buzzer_notifications import contains_homing
-from moonraker_client import MoonrakerClient, MoonrakerError
-from moonraker_subscription import MoonrakerSubscription
+from petrel.features.buzzer.heater_events import HeaterEvents, heater_ready
+from petrel.features.buzzer.notifications import contains_homing
+from petrel.moonraker.client import MoonrakerClient, MoonrakerError
+from petrel.moonraker.subscription import MoonrakerSubscription
 
 
 class HeaterCycleTests(TestCase):

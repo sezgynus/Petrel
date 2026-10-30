@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import Mock, patch
-import display_settings as settings
+import petrel.features.display_settings.settings as settings
 from test_t5uic1_driver import driver
 from test_capabilities import display, snapshot
 from test_regressions import ui
 
 class DisplaySettingsTests(unittest.TestCase):
     def test_flash_cadence_survives_menu_overrides_and_early_tick_returns(self):
-        from ui_events import UIEventLoop
+        from petrel.ui.events import UIEventLoop
         view = display(snapshot())
         view._uart_online = True
         view.lcd.SUPPORTS_NONBLOCKING_FLASH = True
@@ -73,7 +73,7 @@ class DisplaySettingsTests(unittest.TestCase):
         lcd.write_flash = Mock(); lcd.read_flash = Mock(return_value=record)
         lcd.save_display_settings(72, 12)
         lcd.write_flash.assert_called_once_with(0x100, record)
-        from icon_library import METADATA_ADDRESS
+        from petrel.artwork.icon_library import METADATA_ADDRESS
         self.assertLessEqual(lcd.DISPLAY_SETTINGS_ADDRESS + lcd.DISPLAY_SETTINGS_SIZE,
                              METADATA_ADDRESS)
         self.assertEqual(lcd.load_display_settings(), (72, 12, 10))

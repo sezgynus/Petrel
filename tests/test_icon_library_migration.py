@@ -3,8 +3,8 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 import hashlib
 import zlib
-import icon_library as icons
-from lcd_resources import ICON_LIBRARY_ID, ICON_LIBRARY_FILENAME
+import petrel.artwork.icon_library as icons
+from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_LIBRARY_FILENAME
 import test_managed_icon_library as managed
 from tools.pack_icon_library import entries, validate_block_layout
 
@@ -20,7 +20,7 @@ class LibraryMigrationTests(TestCase):
         body = (icons.MAGIC + bytes((library, len(hashes))) + b''.join(hashes)).ljust(508, bytes(1))
         return body + zlib.crc32(body).to_bytes(4, 'big')
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_legacy_hashes_cannot_skip_relocation_and_animations_stop_before_writes(self, _):
         data = icons.pack_records([(1, 20, 20, b'x' * 30000), (2, 20, 20, b'y' * 1000)])
         for old_library in (3, 7):
@@ -29,7 +29,7 @@ class LibraryMigrationTests(TestCase):
                 old = self.old_metadata(data, old_library)
                 memory[icons.METADATA_ADDRESS:icons.METADATA_ADDRESS + icons.METADATA_SIZE] = old
                 untouched = bytes(memory[:icons.METADATA_ADDRESS])
-                with patch('icon_library.build_library', return_value=data):
+                with patch('petrel.artwork.icon_library.build_library', return_value=data):
                     self.assertTrue(icons.sync_library(lcd))
                     self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [3, 2])
                     names = [c[0] for c in lcd.mock_calls]
@@ -41,14 +41,14 @@ class LibraryMigrationTests(TestCase):
                 self.assertEqual(bytes(memory[:icons.METADATA_ADDRESS]), untouched)
                 self.assertEqual(memory[icons.METADATA_ADDRESS + 8], 2)
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_interrupted_relocation_resumes_with_directory_last(self, _):
         data = icons.pack_records([(1, 20, 20, b'x' * 30000), (2, 20, 20, b'y' * 1000)])
         lcd, memory = managed.ManagedIconTests().panel()
         old = self.old_metadata(data, 3)
         memory[icons.METADATA_ADDRESS:icons.METADATA_ADDRESS + icons.METADATA_SIZE] = old
         lcd.store_sram_as_picture.side_effect = [None, TimeoutError('directory ACK lost')]
-        with patch('icon_library.build_library', return_value=data):
+        with patch('petrel.artwork.icon_library.build_library', return_value=data):
             with self.assertRaises(TimeoutError):
                 icons.sync_library(lcd)
             raw = bytes(memory[icons.METADATA_ADDRESS:icons.METADATA_ADDRESS + icons.METADATA_SIZE])

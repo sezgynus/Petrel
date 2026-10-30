@@ -6,9 +6,9 @@ import zlib
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-import icon_library as icons
-from lcd_resources import ICON_LIBRARY_ID
-from t5uic1_driver import T5UIC1Display
+import petrel.artwork.icon_library as icons
+from petrel.artwork.resources import ICON_LIBRARY_ID
+from petrel.hardware.dwin.driver import T5UIC1Display
 from tools.pack_icon_library import entries
 import test_managed_icon_library as managed
 
@@ -68,7 +68,7 @@ class CompactIconIDs(TestCase):
         self.assertTrue(any(frame[1] == 0x23 for frame in view.lcd.serial.frames))
         self.assertTrue(any(frame[1] == 0x28 for frame in view.lcd.serial.frames))
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_older_same_slot_hashes_force_upload_then_current_reconnect_is_unchanged(self, _):
         icons._ATTEMPTS.clear()
         self.addCleanup(icons._ATTEMPTS.clear)
@@ -78,7 +78,7 @@ class CompactIconIDs(TestCase):
         lcd, memory = managed.ManagedIconTests().panel()
         memory[icons.METADATA_ADDRESS:icons.METADATA_ADDRESS+icons.METADATA_SIZE] = self.legacy_record(hashes)
         untouched = bytes(memory[:icons.METADATA_ADDRESS])
-        with patch('icon_library.build_library', return_value=data):
+        with patch('petrel.artwork.icon_library.build_library', return_value=data):
             self.assertTrue(icons.sync_library(lcd))
             self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list],
                              [ICON_LIBRARY_ID+1, ICON_LIBRARY_ID])

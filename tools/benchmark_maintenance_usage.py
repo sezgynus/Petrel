@@ -91,7 +91,7 @@ def main():
         sys.modules.setdefault('maintenance_motion', importlib.import_module(
             'petrel.features.maintenance.domains.motion.program'))
         sys.modules.setdefault('configuration_identity', importlib.import_module(
-            'configuration_identity'))
+            'petrel.configuration_identity'))
         spec = importlib.util.spec_from_file_location('petrel_usage_baseline', args.baseline_file)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

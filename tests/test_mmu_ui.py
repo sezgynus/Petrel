@@ -700,8 +700,8 @@ class MMUUITests(unittest.TestCase):
 
     def test_scrolling_uses_panel_move_and_preserves_row_pixels(self):
         from test_t5uic1_driver import driver
-        from dwin_emulator.assets import PanelAssets
-        from dwin_emulator.framebuffer import Framebuffer
+        from petrel.emulator.assets import PanelAssets
+        from petrel.emulator.framebuffer import Framebuffer
         count = 12
         v, _ = self.make(num_gates=count, gate_status=[1]*count,
                          gate_color_rgb=[[1,0,0]]*count, ttg_map=list(range(count)))
@@ -943,7 +943,7 @@ class MMUUITests(unittest.TestCase):
         v.pd.subscription.request.assert_not_called()
 
     def test_offline_encoder_navigation_can_back_out_but_never_sends_motion(self):
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         v, data = self.make()
         v._closed = False
         v._uart_online = True

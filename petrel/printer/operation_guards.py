@@ -1,0 +1,86 @@
+"""Dispatch-time guards for motion captured against one printer snapshot."""
+from petrel.printer.state import freeze
+
+
+def motion_dispatch_guard(printer, owner='', manual_active=False, position=False, extrusion=None, initial=None):
+    initial = printer.subscription.snapshot() if initial is None else initial
+
+    def signature(snapshot):
+        status = snapshot['status']
+        th, gm = status['toolhead'], status['gcode_move']
+        return freeze((snapshot.get('settings', {}), th.get('homed_axes'),
+                       th.get('axis_minimum'), th.get('axis_maximum'),
+                       th.get('max_velocity'), th.get('extruder'),
+                       gm.get('homing_origin'), gm.get('absolute_coordinates'),
+                       gm.get('absolute_extrude'), gm.get('position') if position else None))
+
+    expected = signature(initial)
+    epoch = initial['epoch']
+
+    def guard():
+        try:
+            current = printer.subscription.snapshot()
+            status = current['status']
+            if (current['state'] != 'ready' or current['epoch'] != epoch
+                    or status['print_stats']['state'] not in ('standby', 'complete', 'cancelled', 'error')
+                    or bool(status.get('manual_probe', {}).get('is_active')) != manual_active
+                    or signature(current) != expected):
+                return False
+            maintenance = getattr(printer, 'maintenance_pulse', None)
+            if owner != 'maintenance' and getattr(maintenance, 'pending', False):
+                return False
+            if owner != 'jog' and printer.jog_recovery_required:
+                return False
+            if any(getattr(getattr(printer, name, None), 'pending', None)
+                   for name in ('petrel.features.leveling.bed_mesh', 'petrel.features.leveling.screws_tilt', 'petrel.features.leveling.probe_wizard', 'mmu_session') if name != owner):
+                return False
+            mmu = status.get('mmu', {})
+            if mmu and str(mmu.get('action', '')).lower() != 'idle':
+                return False
+            return extrusion is None or status.get(extrusion, {}).get('can_extrude') is True
+        except (KeyError, TypeError, ValueError):
+            return False
+
+    if not guard():
+        raise ValueError('Motion state changed; check printer')
+    return guard
+
+
+def config_save_guard(printer, config, owner, verify=None):
+    """Bind SAVE_CONFIG to the exact pending values approved by the user."""
+    expected = freeze((config.get('save_config_pending'), config.get('save_config_pending_items')))
+    motion = motion_dispatch_guard(printer, owner=owner)
+
+    def guard():
+        try:
+            status = printer.subscription.snapshot()['status']
+            current = status['configfile']
+            return (motion() and current.get('save_config_pending') is True
+                    and freeze((current.get('save_config_pending'), current.get('save_config_pending_items'))) == expected
+                    and (verify is None or verify(status)))
+        except (KeyError, TypeError, ValueError):
+            return False
+    return guard
+
+
+def idle_dispatch_guard(printer):
+    """Recheck idle-only commands on enqueue and immediately before dispatch."""
+    initial = printer.subscription.snapshot()
+    epoch = initial.get('epoch')
+
+    def guard():
+        try:
+            current = printer.subscription.snapshot()
+            status = current['status']
+            return (current['state'] == 'ready'
+                    and current['epoch'] == epoch == printer.state.epoch
+                    and not printer.connection_error
+                    and status['print_stats']['state'] in ('standby', 'complete', 'cancelled', 'error')
+                    and status.get('virtual_sdcard', {}).get('is_active') is not True
+                    and status.get('pause_resume', {}).get('is_paused') is not True)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            return False
+
+    if not guard():
+        raise ValueError('Printer must be idle for this operation')
+    return guard

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock
 from test_capabilities import display, snapshot
-from info_qr import PROJECT_URL, draw_project_qr
-from shared_artwork import PICTURE_ID, QR_BOX
+from petrel.features.info.qr import PROJECT_URL, draw_project_qr
+from petrel.artwork.shared import PICTURE_ID, QR_BOX
 
 
 class InfoQRTests(unittest.TestCase):
@@ -44,15 +44,15 @@ class InfoQRTests(unittest.TestCase):
     def test_copy_uses_generated_offset_size_and_horizontal_center(self):
         from unittest.mock import patch
         lcd = Mock(DWIN_WIDTH=272)
-        with patch('info_qr.QR_BOX', (100, 200, 140, 260)):
-            from info_qr import extra_info_rows
+        with patch('petrel.features.info.qr.QR_BOX', (100, 200, 140, 260)):
+            from petrel.features.info.qr import extra_info_rows
             self.assertEqual(extra_info_rows(), 5)
             draw_project_qr(lcd, 80, top=92, bottom=120)
         lcd.copy_cache1.assert_called_once_with(100, 212, 139, 239, 116, 92)
 
     def test_cached_qr_preserves_repo_data_and_exact_info_dimensions(self):
         import qrcode
-        from dwin_emulator.assets import PanelAssets
+        from petrel.emulator.assets import PanelAssets
         from PIL import Image
         image = PanelAssets().picture(PICTURE_ID).transpose(Image.Transpose.ROTATE_270).crop(QR_BOX)
         self.assertEqual(image.size, (168, 168))
@@ -123,8 +123,8 @@ class InfoCacheRenderingTests(unittest.TestCase):
 
     def test_update_control_survives_repeated_short_bottom_scroll_round_trips(self):
         from tools.render_docs_screenshots import canvas
-        from info_qr import extra_info_rows
-        from lcd_resources import ICON_INFO_UPDATE_SELECTED
+        from petrel.features.info.qr import extra_info_rows
+        from petrel.artwork.resources import ICON_INFO_UPDATE_SELECTED
         from PIL import ImageChops
         for phase, label, message in (
                 ('idle', 'Check for updates', ''),
@@ -158,7 +158,7 @@ class InfoCacheRenderingTests(unittest.TestCase):
     def test_scroll_clears_qr_fragments_outside_the_moving_viewport(self):
         from tools.render_docs_screenshots import canvas
         from PIL import ImageChops
-        from info_qr import extra_info_rows
+        from petrel.features.info.qr import extra_info_rows
         view, reference = canvas(), canvas()
         maximum = len(view._info_items()) + extra_info_rows() - 13
         view._info_scroll = maximum

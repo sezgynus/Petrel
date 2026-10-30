@@ -13,7 +13,7 @@ class ManagedBackingTests(unittest.TestCase):
         view.lcd = driver()
         updater = SimpleNamespace(label='Check updates', phase='idle', message='')
         view._software_updater = Mock(return_value=updater)
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             view._draw_info_update_button(180, True)
             frames = view.lcd.serial.frames
             self.assertEqual(sum(frame[1] == 0x23 for frame in frames), 1)

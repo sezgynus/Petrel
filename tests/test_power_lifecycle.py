@@ -1,8 +1,8 @@
 import unittest
 from concurrent.futures import Future
 from unittest.mock import Mock, patch
-from power_lifecycle import PowerMonitor
-from moonraker_subscription import MoonrakerSubscription
+from petrel.features.power.lifecycle import PowerMonitor
+from petrel.moonraker.subscription import MoonrakerSubscription
 import test_uart_reconnect as reconnect
 from test_regressions import ui
 
@@ -127,21 +127,21 @@ class RelayLifecycleTests(unittest.TestCase):
 
     def test_poll_does_not_block_or_overlap_reads_and_errors_are_unknown(self):
         client = Mock(timeout=1)
-        with patch('power_lifecycle.ReadWorker') as worker:
+        with patch('petrel.features.power.lifecycle.ReadWorker') as worker:
             monitor = PowerMonitor(client, 'Printer')
         future = Future()
         worker.return_value.submit.return_value = future
-        with patch('power_lifecycle.time.monotonic', return_value=0):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=0):
             self.assertIsNone(monitor.poll())
             self.assertIsNone(monitor.poll())
         worker.return_value.submit.assert_called_once()
         future.set_result({'result': {'devices': [{'device': 'printer', 'status': 'off'}]}})
-        with patch('power_lifecycle.time.monotonic', return_value=.5):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=.5):
             self.assertEqual(monitor.poll(), 'off')
         failure = Future()
         failure.set_exception(RuntimeError('network down'))
         monitor.future = failure
-        with patch('power_lifecycle.time.monotonic', return_value=.5):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=.5):
             self.assertIsNone(monitor.poll())
         monitor.close()
         worker.return_value.close.assert_called_once()

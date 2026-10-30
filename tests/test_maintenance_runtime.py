@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot
 from petrel.features.maintenance.execution.safety import precheck
 from petrel.features.maintenance.execution.runtime import (
@@ -114,7 +114,7 @@ class RuntimeSafetyTests(unittest.TestCase):
 
     def test_existing_petrel_owners_block_until_idle(self):
         ev = read_queue_evidence(Client(), 8, self.snapshot.config_marker)
-        for name in ('bed_mesh', 'screws_tilt', 'probe_wizard', 'mmu_session'):
+        for name in ('petrel.features.leveling.bed_mesh', 'petrel.features.leveling.screws_tilt', 'petrel.features.leveling.probe_wizard', 'mmu_session'):
             with self.subTest(name=name):
                 getattr(self.printer, name).pending = object()
                 self.assertTrue(conflicting_petrel_operation(self.printer))

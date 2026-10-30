@@ -8,11 +8,11 @@ from unittest.mock import Mock, patch
 from PIL import Image, ImageChops
 from test_capabilities import printer, display, snapshot
 from test_t5uic1_driver import driver
-from moonraker_subscription import MoonrakerSubscription
-from moonraker_client import MoonrakerError
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
-from ui_events import InputEvent
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.moonraker.client import MoonrakerError
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.ui.events import InputEvent
 
 
 class AuditRegressionTests(unittest.TestCase):
@@ -66,7 +66,7 @@ class AuditRegressionTests(unittest.TestCase):
 
     def test_power_guard_blocks_each_calibration_and_modal_recovery(self):
         p=printer(snapshot())
-        for name in ('bed_mesh','screws_tilt','probe_wizard','mmu_session'):
+        for name in ('petrel.features.leveling.bed_mesh','petrel.features.leveling.screws_tilt','petrel.features.leveling.probe_wizard','mmu_session'):
             session=getattr(p,name);session.pending=Future()
             self.assertIsNotNone(p.power_off_block_reason());session.pending=None
         p._jog_restore='RESTORE_GCODE_STATE NAME=LCD_JOG MOVE=0'

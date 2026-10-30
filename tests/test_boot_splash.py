@@ -1,11 +1,11 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 """Boot waits preserve the panel-provided splash and never expose partial menus."""
 import unittest
 from unittest.mock import Mock, patch
 import test_uart_reconnect as reconnect
 import test_mmu_driver as packets
 from test_regressions import ui
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 
 class BootSplashTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class BootSplashTests(unittest.TestCase):
         # These splash tests model an in-flight status check, not a reported
         # shutdown/unavailable result (covered by test_recovery_ui).
         from types import SimpleNamespace
-        from klipper_recovery import RecoveryState
+        from petrel.features.recovery.klipper import RecoveryState
         v.pd.recovery = SimpleNamespace(state=RecoveryState(), poll=Mock())
         return v
 
@@ -186,7 +186,7 @@ class BootSplashTests(unittest.TestCase):
 
     def test_constructor_shows_splash_directly_without_cache_copy(self):
         import test_uart as uart
-        from t5uic1_driver import T5UIC1Display
+        from petrel.hardware.dwin.driver import T5UIC1Display
         port = uart.Port([b'\xAA\x00OK' + T5UIC1Display.TAIL])
         v = self.view()
 
@@ -201,7 +201,7 @@ class BootSplashTests(unittest.TestCase):
 
         with patch.object(uart.serial_module, 'Serial', return_value=port, create=True), \
                 patch.object(T5UIC1Display, '_startup_sync_icons', synchronized), \
-                patch('boot_artwork.sync'), patch('shared_artwork.sync'), \
+                patch('petrel.artwork.boot.sync'), patch('petrel.artwork.shared.sync'), \
                 patch.object(T5UIC1Display, '_startup_animation_library', return_value=3):
             lcd = T5UIC1Display('/dev/fake', wake_delay=0, startup_progress=progress)
         self.addCleanup(lcd.close)

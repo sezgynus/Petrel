@@ -1,7 +1,7 @@
 import unittest
 from collections import deque
 
-from t5uic1_driver import T5UIC1Display, T5UIC1ProtocolError
+from petrel.hardware.dwin.driver import T5UIC1Display, T5UIC1ProtocolError
 
 
 class Port:
@@ -54,18 +54,18 @@ class T5UIC1DriverPackets(unittest.TestCase):
     def test_liveness_probe_never_sleeps_for_missing_response(self):
         from unittest.mock import patch
         lcd = driver()
-        with patch('t5uic1_driver.time.sleep') as sleep:
-            with patch('t5uic1_driver.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.driver.time.sleep') as sleep:
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10):
                 lcd.begin_liveness_probe(timeout=.5)
                 self.assertIsNone(lcd.poll_liveness_probe())
             self.assertEqual(lcd.serial.frames[-1], bytes.fromhex(
                 'AA 00 CC 33 C3 3C'))
             lcd.serial.chunks.append(bytes.fromhex('AA 00 4F 4B CC 33 C3 3C'))
-            with patch('t5uic1_driver.time.monotonic', return_value=10.1):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10.1):
                 self.assertTrue(lcd.poll_liveness_probe())
-            with patch('t5uic1_driver.time.monotonic', return_value=20):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=20):
                 lcd.begin_liveness_probe(timeout=.5)
-            with patch('t5uic1_driver.time.monotonic', return_value=20.6):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=20.6):
                 self.assertFalse(lcd.poll_liveness_probe())
             self.assertTrue(all(call.args == (.001,) for call in sleep.call_args_list))
 
@@ -201,7 +201,7 @@ class T5UIC1DriverPackets(unittest.TestCase):
         )
 
     def test_async_buzzer_uses_the_same_flash_address_as_legacy_record(self):
-        from buzzer_control import ADDRESS, Settings
+        from petrel.features.buzzer.control import ADDRESS, Settings
         lcd = driver()
         self.assertEqual(lcd.BUZZER_SETTINGS_ADDRESS, ADDRESS)
         value = Settings(True, 70, 4, 1).encode()
@@ -211,8 +211,8 @@ class T5UIC1DriverPackets(unittest.TestCase):
         self.assertFalse(future.done())
 
     def test_buzzer_flash_uses_display_sized_single_write_and_read(self):
-        from buzzer_control import ADDRESS, RECORD_SIZE, Settings
-        import display_settings
+        from petrel.features.buzzer.control import ADDRESS, RECORD_SIZE, Settings
+        import petrel.features.display_settings.settings as display_settings
         self.assertEqual(RECORD_SIZE, display_settings.RECORD_SIZE)
         lcd = driver()
         data = Settings(enabled=False, volume=90, click=5, encoder=3).encode()
@@ -239,8 +239,8 @@ class T5UIC1DriverPackets(unittest.TestCase):
         from unittest.mock import patch
         lcd = driver()
         task = lcd.begin_flash_read(0x0100, 16)
-        with patch('t5uic1_driver.time.sleep') as sleeper, \
-                patch('t5uic1_driver.time.monotonic', return_value=10.0):
+        with patch('petrel.hardware.dwin.driver.time.sleep') as sleeper, \
+                patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10.0):
             self.assertTrue(lcd.poll_flash_tasks())
             self.assertTrue(lcd.poll_flash_tasks())
             self.assertFalse(task.done())
@@ -279,8 +279,8 @@ class T5UIC1DriverPackets(unittest.TestCase):
         1.25s ACK budget); a later unrelated settings write must also work.
         """
         from unittest.mock import patch
-        from display_settings import encode
-        from buzzer_control import Settings, ADDRESS
+        from petrel.features.display_settings.settings import encode
+        from petrel.features.buzzer.control import Settings, ADDRESS
         lcd = driver()
         values = (
             (0x0100, encode(60, 15, 20), 0.1),
@@ -291,15 +291,15 @@ class T5UIC1DriverPackets(unittest.TestCase):
         for index, (address, record, latency) in enumerate(values):
             start = index * 10.
             result = lcd.begin_flash_write_verified(address, record)
-            with patch('t5uic1_driver.time.monotonic', return_value=start):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start):
                 lcd.poll_flash_tasks()
             self.assertEqual(lcd.serial.frames[-1][1], 0x31)
-            with patch('t5uic1_driver.time.monotonic',
+            with patch('petrel.hardware.dwin.driver.time.monotonic',
                        return_value=start + latency - 0.01):
                 self.assertTrue(lcd.poll_flash_tasks())
             self.assertFalse(result.done())
             lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + T5UIC1Display.TAIL)
-            with patch('t5uic1_driver.time.monotonic',
+            with patch('petrel.hardware.dwin.driver.time.monotonic',
                        return_value=start + latency):
                 self.assertTrue(lcd.poll_flash_tasks())
                 lcd.poll_flash_tasks()
@@ -307,7 +307,7 @@ class T5UIC1DriverPackets(unittest.TestCase):
             lcd.serial.chunks.append(b'\xaa\x32\xa5' + address.to_bytes(2, 'big')
                                      + bytes((len(record),)) + record
                                      + T5UIC1Display.TAIL)
-            with patch('t5uic1_driver.time.monotonic',
+            with patch('petrel.hardware.dwin.driver.time.monotonic',
                        return_value=start + latency + .1):
                 lcd.poll_flash_tasks()
             self.assertEqual(result.result(), record)
@@ -318,31 +318,31 @@ class T5UIC1DriverPackets(unittest.TestCase):
     def test_second_flash_save_is_verified_even_if_write_ack_is_lost(self):
         """The panel stored the 2nd value; only its 0x31 ACK was lost."""
         from unittest.mock import patch
-        from display_settings import encode
+        from petrel.features.display_settings.settings import encode
         lcd = driver()
         first = encode(71, 15, 20)
         second = encode(72, 16, 21)
         for i, record in enumerate((first, second)):
             start = float(10 * (i + 1))
             future = lcd.begin_flash_write_verified(0x0100, record)
-            with patch('t5uic1_driver.time.monotonic', return_value=start):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start):
                 lcd.poll_flash_tasks()
             if i == 0:
                 lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
-                with patch('t5uic1_driver.time.monotonic', return_value=start + .3):
+                with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start + .3):
                     lcd.poll_flash_tasks()
                     lcd.poll_flash_tasks()
             else:
                 # Firmware programmed Flash, but its ACK got dropped.
-                with patch('t5uic1_driver.time.monotonic', return_value=start + 3.1):
+                with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start + 3.1):
                     self.assertTrue(lcd.poll_flash_tasks())
                 self.assertFalse(future.done())
-                with patch('t5uic1_driver.time.monotonic', return_value=start + 3.3):
+                with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start + 3.3):
                     lcd.poll_flash_tasks()
                 self.assertEqual(lcd.serial.frames[-1][1], 0x32)
             lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x10'
                                      + record + lcd.TAIL)
-            with patch('t5uic1_driver.time.monotonic', return_value=start + 3.5):
+            with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=start + 3.5):
                 lcd.poll_flash_tasks()
             self.assertEqual(future.result(), record)
             self.assertFalse(lcd.flash_busy())
@@ -355,23 +355,23 @@ class T5UIC1DriverPackets(unittest.TestCase):
         lcd = driver()
         record = b'first-time-value'
         job = lcd.begin_flash_write_verified(0x0100, record)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.0):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.0):
             lcd.poll_flash_tasks()
         lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.1):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.1):
             lcd.poll_flash_tasks()
             lcd.poll_flash_tasks()
         self.assertEqual(lcd.serial.frames[-1][1], 0x32)
         # The panel contains the value; its first readback response was lost.
-        with patch('t5uic1_driver.time.monotonic', return_value=4.3):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=4.3):
             lcd.poll_flash_tasks()
         self.assertFalse(job.done())
-        with patch('t5uic1_driver.time.monotonic', return_value=4.5):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=4.5):
             lcd.poll_flash_tasks()
         self.assertEqual(lcd.serial.frames[-1][1], 0x32)
         lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00'
                                  + bytes((len(record),)) + record + lcd.TAIL)
-        with patch('t5uic1_driver.time.monotonic', return_value=4.7):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=4.7):
             lcd.poll_flash_tasks()
         self.assertEqual(job.result(), record)
         self.assertEqual([p[1] for p in lcd.serial.frames], [0x31, 0x32, 0x32])
@@ -381,36 +381,36 @@ class T5UIC1DriverPackets(unittest.TestCase):
         lcd = driver()
         target = b'NEW!'
         job = lcd.begin_flash_write_verified(0x0100, target)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.):
             lcd.poll_flash_tasks()
         lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + lcd.TAIL)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.1):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.1):
             lcd.poll_flash_tasks()
             lcd.poll_flash_tasks()
         lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x04OLD!'
                                  + lcd.TAIL)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.2):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.2):
             lcd.poll_flash_tasks()
         self.assertFalse(job.done())
         self.assertEqual(lcd._flash_job['verification_retries'], 1)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.6):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.6):
             lcd.poll_flash_tasks()
         lcd.serial.chunks.append(b'\xaa\x32\xa5\x01\x00\x04NEW!'
                                  + lcd.TAIL)
-        with patch('t5uic1_driver.time.monotonic', return_value=1.7):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=1.7):
             lcd.poll_flash_tasks()
         self.assertEqual(job.result(), target)
         # Never treat a missing ACK alone as proof of persistence.
         unconfirmed = lcd.begin_flash_write_verified(0x0100, b'BAD!')
-        with patch('t5uic1_driver.time.monotonic', return_value=10.):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10.):
             lcd.poll_flash_tasks()
         for i in range(12):
-            with patch('t5uic1_driver.time.monotonic',
+            with patch('petrel.hardware.dwin.driver.time.monotonic',
                        return_value=14.0 + i * 5):
                 lcd.poll_flash_tasks()  # Missing ACK / missing readback
             if unconfirmed.done():
                 break
-            with patch('t5uic1_driver.time.monotonic',
+            with patch('petrel.hardware.dwin.driver.time.monotonic',
                        return_value=14.5 + i * 5):
                 lcd.poll_flash_tasks()  # Send verification read
         self.assertTrue(unconfirmed.done(), repr(lcd._flash_job))
@@ -424,9 +424,9 @@ class T5UIC1DriverPackets(unittest.TestCase):
         # fails the batch, unlike verified writes with a lost write ACK.
         first = lcd.begin_flash_read(0x0100, 4)
         second = lcd.begin_flash_read(0x0200, 2)
-        with patch('t5uic1_driver.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10):
             lcd.poll_flash_tasks()
-        with patch('t5uic1_driver.time.monotonic', return_value=20):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=20):
             lcd.poll_flash_tasks()
         with self.assertRaises(TimeoutError):
             first.result()
@@ -439,7 +439,7 @@ class T5UIC1DriverPackets(unittest.TestCase):
         # No queued transaction from the failed batch may silently restart.
         retried = lcd.begin_flash_write_verified(0x0100, b'ABCD')
         self.assertFalse(retried.done())
-        with patch('t5uic1_driver.time.monotonic', return_value=21):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=21):
             self.assertTrue(lcd.poll_flash_tasks())
         self.assertEqual(lcd.serial.frames[-1][1], 0x31)
         lcd.serial.chunks.append(b'\xaa\x31\xa5OK' + T5UIC1Display.TAIL)
@@ -577,10 +577,10 @@ class ReceiveAgeAndPriorityTests(unittest.TestCase):
     def test_old_ack_and_aux_data_expire(self):
         from unittest.mock import patch
         lcd = driver()
-        with patch('t5uic1_driver.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=10):
             lcd.serial.chunks.append(b'\xAA\x00OK' + lcd.TAIL + b'\xAA\x3A\x02xy' + lcd.TAIL)
             lcd._read_available()
-        with patch('t5uic1_driver.time.monotonic', return_value=20):
+        with patch('petrel.hardware.dwin.driver.time.monotonic', return_value=20):
             self.assertIsNone(lcd._take_response(0x00))
             self.assertIsNone(lcd.poll_aux_data())
 

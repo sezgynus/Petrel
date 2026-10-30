@@ -3,8 +3,8 @@ from concurrent.futures import Future
 from unittest.mock import Mock, patch
 import unittest
 from PIL import Image
-from thumbnail_preview import image_jpeg, load_thumbnail, _protect_dark_foreground, MIN_FOREGROUND_LUMA
-from dwin_emulator.assets import panel_colors
+from petrel.features.files.thumbnail_preview import image_jpeg, load_thumbnail, _protect_dark_foreground, MIN_FOREGROUND_LUMA
+from petrel.emulator.assets import panel_colors
 from test_capabilities import display, snapshot
 import test_files
 
@@ -66,8 +66,8 @@ class ThumbnailTests(unittest.TestCase):
     def test_filtered_sram_preview_preserves_surface_and_lifted_black_details(self):
         from PIL import ImageDraw
         from test_t5uic1_driver import driver
-        from dwin_emulator.assets import PanelAssets, rgb565
-        from dwin_emulator.framebuffer import Framebuffer
+        from petrel.emulator.assets import PanelAssets, rgb565
+        from petrel.emulator.framebuffer import Framebuffer
         source = Image.new('RGBA',(128,128),(0,0,0,0))
         ImageDraw.Draw(source).rectangle((40,40,87,87),fill=(0,0,0,255))
         stream=BytesIO(); source.save(stream,'PNG')

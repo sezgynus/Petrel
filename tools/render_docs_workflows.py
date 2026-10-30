@@ -8,7 +8,7 @@ from unittest.mock import patch
 from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.render_docs_screenshots import ROOT, canvas, sample, finish, workflow_view
-from dwin_emulator.presentation import with_frame
+from petrel.emulator.presentation import with_frame
 
 
 def save(name, frames, durations):

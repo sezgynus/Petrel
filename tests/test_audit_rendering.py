@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID, ICON_PROGRESS_FILL
+from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_PROGRESS_FILL
 import unittest
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
@@ -75,7 +75,7 @@ class AuditRenderingTests(unittest.TestCase):
         self.assertEqual(result.lcd.MYSERIAL1.frames[-1][11:-4], b'  0.00')
 
     def test_thermal_editor_draw_is_flushed_by_input_owner(self):
-        from ui_events import InputEvent
+        from petrel.ui.events import InputEvent
         from unittest.mock import Mock
         result = self.screen()
         result._closed = False
@@ -180,7 +180,7 @@ class AuditRenderingTests(unittest.TestCase):
 
 
 def test_user_visible_labels_do_not_depend_on_frame_copy_assets():
-    source = Path(__file__).resolve().parents[1].joinpath('petrel_ui.py').read_text()
+    source = Path(__file__).resolve().parents[1].joinpath('petrel/application/display.py').read_text()
     legacy_text_fragments = (
         'Frame_TitleCopy(',
         'copy_cache(1, 226, 179, 256, 189',  # Back

@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import unittest
 from test_maintenance_controller import printer, Worker
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, AUTOMATIC, _add
 from petrel.features.maintenance.domains.switches import MaintenanceSwitchController
 

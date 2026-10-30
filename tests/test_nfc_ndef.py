@@ -1,7 +1,7 @@
 """NDEF read-only tag protocol contracts; no NFC hardware or emulator."""
 import unittest
 
-from nfc_ndef import AID_V2, CC, Type4UriTag, ndef_uri_file
+from petrel.features.nfc.ndef import AID_V2, CC, Type4UriTag, ndef_uri_file
 
 
 def select(payload, by_name=False):

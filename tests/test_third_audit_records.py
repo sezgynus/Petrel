@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import tempfile
 import unittest
 
-from background_reads import ReadWorker, MoonrakerError
+from petrel.printer.background_reads import ReadWorker, MoonrakerError
 import petrel.features.maintenance.records.book as records
 from petrel.features.maintenance.records.book import MaintenanceBook, read_json
 from test_maintenance_ui_services import DeferredWorker
@@ -87,7 +87,7 @@ class ThirdAuditRecords(unittest.TestCase):
         def write(name, value):
             writes.append((name, current_thread()))
             return original(name, value)
-        with patch('background_reads.monotonic', side_effect=lambda: clock[0]), patch(
+        with patch('petrel.printer.background_reads.monotonic', side_effect=lambda: clock[0]), patch(
                 'petrel.features.maintenance.records.book.write_json', side_effect=write):
             first = worker.submit(block)
             self.assertTrue(entered.wait(1))

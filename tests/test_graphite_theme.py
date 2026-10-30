@@ -1,18 +1,18 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 import unittest
 from unittest.mock import Mock
 from PIL import Image, ImageChops
 from test_regressions import ui
 from test_capabilities import display, snapshot
 from test_t5uic1_driver import driver
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
-from icon_library import metadata, parse_metadata, MAX_BLOCKS, METADATA_ADDRESS, METADATA_SIZE
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.artwork.icon_library import metadata, parse_metadata, MAX_BLOCKS, METADATA_ADDRESS, METADATA_SIZE
 
 
 class GraphiteContracts(unittest.TestCase):
     def test_petrel_wordmark_keeps_empty_matte_filtered_on_any_background(self):
-        from dwin_emulator.assets import rgb565
+        from petrel.emulator.assets import rgb565
         assets = PanelAssets()
         icon = assets.icon(ICON_LIBRARY_ID, 0)
         self.assertEqual(icon.size, (130, 32))
@@ -96,8 +96,8 @@ class GraphiteContracts(unittest.TestCase):
         self.assertEqual(int.from_bytes(text[5:7], 'big'), 0x063B)
 
     def test_animation_uses_existing_library_during_migration_and_waits_for_empty_directory(self):
-        from t5uic1_driver import T5UIC1Display
-        from icon_library import MAGIC
+        from petrel.hardware.dwin.driver import T5UIC1Display
+        from petrel.artwork.icon_library import MAGIC
         import zlib
         lcd = T5UIC1Display.__new__(T5UIC1Display)
         lcd.read_flash = Mock()

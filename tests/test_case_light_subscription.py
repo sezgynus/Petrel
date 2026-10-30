@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from concurrent.futures import Future
-from moonraker_subscription import MoonrakerSubscription
+from petrel.moonraker.subscription import MoonrakerSubscription
 
 class CaseLightSubscriptionTests(unittest.TestCase):
     def make(self):

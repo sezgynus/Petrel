@@ -1,4 +1,4 @@
-from lcd_resources import ICON_SPOOL_EMPTY
+from petrel.artwork.resources import ICON_SPOOL_EMPTY
 from read_fixture import ImmediateReadWorker
 import copy
 from concurrent.futures import Future
@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from printer_capabilities import PrinterCapabilities
-from printer_state import PrinterState
+from petrel.printer.capabilities import PrinterCapabilities
+from petrel.printer.state import PrinterState
 from test_regressions import backend, ui
 
 

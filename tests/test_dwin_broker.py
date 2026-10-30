@@ -7,9 +7,9 @@ from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
-from dwin_broker import Broker, FrameQueue, QUEUE_LIMIT, aux_frames, display_frame
-from dwin_protocol import HEADER, TAIL
-from dwin_transport import BrokerSerial, open_display_serial
+from petrel.hardware.dwin.broker import Broker, FrameQueue, QUEUE_LIMIT, aux_frames, display_frame
+from petrel.hardware.dwin.protocol import HEADER, TAIL
+from petrel.hardware.dwin.transport import BrokerSerial, open_display_serial
 
 
 class BrokerContracts(unittest.TestCase):
@@ -62,7 +62,7 @@ class BrokerContracts(unittest.TestCase):
         broker.display_tx.append(write)
         broker.display_tx.append(following)
         broker.uart.write.side_effect = lambda data: len(data)
-        with patch('dwin_broker.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=10):
             broker._transmit()
         self.assertIsNone(broker.probe_deadline)
         self.assertEqual(broker.flash_until, 13)
@@ -70,7 +70,7 @@ class BrokerContracts(unittest.TestCase):
         broker.selector.select.return_value = []
         broker.auxiliary = None
         broker._disconnect = Mock()
-        with patch('dwin_broker.time.monotonic', return_value=11.8):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=11.8):
             broker.step(0)
             broker._transmit()
             broker._disconnect.assert_not_called()
@@ -89,12 +89,12 @@ class BrokerContracts(unittest.TestCase):
         broker.display_tx.append(write)
         broker.display_tx.append(read)
         broker.uart.write.side_effect = lambda data: len(data)
-        with patch('dwin_broker.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=10):
             broker._transmit()
-        with patch('dwin_broker.time.monotonic', return_value=12.99):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=12.99):
             broker._transmit()
             self.assertEqual(broker.uart.write.call_count, 1)
-        with patch('dwin_broker.time.monotonic', return_value=13.01):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=13.01):
             broker._transmit()
         self.assertEqual([c.args[0] for c in broker.uart.write.call_args_list], [write, read])
 
@@ -103,7 +103,7 @@ class BrokerContracts(unittest.TestCase):
         write = HEADER + b'\x31\xa5\x04\x80test' + TAIL
         broker.display_tx.append(write)
         broker.uart.write.side_effect = [2, len(write)-2]
-        with patch('dwin_broker.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=10):
             broker._transmit()
             self.assertFalse(broker._flash_busy())
             broker._transmit()
@@ -141,12 +141,12 @@ class BrokerContracts(unittest.TestCase):
         broker.display_tx.append(b'D')
         broker.aux_tx.append(b'A')
         broker.uart.write.return_value = 1
-        with patch('dwin_broker.time.monotonic', return_value=9):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=9):
             broker._transmit()
             broker._transmit()
         self.assertEqual(broker.uart.write.call_count, 1)
         self.assertEqual(broker.aux_tx.size, 1)
-        with patch('dwin_broker.time.monotonic', return_value=10):
+        with patch('petrel.hardware.dwin.broker.time.monotonic', return_value=10):
             broker._transmit()
         self.assertEqual([call.args[0] for call in broker.uart.write.call_args_list],
                          [b'D', b'A'])
@@ -210,7 +210,7 @@ class BrokerSerialIntegration(unittest.TestCase):
             broker = Broker(os.ttyname(slave), path, auxiliary)
             client = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
             try:
-                with patch('dwin_broker.serial.Serial', Serial, create=True):
+                with patch('petrel.hardware.dwin.broker.serial.Serial', Serial, create=True):
                     def until(predicate):
                         deadline = time.monotonic() + 2
                         while time.monotonic() < deadline:
@@ -262,7 +262,7 @@ class SocketTransportContracts(unittest.TestCase):
         server.send(b'DWIN1')
         endpoint = Mock(wraps=client)
         endpoint.connect = Mock()
-        with patch('dwin_transport.socket.socket', return_value=endpoint):
+        with patch('petrel.hardware.dwin.transport.socket.socket', return_value=endpoint):
             transport = BrokerSerial('/unused', timeout=0)
         self.addCleanup(transport.close)
         frame = HEADER + b'\x00' + TAIL
@@ -283,7 +283,7 @@ class SocketTransportContracts(unittest.TestCase):
         server.send(b'DWIN1')
         endpoint = Mock(wraps=client)
         endpoint.connect = Mock()
-        with patch('dwin_transport.socket.socket', return_value=endpoint):
+        with patch('petrel.hardware.dwin.transport.socket.socket', return_value=endpoint):
             transport = BrokerSerial('/unused', timeout=.05)
         self.addCleanup(transport.close)
         reply = HEADER + b'\x00OK' + TAIL

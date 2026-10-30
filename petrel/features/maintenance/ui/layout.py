@@ -4,8 +4,8 @@ No discovery, disk or network operations. Reuses the master menu font, icons,
 header and thin cursor. Encoder focus changes paint only cursor strips.
 """
 import textwrap
-from graphite_theme import show_icon, draw_scrollbar
-from lcd_resources import ICON_LIBRARY_ID, ICON_MAINTENANCE_CARE
+from petrel.ui.theme import show_icon, draw_scrollbar
+from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_MAINTENANCE_CARE
 from petrel.features.maintenance.ui.icons import icon_for
 
 BG=0x2125

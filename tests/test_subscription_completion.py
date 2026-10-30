@@ -3,8 +3,8 @@ import unittest
 from threading import Event
 from unittest.mock import Mock, patch
 
-from moonraker_subscription import MoonrakerSubscription
-from moonraker_client import MoonrakerError
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.moonraker.client import MoonrakerError
 
 class CompletionTransportTests(unittest.TestCase):
     def make(self):
@@ -102,7 +102,7 @@ class PendingRequestBudgetTests(unittest.TestCase):
         packet = json.loads(client._socket.send.call_args.args[0])
         self.assertEqual(packet['method'], 'printer.print.cancel')
         deadline = next(iter(client._pending_deadlines.values()))
-        with patch('moonraker_subscription.time.monotonic',
+        with patch('petrel.moonraker.subscription.time.monotonic',
                    return_value=deadline - 1):
             client._expire_requests()
         self.assertFalse(future.done())
@@ -116,7 +116,7 @@ class PendingRequestBudgetTests(unittest.TestCase):
         future = client.request('printer.print.cancel')
         client._drain_outbound()
         deadline = next(iter(client._pending_deadlines.values()))
-        with patch('moonraker_subscription.time.monotonic', return_value=deadline + 1):
+        with patch('petrel.moonraker.subscription.time.monotonic', return_value=deadline + 1):
             client._expire_requests()
         self.assertIsInstance(future.exception(), MoonrakerError)
         self.assertFalse(client._pending_requests)
@@ -139,7 +139,7 @@ class PendingRequestBudgetTests(unittest.TestCase):
         future = client.request('printer.objects.query')
         client._drain_outbound()
         request_id, deadline = next(iter(client._pending_deadlines.items()))
-        with patch('moonraker_subscription.time.monotonic', return_value=deadline + 1):
+        with patch('petrel.moonraker.subscription.time.monotonic', return_value=deadline + 1):
             client._drain_outbound()
         with self.assertRaisesRegex(MoonrakerError, 'timed out'):
             future.result()

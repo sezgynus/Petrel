@@ -3,7 +3,7 @@ from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock, patch
 
-from mmu_control import MMUState
+from petrel.features.mmu.state import MMUState
 from test_capabilities import snapshot, printer
 
 
@@ -760,7 +760,7 @@ class MMUControlTests(unittest.TestCase):
             if case == 'error': s.pending.set_exception(RuntimeError('failed'))
             elif case == 'disconnect': data['epoch'] += 1
             elif case == 'gcode': p.subscription.responses_since.return_value = (1, ('!! no filament',))
-            with patch('mmu_control.time.monotonic', return_value=s.started + (301 if case == 'timeout' else 1)):
+            with patch('petrel.features.mmu.state.time.monotonic', return_value=s.started + (301 if case == 'timeout' else 1)):
                 s.update()
             self.assertEqual(s.phase, 'error')
             self.assertEqual(p.subscription.request.call_count, 1)

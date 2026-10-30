@@ -9,7 +9,7 @@ from pathlib import Path
 from threading import Lock
 from time import monotonic, time
 import hashlib
-from configuration_identity import stable_digest
+from petrel.configuration_identity import stable_digest
 import json
 import math
 import re

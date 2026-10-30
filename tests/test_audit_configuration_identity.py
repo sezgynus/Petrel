@@ -2,8 +2,8 @@ import unittest
 import tempfile
 from pathlib import Path
 from dataclasses import replace
-from printer_state import freeze
-from configuration_identity import stable_digest, legacy_digest
+from petrel.printer.state import freeze
+from petrel.configuration_identity import stable_digest, legacy_digest
 from petrel.features.maintenance.assessment.model import Evidence, Measurement
 from petrel.features.maintenance.assessment.store import AssessmentStore
 

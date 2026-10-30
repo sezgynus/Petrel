@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from test_capabilities import snapshot, display
 from test_regressions import ui
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 
 class UARTReconnectTests(unittest.TestCase):

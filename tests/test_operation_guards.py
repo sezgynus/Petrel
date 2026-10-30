@@ -1,7 +1,7 @@
 from concurrent.futures import Future
 import unittest
-from moonraker_client import MoonrakerError
-from printerInterface import PrinterData
+from petrel.moonraker.client import MoonrakerError
+from petrel.printer.interface import PrinterData
 from test_capabilities import printer, snapshot
 import test_jog_recovery as jog_fixtures
 from test_moonraker_client import response

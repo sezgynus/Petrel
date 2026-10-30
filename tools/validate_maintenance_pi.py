@@ -98,7 +98,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
 
-    from printerInterface import PrinterData
+    from petrel.printer.interface import PrinterData
 
     # No modification of the user's persistent Petrel preset files.
     with tempfile.TemporaryDirectory(prefix='petrel-readonly-') as scratch:

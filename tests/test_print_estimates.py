@@ -3,7 +3,7 @@ import time
 import unittest
 from concurrent.futures import Future
 from unittest.mock import Mock
-from print_estimates import progress, estimates, finish_text
+from petrel.features.printing.estimates import progress, estimates, finish_text
 from test_capabilities import printer, snapshot
 import test_print_focus
 

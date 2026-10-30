@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
 import test_remote_display as fixture
-from dwin_emulator.remote import RemoteDisplayServer
+from petrel.emulator.remote import RemoteDisplayServer
 from test_t5uic1_driver import driver
 
 

@@ -1,8 +1,8 @@
 """Related NFC read, spool-match and confirmed-share cues on existing events."""
 from unittest import TestCase
 from unittest.mock import Mock
-from buzzer_melodies import get_melody
-from ui_events import InputEvent
+from petrel.features.buzzer.melodies import get_melody
+from petrel.ui.events import InputEvent
 
 
 class NFCSoundFamilyTests(TestCase):
@@ -21,7 +21,7 @@ class NFCSoundFamilyTests(TestCase):
     def test_spool_match_sound_follows_existing_consumed_lookup_result(self):
         from test_nfc_gate_assignment import GateUITests
         from test_nfc_spool_tags import spool
-        from spoolman_tags import describe
+        from petrel.features.spoolman.tags import describe
         view,_ = GateUITests().make()
         view._event_buzzer_melody = Mock()
         view._nfc_spool_router.take_result.side_effect = [('AA:BB',describe(spool(17))),None]
@@ -75,12 +75,12 @@ class NFCSoundFamilyTests(TestCase):
         from concurrent.futures import Future
         from pathlib import Path
         from tempfile import TemporaryDirectory
-        from nfc_core import NFCCore
-        from nfc_spool_router import NFCSpoolRouter
+        from petrel.features.nfc.core import NFCCore
+        from petrel.features.nfc.spool_router import NFCSpoolRouter
         from test_nfc_core import backend
         from test_nfc_gate_assignment import GateUITests
         from test_nfc_spool_tags import spool
-        from spoolman_tags import describe
+        from petrel.features.spoolman.tags import describe
         for outcome, expected in ((describe(spool(17)), 'NFC_SPOOL_MATCH'),
                                   (None, 'NFC_TAG_READ'),
                                   (OSError('offline'), 'NFC_TAG_READ')):

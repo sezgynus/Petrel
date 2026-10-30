@@ -86,7 +86,7 @@ class ProbeWorkflowTests(unittest.TestCase):
         # Simulates Moonraker's real configfile.settings snapshot,
         # not a fixture-specific servo name embedded in Petrel.
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         self.raw['settings']['probe'] = {
             'pin':'PB1','activate_gcode':activate,'deactivate_gcode':deactivate}
         self.p.state = PrinterState.from_snapshot(self.raw)
@@ -95,7 +95,7 @@ class ProbeWorkflowTests(unittest.TestCase):
 
     def set_p04_low_z(self, z=2.964, z_max=200., *, kinematics='cartesian'):
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         self.raw['settings']['printer'] = {'kinematics':kinematics}
         self.p.state = PrinterState.from_snapshot(self.raw)
         self.p.maintenance.snapshot = replace(self.p.maintenance.snapshot,
@@ -143,7 +143,7 @@ class ProbeWorkflowTests(unittest.TestCase):
 
     def prepare_unhomed_motion(self):
         from dataclasses import replace
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         from test_maintenance_motion import state_and_status
         raw,values=state_and_status()
         self.raw['settings'].update(raw.settings)

@@ -12,7 +12,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.measure_petrel_resources import cpu_ticks, parse_smaps
-from ui_memory_profile import write_report
+from petrel.diagnostics.memory_profile import write_report
 
 
 def process_identity(pid):

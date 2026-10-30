@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-import printerInterface as backend
+import petrel.printer.interface as backend
 
 
 class PreheatFanTests(unittest.TestCase):

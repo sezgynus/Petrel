@@ -3,7 +3,7 @@ from threading import Event
 import unittest
 from unittest.mock import Mock
 from urllib.error import HTTPError, URLError
-from moonraker_client import MoonrakerClient, MoonrakerError
+from petrel.moonraker.client import MoonrakerClient, MoonrakerError
 
 
 def response(body):

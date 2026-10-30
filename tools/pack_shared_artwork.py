@@ -212,14 +212,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-directory', type=Path, default=ROOT/'assets/shared-artwork')
     parser.add_argument('--output', type=Path, default=ROOT/'assets/petrel_shared.jpg')
-    parser.add_argument('--layout', type=Path, default=ROOT/'shared_artwork_layout.py')
+    parser.add_argument('--layout', type=Path, default=ROOT/'petrel/artwork/shared_layout.py')
     parser.add_argument('--quality', type=int, default=100)
     args = parser.parse_args()
     if args.output.resolve() == args.layout.resolve():
         parser.error('JPEG and layout outputs must be different paths')
     try:
         data, source, boxes = build(args.source_directory, args.quality)
-        if args.layout.resolve() == (ROOT/'shared_artwork_layout.py').resolve() and 'QR' not in boxes:
+        if args.layout.resolve() == (ROOT/'petrel/artwork/shared_layout.py').resolve() and 'QR' not in boxes:
             raise ValueError('Info requires QR_BOX; keep qr.jpg in the shared source folder')
         publish({args.output: data, args.layout: source})
     except (OSError, ValueError) as error:

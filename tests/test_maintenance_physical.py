@@ -12,7 +12,7 @@ from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,
 from petrel.features.maintenance.domains.pulse.controller import MaintenancePulseController
 from petrel.features.maintenance.discovery.profiles import approved_integrations
 from petrel.features.maintenance.discovery.discovery import discover
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 
 
 class Worker:
@@ -57,7 +57,7 @@ def setup():
                           'virtual_sdcard': {'is_active': False},
                           'pause_resume': {'is_paused': False}}}
     # Real PrinterState is immutable and config ID must match snapshot.
-    from printer_state import PrinterState
+    from petrel.printer.state import PrinterState
     state = PrinterState.from_snapshot(current)
     snapshot = MaintenanceSnapshot(snapshot.epoch, snapshot.devices, 0,
                                    id(state.settings))

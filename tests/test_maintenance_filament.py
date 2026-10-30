@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch, Mock
 import test_maintenance_probe as fixture
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, _add, INFORMATION, USER
 from petrel.features.maintenance.domains.filament.controller import MaintenanceFilamentController, METHODS, filament_services
 from petrel.features.maintenance.domains.filament.info import read_fields

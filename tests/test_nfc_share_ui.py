@@ -1,12 +1,12 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 """NFC URI share UI: one Core-gated component and event-owned popup."""
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock
 
-from info_qr import PROJECT_URL, extra_info_rows
-from ui_events import InputEvent
-from ui_nfc_share import NFCURIShareComponent
+from petrel.features.info.qr import PROJECT_URL, extra_info_rows
+from petrel.ui.events import InputEvent
+from petrel.features.nfc.share_view import NFCURIShareComponent
 from test_capabilities import display, snapshot
 
 

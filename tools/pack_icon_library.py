@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 
 BLOCK_SIZE = 32768
 DIRECTORY_SIZE = 4096
@@ -34,7 +34,7 @@ def entries(data):
 
 
 def pack(data):
-    from icon_library import pack_records
+    from petrel.artwork.icon_library import pack_records
     return pack_records([(index, int.from_bytes(entry[:2], 'big'),
                           int.from_bytes(entry[2:4], 'big'), payload)
                          for index, entry, old_offset, payload in entries(data)])
@@ -58,7 +58,7 @@ def main():
                         help='Picture Flash start slot (default: managed library)')
     args = parser.parse_args()
     if args.source.is_dir():
-        from icon_library import build_library
+        from petrel.artwork.icon_library import build_library
         data = build_library(args.source)
     else:
         data = pack(args.source.read_bytes())
