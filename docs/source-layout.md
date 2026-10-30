@@ -10,7 +10,7 @@ The source tree groups existing code by feature and responsibility. The organiza
 run.py
 petrel/
   application/           display.py, startup.py, input.py, tick.py
-  printer/               interface.py, models.py, state.py, capabilities.py
+  printer/               interface.py, models.py, telemetry.py, state.py, capabilities.py
   moonraker/             client.py, subscription.py
   hardware/              encoder.py, dwin/
   ui/                    dashboard.py, header.py, home.py, list_menu.py, selection.py
@@ -21,8 +21,8 @@ petrel/
     temperature/         printer.py, view.py, preset_store.py
     info/                printer.py, view.py, system.py, qr.py
     nfc/                 printer.py, core.py, backend.py, reader.py, *_view.py, ...
-    maintenance/         printer.py, discovery/, execution/, domains/, ...
-    mmu/                 state.py, view.py, filament_view.py
+    maintenance/         printer.py, discovery/, execution/, domains/, ui/{view,flow,screens,records}.py, ...
+    mmu/                 state.py, session.py, view.py, overview.py, editing.py, ...
     power/               printer.py, view.py, lifecycle.py
     buzzer/              control.py, pwm.py, ipc.py, view.py, ...
     leveling/            bed_mesh.py, probe_wizard.py, *_view.py, ...
@@ -57,6 +57,7 @@ The map highlights ownership; `...` omits supporting files, not a proposed futur
 | `application/input.py` | Existing encoder/button event handling, batching and screen dispatch |
 | `application/tick.py` | Existing UI tick, telemetry presentation and periodic update methods |
 | `printer/interface.py` | Compose `PrinterData`, own existing workers/sessions and coordinate telemetry and command transport |
+| `printer/telemetry.py` | Existing snapshot application, capability mirroring and homing observations |
 | `printer/models.py` | Existing position, editor/flag and material preset records; `interface.py` keeps their import bindings |
 | `ui/` | Shared display elements and menu/selection primitives used across features |
 | `features/<feature>/printer.py` | That feature's existing methods on `PrinterData`; no separate client, worker or state owner is introduced |
@@ -80,6 +81,28 @@ A feature may have several explicitly named views when its screens have distinct
 | `ui/` | Maintenance menus, views, navigation and assessment presentation |
 
 `features/maintenance/printer.py` holds the existing bridge methods on `PrinterData`; it does not take ownership from the current controllers or workers.
+
+## Organization scope checklist
+
+All source-organization responsibilities from the refactoring proposal have an implemented home:
+
+| Scope | Implemented location |
+|---|---|
+| Feature packages and shared boundaries | `application/`, `ui/`, `printer/`, `moonraker/`, `hardware/`, `artwork/`, `features/` |
+| Display lifecycle, panel startup, input and ticks | `application/display.py`, `startup.py`, `input.py`, `tick.py` |
+| Printer composition, data records and feature access | `printer/interface.py`, `models.py`, `telemetry.py`, `features/*/printer.py` |
+| MMU immutable models versus guarded operations | `features/mmu/state.py`, `session.py` |
+| MMU menus, overview and edit handling | `features/mmu/view.py`, `overview.py`, `editing.py` |
+| Maintenance capability/execution/domain/assessment/record/UI/diagnostic groups | `features/maintenance/{discovery,execution,domains,assessment,records,ui,diagnostics}/` |
+| Maintenance entry point, workflow, screens and record presentation | `features/maintenance/ui/view.py`, `flow.py`, `screens.py`, `records.py` |
+| Heater controller versus cross-domain physical routing | `features/maintenance/domains/thermal/controller.py`, `execution/physical_router.py` |
+| Power shortcut, confirmation and return navigation together | `features/power/view.py` |
+| NFC sharing component and its popup lifecycle together | `features/nfc/share_view.py` |
+| Imports, asset roots and source-audit coverage after relocation | Updated application/tool/test imports, relative asset roots and recursive source scans |
+
+These are file ownership boundaries. They do not introduce separate operation owners, workers, services or state machines. `features/nfc/printer.py` is the printer-facing access module, following the same `printer.py` convention as other features. The NFC sharing mixin is composed into Info while sharing the existing display instance. Physical routing belongs under `execution/` because it selects among all physical domains, not only heaters.
+
+The state/session and view splits keep class attributes, method bodies, decorators and effective method resolution unchanged. Maintenance record presentation under `ui/records.py` remains separate from persistent storage under `records/`. No additional split of a single method or arbitrary line-count target is required by this scope.
 
 ## Editing and checking the layout
 

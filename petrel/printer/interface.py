@@ -298,11 +298,6 @@ class PrinterData(
         if trace is not None:
             trace.flush()
 
-    # BEGIN TEMPORARY MAINTENANCE TEST TRACE
-
-
-    # END TEMPORARY MAINTENANCE TEST TRACE
-
 
     def check_command_results(self):
         from queue import Empty

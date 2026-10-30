@@ -10,7 +10,7 @@ Kaynak ağacı mevcut kodu özellik ve sorumluluğa göre gruplar. Organizasyon 
 run.py
 petrel/
   application/           display.py, startup.py, input.py, tick.py
-  printer/               interface.py, models.py, state.py, capabilities.py
+  printer/               interface.py, models.py, telemetry.py, state.py, capabilities.py
   moonraker/             client.py, subscription.py
   hardware/              encoder.py, dwin/
   ui/                    dashboard.py, header.py, home.py, list_menu.py, selection.py
@@ -21,8 +21,8 @@ petrel/
     temperature/         printer.py, view.py, preset_store.py
     info/                printer.py, view.py, system.py, qr.py
     nfc/                 printer.py, core.py, backend.py, reader.py, *_view.py, ...
-    maintenance/         printer.py, discovery/, execution/, domains/, ...
-    mmu/                 state.py, view.py, filament_view.py
+    maintenance/         printer.py, discovery/, execution/, domains/, ui/{view,flow,screens,records}.py, ...
+    mmu/                 state.py, session.py, view.py, overview.py, editing.py, ...
     power/               printer.py, view.py, lifecycle.py
     buzzer/              control.py, pwm.py, ipc.py, view.py, ...
     leveling/            bed_mesh.py, probe_wizard.py, *_view.py, ...
@@ -57,6 +57,7 @@ Harita sahipliği gösterir; `...` yardımcı dosyaların kısaltmasıdır, gele
 | `application/input.py` | Mevcut enkoder/buton olayları, toplu adımlar ve ekran yönlendirmesi |
 | `application/tick.py` | Mevcut UI tick, telemetri sunumu ve periyodik güncelleme metotları |
 | `printer/interface.py` | `PrinterData` birleştirme, mevcut worker/session sahipliği, telemetri ve komut aktarımını koordine etme |
+| `printer/telemetry.py` | Mevcut snapshot uygulama, kabiliyet yansıtma ve homing gözlemleri |
 | `printer/models.py` | Mevcut konum, düzenleme/flag ve malzeme preset kayıtları; `interface.py` içe aktarma bağlarını korur |
 | `ui/` | Özellikler arasında kullanılan ortak ekran öğeleri ve menü/seçim araçları |
 | `features/<feature>/printer.py` | Özelliğin `PrinterData` üzerindeki mevcut metotları; ayrı istemci, worker veya durum sahibi oluşturmaz |
@@ -80,6 +81,28 @@ Ekran sorumlulukları farklı olduğunda bir özellik birden fazla açık isimli
 | `ui/` | Maintenance menüleri, görünümleri, gezinme ve değerlendirme sunumu |
 
 `features/maintenance/printer.py`, `PrinterData` üzerindeki mevcut köprü metotlarını tutar; mevcut controller veya worker sahipliğini devralmaz.
+
+## Organizasyon kapsamı kontrol listesi
+
+Refactoring önerisindeki bütün kaynak organizasyonu sorumluluklarının uygulanmış bir konumu vardır:
+
+| Kapsam | Uygulanan konum |
+|---|---|
+| Özellik paketleri ve ortak sınırlar | `application/`, `ui/`, `printer/`, `moonraker/`, `hardware/`, `artwork/`, `features/` |
+| Ekran yaşam döngüsü, panel başlangıcı, giriş ve tick | `application/display.py`, `startup.py`, `input.py`, `tick.py` |
+| Yazıcı birleştirme, veri kayıtları ve özellik erişimi | `printer/interface.py`, `models.py`, `telemetry.py`, `features/*/printer.py` |
+| MMU değişmez modelleri ve korumalı işlemleri | `features/mmu/state.py`, `session.py` |
+| MMU menüleri, genel görünüm ve düzenleme yönetimi | `features/mmu/view.py`, `overview.py`, `editing.py` |
+| Maintenance keşif/çalıştırma/alan/değerlendirme/kayıt/UI/diagnostik grupları | `features/maintenance/{discovery,execution,domains,assessment,records,ui,diagnostics}/` |
+| Maintenance giriş noktası, akış, ekranlar ve kayıt sunumu | `features/maintenance/ui/view.py`, `flow.py`, `screens.py`, `records.py` |
+| Isıtıcı controller'ı ve alanlar arası fiziksel yönlendirme | `features/maintenance/domains/thermal/controller.py`, `execution/physical_router.py` |
+| Güç kısayolu, onayı ve geri dönüş gezinmesinin birlikte tutulması | `features/power/view.py` |
+| NFC paylaşım bileşeni ve popup yaşam döngüsünün birlikte tutulması | `features/nfc/share_view.py` |
+| Taşıma sonrasında importlar, görsel kökleri ve kaynak taraması kapsamı | Güncellenen uygulama/araç/test importları, göreli görsel kökleri ve özyinelemeli kaynak taramaları |
+
+Bunlar dosya sorumluluğu sınırlarıdır. Ayrı işlem sahipleri, worker, servis veya durum makineleri oluşturmaz. `features/nfc/printer.py`, diğer özelliklerle aynı `printer.py` standardını kullanan yazıcı erişim modülüdür. NFC paylaşım mixin'i, mevcut ekran nesnesini paylaşarak Info'ya katılır. Fiziksel yönlendirme yalnız ısıtıcıları değil bütün fiziksel alanları seçtiği için `execution/` altındadır.
+
+Durum/oturum ve görünüm ayrımları sınıf alanlarını, metot gövdelerini, decorator'ları ve etkin metot çözümlemesini değiştirmez. `ui/records.py` altındaki maintenance kayıt sunumu, `records/` altındaki kalıcı depolamadan ayrı kalır. Tek bir metodu ayrıca parçalamak veya keyfî satır sayısı hedefine ulaşmak bu kapsamın gereği değildir.
 
 ## Yerleşimi düzenleme ve kontrol etme
 
