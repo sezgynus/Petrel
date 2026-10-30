@@ -1,3 +1,4 @@
+"""Own printer sessions, workers, telemetry and command transport."""
 from petrel.features.nfc.printer import NFCPrinterMixin
 from petrel.features.info.printer import InfoPrinterMixin
 from petrel.features.maintenance.printer import MaintenancePrinterMixin
@@ -46,7 +47,18 @@ from petrel.features.maintenance.domains.pulse.controller import MaintenancePuls
 from petrel.features.maintenance.domains.thermal.controller import MaintenanceHeaterController, MaintenancePhysicalRouter
 
 
-class PrinterData(NFCPrinterMixin, InfoPrinterMixin, MaintenancePrinterMixin, FilePrinterMixin, SpoolmanPrinterMixin, PrintingPrinterMixin, MotionPrinterMixin, TemperaturePrinterMixin, PowerPrinterMixin, CaseLightPrinterMixin):
+class PrinterData(
+    NFCPrinterMixin,
+    InfoPrinterMixin,
+    MaintenancePrinterMixin,
+    FilePrinterMixin,
+    SpoolmanPrinterMixin,
+    PrintingPrinterMixin,
+    MotionPrinterMixin,
+    TemperaturePrinterMixin,
+    PowerPrinterMixin,
+    CaseLightPrinterMixin,
+):
     Z_PROBE_OFFSET_RANGE_MIN = -20
     Z_PROBE_OFFSET_RANGE_MAX = 20
 

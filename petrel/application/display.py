@@ -1,3 +1,4 @@
+"""Compose feature views and own the display application lifecycle."""
 from petrel.features.buzzer.control import Settings as BuzzerSettings
 from petrel.application.startup import PanelStartupMixin
 from petrel.application.tick import DisplayTickMixin
@@ -50,8 +51,33 @@ def _MAX(lhs, rhs):
     else:
         return rhs
 
-
-class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, ListMenuMixin, DashboardMixin, HeaderMixin, InfoViewMixin, DisplaySettingsViewMixin, FileBrowserMixin, MotionViewMixin, TemperatureViewMixin, ProbeViewMixin, HomeViewMixin, RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, NFCSettingsViewMixin, MMUViewMixin, CaseLightMixin, MaintenanceViewMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(
+    PanelStartupMixin,
+    DisplayTickMixin,
+    DisplayInputMixin,
+    ListMenuMixin,
+    DashboardMixin,
+    HeaderMixin,
+    InfoViewMixin,
+    DisplaySettingsViewMixin,
+    FileBrowserMixin,
+    MotionViewMixin,
+    TemperatureViewMixin,
+    ProbeViewMixin,
+    HomeViewMixin,
+    RFIDViewMixin,
+    RecoveryViewMixin,
+    PrintFocusMixin,
+    PowerShortcutMixin,
+    BuzzerViewMixin,
+    NFCSettingsViewMixin,
+    MMUViewMixin,
+    CaseLightMixin,
+    MaintenanceViewMixin,
+    ScrewsTiltMixin,
+    BedMeshMixin,
+    FilePreviewMixin,
+):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -66,7 +92,6 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
     MENU_WIDE_CELLS = 7
     MENU_MOTION_CELLS = 9
     STAT_CHR_W = 10
-
 
     MSG_STOP_PRINT = "Stop Print"
     MSG_PAUSE_PRINT = "Pausing..."
@@ -148,7 +173,6 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
     ENCODER_FAST_MULTIPLIER = 250
     ENCODER_ACCEL_EXPONENT = 2.75
     _encoder_move_value = 1
-
 
     dwin_zoffset = 0.0
     last_zoffset = 0.0
@@ -380,7 +404,6 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
                 # The chosen interface is unavailable or port 8088 is occupied.
                 logging.exception('Remote Display unavailable; continuing with physical LCD')
 
-
     def _action(self, label, callback, expected=None, confirmation_timeout=300.0,
                 on_accept=None, silent=False):
         if getattr(self, '_action_feedback', None) is not None:
@@ -499,7 +522,6 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
             setattr(self, prefix + '_CASE_TOTAL', len(self._menus[menu]))
         return True
 
-
     def lcdExit(self):
         self._loop.close()
 
@@ -538,17 +560,10 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
                              10, 50, message)
         self.lcd.update()
 
-
-    # BEGIN TEMPORARY MAINTENANCE TEST TRACE
-
-    # END TEMPORARY MAINTENANCE TEST TRACE
-
-
     def HMI_StartFrame(self, with_update):
         self._present_print_state()
         if not self._print_error_visible:
             self.Draw_Status_Area(with_update)
-
 
     def _maintenance_panel_api(self,action,*args):
         lcd = self.lcd
@@ -577,29 +592,6 @@ class PetrelDisplay(PanelStartupMixin, DisplayTickMixin, DisplayInputMixin, List
             lcd.set_backlight(display_settings.raw_brightness(value) if action=='brightness' else value)
             return True
         raise ValueError('panel_action_unavailable')
-
-
-    # --------------------------------------------------------------#
-    # --------------------------------------------------------------#
-
-
-    # Display an SD item
-
-
-    # --------------------------------------------------------------#
-    # --------------------------------------------------------------#
-
-
-    # Redraw the first set of SD Files
-
-
-    # --------------------------------------------------------------#
-    # --------------------------------------------------------------#
-
-
-    # --------------------------------------------------------------#
-    # --------------------------------------------------------------#
-
 
     def HMI_AudioFeedback(self, success=True):
         if (success):
