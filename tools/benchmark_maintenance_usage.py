@@ -7,6 +7,7 @@ status/config objects already exist before tracing, as in normal state updates.
 """
 import argparse
 import gc
+import importlib
 import importlib.util
 import json
 from pathlib import Path
@@ -85,6 +86,12 @@ def main():
     if args.samples < 1: parser.error('samples must be positive')
     baseline = None
     if args.baseline_file:
+        # The pinned source keeps its historical imports; alias only inside
+        # this standalone benchmark process, without modifying that source.
+        sys.modules.setdefault('maintenance_motion', importlib.import_module(
+            'petrel.features.maintenance.domains.motion.program'))
+        sys.modules.setdefault('configuration_identity', importlib.import_module(
+            'configuration_identity'))
         spec = importlib.util.spec_from_file_location('petrel_usage_baseline', args.baseline_file)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
