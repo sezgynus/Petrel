@@ -1,3 +1,4 @@
+from test_regressions import startup
 from read_fixture import ImmediateReadWorker
 from dataclasses import FrozenInstanceError
 import importlib.util
@@ -382,9 +383,9 @@ class DisplayIntegrationTests(unittest.TestCase):
                 patch.object(backend, 'MoonrakerSubscription') as subscription, patch.object(backend, 'ReadWorker', ImmediateReadWorker), \
                 patch.object(ui, 'Encoder', return_value=encoder), \
                 patch.object(ui, 'Button', return_value=button), \
-                patch.object(ui, 'T5UIC1Display', FakeLCD), \
+                patch.object(startup, 'T5UIC1Display', FakeLCD), \
                 patch.object(ui, 'PowerMonitor'), \
-                patch.object(ui, 'PanelProbe'), \
+                patch.object(startup, 'PanelProbe'), \
                 patch.object(ui.PetrelDisplay, 'Draw_Prepare_Menu', prepare):
             subscription.return_value.snapshot.return_value = snapshot
             display = ui.PetrelDisplay('fake-port', (21, 19), 13, '')

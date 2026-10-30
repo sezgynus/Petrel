@@ -1,3 +1,4 @@
+from test_regressions import startup
 import unittest
 from concurrent.futures import Future
 from unittest.mock import Mock, patch
@@ -30,7 +31,7 @@ class RelayLifecycleTests(unittest.TestCase):
         self.assertEqual(v.checkkey, v.MainMenu)
         old.close.assert_called_once()
         self.assertFalse(v._uart_online)
-        with patch.object(ui, 'T5UIC1Display') as factory:
+        with patch.object(startup, 'T5UIC1Display') as factory:
             self.assertFalse(v._ensure_uart())
         factory.assert_not_called()
         v.pd.sendGCode.assert_not_called()
@@ -43,7 +44,7 @@ class RelayLifecycleTests(unittest.TestCase):
         v._power_focus = True
         v._poll_panel_power()
         new = Mock()
-        with patch.object(ui, 'T5UIC1Display', return_value=new) as factory:
+        with patch.object(startup, 'T5UIC1Display', return_value=new) as factory:
             self.assertTrue(v._ensure_uart())
         factory.assert_called_once()
         self.assertIs(v.lcd, new)
@@ -65,7 +66,7 @@ class RelayLifecycleTests(unittest.TestCase):
             return lcd
 
         v.HMI_StartFrame = lambda update: lcd.clear(0)
-        with patch.object(ui, 'T5UIC1Display', side_effect=construct):
+        with patch.object(startup, 'T5UIC1Display', side_effect=construct):
             self.assertTrue(v._ensure_uart())
         opcodes = [frame[1] for frame in lcd.serial.frames]
         self.assertEqual(opcodes[0], 0x22)

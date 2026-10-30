@@ -1,3 +1,4 @@
+from test_regressions import startup
 from pathlib import Path
 from concurrent.futures import Future
 from threading import Event
@@ -107,7 +108,7 @@ class BuzzerMenuTests(unittest.TestCase):
         view = UARTReconnectTests().display()
         saved = Settings(False, 70, 4, 1)
         view.lcd.load_buzzer_settings.return_value = saved
-        with patch.object(ui, 'T5UIC1Display', return_value=view.lcd):
+        with patch.object(startup, 'T5UIC1Display', return_value=view.lcd):
             self.assertTrue(view._ensure_uart())
             self.assertEqual(view._buzzer_settings(), saved)
             view._uart_online = False

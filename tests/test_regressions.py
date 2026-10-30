@@ -23,10 +23,13 @@ def load_application():
     with patch.dict(sys.modules, dependencies):
         backend = importlib.import_module('petrel.printer.interface')
         ui = importlib.import_module('petrel.application.display')
-    return backend, ui
+        # Capture owners before patch.dict restores the import cache.
+        startup = sys.modules[ui.PetrelDisplay._ensure_uart.__module__]
+        dashboard = sys.modules[ui.PetrelDisplay.Draw_Status_Area.__module__]
+    return backend, ui, startup, dashboard
 
 
-backend, ui = load_application()
+backend, ui, startup, dashboard = load_application()
 
 
 class RegressionContracts(unittest.TestCase):

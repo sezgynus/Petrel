@@ -551,3 +551,157 @@ class PrintFocusMixin:
                     self.Goto_PrintProcess()
             else:self.Goto_PrintProcess()
         self.lcd.update()
+
+    def _active_print_requires_focus(self):
+        """Do not carry a stale idle menu into a job started externally."""
+        if self.pd.status not in ('printing', 'paused', 'pausing'):
+            return False
+        if self.checkkey in (self.PrintProcess, self.NFCGateMenu):
+            return False
+        if self.checkkey in (self.Tune, self.TuneEdit, self.PrintErrorDetails, self.Print_window):
+            identity = (getattr(self, '_stop_job_identity', None)
+                        if self.checkkey == self.Print_window else
+                        getattr(self, '_error_job_identity', None)
+                        if self.checkkey == self.PrintErrorDetails else
+                        getattr(self, '_tune_job_identity', None))
+            return identity is None or not self.pd.print_job_matches(identity)
+        if self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False):
+            identity = getattr(self, '_mmu_job_identity', None)
+            return identity is None or not self.pd.print_job_matches(identity)
+        return True
+
+    def _present_print_state(self):
+        status = self.pd.status
+        self.last_status = status
+        self._print_error_visible = False
+        self.pd.HMI_flag.done_confirm_flag = False
+        self.pd.HMI_flag.pause_flag = self.pd.printingIsPaused()
+        if status in ('printing', 'paused', 'pausing') and getattr(self, '_nfc_share_popup', None):
+            # An idle Info overlay must not capture Print-screen encoder events.
+            self._cancel_nfc_share_popup(redraw=False)
+        if (self.checkkey == self.MMUMenu and getattr(self, '_mmu_return_print', False)
+                and status in ('printing', 'paused', 'pausing')
+                and not self._active_print_requires_focus()):
+            return
+        if status in ('printing', 'paused', 'pausing') and self.checkkey == self.PowerConfirm:
+            self._power_print_takeover()
+            return
+        if status in ('printing', 'paused', 'pausing'):
+            if self.checkkey == self.PrintProcess:
+                self._focus_print_tick()
+            elif self._active_print_requires_focus():
+                # Discard idle-menu RPC feedback and local-start errors before
+                # they can overwrite the externally started job dashboard.
+                self._action_feedback = None
+                self._action_on_accept = None
+                self._action_silent = False
+                self._pending_start = None
+                self._start_error_visible = False
+                self.pd.last_command_error = None
+                self.Goto_PrintProcess()
+        elif status == 'complete':
+            if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
+                self.Goto_MainMenu()
+                return
+            self.Goto_PrintProcess()
+            self.pd.HMI_flag.done_confirm_flag = True
+        elif status == 'error':
+            if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
+                self.Goto_MainMenu()
+                return
+            self._print_error_visible = True
+            message = self.pd.job_Info['print_stats'].get('message') or 'Print failed'
+            self._show_message(str(message))
+        else:
+            # Idle/standby updates must not tear down the screen the user is
+            # currently interacting with. Startup/reconnect begins on
+            # MainMenu, where drawing it is still required.
+            if self.checkkey == self.MainMenu:
+                self.Goto_MainMenu()
+
+    def _terminal_key(self):
+        return (self.pd.state.epoch, self.pd.status, self.pd.file_name,
+                self.pd.job_Info['print_stats'].get('print_duration', 0))
+
+    def HMI_Printing(self):
+        self._focus_print_input()
+
+    def HMI_PauseOrStop(self):
+        self._focus_stop_input()
+
+    def HMI_Tune(self):
+        self._focus_tune_input()
+
+    def HMI_PrintSpeed(self):
+        encoder_diffState = self.get_encoder_state()
+        if (encoder_diffState == self.ENCODER_DIFF_NO):
+            return
+
+        if (encoder_diffState == self.ENCODER_DIFF_CW):
+            self.pd.HMI_ValueStruct.print_speed += self._encoder_move_value
+
+        elif (encoder_diffState == self.ENCODER_DIFF_CCW):
+            self.pd.HMI_ValueStruct.print_speed = max(1, self.pd.HMI_ValueStruct.print_speed - self._encoder_move_value)
+
+        elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
+            self.checkkey = self.Tune
+            self.encoderRate = True
+            self._action("Print speed", lambda: self.pd.set_feedrate(self.pd.HMI_ValueStruct.print_speed), silent=True)
+
+        self._invalidate_list_row(self._menu_row(self.select_tune.now))
+        self._draw_menu_value(
+            str(self.pd.HMI_ValueStruct.print_speed),
+            self.MBASE(self._menu_row(self.select_tune.now)),
+            self.lcd.Color_Bg_Black, self.MENU_NARROW_CELLS)
+
+    def Draw_Select_Highlight(self, sel):
+        self.pd.HMI_flag.select_flag = sel
+        if sel:
+            c1 = self.lcd.Select_Color
+            c2 = self.lcd.Color_Bg_Window
+        else:
+            c1 = self.lcd.Color_Bg_Window
+            c2 = self.lcd.Select_Color
+        self.lcd.draw_rectangle(0, c1, 25, 279, 126, 318)
+        self.lcd.draw_rectangle(0, c1, 24, 278, 127, 319)
+        self.lcd.draw_rectangle(0, c2, 145, 279, 246, 318)
+        self.lcd.draw_rectangle(0, c2, 144, 278, 247, 319)
+
+    def Draw_Popup_Bkgd_60(self):
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 60, 258, 330)
+
+    def Draw_Printing_Screen(self):
+        self.Draw_Title('Paused' if self.pd.printingIsPaused() else 'Printing')
+        self._draw_menu_text('Elapsed', 41, 188)
+        self._draw_menu_text('Remaining', 170, 188)
+
+    def Draw_Print_ProgressBar(self, Percentrecord=None):
+        if Percentrecord is None:
+            Percentrecord = self.pd.getPercent()
+        self._draw_progress_track(self.lcd, 24, 99, 224, Percentrecord)
+        text = '%d%%' % Percentrecord
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 104, 122, 167, 141)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Black, (272-len(text)*8)//2, 123, text)
+
+    def _draw_print_time(self, seconds, x):
+        # Format completed minutes, not rounded fractional hours/minutes.
+        minutes = max(0, int(seconds)) // 60
+        text = '{:02d}:{:02d}'.format(minutes // 60, minutes % 60)
+        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
+                             self.lcd.Color_Bg_Black, x, 212, text)
+
+    def Draw_Print_ProgressElapsed(self):
+        self._draw_print_time(self.pd.duration(), 42)
+
+    def Draw_Print_ProgressRemain(self):
+        self._draw_print_time(self.pd.remain(), 176)
+
+    def Draw_Tune_Menu(self):
+        self._focus_tune_open()
+
+    def Goto_PrintProcess(self):
+        self._focus_print_open()
+
+    def Popup_window_PauseOrStop(self):
+        self._focus_stop_draw()

@@ -1,3 +1,4 @@
+from test_regressions import startup
 import unittest
 from unittest.mock import Mock, patch
 from petrel.hardware.dwin.startup import PanelProbe
@@ -95,7 +96,7 @@ class FastStartupTests(unittest.TestCase):
         v._panel_probe = Mock()
         v._panel_probe.poll.return_value = None
         v._loop = Mock()
-        with patch.object(ui, 'T5UIC1Display') as driver:
+        with patch.object(startup, 'T5UIC1Display') as driver:
             self.assertFalse(v._ensure_uart())
         driver.assert_not_called()
         v._loop.set_interval.assert_called_with(.05)

@@ -1,3 +1,4 @@
+from test_regressions import startup
 from petrel.artwork.resources import ICON_LIBRARY_ID
 """Boot waits preserve the panel-provided splash and never expose partial menus."""
 import unittest
@@ -163,7 +164,7 @@ class BootSplashTests(unittest.TestCase):
             kwargs['startup_progress'](lcd, 70)
             return lcd
 
-        with patch.object(ui, 'T5UIC1Display', side_effect=constructor):
+        with patch.object(startup, 'T5UIC1Display', side_effect=constructor):
             self.assertTrue(v._ensure_uart())
         v.HMI_StartFrame.assert_not_called()
         v._show_message.assert_not_called()

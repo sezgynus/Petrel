@@ -80,7 +80,7 @@ class AssetContracts(unittest.TestCase):
             assets.icon(9, 90)
 
     def test_legacy_virtual_area_cache_is_not_used_by_ui(self):
-        source = (ROOT / 'petrel/application/display.py').read_text()
+        source = (ROOT / 'petrel/application/startup.py').read_text()
         tree = ast.parse(source)
         forbidden = {'cache_jpeg', 'show_jpeg', 'copy_cache1'}
         calls = []

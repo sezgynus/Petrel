@@ -29,7 +29,7 @@ from petrel.emulator.assets import PanelAssets
 from petrel.emulator.framebuffer import Framebuffer
 from petrel.features.leveling.bed_mesh import MeshData
 from test_regressions import ui as application_ui
-BuzzerSettings = application_ui.BuzzerSettings
+from petrel.features.buzzer.control import Settings as BuzzerSettings
 from petrel.features.files.metadata import PreviewDetails, Filament
 from petrel.features.files.thumbnail_cache import ThumbnailCache
 from petrel.features.files.thumbnail_preview import image_jpeg

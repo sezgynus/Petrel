@@ -1,3 +1,4 @@
+from test_regressions import startup
 import unittest
 from unittest.mock import Mock, patch
 
@@ -25,7 +26,7 @@ class UARTReconnectTests(unittest.TestCase):
         result = self.display()
         result.lcd = None
         port = Mock()
-        with patch.object(ui, 'T5UIC1Display', side_effect=[TimeoutError('no panel'), port]) as factory:
+        with patch.object(startup, 'T5UIC1Display', side_effect=[TimeoutError('no panel'), port]) as factory:
             with patch.object(ui.time, 'monotonic', return_value=0):
                 self.assertFalse(result._ensure_uart())
             with patch.object(ui.time, 'monotonic', return_value=4):
@@ -129,7 +130,7 @@ class UARTReconnectTests(unittest.TestCase):
     def test_closed_display_does_not_reopen_port(self):
         result = self.display()
         result._closed = True
-        with patch.object(ui, 'T5UIC1Display') as factory:
+        with patch.object(startup, 'T5UIC1Display') as factory:
             self.assertFalse(result._ensure_uart())
         factory.assert_not_called()
 
@@ -150,7 +151,7 @@ class UARTReconnectTests(unittest.TestCase):
         lcd.load_buzzer_settings = Mock(return_value=None)
         lcd._needs_update = False
         result.HMI_StartFrame = lambda update: lcd.clear(0)
-        with patch.object(ui, 'T5UIC1Display', return_value=lcd):
+        with patch.object(startup, 'T5UIC1Display', return_value=lcd):
             self.assertTrue(result._ensure_uart())
         self.assertEqual([frame[1] for frame in lcd.serial.frames], [0x30, 1, 0x3D])
         self.assertFalse(lcd._needs_update)

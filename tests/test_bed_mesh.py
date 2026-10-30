@@ -1,3 +1,4 @@
+from test_regressions import startup
 import copy
 import unittest
 from concurrent.futures import Future
@@ -625,7 +626,7 @@ class MeshLifecycleTests(unittest.TestCase):
         view._closed=False;view._settings=('/dev/fake',);view._uart_epoch=0
         view._uart_online=False;view._next_uart_retry=0
         view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh=Mock()
-        with patch.object(ui,'T5UIC1Display',return_value=Mock()):
+        with patch.object(startup, 'T5UIC1Display',return_value=Mock()):
             self.assertTrue(view._ensure_uart())
         view.Draw_Bed_Mesh.assert_called_once()
         self.assertEqual(view.pd.subscription.request.call_count,1)
@@ -712,7 +713,7 @@ class MeshMenuTests(unittest.TestCase):
         view._closed=False;view._settings=('/dev/fake',);view._uart_epoch=0
         view._uart_online=False;view._next_uart_retry=0
         view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh_Menu=Mock()
-        with patch.object(ui,'T5UIC1Display',return_value=Mock()):
+        with patch.object(startup, 'T5UIC1Display',return_value=Mock()):
             self.assertTrue(view._ensure_uart())
         view.Draw_Bed_Mesh_Menu.assert_called_once()
         self.assertEqual(view._mesh_menu_selection,2)

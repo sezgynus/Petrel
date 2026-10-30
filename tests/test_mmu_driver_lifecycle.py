@@ -1,3 +1,4 @@
+from test_regressions import startup
 """New UART heartbeat, native icon rendering, input batching and popup lifecycle."""
 import time
 import unittest
@@ -59,7 +60,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         self.assertFalse(v._uart_online)
         self.assertTrue(old._closed)
         restored = packets.lcd()
-        with patch.object(application.ui, 'T5UIC1Display', return_value=restored), \
+        with patch.object(startup, 'T5UIC1Display', return_value=restored), \
                 patch.object(application.ui.time, 'monotonic', return_value=now + 9):
             v._ui_tick()
         self.assertTrue(v._uart_online)

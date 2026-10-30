@@ -1,4 +1,6 @@
 """Global release-to-confirm power shortcut; GPIO callbacks only enqueue."""
+from petrel.ui.theme import show_icon as show_theme_icon
+from petrel.artwork.resources import ICON_POWER_BUTTON_NORMAL, ICON_POWER_BUTTON_CANCEL, ICON_POWER_BUTTON_OFF
 import time
 from concurrent.futures import Future
 from petrel.ui.events import InputEvent
@@ -325,5 +327,155 @@ class PowerShortcutMixin:
             self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, self.lcd.Select_Color, 3, 216, self.MBASE(row),
                 getattr(self.pd.HMI_ValueStruct, attr))
+            return True
+        return False
+
+    def _power_at_first_item(self):
+        selections = {
+            self.MainMenu: 'select_page', self.SelectFile: 'select_file',
+            self.Prepare: 'select_prepare', self.Control: 'select_control',
+            self.AxisMove: 'select_axis', self.TemperatureID: 'select_temp',
+            self.Motion: 'select_motion', self.Tune: 'select_tune',
+            self.PLAPreheat: 'select_PLA', self.ABSPreheat: 'select_ABS',
+            self.CaseLight: 'select_light',
+        }
+        name = selections.get(self.checkkey)
+        if name is not None:
+            return getattr(self, name).now == 0
+        custom = {
+            self.BedMeshMenu: '_mesh_menu_selection',
+            self.MeshProfiles: '_mesh_profile_selection',
+            self.ScrewsTiltMenu: '_screws_selection',
+            self.FilePreview: '_preview_choice',
+            self.Info: '_info_scroll',
+            self.DisplayMenu: '_display_selection',
+            self.EventSoundsMenu: '_event_sound_selection',
+            self.NFCSettingsMenu: '_nfc_selection',
+            self.NFCChoiceMenu: '_nfc_choice_selection',
+            self.MaintenanceMenu: '_maintenance_selection',
+        }
+        if self.checkkey == self.MMUMenu:
+            return (not self.pd.connection_error and getattr(self, '_mmu_selection', 0) == 0
+                    and getattr(self, '_mmu_edit', None) is None)
+        attr = custom.get(self.checkkey)
+        return attr is not None and getattr(self, attr, 0) == 0
+
+    def _draw_power_confirmation(self, buttons_only=False):
+        if not buttons_only:
+            self.Clear_Popup_Area()
+            self.Draw_Title('Power')
+            self.Draw_Popup_Bkgd_105()
+        if getattr(self, '_power_hold_popup', False):
+            blocked = getattr(self, '_power_blocked', None)
+            if not buttons_only:
+                self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                    self.lcd.Color_Bg_Window, (272 - len(blocked or 'Power off printer?') * 8) // 2,
+                    150, blocked or 'Power off printer?')
+            choices = ((False, 'Cancel', 28, 104),) if blocked else ((False, 'Cancel', 28, 104), (True, 'Power off', 140, 104))
+            for yes, label, x, width in choices:
+                fill = (0xB986 if yes else 0x19E9) if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
+                icon = (ICON_POWER_BUTTON_OFF if yes else ICON_POWER_BUTTON_CANCEL) if self._power_confirm_yes == yes else ICON_POWER_BUTTON_NORMAL
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, x, 224, x+width-1, 259)
+                show_theme_icon(self.lcd, self.ICON, icon, x, 224)
+                self.lcd.draw_text(False, False, self.lcd.font8x16,
+                    0xFBAE if yes and not self._power_confirm_yes else self.lcd.Popup_Text_Color,
+                    fill, x + (width - len(label) * 8) // 2, 234, label)
+            return
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                           self.lcd.Color_Bg_Window, 42, 150, 'Turn off printer?')
+        for yes, label, x in ((True, 'Yes', 42), (False, 'No', 164)):
+            color = 0x063B if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
+            self.lcd.draw_rectangle(0, color, x - 12, 224, x + 52, 264)
+            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                               self.lcd.Color_Bg_Window, x, 236, label)
+
+    def _restore_power_origin(self):
+        # Both the hold capsule and confirmation can overwrite cached rows.
+        self._maintenance_frame = None
+        self._list_render = None
+        self._info_render_scroll = None
+        origin = self._power_origin
+        self._power_origin = None
+        self._power_focus = False
+        self._power_hold_popup = False
+        self._power_blocked = None
+        self.checkkey = origin if origin is not None else self.MainMenu
+        if self.checkkey == self.MMUMenu:
+            # The power popup overwrote the cached full-screen MMU canvas.
+            self._mmu_canvas_page = None
+        self._redraw_current_screen()
+
+    def _redraw_current_screen(self):
+        redraw = {
+            self.MainMenu: self.Goto_MainMenu,
+            self.SelectFile: self.Draw_Print_File_Menu,
+            self.Prepare: self.Draw_Prepare_Menu,
+            self.Control: self.Draw_Control_Menu,
+            self.AxisMove: self.Draw_Move_Menu,
+            self.TemperatureID: self.Draw_Temperature_Menu,
+            self.Motion: self.Draw_Motion_Menu,
+            self.Info: self.Draw_Info_Menu,
+            self.RFIDMenu: self.Draw_RFID_Menu,
+            self.NFCGateMenu: self._nfc_gate_draw,
+            self.DisplayMenu: self.Draw_Display_Menu,
+            self.EventSoundsMenu: self.Draw_Event_Sounds_Menu,
+            self.NFCSettingsMenu: self.Draw_NFC_Settings_Menu,
+            self.NFCChoiceMenu: self.Draw_NFC_Choice_Menu,
+            self.MaintenanceMenu: self.Draw_Maintenance_Menu,
+            self.Tune: self.Draw_Tune_Menu,
+            self.MMUMenu: self.Draw_MMU_Menu,
+            self.BedMeshMenu: self.Draw_Bed_Mesh_Menu,
+            self.BedMeshScreen: self.Draw_Bed_Mesh,
+            self.MeshProfiles: self.Draw_Mesh_Profiles,
+            self.FilePreview: self.Draw_File_Preview,
+            self.PrintProcess: self.Goto_PrintProcess,
+            self.TuneEdit: self._focus_edit_draw,
+            self.PrintErrorDetails: self._focus_error_draw,
+            self.RecoveryScreen: self.Draw_Recovery,
+            self.ScrewsTiltMenu: self.Draw_Screws_Menu,
+            self.ScrewsTiltResult: self.Draw_Screws_Result,
+            self.ProbeWizardID: self.Draw_Probe_Wizard,
+        }.get(self.checkkey)
+        if self._restore_power_editor():
+            return
+        if redraw is not None:
+            redraw()
+        else:
+            self._restore_action_screen()
+
+    def _handle_power_navigation(self):
+        if self._mmu_power_popup_stale():
+            self._restore_power_origin()
+            return True
+        event = self.get_encoder_state()
+        if self.checkkey == self.PowerConfirm:
+            if getattr(self, '_power_hold_popup', False):
+                if getattr(self, '_power_shutdown_requested', False):
+                    return True
+                self._power_blocked = self._power_block_reason()
+                if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
+                    selection = event == self.ENCODER_DIFF_CW and not self._power_blocked
+                    if selection != self._power_confirm_yes:
+                        self._power_confirm_yes = selection
+                        self._draw_power_confirmation(buttons_only=True)
+                elif event == self.ENCODER_DIFF_ENTER:
+                    if self._power_confirm_yes and not self._power_blocked:
+                        self._event_buzzer_melody('SHUTDOWN')
+                        self._power_off_future = self.pd.power_off_if_on()
+                        self._power_shutdown_requested = True
+                        self._show_message('Powering off...')
+                    else:
+                        self._restore_power_origin()
+                return True
+            if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
+                self._power_confirm_yes = not self._power_confirm_yes
+                self._draw_power_confirmation()
+            elif event == self.ENCODER_DIFF_ENTER:
+                if self._power_confirm_yes:
+                    self._event_buzzer_melody('SHUTDOWN')
+                    self.pd.power_off_if_on()
+                    self._show_message('Powering off...')
+                else:
+                    self._restore_power_origin()
             return True
         return False

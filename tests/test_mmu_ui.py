@@ -1,3 +1,4 @@
+from test_regressions import startup
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock, patch
@@ -935,7 +936,7 @@ class MMUUITests(unittest.TestCase):
         v._next_uart_retry = 0
         v._uart_epoch = 0
         port = Mock()
-        with patch.object(ui, 'T5UIC1Display', return_value=port):
+        with patch.object(startup, 'T5UIC1Display', return_value=port):
             self.assertTrue(v._ensure_uart())
         self.assertEqual(v._mmu_page, 'gates')
         self.assertIn((1,0x2125,0,0,271,479), [c.args for c in port.draw_rectangle.call_args_list])
