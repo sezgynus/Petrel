@@ -20,7 +20,7 @@ from lcd_resources import ICON_MAINTENANCE_CHECK, ICON_MAINTENANCE_RECOMMENDATIO
 
 class MaintenanceViewMixin:
     def _trace_maintenance_ui(self,kind='tick',event=None,title=None,entries=None):
-        trace=getattr(self.pd,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace=getattr(self.pd,'maintenance_test_trace',None)
         if trace is not None and trace.active:
             trace.ui(self,kind,event,title,entries)
 
@@ -763,7 +763,7 @@ class MaintenanceViewMixin:
         self._maintenance_init()
         event=self.get_encoder_state()
         if event==self.ENCODER_DIFF_NO: return
-        owner=getattr(self.pd,'petrel.features.maintenance.domains.pulse.program',None)
+        owner=getattr(self.pd,'maintenance_pulse',None)
         if (self._maintenance_page=='pulse' and getattr(owner,'phase',None)=='measurement_edit'
                 and event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW)):
             steps=max(1,int(getattr(self,'_menu_batch_steps',1)))
@@ -817,7 +817,7 @@ class MaintenanceViewMixin:
 
     def _poll_maintenance_ui(self):
         self._maintenance_init()
-        owner=getattr(self.pd,'petrel.features.maintenance.domains.pulse.program',None)
+        owner=getattr(self.pd,'maintenance_pulse',None)
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
@@ -905,7 +905,7 @@ class MaintenanceViewMixin:
 
     def _advance_maintenance_operations(self):
         """Advance controllers even when a UI overlay or UART loss hides them."""
-        owner = getattr(self.pd, 'petrel.features.maintenance.domains.pulse.program', None)
+        owner = getattr(self.pd, 'maintenance_pulse', None)
         reader = getattr(self.pd, 'maintenance_reader', None)
         result = None
         if getattr(owner, 'pending', False) is True:

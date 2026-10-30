@@ -630,7 +630,7 @@ class PrinterData:
             logging.error('Maintenance safety stop unconfirmed during shutdown')
         self.maintenance.clear()
         # TEMPORARY MAINTENANCE TEST TRACE: preserve shutdown tail.
-        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace = getattr(self,'maintenance_test_trace',None)
         if trace is not None:
             trace.stop()
         self.subscription.close()
@@ -677,7 +677,7 @@ class PrinterData:
     def toggle_maintenance_test_recording(self):
         if self.maintenance_pulse.pending or self.maintenance_reader.pending:
             return False
-        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace = getattr(self,'maintenance_test_trace',None)
         if trace is not None and trace.active:
             trace.stop()
         else:
@@ -689,11 +689,11 @@ class PrinterData:
         return True
 
     def maintenance_test_recording_label(self):
-        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace = getattr(self,'maintenance_test_trace',None)
         return trace.label if trace is not None else 'Start test recording'
 
     def export_maintenance_test_recording(self):
-        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace = getattr(self,'maintenance_test_trace',None)
         return trace.exported() if trace is not None else None
     # END TEMPORARY MAINTENANCE TEST TRACE
 
@@ -702,7 +702,7 @@ class PrinterData:
         if book is not None:
             book.note(state,snapshot=getattr(getattr(self,'maintenance',None),'snapshot',None))
         # TEMPORARY MAINTENANCE TEST TRACE
-        trace = getattr(self,'petrel.features.maintenance.diagnostics.test_trace',None)
+        trace = getattr(self,'maintenance_test_trace',None)
         if trace is not None:
             trace.tick(state)
 
@@ -732,7 +732,7 @@ class PrinterData:
             book = getattr(self,'maintenance_book',None)
             if book is not None:
                 book.record(result,method,self.state,plan)
-            assessment = getattr(self,'petrel.features.maintenance.assessment.assessment',None)
+            assessment = getattr(self,'maintenance_assessment',None)
             if assessment is not None:
                 try:
                     assessment.ingest(result,method,self.state)
@@ -834,7 +834,7 @@ class PrinterData:
 
     def maintenance_guided_plan(self):
         # Passive target discovery only; not an actuation authorization.
-        owner = getattr(self, 'petrel.features.maintenance.domains.pulse.program', None)
+        owner = getattr(self, 'maintenance_pulse', None)
         return owner.available() if owner is not None else guided_plan(self.maintenance.snapshot)
 
     def start_maintenance_physical(self, feature_id, device=None, **kwargs):

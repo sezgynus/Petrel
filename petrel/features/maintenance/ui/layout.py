@@ -234,7 +234,7 @@ def _detail(v,screen):
                 v.lcd.draw_rectangle(1,BG,0,241+slot*39,259,278+slot*39)
                 _forget(v,('action',index))
     _text(v,'action_count','%d/%d'%(selected+1,total) if total>visible else '',216,220,8,True,MUTED)
-    owner=getattr(v.pd,'petrel.features.maintenance.domains.pulse.program',None)
+    owner=getattr(v.pd,'maintenance_pulse',None)
     color=getattr(owner,'display_color',None) if v._maintenance_page=='pulse' else None
     previous=v._maintenance_regions.get('color_patch')
     if (color is not None or previous is not None) and _cached(v,'color_patch',color):

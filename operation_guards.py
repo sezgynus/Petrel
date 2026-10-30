@@ -26,7 +26,7 @@ def motion_dispatch_guard(printer, owner='', manual_active=False, position=False
                     or bool(status.get('manual_probe', {}).get('is_active')) != manual_active
                     or signature(current) != expected):
                 return False
-            maintenance = getattr(printer, 'petrel.features.maintenance.domains.pulse.program', None)
+            maintenance = getattr(printer, 'maintenance_pulse', None)
             if owner != 'maintenance' and getattr(maintenance, 'pending', False):
                 return False
             if owner != 'jog' and printer.jog_recovery_required:

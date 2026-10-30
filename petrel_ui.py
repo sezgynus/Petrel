@@ -922,7 +922,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
             self._tick_active = False
             self._cap_flash_interval()
             if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
-                   for name in ('petrel.features.maintenance.domains.pulse.program', 'maintenance_reader')):
+                   for name in ('maintenance_pulse', 'maintenance_reader')):
                 if hasattr(self, '_loop'):
                     self._loop.cap_interval(.1)
 
@@ -933,7 +933,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         # Operation deadlines must not depend on the visible screen or LCD.
         self._maintenance_advanced_this_tick = False
         if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
-               for name in ('petrel.features.maintenance.domains.pulse.program', 'maintenance_reader')):
+               for name in ('maintenance_pulse', 'maintenance_reader')):
             self._update_ui_state()
             self._advance_maintenance_operations()
             self._maintenance_advanced_this_tick = True
@@ -1587,7 +1587,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         try:
             return self._process_input_untraced(event)
         except Exception as error:
-            trace = getattr(self.pd,'petrel.features.maintenance.diagnostics.test_trace',None)
+            trace = getattr(self.pd,'maintenance_test_trace',None)
             if trace is not None and trace.active:
                 trace.emit('ui_handler_error',{'type':type(error).__name__})
             raise
@@ -2156,7 +2156,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         raise ValueError('panel_action_unavailable')
 
     def _display_activity(self):
-        panel = getattr(getattr(self,'pd',None),'petrel.features.maintenance.domains.panel',None)
+        panel = getattr(getattr(self,'pd',None),'maintenance_panel',None)
         if panel is not None and panel.pending:
             self._display_last_activity = time.monotonic()
             return False
@@ -2168,7 +2168,7 @@ class PetrelDisplay(RFIDViewMixin, RecoveryViewMixin, PrintFocusMixin, PowerShor
         return False
 
     def _display_idle_tick(self):
-        panel = getattr(getattr(self,'pd',None),'petrel.features.maintenance.domains.panel',None)
+        panel = getattr(getattr(self,'pd',None),'maintenance_panel',None)
         if panel is not None and panel.pending:
             return
         values = getattr(self, '_display_values', None)

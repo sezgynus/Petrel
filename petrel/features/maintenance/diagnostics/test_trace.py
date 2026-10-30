@@ -219,7 +219,7 @@ class TestTrace:
         self.dropped = self.write_errors = self.rotations = 0
         self._pending = deque()
         self._lock,self._disk = Lock(),Lock()
-        self._context = ContextVar('petrel.features.maintenance.diagnostics.test_trace',default=None)
+        self._context = ContextVar('maintenance_test_trace',default=None)
         self._future = None
         self._next_flush = 0.
         self._undo = []
@@ -282,7 +282,7 @@ class TestTrace:
                         self.emit('safety_shutdown',{'reason':reason,'snapshot':owner_snapshot(_owner)})
                         return _call(reason)
                     self.replace(owner,'_shutdown',shutdown)
-            self.replace(self.printer,'petrel.features.maintenance.domains.pulse.program',OwnerProxy(router,self))
+            self.replace(self.printer,'maintenance_pulse',OwnerProxy(router,self))
             self.replace(self.printer,'maintenance_reader',OwnerProxy(self.printer.maintenance_reader,self))
         except Exception:
             self.stop()
