@@ -135,7 +135,8 @@ def register(scene, canvas, finish):
                     'message': ('Tag binding changed; scan again' if phase == 'error'
                                 else 'Completed: Assign #17 to G2')}
                 view._nfc_gate_draw()
-                return finish(view)
+                # Gate assignment owns the full screen, including the dashboard area.
+                return finish(view, dashboard=False)
             view.Draw_RFID_Menu()
             return finish(view)
         scene(name, 'nfc', english, turkish)(draw)
