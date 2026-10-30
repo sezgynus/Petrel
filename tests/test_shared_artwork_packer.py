@@ -110,6 +110,7 @@ class SharedArtworkPackerTests(unittest.TestCase):
             root = Path(folder); source = root/'assets/shared-artwork'; source.mkdir(parents=True)
             self.source(source, 'other.jpg', (32,32))
             output, layout = root/'assets/petrel_shared.jpg', root/'petrel/artwork/shared_layout.py'
+            layout.parent.mkdir(parents=True)
             output.write_bytes(b'old JPEG'); layout.write_bytes(b'old layout')
             with patch.object(packer, 'ROOT', root), patch('sys.argv', ['pack_shared_artwork.py']):
                 with self.assertRaises(SystemExit):
