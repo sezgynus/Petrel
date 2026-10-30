@@ -66,7 +66,7 @@ class NFCGateViewMixin:
             for gate in range(state.num_gates):
                 try:
                     operation = session.prepare('spool', gate=gate,
-                                                values=(popup['spool'].id,))
+                                                values=(popup['spool'].id, *popup['spool'].assignment))
                 except ValueError as error:
                     reason = str(error)
                     continue

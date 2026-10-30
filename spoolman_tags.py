@@ -22,6 +22,7 @@ class Spool:
     colors: tuple
     archived: bool = False
     remaining_percent: int | None = field(default=None, compare=False)
+    assignment: tuple = ()
 
 
 def colors(value):
@@ -57,11 +58,23 @@ def describe(raw):
     filament = raw.get('filament') or {}
     vendor = filament.get('vendor') or {}
     text = lambda value: str(value).strip()[:256] if value is not None else ''
+    # Match Mainsail's gate assignment payload, independent of display labels.
+    # Strip command delimiters and control characters before quoting G-code text.
+    def command_text(value, fallback):
+        return ''.join(c for c in str(value if value is not None else fallback)
+                       if c not in '\"\'' and c.isprintable())
+    color = colors(filament.get('color_hex'))
+    temperature = filament.get('settings_extruder_temp')
+    if type(temperature) is not int or temperature < -1:
+        temperature = -1
+    assignment = (command_text(filament.get('name'), 'Unknown'),
+                  command_text(filament.get('material'), 'Unknown'),
+                  color[0] if color else '000000', temperature)
     return Spool(raw['id'], text(vendor.get('name')) or 'Unknown',
                  text(filament.get('name')) or 'Unnamed',
                  text(filament.get('material')) or 'Unknown',
                  colors(filament.get('multi_color_hexes')) or colors(filament.get('color_hex')),
-                 raw.get('archived') is True, remaining_percent(raw))
+                 raw.get('archived') is True, remaining_percent(raw), assignment)
 
 
 def tag_uids(raw):

@@ -471,7 +471,7 @@ class GateUITests(unittest.TestCase):
         self.assertEqual(view._nfc_gate_popup['phase'], 'writing')
         args = view.pd.subscription.request.call_args
         self.assertEqual(args.args[:2], ('printer.gcode.script',
-            {'script': 'MMU_GATE_MAP GATE=2 SPOOLID=17 TEMP=215'}))
+            {'script': 'MMU_GATE_MAP GATE=2 SPOOLID=17 NAME="Galaxy Red" MATERIAL="PLA" COLOR="FF0022" TEMP=-1 QUIET=1'}))
         self.assertTrue(args.kwargs['guard']())
         data['status']['print_stats']['state'] = 'printing'
         self.assertFalse(args.kwargs['guard']())
@@ -549,3 +549,36 @@ class GateUITests(unittest.TestCase):
         self.assertTrue(view._nfc_gate_tick())
         self.assertEqual(view._nfc_gate_popup['phase'], 'writing')
         view.pd.subscription.request.assert_called_once()
+
+    def test_nfc_assignment_sends_complete_mainsail_payload_and_spool_temperature(self):
+        view, data = self.make()
+        raw = spool(17)
+        raw['filament'].update(name='New "red"', material='PETG',
+                               color_hex='123456', multi_color_hexes='ABCDEF,FFFFFF',
+                               settings_extruder_temp=245)
+        described = describe(raw)
+        view._nfc_spool_router.take_result.return_value = ('AA:BB', described)
+        view._nfc_gate_result()
+        view._nfc_gate_popup['selection'] = 1
+        future = Future()
+        view.pd.nfc_lookup_spool = Mock(return_value=future)
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        future.set_result(described)
+        view._nfc_gate_verify()
+        self.assertEqual(view.pd.subscription.request.call_args.args[1]['script'],
+            'MMU_GATE_MAP GATE=0 SPOOLID=17 NAME="New red" MATERIAL="PETG" '
+            'COLOR="123456" TEMP=245 QUIET=1')
+
+    def test_metadata_change_during_confirmation_blocks_dispatch(self):
+        view, _ = self.make()
+        view._nfc_gate_result()
+        view._nfc_gate_popup['selection'] = 1
+        future = Future()
+        view.pd.nfc_lookup_spool = Mock(return_value=future)
+        view._nfc_gate_input(InputEvent('press', 1, 1, 0))
+        raw = spool(17)
+        raw['filament']['settings_extruder_temp'] = 250
+        future.set_result(describe(raw))
+        view._nfc_gate_verify()
+        self.assertEqual(view._nfc_gate_popup['phase'], 'error')
+        view.pd.subscription.request.assert_not_called()

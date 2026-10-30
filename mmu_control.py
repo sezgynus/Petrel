@@ -440,16 +440,29 @@ class MMUSession:
         elif action == 'spool':
             if m.spoolman_support not in ('off', 'readonly', 'push'):
                 raise ValueError('Spoolman mode blocks local assignment')
-            if (not isinstance(values, (tuple, list)) or len(values) != 1
+            if (not isinstance(values, (tuple, list)) or len(values) not in (1, 5)
                     or integer(values[0]) is None or (values[0] != -1 and values[0] < 1)
                     or any(sid is None or (sid != -1 and sid < 1) for sid in m.spool_ids)):
                 raise ValueError('Known spool IDs and valid assignment required')
-            temperature = m.temperatures[gate]
-            if temperature is None or temperature <= 0 or int(temperature) != temperature:
-                raise ValueError('Known filament temperature required')
-            temperature = int(temperature)
             values = tuple(values)
-            script = 'MMU_GATE_MAP GATE=%d SPOOLID=%d TEMP=%d' % (gate, values[0], temperature)
+            if len(values) == 5:
+                sid, name, material, color, temperature = values
+                if (sid < 1 or any(not isinstance(v, str) or
+                        any(c in '\"\'' or not c.isprintable() for c in v)
+                        for v in (name, material))
+                        or not isinstance(color, str) or len(color) != 6
+                        or any(c not in '0123456789abcdefABCDEF' for c in color)
+                        or integer(temperature) is None or temperature < -1):
+                    raise ValueError('Invalid Spoolman filament metadata')
+                script = ('MMU_GATE_MAP GATE=%d SPOOLID=%d NAME="%s" '
+                          'MATERIAL="%s" COLOR="%s" TEMP=%d QUIET=1'
+                          % (gate, sid, name, material, color, temperature))
+            else:
+                temperature = m.temperatures[gate]
+                if temperature is None or temperature <= 0 or int(temperature) != temperature:
+                    raise ValueError('Known filament temperature required')
+                temperature = int(temperature)
+                script = 'MMU_GATE_MAP GATE=%d SPOOLID=%d TEMP=%d' % (gate, values[0], temperature)
             label = ('Clear spool on ' if values[0] == -1 else 'Assign #%d to ' % values[0]) + target
             expected_spool_ids = tuple(values[0] if i == gate else -1 if values[0] > 0 and sid == values[0] else sid
                                        for i, sid in enumerate(m.spool_ids))
