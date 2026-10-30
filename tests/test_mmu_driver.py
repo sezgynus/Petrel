@@ -57,7 +57,7 @@ class MMUDriverIntegrationTests(unittest.TestCase):
 
     def test_all_production_lcd_calls_exist_on_complete_driver(self):
         root = Path(__file__).resolve().parents[1]
-        for path in root.glob('*.py'):
+        for path in (root / 'petrel').rglob('*.py'):
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):

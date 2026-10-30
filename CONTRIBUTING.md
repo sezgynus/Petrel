@@ -14,6 +14,8 @@ Start a branch from current `master`; keep the change focused and open a pull re
 
 For user-visible changes, update the relevant guide and screenshots. **English and Turkish documentation must cover the same features and steps**, use the same screenshots/order and keep on-screen labels unchanged. Current usage belongs in the guides; historical audits are references.
 
+See the [source layout](docs/source-layout.md) for feature ownership and organization-only change checks.
+
 ## Development tools
 
 | Tool | What it is for | Where to start |

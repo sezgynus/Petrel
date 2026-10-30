@@ -31,7 +31,7 @@ class NativeCustomIconTests(unittest.TestCase):
                 self.assertEqual((y, ih), (60, 52))
 
     def test_production_ui_no_longer_calls_atlas_renderers(self):
-        for path in [ROOT / 'petrel/application/display.py', ROOT / 'petrel/features/spoolman/spool_view.py', *ROOT.glob('ui_*.py')]:
+        for path in (ROOT / 'petrel').rglob('*.py'):
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):

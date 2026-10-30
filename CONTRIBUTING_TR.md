@@ -14,6 +14,8 @@ Güncel `master` üzerinden dal açın; değişikliği odaklı tutun ve problemi
 
 Kullanıcının gördüğü değişikliklerde ilgili rehberi ve ekran görüntülerini güncelleyin. **İngilizce ve Türkçe belgeler aynı özellik ve adımları kapsamalı**, aynı görselleri/sırayı kullanmalı ve ekrandaki adları korumalıdır. Güncel kullanım rehberlere, geçmiş audit'ler referanslara aittir.
 
+Özellik sahipliği ve yalnız organizasyon değişikliği kontrolleri için [kaynak kod yerleşimine](docs/source-layout_TR.md) bakın.
+
 ## Geliştirme araçları
 
 | Araç | Ne işe yarar | Başlangıç |

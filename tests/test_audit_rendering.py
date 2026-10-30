@@ -180,7 +180,8 @@ class AuditRenderingTests(unittest.TestCase):
 
 
 def test_user_visible_labels_do_not_depend_on_frame_copy_assets():
-    source = Path(__file__).resolve().parents[1].joinpath('petrel/application/display.py').read_text()
+    root = Path(__file__).resolve().parents[1] / 'petrel'
+    source = '\n'.join(path.read_text() for path in root.rglob('*.py'))
     legacy_text_fragments = (
         'Frame_TitleCopy(',
         'copy_cache(1, 226, 179, 256, 189',  # Back
