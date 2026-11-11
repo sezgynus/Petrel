@@ -4,7 +4,7 @@
 
 ## Desteklenen ekran
 
-Petrel, uyumlu 4,3 inç Ender 3 V2 panelinde kullanılan **272×480 dikey DWIN T5UIC1** düzenini hedefler. DWIN, DACAI ve TJC firmware/kaynak paketleri birbirinin yerine kullanılamaz.
+Petrel, uyumlu 4,3 inç Ender 3 V2 panelinde kullanılan **272×480 dikey DWIN T5UIC1** düzenini hedefler. DWIN, DACAI ve TJC firmware/kaynak paketleri birbirinin yerine kullanılamaz. Creality **DACAI** panelleri (ör. Ender 3 Max Neo) ayrı bir sürücüyle desteklenir; bkz. [DACAI panelleri](dacai_TR.md).
 
 Panel, T5UIC1 komutlarını ve ekran yönü **1** düzenini desteklemelidir. Petrel yazıları **stok DWIN fontuyla** çizer; [paketle sunulan LCD fontu](#lcd-fontu) farklı bir yazı görünümü isteyenler için **isteğe bağlıdır**. Uygulama açılış görselini ve library **2** ikonlarını repo kaynaklarından otomatik yükler; hazır bir ICO kütüphanesi veya İngilizce bitmap yazılar önkoşul değildir.
 

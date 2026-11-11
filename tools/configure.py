@@ -23,7 +23,8 @@ if str(ROOT) not in sys.path:
 from tools.axis_travel_install import install as install_axis
 from tools.klipper_buzzer_install import install as install_buzzer
 
-BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
+BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC',
+         'PETREL_DACAI', 'RESTART_PETREL'}
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
@@ -31,7 +32,8 @@ BUZZER_GPIO_CHOICES = {'PETREL_BUZZER_GPIO12': 12, 'PETREL_BUZZER_GPIO13': 13,
                        'PETREL_BUZZER_GPIO18': 18, 'PETREL_BUZZER_GPIO19': 19}
 INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
         'PETREL_BUTTON_PIN': (0, 65535), 'PETREL_POWER_ON_HOLD_MS': (0, 2147483647),
-        'PETREL_REMOTE_PORT': (1, 65535)}
+        'PETREL_REMOTE_PORT': (1, 65535), 'PETREL_DACAI_BAUD': (115200, 921600)}
+DACAI_BAUDS = ('115200', '230400', '460800', '921600')
 SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
 RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
            - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
@@ -89,7 +91,8 @@ def defaults(home):
                 PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_BUZZER='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
                 PETREL_EMULATOR='n', PETREL_REMOTE='n', PETREL_REMOTE_HOST='0.0.0.0',
-                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n', RESTART_PETREL='y')
+                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n',
+                PETREL_DACAI='n', PETREL_DACAI_BAUD='115200', RESTART_PETREL='y')
 
 
 def normalize_bool(value):
@@ -193,6 +196,8 @@ def validate(values):
     for name in PATHS:
         if not Path(values[name]).is_absolute():
             raise ValueError(name + ' must be an absolute path')
+    if values['PETREL_DACAI_BAUD'] not in DACAI_BAUDS:
+        raise ValueError('DACAI baud must be one of ' + ', '.join(DACAI_BAUDS))
     if values['PETREL_REMOTE'] == 'y' and not values['PETREL_REMOTE_HOST'].strip():
         raise ValueError('Remote bind address cannot be empty')
 
