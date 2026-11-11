@@ -115,7 +115,7 @@ class PiAcceptanceLogicTests(unittest.TestCase):
         # -I removes PYTHONPATH/current-directory shortcuts; exercise the
         # entry script exactly as Pi operators launch it from tools/.
         snippet = ("import runpy; runpy.run_path(%r, run_name='maint_test'); "
-                   "from printerInterface import PrinterData; "
+                   "from petrel.printer.interface import PrinterData; "
                    "assert PrinterData is not None") % str(SCRIPT)
         with tempfile.TemporaryDirectory() as cwd:
             result = subprocess.run(

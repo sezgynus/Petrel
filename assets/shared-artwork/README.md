@@ -8,7 +8,7 @@ Put each source image here as a `.jpg` or `.jpeg`. From the repository root, run
 python tools/pack_shared_artwork.py
 ```
 
-The tool creates both `assets/petrel_shared.jpg` (Picture Flash slot 1) and `shared_artwork_layout.py`. Commit the input JPEGs and both generated files together. Generation is a developer action; users receive the prepared outputs and the service uploads changed artwork automatically.
+The tool creates both `assets/petrel_shared.jpg` (Picture Flash slot 1) and `petrel/artwork/shared_layout.py`. Commit the input JPEGs and both generated files together. Generation is a developer action; users receive the prepared outputs and the service uploads changed artwork automatically.
 
 | Source filename | Generated rectangle | Generated dimensions |
 |---|---|---|

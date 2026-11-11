@@ -4,10 +4,10 @@ from threading import Lock
 from unittest.mock import Mock, patch
 import unittest
 
-from klipper_recovery import RecoveryState
+from petrel.features.recovery.klipper import RecoveryState
 from test_capabilities import display, snapshot
-from ui_events import InputEvent
-from ui_recovery import error_lines
+from petrel.ui.events import InputEvent
+from petrel.features.recovery.view import error_lines
 
 
 class RecoveryUITests(unittest.TestCase):

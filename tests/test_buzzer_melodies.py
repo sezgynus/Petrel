@@ -3,8 +3,8 @@ from threading import Event
 import unittest
 from unittest.mock import Mock, call, patch
 
-from buzzer_control import Player, Settings
-from buzzer_melodies import MELODIES, get_melody
+from petrel.features.buzzer.control import Player, Settings
+from petrel.features.buzzer.melodies import MELODIES, get_melody
 
 
 class MelodyTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class MelodyTests(unittest.TestCase):
     def test_named_playback_rests_volume_and_no_click_preference_dependency(self):
         pwm, finished = Mock(), Event()
         pwm.tone.side_effect = lambda hz, volume: finished.set() if hz == 988 else None
-        with patch('buzzer_control.get_melody', return_value=((784, .001), (0, .001), (988, .001))):
+        with patch('petrel.features.buzzer.control.get_melody', return_value=((784, .001), (0, .001), (988, .001))):
             player = Player(driver_factory=lambda: pwm)
             try:
                 self.assertTrue(player.play_melody('RESUME', Settings(volume=30, click=0, encoder=0)))
@@ -42,8 +42,8 @@ class MelodyTests(unittest.TestCase):
     def test_named_playback_is_bounded_and_emergency_preempts(self):
         pwm, started, emergency = Mock(), Event(), Event()
         pwm.tone.side_effect = lambda hz, volume: started.set() if hz == 1319 else emergency.set()
-        with patch('buzzer_control.get_melody', return_value=((1319, 10),)), \
-             patch('buzzer_control.EMERGENCY_PATTERN', ((2200,10),)):
+        with patch('petrel.features.buzzer.control.get_melody', return_value=((1319, 10),)), \
+             patch('petrel.features.buzzer.control.EMERGENCY_PATTERN', ((2200,10),)):
             player = Player(driver_factory=lambda: pwm)
             try:
                 self.assertTrue(player.play_melody('PRINT_DONE', Settings()))

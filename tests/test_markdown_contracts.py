@@ -79,7 +79,7 @@ class MarkdownContracts(unittest.TestCase):
                 self.assertEqual(re.findall(image_pattern, first), re.findall(image_pattern, second))
 
     def test_discovery_endpoint_contract_is_documented_in_both_languages(self):
-        module = ast.parse((ROOT / 'maintenance_services.py').read_text())
+        module = ast.parse((ROOT / 'petrel/features/maintenance/discovery/services.py').read_text())
         endpoints = next(ast.literal_eval(node.value) for node in module.body
                          if isinstance(node, ast.Assign)
                          and any(isinstance(t, ast.Name) and t.id == '_ENDPOINTS' for t in node.targets))

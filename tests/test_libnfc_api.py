@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from libnfc_api import NFCSession, Target, TargetInfo, Modulation, ISOA, decode_target, INT
-from nfc_settings import NFCSettings
+from petrel.features.nfc.libnfc import NFCSession, Target, TargetInfo, Modulation, ISOA, decode_target, INT
+from petrel.features.nfc.settings import NFCSettings
 
 
 class DirectLibNFCTests(unittest.TestCase):
@@ -37,11 +37,11 @@ class DirectLibNFCTests(unittest.TestCase):
         return lib
 
     def test_library_abi_is_resolved_once_and_reused_across_sessions(self):
-        from libnfc_api import bind_library
+        from petrel.features.nfc.libnfc import bind_library
         bind_library.cache_clear()
         try:
-            with patch('libnfc_api.C.util.find_library', return_value='libnfc.so'), \
-                    patch('libnfc_api.C.CDLL') as load_lib:
+            with patch('petrel.features.nfc.libnfc.C.util.find_library', return_value='libnfc.so'), \
+                    patch('petrel.features.nfc.libnfc.C.CDLL') as load_lib:
                 first = bind_library()
                 second = bind_library()
                 self.assertIs(first, second)
@@ -51,8 +51,8 @@ class DirectLibNFCTests(unittest.TestCase):
             bind_library.cache_clear()
 
     def test_connection_probe_uses_exact_draft_for_each_libnfc_driver(self):
-        from libnfc_api import check_connection
-        from nfc_settings import NFCSettings, PROFILES
+        from petrel.features.nfc.libnfc import check_connection
+        from petrel.features.nfc.settings import NFCSettings, PROFILES
         examples = {
             'UART': '/dev/ttyDWIN0', 'I2C': '/dev/i2c-1',
             'SPI': '/dev/spidev0.0', 'USB': 'pn53x_usb:001:003',
@@ -69,7 +69,7 @@ class DirectLibNFCTests(unittest.TestCase):
                     setting = NFCSettings(model, interface, port,
                                           115200 if interface == 'UART' else 0)
                     lib = self.fake_library()
-                    with patch('libnfc_api.bind_library', return_value=lib), \
+                    with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
                             patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'wrong'}):
                         self.assertTrue(check_connection(setting))
                     lib.nfc_open.assert_called_once()
@@ -82,8 +82,8 @@ class DirectLibNFCTests(unittest.TestCase):
                     self.assertEqual(lib.nfc_exit.call_args.args[0].value, 1)
 
     def test_connection_probe_reports_open_and_init_failure_without_leaks(self):
-        from libnfc_api import check_connection
-        from nfc_settings import NFCSettings
+        from petrel.features.nfc.libnfc import check_connection
+        from petrel.features.nfc.settings import NFCSettings
         config = NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200)
         for failure in ('open', 'init'):
             with self.subTest(failure=failure):
@@ -92,7 +92,7 @@ class DirectLibNFCTests(unittest.TestCase):
                     lib.nfc_open.return_value = 0
                 else:
                     lib.nfc_initiator_init.return_value = -3
-                with patch('libnfc_api.bind_library', return_value=lib), \
+                with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
                         self.assertRaises(OSError):
                     check_connection(config)
                 self.assertEqual(lib.nfc_close.call_count, failure != 'open')
@@ -101,7 +101,7 @@ class DirectLibNFCTests(unittest.TestCase):
 
     def test_session_requires_explicit_validated_settings_and_never_falls_back(self):
         lib = self.fake_library()
-        with patch('libnfc_api.bind_library', return_value=lib), \
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
                 patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'wrong'}):
             with self.assertRaises(ValueError):
                 NFCSession(NFCSettings())
@@ -114,7 +114,7 @@ class DirectLibNFCTests(unittest.TestCase):
 
     def test_persistent_explicit_handle_and_all_advertised_card_types(self):
         lib = self.fake_library()
-        with patch('libnfc_api.bind_library', return_value=lib), \
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
              patch.dict(os.environ, {'PETREL_NFC_DEVICE': 'pn532_uart:/dev/ttyDWIN0:115200'}):
             session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         self.assertEqual({kind for kind, _ in session.modulations}, set(range(1, 11)))
@@ -138,7 +138,7 @@ class DirectLibNFCTests(unittest.TestCase):
 
     def test_unsupported_is_reported_and_transport_failure_is_not_a_missing_card(self):
         lib = self.fake_library()
-        with patch('libnfc_api.bind_library', return_value=lib):
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib):
             session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         try:
             lib.nfc_initiator_select_passive_target.return_value = -3
@@ -162,7 +162,7 @@ class DirectLibNFCTests(unittest.TestCase):
             target.info.a.uid[:] = [0x6b, 0xb3, 0x9d, 0x14] + [0] * 6
             return 1
         lib.nfc_initiator_select_passive_target.side_effect = select
-        with patch('libnfc_api.bind_library', return_value=lib):
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib):
             session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         for _ in range(3):
             self.assertEqual(session.scan((1, 1))['uid'], '6B:B3:9D:14')
@@ -175,7 +175,7 @@ class DirectLibNFCTests(unittest.TestCase):
         lib = self.fake_library()
         lib.nfc_strerror.return_value = b'Input/output error'
         lib.nfc_initiator_select_dep_target.return_value = 0
-        with patch('libnfc_api.bind_library', return_value=lib):
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib):
             session = NFCSession(NFCSettings('PN532', 'UART', '/dev/ttyDWIN0', 115200))
         self.assertIsNone(session.scan((8, 1)))
         self.assertEqual(lib.nfc_initiator_select_dep_target.call_args.args[-1], 1000)
@@ -185,10 +185,10 @@ class DirectLibNFCTests(unittest.TestCase):
         session.close()
 
     def test_system_libnfc_always_selected_even_if_old_private_build_exists(self):
-        from libnfc_api import library_path
+        from petrel.features.nfc.libnfc import library_path
         with tempfile.TemporaryDirectory() as tmp:
             with patch.dict(os.environ, {'XDG_DATA_HOME': tmp}), \
-                    patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'):
+                    patch('petrel.features.nfc.libnfc.C.util.find_library', return_value='libnfc.so.6'):
                 root = Path(tmp) / 'Petrel' / 'libnfc-pn532-picc'
                 lib = root / 'lib' / 'libnfc.so.6'
                 lib.parent.mkdir(parents=True)
@@ -197,7 +197,7 @@ class DirectLibNFCTests(unittest.TestCase):
                 self.assertEqual(library_path(), 'libnfc.so.6')
 
     def test_pn532_target_emulates_type_4a_without_advertising_dep(self):
-        from libnfc_api import NFCTargetSession
+        from petrel.features.nfc.libnfc import NFCTargetSession
         target = NFCTargetSession.__new__(NFCTargetSession)
         target.device = 123
         target._pn532_target = True
@@ -222,7 +222,7 @@ class DirectLibNFCTests(unittest.TestCase):
                                        bytes((0x08, 0x00, 0xB0, 0x0B)))])
 
     def test_target_atqa_is_fixed_not_selectable(self):
-        from libnfc_api import NFCTargetSession, PN532_TARGET_ATQA
+        from petrel.features.nfc.libnfc import NFCTargetSession, PN532_TARGET_ATQA
         self.assertEqual(PN532_TARGET_ATQA, (0x00, 0x04))
         target = NFCTargetSession.__new__(NFCTargetSession)
         target.device = 123
@@ -246,7 +246,7 @@ class DirectLibNFCTests(unittest.TestCase):
         self.assertEqual(captured, [(bytes((0x00, 0x04)), 0x20)])
 
     def test_target_activation_with_no_initial_apdu_waits_for_phone(self):
-        from libnfc_api import NFCTargetSession
+        from petrel.features.nfc.libnfc import NFCTargetSession
         from unittest.mock import Mock
         target = NFCTargetSession.__new__(NFCTargetSession)
         target.device = 123

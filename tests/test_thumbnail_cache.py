@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from thumbnail_cache import ThumbnailCache
+from petrel.features.files.thumbnail_cache import ThumbnailCache
 
 
 def key(name):
@@ -131,12 +131,12 @@ class CacheTests(unittest.TestCase):
     def test_temporary_metadata_failure_retries_after_backoff(self):
         cache,keys,lcd=self.make();future=Future();future.set_exception(ValueError('No thumbnail'))
         cache.loader.side_effect=lambda k:future
-        with patch('thumbnail_cache.time.monotonic',return_value=10):
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic',return_value=10):
             cache.tick(lcd,foreground=keys[0]);cache.tick(lcd,foreground=keys[0])
             cache.tick(lcd,foreground=keys[0])
             self.assertEqual(cache.loader.call_count,1)
         cache.loader.side_effect=lambda k:completed()
-        with patch('thumbnail_cache.time.monotonic',return_value=21):
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic',return_value=21):
             cache.tick(lcd,foreground=keys[0]);cache.tick(lcd,foreground=keys[0],chunks=8)
         self.assertIsNotNone(cache.address(keys[0]))
         self.assertNotIn(keys[0],cache.errors)

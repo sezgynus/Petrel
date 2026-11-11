@@ -1,8 +1,8 @@
 """Optional heaters share dispatch evidence without permanent subscriptions."""
 import unittest
 from concurrent.futures import Future
-from moonraker_subscription import MoonrakerSubscription
-from maintenance_thermal import contract
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.features.maintenance.domains.thermal.measurements import contract
 
 class OptionalHeaterTelemetry(unittest.TestCase):
     def make(self):

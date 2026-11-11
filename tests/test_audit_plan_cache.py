@@ -1,9 +1,9 @@
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
-from maintenance_discovery import MaintenanceSnapshot,DeviceCapabilities,INFORMATION,_add
-from maintenance_executor import read_only_adapters
-import maintenance_planner as planner
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,DeviceCapabilities,INFORMATION,_add
+from petrel.features.maintenance.execution.executor import read_only_adapters
+import petrel.features.maintenance.execution.planner as planner
 
 class VisiblePlanCache(unittest.TestCase):
     def setUp(self): planner.clear_plan_cache();self.addCleanup(planner.clear_plan_cache)

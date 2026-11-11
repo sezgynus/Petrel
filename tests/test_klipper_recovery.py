@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import unittest
 
-from klipper_recovery import KlipperRecovery
+from petrel.features.recovery.klipper import KlipperRecovery
 from read_fixture import ImmediateReadWorker
 
 
@@ -21,7 +21,7 @@ class RecoveryTests(unittest.TestCase):
         self.client = SimpleNamespace(get=Mock(side_effect=self.get), post=Mock())
         self.recovery = KlipperRecovery(self.client, ImmediateReadWorker(),
                                          lambda: self.offline)
-        clock = patch('klipper_recovery.monotonic', lambda: self.clock)
+        clock = patch('petrel.features.recovery.klipper.monotonic', lambda: self.clock)
         clock.start()
         self.addCleanup(clock.stop)
 
@@ -166,7 +166,7 @@ class RestartTransportTests(unittest.TestCase):
         import json
         from urllib.parse import urlsplit
         from urllib.error import HTTPError
-        from moonraker_client import MoonrakerClient
+        from petrel.moonraker.client import MoonrakerClient
 
         class Response(io.BytesIO):
             def __enter__(self):

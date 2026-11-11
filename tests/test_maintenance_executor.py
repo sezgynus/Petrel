@@ -6,12 +6,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, INFORMATION, _add
-from maintenance_planner import build_plan, visible_plan
-from maintenance_executor import (
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, INFORMATION, _add
+from petrel.features.maintenance.execution.planner import build_plan, visible_plan
+from petrel.features.maintenance.execution.executor import (
     MaintenanceReadExecutor, read_only_adapters, _read_fields,
 )
-from maintenance_safety import SafetyContext
+from petrel.features.maintenance.execution.safety import SafetyContext
 
 
 class Worker:

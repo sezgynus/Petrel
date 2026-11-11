@@ -26,6 +26,7 @@
 | Rehber | Kullanım amacı |
 |---|---|
 | [Katkıda bulunma](../CONTRIBUTING_TR.md) | Issue, pull request, dokümantasyon ve geliştirme kontrolleri |
+| [Kaynak kod yerleşimi](source-layout_TR.md) | Özellik sahipliği, ortak UI, maintenance grupları ve yalnız organizasyon değişikliği kontrolleri |
 | [Emülatör ekran görüntüleri](ui-emulator_TR.md) | Çalışan serviste görüntü almayı açma ve görselleri kaydetme |
 | [Testler](../tests/README_TR.md) | Otomatik kontrolleri çalıştırma ve donanım doğrulamasını planlama |
 | [UI için C adayı profilleme](ui-native-profiling_TR.md) | Normal kaynak ölçümü, CPU örneklemesi ve Python tahsis kaynağını ayrı inceleme |

@@ -1,14 +1,14 @@
 import unittest
 from types import SimpleNamespace
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _mode
-from maintenance_planner import build_plan
-from maintenance_heater import thermal_adapters, ThermalResult
-from maintenance_assessment import assessment_plan, observations, assess
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _mode
+from petrel.features.maintenance.execution.planner import build_plan
+from petrel.features.maintenance.domains.thermal.controller import thermal_adapters, ThermalResult
+from petrel.features.maintenance.assessment.assessment import assessment_plan, observations, assess
 
 class AssessmentTest(unittest.TestCase):
     def plan(self):
         bits = sum(AUTOMATIC << (int(f[1:])+12)*5 for f in ()) # use discovery helper below
-        from maintenance_discovery import _index_for
+        from petrel.features.maintenance.discovery.discovery import _index_for
         bits = sum(AUTOMATIC << (_index_for(f)*5) for f in ('H01','H05','H07','H08'))
         snap = MaintenanceSnapshot(1,(DeviceCapabilities('extruder','heater',bits),),config_marker=2)
         return snap,assessment_plan(snap,build_plan(snap,thermal_adapters()))

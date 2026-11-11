@@ -81,8 +81,8 @@ class FanAnimationTests(unittest.TestCase):
             False, True, 1, 65535, 0x18C4, 126, 416, '100%     ')
 
     def test_animation_frames_match_dashboard_background(self):
-        from dwin_emulator.assets import PanelAssets
-        from lcd_resources import ICON_LIBRARY_ID, ICON_FAN_FIRST, ICON_FAN_LAST
+        from petrel.emulator.assets import PanelAssets
+        from petrel.artwork.resources import ICON_LIBRARY_ID, ICON_FAN_FIRST, ICON_FAN_LAST
         from PIL import JpegImagePlugin, Image
         from pathlib import Path
         assets = PanelAssets()
@@ -102,7 +102,7 @@ class FanAnimationTests(unittest.TestCase):
                     self.assertFalse(jpeg.info.get('progressive'))
 
     def test_stopped_fan_uses_same_opaque_backing_as_native_animation(self):
-        from lcd_resources import ICON_FAN_FIRST
+        from petrel.artwork.resources import ICON_FAN_FIRST
         view = self.view(0)
         view._sync_fan_animation(True)
         view.lcd.show_icon.assert_called_once_with(
@@ -111,8 +111,8 @@ class FanAnimationTests(unittest.TestCase):
 
     def test_every_fan_frame_preserves_dashboard_corners(self):
         from tools.render_docs_screenshots import canvas
-        from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST
-        from dwin_emulator.framebuffer import rgb565
+        from petrel.artwork.resources import ICON_FAN_FIRST, ICON_FAN_LAST
+        from petrel.emulator.framebuffer import rgb565
         view = canvas()
         view.lcd.draw_rectangle(1, 0x18C4, 0, 360, 271, 479)
         for icon in range(ICON_FAN_FIRST, ICON_FAN_LAST + 1):

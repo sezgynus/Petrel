@@ -1,8 +1,8 @@
 """HH v3/v4 common runout contract; never infer from sensor drops or pause text."""
 from unittest import TestCase
 from unittest.mock import Mock
-from moonraker_subscription import MoonrakerSubscription
-from ui_events import InputEvent
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.ui.events import InputEvent
 
 
 class RunoutMelodyTests(TestCase):

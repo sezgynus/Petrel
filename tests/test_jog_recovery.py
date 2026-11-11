@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock
 from urllib.error import URLError
 
-from moonraker_client import MoonrakerClient, MoonrakerError
+from petrel.moonraker.client import MoonrakerClient, MoonrakerError
 from test_moonraker_client import response
 from test_capabilities import printer, snapshot, display
 from test_regressions import backend

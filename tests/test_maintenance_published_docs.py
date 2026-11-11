@@ -29,7 +29,7 @@ class PublishedMaintenanceGuide(unittest.TestCase):
             for label in ('Care schedule','Check printer','Diagnostics','Recommendations','Back'):
                 self.assertIn(label,guide)
 
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_scrolled_host_scene_moves_only_report_content(self,_):
         with patch.object(time,'strftime',return_value='12:34'), \
                 patch.object(time,'monotonic',return_value=3.6):
@@ -44,9 +44,9 @@ class PublishedMaintenanceGuide(unittest.TestCase):
     # not by every source push. Verify only after that workflow regenerates them.
     @unittest.skipUnless(os.environ.get('PETREL_VERIFY_PUBLISHED_SCREENS') == '1',
                          'Published pixels are checked by manual Documentation Render')
-    @patch('t5uic1_driver.time.sleep')
+    @patch('petrel.hardware.dwin.driver.time.sleep')
     def test_published_native_pixels_match_the_current_production_ui(self,_):
-        with patch.object(time,'strftime',return_value='12:34'),patch('mmu_filament_view.time.monotonic',return_value=3.6):
+        with patch.object(time,'strftime',return_value='12:34'),patch('petrel.features.mmu.filament_view.time.monotonic',return_value=3.6):
             for name,group,en,tr,draw in self.scenes():
                 with self.subTest(scene=name),Image.open(ROOT/('docs/assets/screens/'+name+'.png')) as published:
                     actual=draw()

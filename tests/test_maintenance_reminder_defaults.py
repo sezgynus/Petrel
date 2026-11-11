@@ -1,6 +1,6 @@
 """CI-only contracts for generic new-reminder starting intervals."""
 import unittest
-from maintenance_care import reminder_default
+from petrel.features.maintenance.records.care import reminder_default
 
 
 class ReminderDefaultIntervals(unittest.TestCase):
@@ -66,7 +66,7 @@ class ReminderDefaultIntervals(unittest.TestCase):
     def test_unknown_basis_is_rejected_and_values_fit_existing_editor(self):
         with self.assertRaises(ValueError):
             reminder_default('output_pin lamp','connected_device','power_cycles')
-        from maintenance_care import REMINDER_DEFAULTS, REMINDER_BASIS_FALLBACK
+        from petrel.features.maintenance.records.care import REMINDER_DEFAULTS, REMINDER_BASIS_FALLBACK
         self.assertTrue(all(v is None or 1 <= v <= 87600
                             for row in REMINDER_DEFAULTS.values() for v in row))
         self.assertTrue(all(1 <= v <= 87600 for v in REMINDER_BASIS_FALLBACK))

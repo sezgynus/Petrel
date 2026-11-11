@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-import libnfc_api
-from libnfc_api import (
+import petrel.features.nfc.libnfc as libnfc_api
+from petrel.features.nfc.libnfc import (
     NFCTargetSession, Target, PN532_TARGET_ATQA,
     PN532_MODEDET_ADDRESS, PN532_MODEDET_MASK, bind_pn532_register,
 )
@@ -27,7 +27,7 @@ class PN532NativeRegisterTests(unittest.TestCase):
     def test_driver_always_uses_stock_system_library_without_flag(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 patch.dict(os.environ, {'XDG_CONFIG_HOME': tmp, 'XDG_DATA_HOME': tmp}), \
-                patch('libnfc_api.C.util.find_library', return_value='libnfc.so.6'):
+                patch('petrel.features.nfc.libnfc.C.util.find_library', return_value='libnfc.so.6'):
             config = Path(tmp) / 'Petrel'
             config.mkdir()
             (config / 'nfc-target-experiment.json').write_text('{"profile":"D"}')
@@ -91,18 +91,18 @@ class PN532NativeRegisterTests(unittest.TestCase):
         target.lib.nfc_target_init.assert_not_called()
 
     def test_pn532_integration_requires_export_only_for_target_session(self):
-        from nfc_settings import NFCSettings
+        from petrel.features.nfc.settings import NFCSettings
         lib = Mock()
         lib.pn53x_write_register.return_value = 0
         lib.nfc_init.side_effect = lambda out: setattr(out._obj, 'value', 1)
         lib.nfc_open.return_value = 123
-        with patch('libnfc_api.bind_library', return_value=lib), \
-             patch('libnfc_api.bind_pn532_register') as bind:
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
+             patch('petrel.features.nfc.libnfc.bind_pn532_register') as bind:
             target = NFCTargetSession(NFCSettings('PN532', 'UART', '/dev/ttyAMA0', 115200))
             bind.assert_called_once_with(lib)
             target.close()
-        with patch('libnfc_api.bind_library', return_value=lib), \
-             patch('libnfc_api.bind_pn532_register') as bind:
+        with patch('petrel.features.nfc.libnfc.bind_library', return_value=lib), \
+             patch('petrel.features.nfc.libnfc.bind_pn532_register') as bind:
             target = NFCTargetSession(NFCSettings('ACR122S', 'UART', '/dev/ttyUSB0', 115200))
             bind.assert_not_called()
             target.close()

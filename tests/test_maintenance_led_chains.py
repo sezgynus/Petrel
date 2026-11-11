@@ -8,11 +8,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_discovery import discover
-from maintenance_guided import guided_plan
-from maintenance_profiles import approved_integrations
-from maintenance_pulse import compile_pulse, compile_mmu_led_pulse, restored
-from maintenance_hh_leds import mmu_led_owners, auto_happy_hare_led_services
+from petrel.features.maintenance.discovery.discovery import discover
+from petrel.features.maintenance.execution.guided import guided_plan
+from petrel.features.maintenance.discovery.profiles import approved_integrations
+from petrel.features.maintenance.domains.pulse.program import compile_pulse, compile_mmu_led_pulse, restored
+from petrel.features.maintenance.domains.pulse.hh_leds import mmu_led_owners, auto_happy_hare_led_services
 
 TARGET = 'neopixel diagnostic'
 COLORS = [(0.1, 0.2, 0.3, 0.0),
@@ -163,7 +163,7 @@ class LedChainTests(unittest.TestCase):
         row = replace(row, device='led mono')
         cfg = {'led mono': {'white_pin': 'PA7', 'chain_count': 1}}
         live = {'led mono': {'color_data': [(0., 0., 0., 0.3)]}}
-        from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
+        from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, USER, _add
         snapshot = MaintenanceSnapshot(
             snap.epoch,
             (DeviceCapabilities('led mono', 'led', _add(0, 'O04', USER)),),
@@ -582,7 +582,7 @@ class LedChainTests(unittest.TestCase):
 
     def test_missing_explicit_profile_not_even_guided(self):
         row, snap, status, settings = fixture()
-        from maintenance_discovery import MaintenanceSnapshot
+        from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot
         denied = MaintenanceSnapshot(snap.epoch, snap.devices, snap.global_modes,
                                      snap.config_marker, ())
         self.assertNotIn(row, guided_plan(denied))

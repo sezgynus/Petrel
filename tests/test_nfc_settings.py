@@ -5,10 +5,10 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_settings import (NFCSettings, PROFILES, available_ports, installed_enabled,
+from petrel.features.nfc.settings import (NFCSettings, PROFILES, available_ports, installed_enabled,
                           load, save, serial_ports_from_moonraker)
 from test_capabilities import display, snapshot
-from lcd_resources import ICON_NFC
+from petrel.artwork.resources import ICON_NFC
 from test_regressions import ui
 
 # The GPIO-isolated UI import retains its own module references.
@@ -119,7 +119,7 @@ class NFCSettingsTests(unittest.TestCase):
         pending = Future()
         view.pd.discover_nfc_devices = Mock(return_value=pending)
         with patch.dict('os.environ', {'PETREL_NFC': '1'}), \
-                patch('ui_nfc_settings.available_ports',
+                patch('petrel.features.nfc.settings_view.available_ports',
                       side_effect=AssertionError('hardware I/O on UI thread')):
             view.checkkey = view.NFCSettingsMenu
             self.assertEqual(view._nfc_options('port'), ())
@@ -133,7 +133,7 @@ class NFCSettingsTests(unittest.TestCase):
     def test_settings_helpers_never_open_an_independent_libnfc_context(self):
         # USB/PCSC/NCI enumeration is serialized by NFCBackend.discover_devices;
         # nfc_settings must remain safe to call from any UI/settings context.
-        with patch('libnfc_api.list_devices', side_effect=AssertionError(
+        with patch('petrel.features.nfc.libnfc.list_devices', side_effect=AssertionError(
                 'libnfc accessed outside the backend')):
             for model, interface in (('PN53x USB', 'USB'),
                                      ('ACR122U', 'USB'),

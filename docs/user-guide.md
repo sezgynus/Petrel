@@ -194,7 +194,7 @@ The buzzer uses Raspberry Pi native **hardware PWM**, without Klipper `pwm_cycle
 
 ### Named buzzer melodies
 
-All note sequences live in `buzzer_melodies.py`. The library includes
+All note sequences live in `petrel/features/buzzer/melodies.py`. The library includes
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
 `PROBE_FAIL`, `WARNING` and `CUSTOM_EVENT`, using short event-specific motifs with explicit silent rests. Existing UI tones and the

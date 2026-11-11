@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import call, patch
 
-from graphite_theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
-from printer_state import PrinterState
+from petrel.ui.theme import AXIS_HOMED_COLOR, AXIS_UNHOMED_COLOR, AXIS_UNKNOWN_COLOR
+from petrel.printer.state import PrinterState
 from test_capabilities import display, snapshot
 from test_regressions import ui
 

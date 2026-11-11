@@ -1,7 +1,8 @@
+from test_regressions import dashboard
 """Adaptive Z precision, bounded redraws and retained raw observations."""
 import unittest
 from unittest.mock import patch
-from display_numbers import fit_decimal
+from petrel.ui.numbers import fit_decimal
 from test_capabilities import display, snapshot
 from test_regressions import ui
 
@@ -20,7 +21,7 @@ class DynamicZDisplayTests(unittest.TestCase):
         v=display(snapshot(probe=True))
         v.pd.live_position=(0,0,.306)
         v.pd.BABY_Z_VAR=-.125
-        with patch.object(ui,'fit_decimal',wraps=fit_decimal) as formatter, patch.object(ui.time,'monotonic',return_value=0):
+        with patch.object(dashboard,'fit_decimal',wraps=fit_decimal) as formatter, patch.object(ui.time,'monotonic',return_value=0):
             v.Draw_Status_Area(False)
             self.assertEqual(formatter.call_count,2)
             v.lcd.reset_mock()

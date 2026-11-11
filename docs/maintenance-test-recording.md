@@ -48,8 +48,8 @@ Read in that order, then group by session/run/seq. Do not infer acceptance when 
 No permanent controller edits. Stopping restores original owner/client/worker references.
 To remove the implementation:
 
-- Remove `maintenance_test_trace.py` and `tests/test_maintenance_test_trace.py`.
-- Remove hooks marked **TEMPORARY MAINTENANCE TEST TRACE** in `printerInterface.py`, `ui_maintenance.py`, `petrel_ui.py`; restore the original UI method names from their wrappers.
+- Remove `petrel/features/maintenance/diagnostics/test_trace.py` and `tests/test_maintenance_test_trace.py`.
+- Remove recorder hooks in `petrel/printer/interface.py` and `petrel/features/maintenance/printer.py`, UI tracing in `petrel/features/maintenance/ui/view.py` and `screens.py`, and the wrappers in `petrel/application/input.py` and `tick.py`; restore the original UI method names from their wrappers.
 - Remove the Remote Display `trace_provider`, ZIP route and download link.
 - Remove this TR/EN guide pair.
 

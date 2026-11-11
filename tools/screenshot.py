@@ -7,7 +7,7 @@ import socket
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from dwin_emulator.runtime import default_socket
+from petrel.emulator.runtime import default_socket
 
 
 def capture(socket_path, file_format='png', frame=False):

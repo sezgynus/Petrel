@@ -6,9 +6,9 @@ from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
-from dwin_aux_backend import AuxBackend, RECORD, decode, record
-from dwin_broker import FrameQueue
-from dwin_protocol import HEADER, TAIL
+from petrel.hardware.dwin.auxiliary import AuxBackend, RECORD, decode, record
+from petrel.hardware.dwin.broker import FrameQueue
+from petrel.hardware.dwin.protocol import HEADER, TAIL
 
 
 class KernelAdapterTests(unittest.TestCase):
@@ -31,8 +31,8 @@ class KernelAdapterTests(unittest.TestCase):
 
     def test_baud_record_programs_panel_before_marking_tty_ready(self):
         adapter, broker = self.adapter()
-        with patch('dwin_aux_backend.os.read', return_value=record(2, 1, struct.pack('<I', 19200))), \
-                patch('dwin_aux_backend.os.write') as write:
+        with patch('petrel.hardware.dwin.auxiliary.os.read', return_value=record(2, 1, struct.pack('<I', 19200))), \
+                patch('petrel.hardware.dwin.auxiliary.os.write') as write:
             adapter.poll(broker)
             write.assert_not_called()
             frame, complete = broker.aux_tx.pop()
@@ -43,37 +43,37 @@ class KernelAdapterTests(unittest.TestCase):
 
     def test_tx_completion_waits_for_serialization_and_keeps_epoch(self):
         adapter, broker = self.adapter()
-        with patch('dwin_aux_backend.os.read', return_value=record(1, 7, b'abc')), \
-                patch('dwin_aux_backend.time.monotonic', return_value=1):
+        with patch('petrel.hardware.dwin.auxiliary.os.read', return_value=record(1, 7, b'abc')), \
+                patch('petrel.hardware.dwin.auxiliary.time.monotonic', return_value=1):
             adapter.poll(broker)
             frame, complete = broker.aux_tx.pop()
             self.assertEqual(frame, HEADER + b'\x39abc' + TAIL)
             complete()
         deadline = adapter.completion[0]
         self.assertGreater(deadline, 1)
-        with patch('dwin_aux_backend.time.monotonic', return_value=1), \
-                patch('dwin_aux_backend.os.write') as write:
+        with patch('petrel.hardware.dwin.auxiliary.time.monotonic', return_value=1), \
+                patch('petrel.hardware.dwin.auxiliary.os.write') as write:
             adapter.poll(broker)
             write.assert_not_called()
-        with patch('dwin_aux_backend.time.monotonic', return_value=deadline + .01), \
-                patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
-                patch('dwin_aux_backend.os.write', return_value=11) as write:
+        with patch('petrel.hardware.dwin.auxiliary.time.monotonic', return_value=deadline + .01), \
+                patch('petrel.hardware.dwin.auxiliary.os.read', side_effect=BlockingIOError), \
+                patch('petrel.hardware.dwin.auxiliary.os.write', return_value=11) as write:
             adapter.poll(broker)
             write.assert_called_once_with(4, record(3, 7, struct.pack('<I', 3)))
 
     def test_partial_kernel_rx_acceptance_retains_remaining_bytes(self):
         adapter, broker = self.adapter()
         adapter.receive(b'abcdef')
-        with patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
-                patch('dwin_aux_backend.os.write', return_value=RECORD.size + 2):
+        with patch('petrel.hardware.dwin.auxiliary.os.read', side_effect=BlockingIOError), \
+                patch('petrel.hardware.dwin.auxiliary.os.write', return_value=RECORD.size + 2):
             adapter.poll(broker)
         self.assertEqual(adapter.rx, b'cdef')
 
     def test_split_binary_record_acknowledges_only_after_last_frame(self):
         adapter, broker = self.adapter()
         payload = TAIL * 60
-        with patch('dwin_aux_backend.os.read', return_value=record(1, 17, payload)), \
-                patch('dwin_aux_backend.time.monotonic', return_value=1):
+        with patch('petrel.hardware.dwin.auxiliary.os.read', return_value=record(1, 17, payload)), \
+                patch('petrel.hardware.dwin.auxiliary.time.monotonic', return_value=1):
             adapter.poll(broker)
             received = bytearray()
             self.assertGreater(len(broker.aux_tx.frames), 1)
@@ -87,9 +87,9 @@ class KernelAdapterTests(unittest.TestCase):
             self.assertEqual(received, payload)
         deadline, epoch, count = adapter.completion
         self.assertEqual((epoch, count), (17, len(payload)))
-        with patch('dwin_aux_backend.time.monotonic', return_value=deadline + .01), \
-                patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
-                patch('dwin_aux_backend.os.write', return_value=11) as write:
+        with patch('petrel.hardware.dwin.auxiliary.time.monotonic', return_value=deadline + .01), \
+                patch('petrel.hardware.dwin.auxiliary.os.read', side_effect=BlockingIOError), \
+                patch('petrel.hardware.dwin.auxiliary.os.write', return_value=11) as write:
             adapter.poll(broker)
             write.assert_called_once_with(4, record(3, 17, struct.pack('<I', len(payload))))
 
@@ -99,9 +99,9 @@ class KernelAdapterTests(unittest.TestCase):
         script = textwrap.dedent('''
             import runpy, sys
             from unittest.mock import Mock, patch
-            from dwin_aux_backend import AuxBackend, record
-            namespace = runpy.run_path('dwin_broker.py', run_name='service_entry')
-            assert 'dwin_broker' not in sys.modules
+            from petrel.hardware.dwin.auxiliary import AuxBackend, record
+            namespace = runpy.run_path('petrel/hardware/dwin/broker.py', run_name='service_entry')
+            assert 'petrel.hardware.dwin.broker' not in sys.modules
             backend = AuxBackend()
             backend.fd = 4
             backend.watching = backend.tty_ready = True
@@ -109,10 +109,10 @@ class KernelAdapterTests(unittest.TestCase):
             backend.needs_configuration = False
             broker = Mock(online=True, aux_tx=namespace['FrameQueue']())
             broker.uart.out_waiting = 0
-            with patch('dwin_aux_backend.os.read', return_value=record(1, 7, b'abc')):
+            with patch('petrel.hardware.dwin.auxiliary.os.read', return_value=record(1, 7, b'abc')):
                 backend.poll(broker)
             assert broker.aux_tx.pop()[0] == bytes.fromhex('AA 39 61 62 63 CC 33 C3 3C')
-            assert 'dwin_broker' not in sys.modules, 'broker was loaded twice'
+            assert 'petrel.hardware.dwin.broker' not in sys.modules, 'broker was loaded twice'
         ''')
         result = subprocess.run([sys.executable, '-c', script],
                                 cwd=Path(__file__).resolve().parents[1],
@@ -121,13 +121,13 @@ class KernelAdapterTests(unittest.TestCase):
 
     def test_busy_tx_unsubscribes_readable_backend_until_completion(self):
         adapter, broker = self.adapter()
-        with patch('dwin_aux_backend.os.read', return_value=record(1, 7, b'abc')):
+        with patch('petrel.hardware.dwin.auxiliary.os.read', return_value=record(1, 7, b'abc')):
             adapter.poll(broker)
         adapter.selector.unregister.assert_called_once_with(4)
         self.assertFalse(adapter.watching)
         adapter.completion = (0, 7, 3)
-        with patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
-                patch('dwin_aux_backend.os.write', return_value=11):
+        with patch('petrel.hardware.dwin.auxiliary.os.read', side_effect=BlockingIOError), \
+                patch('petrel.hardware.dwin.auxiliary.os.write', return_value=11):
             adapter.poll(broker)
         adapter.selector.register.assert_called_once_with(4, 1, 'backend')
 
@@ -135,8 +135,8 @@ class KernelAdapterTests(unittest.TestCase):
         adapter, broker = self.adapter()
         adapter.tty_ready = False
         adapter.receive(b'early streaming data')
-        with patch('dwin_aux_backend.os.read', side_effect=BlockingIOError), \
-                patch('dwin_aux_backend.os.write') as write:
+        with patch('petrel.hardware.dwin.auxiliary.os.read', side_effect=BlockingIOError), \
+                patch('petrel.hardware.dwin.auxiliary.os.write') as write:
             adapter.poll(broker)
         write.assert_not_called()
         self.assertEqual(adapter.rx, b'early streaming data')

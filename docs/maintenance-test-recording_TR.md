@@ -48,8 +48,8 @@ Kayıtları bu sırayla, ardından session/run/seq ile değerlendirin. Döndürm
 Kalıcı kontrolcü değişikliği yoktur. Kaydı durdurunca özgün owner/client/worker referansları geri yüklenir.
 Kodun tamamını kaldırmak için:
 
-- `maintenance_test_trace.py` ve `tests/test_maintenance_test_trace.py` dosyalarını kaldırın.
-- `printerInterface.py`, `ui_maintenance.py`, `petrel_ui.py` içindeki **TEMPORARY MAINTENANCE TEST TRACE** işaretli bağlantıları kaldırın; UI sarmalayıcılarını özgün yöntem adlarına geri taşıyın.
+- `petrel/features/maintenance/diagnostics/test_trace.py` ve `tests/test_maintenance_test_trace.py` dosyalarını kaldırın.
+- `petrel/printer/interface.py` ve `petrel/features/maintenance/printer.py` içindeki kayıt bağlantılarını, `petrel/features/maintenance/ui/view.py` ve `screens.py` içindeki UI izlemeyi, `petrel/application/input.py` ve `tick.py` içindeki sarmalayıcıları kaldırın; UI sarmalayıcılarını özgün yöntem adlarına geri taşıyın.
 - Remote Display'deki `trace_provider`, ZIP endpoint ve indirme bağlantısını kaldırın.
 - Bu TR/EN rehber çiftini kaldırın.
 

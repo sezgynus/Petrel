@@ -51,7 +51,7 @@ def paths(data, config):
 
 
 def validate_production():
-    from libnfc_api import (
+    from petrel.features.nfc.libnfc import (
         PN532_TARGET_ATQA, PN532_MODEDET_ADDRESS, PN532_MODEDET_MASK,
         library_path, bind_pn532_register,
     )

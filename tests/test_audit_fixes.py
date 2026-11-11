@@ -8,11 +8,11 @@ from unittest.mock import Mock, patch
 from PIL import Image, ImageChops
 from test_capabilities import printer, display, snapshot
 from test_t5uic1_driver import driver
-from moonraker_subscription import MoonrakerSubscription
-from moonraker_client import MoonrakerError
-from dwin_emulator.assets import PanelAssets
-from dwin_emulator.framebuffer import Framebuffer
-from ui_events import InputEvent
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.moonraker.client import MoonrakerError
+from petrel.emulator.assets import PanelAssets
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.ui.events import InputEvent
 
 
 class AuditRegressionTests(unittest.TestCase):

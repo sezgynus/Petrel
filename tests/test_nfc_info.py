@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
-from nfc_info import parse_info
+from petrel.features.nfc.info import parse_info
 from test_capabilities import display, printer, snapshot
 
 OUTPUT = '''nfc-scan-device uses libnfc 1.8.0
@@ -56,7 +56,7 @@ class NFCInfoTests(unittest.TestCase):
             self.assertEqual(pd.system_info['rfid'], {'status': 'Disabled', 'card': {}})
             self.assertFalse(pd.sync_nfc_event())
             factory.assert_not_called()
-            from nfc_settings import NFCSettings
+            from petrel.features.nfc.settings import NFCSettings
             with self.assertRaisesRegex(OSError, 'disabled'):
                 pd.test_nfc_connection(NFCSettings('PN532', 'UART',
                                                    '/dev/ttyAMA0', 115200))

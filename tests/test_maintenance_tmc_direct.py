@@ -1,6 +1,6 @@
 """CI-only tests for homing-independent direct register diagnostics."""
 import unittest
-from maintenance_tmc_direct import direct_query, register_evidence, register_error
+from petrel.features.maintenance.domains.motion.tmc import direct_query, register_evidence, register_error
 
 
 class DirectDriverRegisterTests(unittest.TestCase):

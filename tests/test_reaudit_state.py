@@ -10,8 +10,8 @@ import test_files as files
 from test_capabilities import printer, snapshot
 from test_maintenance_ui_services import DeferredWorker
 from test_regressions import ui
-from background_reads import ReadWorker
-from ui_events import UIEventLoop
+from petrel.printer.background_reads import ReadWorker
+from petrel.ui.events import UIEventLoop
 
 
 class ReauditStateTests(unittest.TestCase):

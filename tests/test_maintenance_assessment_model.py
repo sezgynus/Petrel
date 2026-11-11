@@ -1,6 +1,6 @@
 import unittest
 from dataclasses import replace
-from maintenance_assessment_model import Evidence, Measurement, Finding, comparable
+from petrel.features.maintenance.assessment.model import Evidence, Measurement, Finding, comparable
 
 class AssessmentContractsTest(unittest.TestCase):
     def evidence(self, **kw):

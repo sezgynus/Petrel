@@ -6,8 +6,8 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from moonraker_subscription import MoonrakerSubscription
-from printer_state import PrinterState
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.printer.state import PrinterState
 
 
 def measure(immutable, rounds=150):

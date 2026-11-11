@@ -2,7 +2,7 @@ import unittest
 from concurrent.futures import Future
 from unittest.mock import Mock
 from test_capabilities import display, snapshot
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 class CaseLightLiveTests(unittest.TestCase):
     def make(self):

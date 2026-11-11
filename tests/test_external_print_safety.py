@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock
 
-from operation_guards import idle_dispatch_guard
+from petrel.printer.operation_guards import idle_dispatch_guard
 from test_capabilities import snapshot, display, printer
 
 

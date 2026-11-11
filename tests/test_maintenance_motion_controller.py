@@ -4,9 +4,9 @@ from unittest.mock import patch
 import unittest
 from test_maintenance_controller import printer, Worker
 from test_maintenance_motion import state_and_status
-from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot,DeviceCapabilities,USER,EXTERNAL,CALIBRATION,_add
-from maintenance_motion_controller import MaintenanceMotionController
+from petrel.printer.state import PrinterState
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot,DeviceCapabilities,USER,EXTERNAL,CALIBRATION,_add
+from petrel.features.maintenance.domains.motion.controller import MaintenanceMotionController
 
 class MotionControllerTests(unittest.TestCase):
     def setUp(self):
@@ -31,7 +31,7 @@ class MotionControllerTests(unittest.TestCase):
         self.commands=[]
         self.client=type('Client',(),{'get':lambda _,path:self.get(path)})()
         self.c=MaintenanceMotionController(self.p,self.worker,self.client)
-        for name in ('maintenance_motion_controller.monotonic','maintenance_runtime.monotonic'):
+        for name in ('petrel.features.maintenance.domains.motion.controller.monotonic','petrel.features.maintenance.execution.runtime.monotonic'):
             p=patch(name,lambda:self.clock)
             p.start()
             self.addCleanup(p.stop)
@@ -411,7 +411,7 @@ class MotionControllerTests(unittest.TestCase):
         self.assertIsNotNone(self.c._command.exception())
 
     def test_definitive_pre_send_guard_rejection_never_emergency_stops(self):
-        from moonraker_client import MoonrakerError
+        from petrel.moonraker.client import MoonrakerError
         self.arm('M04')
         def denied(*args,**kwargs):
             future=Future()
@@ -429,7 +429,7 @@ class MotionControllerTests(unittest.TestCase):
         self.assertFalse(self.c.pending)
 
     def test_cleared_mesh_placeholder_allows_buzz_after_http_preflight(self):
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         from dataclasses import replace
         self.data['settings']['bed_mesh']={}
         self.data['status']['bed_mesh']={'profile_name':'','mesh_min':[0,0],
@@ -476,7 +476,7 @@ class MotionControllerTests(unittest.TestCase):
 
     def test_owned_other_motion_is_blocked_while_maintenance_reserves_printer(self):
         from types import SimpleNamespace
-        from operation_guards import motion_dispatch_guard
+        from petrel.printer.operation_guards import motion_dispatch_guard
         self.p.maintenance_pulse=SimpleNamespace(pending=True)
         with self.assertRaises(ValueError):
             motion_dispatch_guard(self.p,owner='jog',position=True)

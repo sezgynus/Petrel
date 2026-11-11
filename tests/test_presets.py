@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from preset_store import PresetStore
+from petrel.features.temperature.preset_store import PresetStore
 from test_regressions import backend
 
 
@@ -52,7 +52,7 @@ class PresetTests(unittest.TestCase):
         original = self.path.read_bytes()
         printer = self.printer()
         printer.material_preset[0].hotend_temp = 230
-        with patch('preset_store.os.replace', side_effect=OSError('read-only')), self.assertLogs(level='ERROR'):
+        with patch('petrel.features.temperature.preset_store.os.replace', side_effect=OSError('read-only')), self.assertLogs(level='ERROR'):
             self.assertFalse(printer.save_settings())
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.path.parent.iterdir()), [self.path])

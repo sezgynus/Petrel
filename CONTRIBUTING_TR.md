@@ -14,6 +14,8 @@ Güncel `master` üzerinden dal açın; değişikliği odaklı tutun ve problemi
 
 Kullanıcının gördüğü değişikliklerde ilgili rehberi ve ekran görüntülerini güncelleyin. **İngilizce ve Türkçe belgeler aynı özellik ve adımları kapsamalı**, aynı görselleri/sırayı kullanmalı ve ekrandaki adları korumalıdır. Güncel kullanım rehberlere, geçmiş audit'ler referanslara aittir.
 
+Özellik sahipliği ve yalnız organizasyon değişikliği kontrolleri için [kaynak kod yerleşimine](docs/source-layout_TR.md) bakın.
+
 ## Geliştirme araçları
 
 | Araç | Ne işe yarar | Başlangıç |
@@ -77,7 +79,7 @@ JPEG değişikliklerinde [fan/buton kurallarını](assets/icons/README_TR.md#pri
 
 PN532 ile salt okunur Type 4 NDEF URI emülasyonu sırasında Android bazen hedefi ISO14443A NDEF yerine **Unknown FeliCa / NfcF** olarak tanıyordu. Deneylerde target Mode `0x05` / `0x04`, ATQA `00 04` / `00 08` ve PN532 mod algılama register müdahalesi karşılaştırıldı.
 
-`libnfc_api.py` içindeki üretim yolu dağıtımın orijinal `libnfc.so.6` kütüphanesini, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` ve SAK `0x20` değerlerini korur. PN532 target oturumu, **her** `nfc_target_init()` denemesinden hemen önce `ctypes` üzerinden şu maskeli yazmayı kuyruğa alır:
+`petrel/features/nfc/libnfc.py` içindeki üretim yolu dağıtımın orijinal `libnfc.so.6` kütüphanesini, upstream PN532 `TgInitAsTarget` Mode `0x05`, ATQA `00 04` ve SAK `0x20` değerlerini korur. PN532 target oturumu, **her** `nfc_target_init()` denemesinden hemen önce `ctypes` üzerinden şu maskeli yazmayı kuyruğa alır:
 
 ```python
 pn53x_write_register(device, 0x6301, 0x04, 0x04)

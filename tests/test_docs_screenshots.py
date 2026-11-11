@@ -54,7 +54,7 @@ class DocumentationPublicationTests(unittest.TestCase):
             root = Path(temporary); folder = root/'docs/assets/screens'; folder.mkdir(parents=True)
             panel = folder/'example.png'; panel.write_bytes(b'previous panel')
             gallery = root/'docs/screenshots.md'; gallery.write_text('previous gallery')
-            with patch('dwin_emulator.presentation.with_frame', side_effect=OSError('Cannot render frame')):
+            with patch('petrel.emulator.presentation.with_frame', side_effect=OSError('Cannot render frame')):
                 with self.assertRaises(OSError): self.invoke(root, 'blue')
             self.assertEqual(panel.read_bytes(), b'previous panel')
             self.assertEqual(gallery.read_text(), 'previous gallery')

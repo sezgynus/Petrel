@@ -4,11 +4,11 @@ from unittest.mock import Mock
 from threading import current_thread
 from dataclasses import replace
 import unittest
-from moonraker_subscription import MoonrakerSubscription
-from background_reads import ReadWorker, ReadPending
+from petrel.moonraker.subscription import MoonrakerSubscription
+from petrel.printer.background_reads import ReadWorker, ReadPending
 from test_capabilities import printer, snapshot, display
-from ui_events import InputEvent
-from buzzer_control import Player
+from petrel.ui.events import InputEvent
+from petrel.features.buzzer.control import Player
 
 class AuditHotpathTests(unittest.TestCase):
     def test_input_and_read_stamp_do_not_copy_full_config(self):
@@ -20,7 +20,7 @@ class AuditHotpathTests(unittest.TestCase):
         self.assertEqual(v.pd._read('small',lambda:'ok'),'ok')
 
     def test_buzzer_never_copies_moonraker_configuration(self):
-        from buzzer_control import Settings
+        from petrel.features.buzzer.control import Settings
         s=MoonrakerSubscription('http://localhost:7125',autostart=False)
         s.snapshot=Mock(side_effect=AssertionError('full copy'))
         s.notify_immediate=Mock(side_effect=AssertionError('Klipper buzzer'))

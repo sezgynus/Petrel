@@ -4,10 +4,10 @@ from dataclasses import replace
 from types import SimpleNamespace as NS
 from unittest.mock import Mock
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice,Screen
-from maintenance_care_view import CareItem
-from maintenance_assessment_store import ServicePolicy
-from maintenance_layout import draw_maintenance,_bar,BG,LINE
+from petrel.features.maintenance.ui.experience import Choice,Screen
+from petrel.features.maintenance.ui.care import CareItem
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.ui.layout import draw_maintenance,_bar,BG,LINE
 
 class MaintenancePartialUpdates(unittest.TestCase):
     def view(self,page='groups'):

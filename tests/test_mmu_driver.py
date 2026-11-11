@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 """MMU integration uses the actual master LCD driver, not permissive LCD mocks."""
 import ast
 from pathlib import Path
@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import Mock
 import test_mmu_ui as mmu_fixtures
 import test_t5uic1_driver as transport
-from t5uic1_driver import T5UIC1Display
-from lcd_resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
+from petrel.hardware.dwin.driver import T5UIC1Display
+from petrel.artwork.resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
 
 
 def lcd():
@@ -57,7 +57,7 @@ class MMUDriverIntegrationTests(unittest.TestCase):
 
     def test_all_production_lcd_calls_exist_on_complete_driver(self):
         root = Path(__file__).resolve().parents[1]
-        for path in root.glob('*.py'):
+        for path in (root / 'petrel').rglob('*.py'):
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):

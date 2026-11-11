@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 from test_capabilities import display, snapshot
 from test_nfc_spool_tags import spool
-from spoolman_tags import describe
+from petrel.features.spoolman.tags import describe
 
 
 class OverlayCompletionTests(unittest.TestCase):

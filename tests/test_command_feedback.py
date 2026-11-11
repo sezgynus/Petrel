@@ -2,11 +2,11 @@ from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock, patch
 
-import command_feedback
-from command_feedback import CommandFeedback
+import petrel.ui.command_feedback as command_feedback
+from petrel.ui.command_feedback import CommandFeedback
 from test_capabilities import snapshot, display
 from test_regressions import ui
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 
 
 class FeedbackTests(unittest.TestCase):

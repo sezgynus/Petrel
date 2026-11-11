@@ -2,10 +2,10 @@ import unittest
 import tempfile
 from pathlib import Path
 from dataclasses import replace
-from printer_state import freeze
-from configuration_identity import stable_digest, legacy_digest
-from maintenance_assessment_model import Evidence, Measurement
-from maintenance_assessment_store import AssessmentStore
+from petrel.printer.state import freeze
+from petrel.configuration_identity import stable_digest, legacy_digest
+from petrel.features.maintenance.assessment.model import Evidence, Measurement
+from petrel.features.maintenance.assessment.store import AssessmentStore
 
 class ConfigurationIdentity(unittest.TestCase):
     def test_frozen_nested_mappings_ignore_insertion_order_but_not_values(self):

@@ -5,9 +5,9 @@ from concurrent.futures import Future
 from types import SimpleNamespace as NS
 from unittest.mock import Mock,patch
 from test_capabilities import display,snapshot
-from maintenance_experience import Choice
-from maintenance_assessment_store import ServicePolicy
-from maintenance_ui_records import request
+from petrel.features.maintenance.ui.experience import Choice
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.records.ui_requests import request
 
 class DeferredWorker:
     def __init__(self): self.work=[]
@@ -26,7 +26,7 @@ class MaintenanceServiceUI(unittest.TestCase):
         return d
 
     def test_policy_save_does_not_claim_service_completed(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();p=ServicePolicy('inspect_clean','fan','calendar_s',86400,'user')
             f=request(worker,'save_policy',policy=p,devices=('fan',))
             self.assertFalse(f.done());worker.run()

@@ -1,12 +1,13 @@
+from test_regressions import info_backend
 """Header lifecycle, title bounds and Wi-Fi read isolation regressions."""
 import unittest
 from concurrent.futures import CancelledError
 from unittest.mock import patch,call
 from test_capabilities import display,printer,snapshot
 from test_regressions import ui,backend
-from maintenance_layout import draw_maintenance
-from maintenance_experience import Screen,Choice
-from lcd_resources import ICON_PROGRESS_FILL
+from petrel.features.maintenance.ui.layout import draw_maintenance
+from petrel.features.maintenance.ui.experience import Screen,Choice
+from petrel.artwork.resources import ICON_PROGRESS_FILL
 
 
 class DashboardAuditFixes(unittest.TestCase):
@@ -28,7 +29,7 @@ class DashboardAuditFixes(unittest.TestCase):
         p=printer(snapshot())
         p.system_info.update(wifi_ssid='Latest',wifi_rssi=-59)
         p.client.get.return_value={'result':{'version_info':{}}}
-        with patch.object(backend,'wifi_info',side_effect=AssertionError('duplicate Wi-Fi read')) as probe:
+        with patch.object(info_backend, 'wifi_info',side_effect=AssertionError('duplicate Wi-Fi read')) as probe:
             p.refresh_system_info(force=True)
         probe.assert_not_called()
         self.assertEqual((p.system_info['wifi_ssid'],p.system_info['wifi_rssi']),('Latest',-59))

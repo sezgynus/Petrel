@@ -57,7 +57,7 @@ def check_full_block(lcd, timeout):
     print('FULL BLOCK: back up SRAM 0x0000..0x7FFE...', flush=True)
     original = lcd.read_sram(0, readable, timeout=timeout)
     # Use the exact first block of the bundled ICO, including JPEG byte sequences.
-    from lcd_resources import ICON_LIBRARY_FILENAME
+    from petrel.artwork.resources import ICON_LIBRARY_FILENAME
     root = Path(__file__).resolve().parent.parent
     pattern = (root / 'assets/emulator' / ICON_LIBRARY_FILENAME).read_bytes()[:size]
     if len(pattern) != size:

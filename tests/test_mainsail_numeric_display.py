@@ -4,10 +4,10 @@ import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
-from display_numbers import fixed, js_round, setting_text, motion_text, clock_duration
-from print_tuning import Setting
-from preview_metadata import amount, duration, filament_length
-from ui_bed_mesh import point_label
+from petrel.ui.numbers import fixed, js_round, setting_text, motion_text, clock_duration
+from petrel.features.printing.tuning import Setting
+from petrel.features.files.metadata import amount, duration, filament_length
+from petrel.features.leveling.bed_mesh_view import point_label
 from test_capabilities import printer, display, snapshot
 from test_regressions import ui
 import test_print_tuning as tuning

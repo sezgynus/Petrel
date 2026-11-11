@@ -7,10 +7,10 @@ from pathlib import Path
 from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from maintenance_profiles import read_profiles, approved_integrations, MAX_BYTES
-from maintenance_discovery import discover
-from maintenance_guided import guided_plan
-from maintenance_pulse import compile_pulse
+from petrel.features.maintenance.discovery.profiles import read_profiles, approved_integrations, MAX_BYTES
+from petrel.features.maintenance.discovery.discovery import discover
+from petrel.features.maintenance.execution.guided import guided_plan
+from petrel.features.maintenance.domains.pulse.program import compile_pulse
 
 
 def state():
@@ -132,7 +132,7 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(approved_integrations(p, roles), ())
 
     def test_profiles_cached_once_per_ready_epoch(self):
-        from maintenance_session import MaintenanceDiscoveryManager
+        from petrel.features.maintenance.discovery.session import MaintenanceDiscoveryManager
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'profiles.json'
             path.write_text(json.dumps({'version': 2, 'actuators': [

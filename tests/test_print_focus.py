@@ -7,12 +7,12 @@ from test_mmu_control import mmu_snapshot
 from test_t5uic1_driver import driver
 from PIL import Image
 from io import BytesIO
-from thumbnail_preview import image_jpeg
+from petrel.features.files.thumbnail_preview import image_jpeg
 
 
 class PrintFocusTests(unittest.TestCase):
     def test_pending_label_fits_without_overlapping_an_action_icon(self):
-        from lcd_resources import ICON_PRINT_PENDING
+        from petrel.artwork.resources import ICON_PRINT_PENDING
         v, _ = self.view()
         v.lcd = driver()
         v._stop_waiting = True
@@ -43,7 +43,7 @@ class PrintFocusTests(unittest.TestCase):
         v.lcd = driver()
         v._tune_edit = v.pd.print_settings()[0]
         v._tune_target = 100
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             v._focus_edit_draw()
         packets = v.lcd.MYSERIAL1.frames
         # Apply backing plus the new Klipper status cap in the shared title.
@@ -53,7 +53,7 @@ class PrintFocusTests(unittest.TestCase):
         self.assertLess(sum(p[1] == 0x05 for p in packets), 12)
         self.assertIn(b'Apply', [p[11:-4] for p in packets if p[1] == 0x11])
         v.lcd.MYSERIAL1.frames.clear()
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             v._focus_print_open()
         packets = v.lcd.MYSERIAL1.frames
         self.assertIn(b'Preview', [p[11:-4] for p in packets if p[1] == 0x11])
@@ -61,10 +61,10 @@ class PrintFocusTests(unittest.TestCase):
         self.assertTrue(any(p[1] == 0x23 and p[-5] == 93 for p in packets))
 
     def test_tune_row_selection_uses_managed_icons_without_bitmap_caps(self):
-        from lcd_resources import ICON_TUNE_BACK_SELECTED, ICON_TUNE_ROW_SELECTED
+        from petrel.artwork.resources import ICON_TUNE_BACK_SELECTED, ICON_TUNE_ROW_SELECTED
         v, _ = self.view()
         v.lcd = driver()
-        with patch('t5uic1_driver.time.sleep'):
+        with patch('petrel.hardware.dwin.driver.time.sleep'):
             v._focus_tune_open()
             self.assertFalse(any(frame[1] == 0x08 for frame in v.lcd.serial.frames))
             self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 13
@@ -138,12 +138,12 @@ class PrintFocusTests(unittest.TestCase):
 
     def test_pause_notice_expires_without_erasing_other_print_fields(self):
         v, _ = self.view()
-        with patch('ui_print_focus.time.monotonic', return_value=10.0):
+        with patch('petrel.features.printing.view.time.monotonic', return_value=10.0):
             v._focus_pause_failure(True, RuntimeError('Moonraker HTTP status 500'))
-        with patch('ui_print_focus.time.monotonic', return_value=15.9):
+        with patch('petrel.features.printing.view.time.monotonic', return_value=15.9):
             v._focus_tick_quiet()
         self.assertIsNotNone(v._pause_notice)
-        with patch('ui_print_focus.time.monotonic', return_value=16.0):
+        with patch('petrel.features.printing.view.time.monotonic', return_value=16.0):
             v._focus_tick_quiet()
         self.assertIsNone(v._pause_notice)
 
@@ -155,8 +155,8 @@ class PrintFocusTests(unittest.TestCase):
 
     def test_slow_request_is_not_rejected_by_elapsed_time(self):
         v,_=self.view();f=Future()
-        with patch('ui_print_focus.time.monotonic',return_value=0):v._focus_submit('speed',130,lambda:f)
-        with patch('ui_print_focus.time.monotonic',return_value=1000):v._focus_tick_quiet()
+        with patch('petrel.features.printing.view.time.monotonic',return_value=0):v._focus_submit('speed',130,lambda:f)
+        with patch('petrel.features.printing.view.time.monotonic',return_value=1000):v._focus_tick_quiet()
         self.assertIn('speed',v._quiet_edits);self.assertFalse(v._quiet_blinks)
 
     def test_subscription_confirmation_is_silent_and_epoch_clears_pending(self):
@@ -259,7 +259,7 @@ class PrintFocusTests(unittest.TestCase):
         self.assertFalse(any('Waiting for current command' in str(x)
                              for x in labels))
         self.assertLessEqual(v.select_print.now, 1)
-        with patch('command_feedback.time.monotonic',
+        with patch('petrel.ui.command_feedback.time.monotonic',
                    return_value=v._action_feedback.started + 600):
             self.assertFalse(v._poll_action())
         v._show_message.assert_not_called()
@@ -438,8 +438,8 @@ class PrintFocusTests(unittest.TestCase):
         self.assertEqual([f[1] for f in v.lcd.serial.frames],[0x05,0x23,0x11])
 
     def test_button_states_have_round_transparent_corners(self):
-        from dwin_emulator.assets import PanelAssets
-        from lcd_resources import PRINT_BUTTON_SELECTED,ICON_LIBRARY_ID
+        from petrel.emulator.assets import PanelAssets
+        from petrel.artwork.resources import PRINT_BUTTON_SELECTED,ICON_LIBRARY_ID
         assets=PanelAssets()
         for normal,selected in PRINT_BUTTON_SELECTED.items():
             with self.subTest(normal=normal):
@@ -452,8 +452,8 @@ class PrintFocusTests(unittest.TestCase):
                         self.assertLessEqual(max(artwork.getpixel(corner)),31)
 
     def test_all_button_variants_round_trip_without_pixel_residue(self):
-        from dwin_emulator.assets import PanelAssets
-        from dwin_emulator.framebuffer import Framebuffer
+        from petrel.emulator.assets import PanelAssets
+        from petrel.emulator.framebuffer import Framebuffer
         from PIL import ImageChops
         v,data=self.view(mmu=True);v.lcd=driver();v.framebuffer=Framebuffer(PanelAssets())
         v.lcd._packet_observer=v.framebuffer;v.lcd.clear(0x2125)

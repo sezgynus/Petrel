@@ -1,8 +1,8 @@
 import tempfile
 import unittest
 from pathlib import Path
-from maintenance_assessment_store import AssessmentStore, ServicePolicy, service_due
-from maintenance_assessment_model import Evidence
+from petrel.features.maintenance.assessment.store import AssessmentStore, ServicePolicy, service_due
+from petrel.features.maintenance.assessment.model import Evidence
 
 class AssessmentStoreTest(unittest.TestCase):
     def reference(self):

@@ -2,7 +2,7 @@ from unittest.mock import Mock
 import unittest
 
 from test_capabilities import display, printer, snapshot
-from ui_events import InputEvent
+from petrel.ui.events import InputEvent
 
 
 class InputEpochTests(unittest.TestCase):

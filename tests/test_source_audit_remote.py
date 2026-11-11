@@ -9,9 +9,9 @@ import time
 import unittest
 from urllib.request import urlopen
 from PIL import Image
-from dwin_emulator.remote import RemoteDisplayServer, _HTTP, PAGE
-from dwin_emulator.runtime import Emulator
-from dwin_emulator.framebuffer import Framebuffer
+from petrel.emulator.remote import RemoteDisplayServer, _HTTP, PAGE
+from petrel.emulator.runtime import Emulator
+from petrel.emulator.framebuffer import Framebuffer
 
 class AuditRemoteTests(unittest.TestCase):
     def test_one_jpeg_is_shared_and_disconnection_does_not_serve_stale_frame(self):
@@ -36,8 +36,8 @@ class AuditRemoteTests(unittest.TestCase):
         from threading import RLock
         f.lock=RLock();f.sequence=12
         f.animations={0:(0,0,0x80,3,1,3,10,0,None)}
-        with patch('dwin_emulator.framebuffer.time.monotonic',return_value=.01):a=f.frame_token()
-        with patch('dwin_emulator.framebuffer.time.monotonic',return_value=.11):b=f.frame_token()
+        with patch('petrel.emulator.framebuffer.time.monotonic',return_value=.01):a=f.frame_token()
+        with patch('petrel.emulator.framebuffer.time.monotonic',return_value=.11):b=f.frame_token()
         self.assertNotEqual(a,b);self.assertEqual(a[0],b[0])
 
     def test_connection_capacity_rejects_before_starting_another_thread(self):

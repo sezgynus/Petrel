@@ -32,7 +32,7 @@ Kanıt yokken giriş ekranı değerlendirme raporu veya controller planı üretm
 
 ## Teşhis sunumu ve ortak görseller
 
-Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Maintenance ortak ikonları `lcd_resources.py` içindeki anlamlı sabitlerle seçer. Güncel kütüphane/çıktı 186 ikon ve 12 bloktur (384 KiB); tam eşleştirme yönetilen ikon envanterindedir.
+Başarılı bilgi okumaları, ayrıca Details seçtirmeden ölçülen veriyi doğrudan açar. İç kanıt anahtarları yerine anlaşılır adlar ve tanımlı birimler gösterilir. Pi uyarı bitleri güncel/geçmiş host uyarısı olarak açıklanır; 24 V güç kaynağı tanısı sayılmaz. Sonuç/geçmiş durumları ve geri yükleme bayrakları sade metinle sunulur; kayıtlı diagnostik alanları açık etiket ve birimlerle sunulur. Uzun metin sarılır ve tam yönergeler erişilebilir kalır. Maintenance ortak ikonları `petrel/artwork/resources.py` içindeki anlamlı sabitlerle seçer. Güncel kütüphane/çıktı 186 ikon ve 12 bloktur (384 KiB); tam eşleştirme yönetilen ikon envanterindedir.
 
 ## Tüm alt menülerde artımlı güncelleme
 

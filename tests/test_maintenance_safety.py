@@ -5,8 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_discovery import MaintenanceSnapshot
-from maintenance_safety import (
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot
+from petrel.features.maintenance.execution.safety import (
     MaintenanceSafetyCoordinator, SafetyContext, precheck,
 )
 

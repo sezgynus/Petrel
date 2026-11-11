@@ -8,8 +8,8 @@ import logging
 import time
 
 from render_docs_screenshots import canvas, sample, cube_thumbnail, finish
-from thumbnail_cache import ThumbnailCache
-from print_tuning import JOB_PINS
+from petrel.features.files.thumbnail_cache import ThumbnailCache
+from petrel.features.printing.tuning import JOB_PINS
 
 
 def main():
@@ -71,7 +71,7 @@ def main():
         enter(v.HMI_PauseOrStop);v._open_power_hold_popup();capture()
     target=args.output or Path(__file__).resolve().parents[1]/'docs/assets/print-controls-demo.gif'
     if args.frame:
-        from dwin_emulator.presentation import with_frame
+        from petrel.emulator.presentation import with_frame
         frames=[with_frame(frame) for frame in frames]
         if args.output is None:
             target=target.parent/'framed'/target.name

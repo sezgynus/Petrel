@@ -6,9 +6,9 @@ The renderer is invoked only in CI, never on the development machine.
 from dataclasses import replace
 from types import SimpleNamespace as NS
 from unittest.mock import Mock,patch
-from maintenance_assessment_store import ServicePolicy
-from maintenance_assessment_model import Finding
-from maintenance_sensor_diagnostics import SensorReading
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.assessment.model import Finding
+from petrel.features.maintenance.domains.sensors.diagnostics import SensorReading
 
 NOW=1780000000
 

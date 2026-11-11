@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock, patch
@@ -348,7 +348,7 @@ class DirectoryBrowserTests(unittest.TestCase):
         view.Draw_Menu_Line=Mock();view.lcd.reset_mock()
         view.Draw_SDItem(0,0)
         view.Draw_Menu_Line.assert_called_once_with(0,False,'inner')
-        from lcd_resources import ICON_FOLDER
+        from petrel.artwork.resources import ICON_FOLDER
         view.lcd.show_icon.assert_called_once_with(
             ICON_LIBRARY_ID, ICON_FOLDER, 26, view.MBASE(0) - 7, background=False, enhanced=True)
         view.lcd.draw_rectangle.assert_not_called()
@@ -414,7 +414,7 @@ class FilePrefetchTests(unittest.TestCase):
 
     def test_prefetch_does_not_fetch_when_printer_is_offline(self):
         result = printer(snapshot())
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         data = snapshot(); data['state'] = 'disconnected'
         result.state = PrinterState.from_snapshot(data)
         result.getREST = Mock()

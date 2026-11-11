@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock
 import test_mmu_ui as mmu_fixtures
-from lcd_resources import ICON_POWER, ICON_WIFI_STRONG, ICON_PROGRESS_FILL
+from petrel.artwork.resources import ICON_POWER, ICON_WIFI_STRONG, ICON_PROGRESS_FILL
 
 
 class MMUPowerIntegrationTests(unittest.TestCase):

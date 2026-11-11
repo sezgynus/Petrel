@@ -4,8 +4,8 @@ from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlsplit
-from maintenance_sensor_diagnostics import read, devices
-from maintenance_experience import Choice
+from petrel.features.maintenance.domains.sensors.diagnostics import read, devices
+from petrel.features.maintenance.ui.experience import Choice
 from test_capabilities import display, snapshot
 
 SENSOR = 'filament_switch_sensor arbitrary_name'

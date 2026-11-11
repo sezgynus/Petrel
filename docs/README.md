@@ -26,6 +26,7 @@
 | Guide | Use it for |
 |---|---|
 | [Contributing](../CONTRIBUTING.md) | Issues, pull requests, documentation and development checks |
+| [Source layout](source-layout.md) | Feature ownership, shared UI, maintenance groups and organization-only change checks |
 | [Emulator screenshots](ui-emulator.md) | Enable capture and save images from the running service |
 | [Tests](../tests/README.md) | Run automated checks and plan hardware validation |
 | [UI native-code candidate profiling](ui-native-profiling.md) | Separate normal resource measurements, CPU sampling and Python allocation ownership |

@@ -1,7 +1,7 @@
 """Device-specific thermal information: never physical PASS."""
 import unittest
-from maintenance_executor import _read_fields, read_only_adapters
-from maintenance_discovery import INFORMATION
+from petrel.features.maintenance.execution.executor import _read_fields, read_only_adapters
+from petrel.features.maintenance.discovery.discovery import INFORMATION
 
 class ThermalReadTests(unittest.TestCase):
     def test_target_and_eventtime_are_required(self):
@@ -35,7 +35,7 @@ class ThermalReadTests(unittest.TestCase):
         from types import SimpleNamespace
         from unittest.mock import Mock
         from test_capabilities import display,snapshot
-        from maintenance_experience import Choice
+        from petrel.features.maintenance.ui.experience import Choice
         d=display(snapshot());d._maintenance_init()
         row=SimpleNamespace(feature_id='S01')
         d.pd.start_maintenance_read=Mock(return_value=(True,'queued'))

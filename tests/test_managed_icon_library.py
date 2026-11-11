@@ -1,11 +1,11 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 from io import BytesIO
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
 from PIL import Image
-import icon_library as icons
+import petrel.artwork.icon_library as icons
 from tools.pack_icon_library import entries, validate_block_layout
 
 
@@ -76,11 +76,11 @@ class ManagedIconTests(unittest.TestCase):
         lcd.write_flash.side_effect = write
         return lcd, memory
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_initial_upload_unchanged_and_one_changed_block(self, sleep):
         data = icons.pack_records([(10, 20, 20, b'x' * 30000), (11, 20, 20, b'y' * 1000)])
         lcd, memory = self.panel()
-        with patch('icon_library.build_library', return_value=data):
+        with patch('petrel.artwork.icon_library.build_library', return_value=data):
             self.assertTrue(icons.sync_library(lcd))
             self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID + 1, ICON_LIBRARY_ID])
             self.assertTrue(all(c.args[0] == 0 and len(c.args[1]) == 32767
@@ -92,18 +92,18 @@ class ManagedIconTests(unittest.TestCase):
             lcd.configure_animation.assert_not_called()
         changed = bytearray(data)
         changed[32768] ^= 1
-        with patch('icon_library.build_library', return_value=bytes(changed)):
+        with patch('petrel.artwork.icon_library.build_library', return_value=bytes(changed)):
             self.assertTrue(icons.sync_library(lcd))
             self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID + 1, ICON_LIBRARY_ID])
         self.assertEqual(memory[:64], b'a' * 64)
         self.assertEqual(memory[256:272], b's' * 16)
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_partial_upload_resumes_and_reconnect_does_not_repeat_failed_flash(self, sleep):
         data = icons.pack_records([(10, 20, 20, b'x' * 30000), (11, 20, 20, b'y' * 1000)])
         lcd, _ = self.panel()
         lcd.store_sram_as_picture.side_effect = [None, RuntimeError('lost ACK')]
-        with patch('icon_library.build_library', return_value=data):
+        with patch('petrel.artwork.icon_library.build_library', return_value=data):
             with self.assertRaisesRegex(RuntimeError, 'lost ACK'):
                 icons.sync_library(lcd)
             count = lcd.store_sram_as_picture.call_count
@@ -117,7 +117,7 @@ class ManagedIconTests(unittest.TestCase):
             self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [ICON_LIBRARY_ID])
 
 
-    @patch('icon_library.time.sleep')
+    @patch('petrel.artwork.icon_library.time.sleep')
     def test_unchanged_reconnect_reuses_pack_but_changed_sources_rebuild(self, sleep):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -126,7 +126,7 @@ class ManagedIconTests(unittest.TestCase):
             lcd, _ = self.panel()
             icons._cached_pack.cache_clear()
             try:
-                with patch('icon_library.Image.open', wraps=Image.open) as decoder:
+                with patch('petrel.artwork.icon_library.Image.open', wraps=Image.open) as decoder:
                     self.assertTrue(icons.sync_library(lcd, directory=root))
                     initial_decodes = decoder.call_count
                     self.assertGreater(initial_decodes, 0)
@@ -201,9 +201,9 @@ class ManagedIconTests(unittest.TestCase):
             animations = [frame for frame in port.frames if frame[1] == 0x28]
             self.assertTrue(all(frame[6] & 0x80 for frame in animations))
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
-                patch('boot_artwork.sync', side_effect=lambda lcd: events.append('artwork')), \
-                patch('shared_artwork.sync'), \
-                patch('icon_library.sync_library', side_effect=icon_sync), \
+                patch('petrel.artwork.boot.sync', side_effect=lambda lcd: events.append('artwork')), \
+                patch('petrel.artwork.shared.sync'), \
+                patch('petrel.artwork.icon_library.sync_library', side_effect=icon_sync), \
                 patch.object(Driver, '_startup_animation_library', return_value=3):
             lcd = Driver('/dev/fake', wake_delay=0,
                          startup_progress=progress)

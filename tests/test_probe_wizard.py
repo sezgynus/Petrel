@@ -2,7 +2,7 @@ from concurrent.futures import Future
 import unittest
 from unittest.mock import ANY, Mock, patch
 
-import probe_wizard
+import petrel.features.leveling.probe_wizard as probe_wizard
 from test_capabilities import snapshot, printer, display
 
 
@@ -264,7 +264,7 @@ class RepeatedProbeStepTests(unittest.TestCase):
         self.assertFalse(guard())
 
     def test_failed_step_keeps_live_session_without_replay(self):
-        from moonraker_client import MoonrakerError
+        from petrel.moonraker.client import MoonrakerError
         for active in (True, False):
             result = self.started()
             future = result.probe_wizard.testz('-')
@@ -312,7 +312,7 @@ class ProbeCenterSafetyTests(unittest.TestCase):
         result.subscription.request.assert_not_called()
 
     def test_failed_homing_never_probes_and_ready_printer_can_retry(self):
-        from moonraker_client import MoonrakerError
+        from petrel.moonraker.client import MoonrakerError
         result = self.printer(); source = data()
         source['status']['toolhead']['homed_axes'] = ''
         result.subscription.snapshot.return_value = source; result.update_variable()
@@ -365,7 +365,7 @@ class LevelingNavigationTests(unittest.TestCase):
 class ProbeCenterRestoreTests(unittest.TestCase):
     def setup_printer(self):
         import json
-        from moonraker_subscription import MoonrakerSubscription
+        from petrel.moonraker.subscription import MoonrakerSubscription
         from test_regressions import backend
         p = ProbeTests.printer(self)
         snapshot_reader = p.subscription.snapshot
@@ -417,7 +417,7 @@ class ProbeCenterRestoreTests(unittest.TestCase):
     def test_long_center_does_not_use_http_timeout(self):
         p, ws = self.setup_printer(); f = p.probe_wizard.start()
         self.reply(ws); ws._drain_outbound()
-        with patch('moonraker_subscription.time.monotonic', return_value=10):
+        with patch('petrel.moonraker.subscription.time.monotonic', return_value=10):
             ws._expire_requests()
         self.assertFalse(f.done())
         p.client.post.assert_not_called()

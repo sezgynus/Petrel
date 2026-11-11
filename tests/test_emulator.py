@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 from io import BytesIO
 from pathlib import Path
 import socket
@@ -7,9 +7,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 from PIL import Image
-from dwin_emulator.assets import PanelAssets, rgb565
-from dwin_emulator.framebuffer import Framebuffer
-from dwin_emulator.runtime import Emulator, ScreenshotServer
+from petrel.emulator.assets import PanelAssets, rgb565
+from petrel.emulator.framebuffer import Framebuffer
+from petrel.emulator.runtime import Emulator, ScreenshotServer
 from tools.screenshot import capture
 from test_t5uic1_driver import driver
 
@@ -25,7 +25,7 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.lcd._packet_observer = self.model
 
     def test_managed_ico_flash_blocks_do_not_require_jpeg_decoding(self):
-        from icon_library import build_library
+        from petrel.artwork.icon_library import build_library
         packed = build_library()
         for index in range(len(packed) // 32768):
             block = packed[index * 32768:(index + 1) * 32768]
@@ -69,12 +69,12 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertEqual(current.getpixel((3, 5)), (255, 0, 0))
 
     def test_native_animation_capture_advances_stops_and_moves_without_traces(self):
-        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100):
+        with patch('petrel.emulator.framebuffer.time.monotonic', return_value=100):
             self.lcd.clear(0)
             self.lcd.configure_animation(0, True, ICON_LIBRARY_ID, 181, 185, 12, 40, 10)
             self.lcd.update()
             first, _ = self.model.snapshot()
-        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100.11):
+        with patch('petrel.emulator.framebuffer.time.monotonic', return_value=100.11):
             second, _ = self.model.snapshot()
             self.assertNotEqual(first.tobytes(), second.tobytes())
             self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 181, 185, 12, 40, 10)
@@ -87,7 +87,7 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.lcd.configure_animation(0, False, ICON_LIBRARY_ID, 181, 185, 70, 40, 10)
             self.lcd.update()
             stopped, _ = self.model.snapshot()
-        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=200):
+        with patch('petrel.emulator.framebuffer.time.monotonic', return_value=200):
             self.assertEqual(stopped.tobytes(), self.model.snapshot()[0].tobytes())
         self.assertFalse(self.model.errors)
 
@@ -124,7 +124,7 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.lcd.show_jpeg(0)
         view._draw_home_page(); view.Draw_Status_Area(False); self.lcd.update()
         home, _ = self.model.snapshot()
-        from lcd_resources import ICON_MMU_HOME_NORMAL
+        from petrel.artwork.resources import ICON_MMU_HOME_NORMAL
         source = self.assets.icon(ICON_LIBRARY_ID, ICON_MMU_HOME_NORMAL)
         # Native transparency changes black pixels only; compare a colored pixel.
         points = [(x, y) for y in range(2, 65) for x in range(2, 108)
@@ -301,12 +301,12 @@ class EmulatorLifecycleTests(unittest.TestCase):
 
 class EmulatorSocketPathTests(unittest.TestCase):
     def test_systemd_and_ssh_use_same_default_socket(self):
-        from dwin_emulator.runtime import default_socket
+        from petrel.emulator.runtime import default_socket
         import os
         with patch.dict(os.environ, {'XDG_RUNTIME_DIR': '/run/user/1000'}):
             ssh = default_socket()
         with patch.dict(os.environ, {}, clear=True):
-            with patch('dwin_emulator.runtime.Path.home', return_value=Path.home()):
+            with patch('petrel.emulator.runtime.Path.home', return_value=Path.home()):
                 service = default_socket()
         self.assertEqual(ssh, service)
         self.assertEqual(ssh, Path.home() / '.cache/Petrel-emulator/control.sock')

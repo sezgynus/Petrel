@@ -1,12 +1,12 @@
 import tempfile
 import unittest
 from pathlib import Path
-from maintenance_assessment_store import AssessmentStore, ServicePolicy
-from maintenance_assessment_messages import message_text
-from maintenance_assessment import Observation, assess, assessment_plan
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _index_for
-from maintenance_heater import thermal_adapters
-from maintenance_planner import build_plan
+from petrel.features.maintenance.assessment.store import AssessmentStore, ServicePolicy
+from petrel.features.maintenance.assessment.messages import message_text
+from petrel.features.maintenance.assessment.assessment import Observation, assess, assessment_plan
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, CALIBRATION, _index_for
+from petrel.features.maintenance.domains.thermal.controller import thermal_adapters
+from petrel.features.maintenance.execution.planner import build_plan
 
 class AssessmentCompletionTest(unittest.TestCase):
     def test_service_policy_survives_reload_and_does_not_acknowledge_service(self):

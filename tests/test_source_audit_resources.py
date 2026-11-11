@@ -6,15 +6,15 @@ from unittest.mock import Mock, patch
 from concurrent.futures import Future
 import tempfile
 import unittest
-from background_reads import ReadWorker
-from maintenance_records import MaintenanceBook, read_json
+from petrel.printer.background_reads import ReadWorker
+from petrel.features.maintenance.records.book import MaintenanceBook, read_json
 from test_maintenance_ui_services import DeferredWorker
 from test_capabilities import printer, snapshot
-from software_update import SoftwareUpdate
+from petrel.features.software_update.updater import SoftwareUpdate
 
 class AuditResourceTests(unittest.TestCase):
     def test_unobserved_devices_have_no_fabricated_zero_counter(self):
-        with tempfile.TemporaryDirectory() as tmp, patch('maintenance_records.Path.home',return_value=Path(tmp)):
+        with tempfile.TemporaryDirectory() as tmp, patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(tmp)):
             book = MaintenanceBook(DeferredWorker())
             cfg = {'fan_generic optional': {}, 'fan': {}}
             state = NS(ready=True,epoch=1,objects=tuple(cfg),settings=cfg,status={'fan':{'speed':0}})
@@ -27,7 +27,7 @@ class AuditResourceTests(unittest.TestCase):
             self.assertEqual(book.service_counters()['sampled_on_s']['fan_generic optional'],1)
 
     def test_orderly_close_preserves_tail_without_periodic_deadline(self):
-        with tempfile.TemporaryDirectory() as tmp, patch('maintenance_records.Path.home',return_value=Path(tmp)):
+        with tempfile.TemporaryDirectory() as tmp, patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(tmp)):
             book=MaintenanceBook(DeferredWorker())
             state=NS(ready=True,epoch=1,objects=('fan',),settings={'fan':{}},status={'fan':{'speed':1}})
             book.note(state,now=0);book.note(state,now=1)
@@ -54,7 +54,7 @@ class AuditResourceTests(unittest.TestCase):
         u=SoftwareUpdate(p)
         self.assertIsNone(u._worker)
         p._maintenance_worker.submit=Mock(side_effect=AssertionError('shared lane'))
-        with patch('software_update.ReadWorker') as factory:
+        with patch('petrel.features.software_update.updater.ReadWorker') as factory:
             lane=factory.return_value
             lane.submit.return_value=Future()
             u.start()
@@ -67,7 +67,7 @@ class AuditResourceTests(unittest.TestCase):
     def test_update_close_prevents_followup_requests_without_replaying(self):
         p=printer(snapshot());worker=DeferredWorker()
         u=SoftwareUpdate(p,worker=worker)
-        with patch('software_update.MoonrakerClient') as factory:
+        with patch('petrel.features.software_update.updater.MoonrakerClient') as factory:
             client=factory.return_value
             def get(path):
                 u._closed.set()

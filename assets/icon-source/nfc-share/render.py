@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from lcd_resources import ICON_NFC_SHARE_FIRST
+from petrel.artwork.resources import ICON_NFC_SHARE_FIRST
 import math
 O=Path(__file__).parent
 B='#2c2e3c'; W='#edf3f7'; C='#42d5db'

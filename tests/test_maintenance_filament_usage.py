@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
-from maintenance_filament_usage import read_totals, recorded_filament
-from maintenance_care import reminder_default
+from petrel.features.maintenance.records.filament_usage import read_totals, recorded_filament
+from petrel.features.maintenance.records.care import reminder_default
 
 
 class NativeFilamentHistoryTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class NativeFilamentHistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError): read_totals(body)
 
     def test_counter_identity_persists_and_changes_on_moonraker_reset(self):
-        with tempfile.TemporaryDirectory() as td,patch('maintenance_records.root',return_value=Path(td)):
+        with tempfile.TemporaryDirectory() as td,patch('petrel.features.maintenance.records.book.root',return_value=Path(td)):
             client=NS(request=Mock(return_value={'result':{'job_totals':{
                 'total_jobs':4,'total_filament_used':12000}}}))
             first=recorded_filament(client)
@@ -45,7 +45,7 @@ class NativeFilamentHistoryTests(unittest.TestCase):
 
     def test_real_moonraker_float_job_total_creates_durable_filament_identity(self):
         with tempfile.TemporaryDirectory() as td,patch(
-                'maintenance_records.root',return_value=Path(td)):
+                'petrel.features.maintenance.records.book.root',return_value=Path(td)):
             client=NS(request=Mock(return_value={'result':{'job_totals':{
                 'total_jobs':893.0,'total_filament_used':3045818.8404368404}}}))
             usage=recorded_filament(client)
@@ -61,7 +61,7 @@ class NativeFilamentHistoryTests(unittest.TestCase):
                              stored['counter_id'])
 
     def test_incomplete_response_never_writes_a_zero(self):
-        with tempfile.TemporaryDirectory() as td,patch('maintenance_records.root',return_value=Path(td)):
+        with tempfile.TemporaryDirectory() as td,patch('petrel.features.maintenance.records.book.root',return_value=Path(td)):
             client=NS(request=Mock(return_value={'result':{'job_totals':{}}}))
             with self.assertRaises(ValueError): recorded_filament(client)
             self.assertFalse((Path(td)/'maintenance-filament-history.json').exists())
@@ -73,8 +73,8 @@ class NativeFilamentHistoryTests(unittest.TestCase):
 
 
     def test_existing_records_use_native_counter_without_rebasing(self):
-        from maintenance_assessment_store import ServicePolicy
-        from maintenance_ui_records import request
+        from petrel.features.maintenance.assessment.store import ServicePolicy
+        from petrel.features.maintenance.records.ui_requests import request
         from test_maintenance_ui_services import DeferredWorker
         policy=ServicePolicy('nozzle','extruder','filament_mm',20000,'user')
         observed={'length':50000.,'id':'a'*32}
@@ -85,7 +85,7 @@ class NativeFilamentHistoryTests(unittest.TestCase):
                         filament_counter_id=observed['id'],
                         available_metrics=(('extruder','filament_mm'),))
         with tempfile.TemporaryDirectory() as td,patch(
-                'maintenance_ui_records.Path.home',return_value=Path(td)):
+                'petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(td)):
             worker=DeferredWorker()
             def run(op):
                 future=request(worker,op,policy=policy if op!='load' else None,

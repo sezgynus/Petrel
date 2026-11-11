@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import patch
 from dataclasses import replace
 from types import SimpleNamespace
-from maintenance_assessment import Observation, observations
-from maintenance_assessment_bridge import typed_evidence, saved_evidence
-from maintenance_assessment_model import comparable
-from maintenance_physical import MaintenancePulseController
+from petrel.features.maintenance.assessment.assessment import Observation, observations
+from petrel.features.maintenance.assessment.bridge import typed_evidence, saved_evidence
+from petrel.features.maintenance.assessment.model import comparable
+from petrel.features.maintenance.domains.pulse.controller import MaintenancePulseController
 
 class AssessmentBridgeTest(unittest.TestCase):
     def test_units_explicit_and_conditions_not_invented(self):

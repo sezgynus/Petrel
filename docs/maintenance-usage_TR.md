@@ -2,7 +2,7 @@
 
 [English](maintenance-usage.md) · [Maintenance](user-guide_TR.md#maintenance)
 
-Maintenance, Klipper READY sırasında gerçek nesne envanterinden pasif kullanım tanımları üretir. Aynı kayıt sistemi mevcut WebSocket aboneliğini, toplayıcıyı ve keşif snapshot'ını besler. Çıkışı okumak için fiziksel test izni gerekmez. Kullanım ölçmek amacıyla çıkış sürülmez; menü açmak keşif çalıştırmaz. `printer_capabilities.py` bağımsız kalır.
+Maintenance, Klipper READY sırasında gerçek nesne envanterinden pasif kullanım tanımları üretir. Aynı kayıt sistemi mevcut WebSocket aboneliğini, toplayıcıyı ve keşif snapshot'ını besler. Çıkışı okumak için fiziksel test izni gerekmez. Kullanım ölçmek amacıyla çıkış sürülmez; menü açmak keşif çalıştırmaz. `petrel/printer/capabilities.py` bağımsız kalır.
 
 ## Desteklenen ölçümler
 

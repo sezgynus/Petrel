@@ -1,7 +1,8 @@
+from test_regressions import info_backend
 import unittest
 from unittest.mock import patch
 from test_capabilities import printer, snapshot, backend
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 
 class McuTemperatureIdentity(unittest.TestCase):
     def test_suffix_named_mcu_never_inherits_primary_temperature(self):
@@ -14,9 +15,9 @@ class McuTemperatureIdentity(unittest.TestCase):
             'temperature_sensor secondary':{'temperature':55.}})
         p=printer(data);p.state=PrinterState.from_snapshot(data)
         p.client.get.return_value={'result':{'version_info':{}}}
-        with patch.object(backend,'network_info',return_value=('Online','1.2.3.4')), \
-             patch.object(backend,'host_metrics',return_value=(10.,45.)), \
-             patch.object(backend,'host_memory_usage',return_value=20.):
+        with patch.object(info_backend, 'network_info',return_value=('Online','1.2.3.4')), \
+             patch.object(info_backend, 'host_metrics',return_value=(10.,45.)), \
+             patch.object(info_backend, 'host_memory_usage',return_value=20.):
             p.refresh_system_info(force=True)
         values={m['name']:m['temperature'] for m in p.system_info['mcus']}
         self.assertEqual(values,{'mcu':42.,'mcu toolhead_mcu':55.,'mcu unused_mcu':None})

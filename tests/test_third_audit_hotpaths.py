@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import unittest
 
 import test_files as files
-from thumbnail_preview import NoThumbnail
-from ui_events import UIEventLoop
+from petrel.features.files.thumbnail_preview import NoThumbnail
+from petrel.ui.events import UIEventLoop
 
 
 class ThirdAuditHotpaths(unittest.TestCase):
@@ -68,15 +68,15 @@ class ThirdAuditHotpaths(unittest.TestCase):
     def test_transient_retry_waits_at_idle_cadence_and_resumes_foreground_loading(self):
         v, future = self.view()
         future.set_exception(ValueError('temporary'))
-        with patch('thumbnail_cache.time.monotonic', return_value=100.):
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic', return_value=100.):
             v._ui_tick()
         self.assertEqual(v._loop._interval, .5)
-        with patch('thumbnail_cache.time.monotonic', return_value=109.):
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic', return_value=109.):
             v._ui_tick()
         self.assertEqual(v._thumbnail_cache.loader.call_count, 1)
         retry = Future()
         v._thumbnail_cache.loader.return_value = retry
-        with patch('thumbnail_cache.time.monotonic', return_value=110.):
+        with patch('petrel.features.files.thumbnail_cache.time.monotonic', return_value=110.):
             v._ui_tick()
         self.assertEqual(v._thumbnail_cache.loader.call_count, 2)
         self.assertEqual(v._loop._interval, .02)

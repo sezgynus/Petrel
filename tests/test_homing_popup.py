@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 from concurrent.futures import Future
 import unittest
 from unittest.mock import Mock
@@ -48,7 +48,7 @@ class HomingPopupTests(unittest.TestCase):
 
 class PopupRenderingTests(unittest.TestCase):
     def test_cold_popup_uses_shared_blank_button_and_native_confirm_text(self):
-        from lcd_resources import ICON_STOP_BUTTON_SELECTED
+        from petrel.artwork.resources import ICON_STOP_BUTTON_SELECTED
         view = display(snapshot())
         view.lcd = driver()
         view.Popup_Window_ETempTooLow()
@@ -74,8 +74,8 @@ class PopupRenderingTests(unittest.TestCase):
         view.pd.sendGCode.assert_not_called()
 
     def test_completed_homing_frame_contains_background_icon_and_label(self):
-        from dwin_emulator.assets import PanelAssets, rgb565
-        from dwin_emulator.framebuffer import Framebuffer
+        from petrel.emulator.assets import PanelAssets, rgb565
+        from petrel.emulator.framebuffer import Framebuffer
         view = display(snapshot())
         view.lcd = driver()
         assets = PanelAssets()

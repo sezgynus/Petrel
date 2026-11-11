@@ -1,3 +1,4 @@
+from test_regressions import startup
 from read_fixture import ImmediateReadWorker
 from dataclasses import FrozenInstanceError
 import importlib.util
@@ -9,8 +10,8 @@ from threading import Event, Lock, Thread, get_ident
 import unittest
 from unittest.mock import Mock, patch
 
-from printer_state import PrinterState
-from ui_events import InputEvent, UIEventLoop
+from petrel.printer.state import PrinterState
+from petrel.ui.events import InputEvent, UIEventLoop
 from test_regressions import ui, backend
 
 
@@ -312,7 +313,7 @@ class EncoderTests(unittest.TestCase):
         pins = types.ModuleType('gpiozero.pins.lgpio')
         pins.LGPIOFactory = Mock()
         spec = importlib.util.spec_from_file_location('test_encoder_driver',
-            Path(__file__).resolve().parents[1] / 'encoder.py')
+            Path(__file__).resolve().parents[1] / 'petrel/hardware/encoder.py')
         driver = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {'gpiozero': gpio, 'gpiozero.pins.lgpio': pins}):
             spec.loader.exec_module(driver)
@@ -382,9 +383,9 @@ class DisplayIntegrationTests(unittest.TestCase):
                 patch.object(backend, 'MoonrakerSubscription') as subscription, patch.object(backend, 'ReadWorker', ImmediateReadWorker), \
                 patch.object(ui, 'Encoder', return_value=encoder), \
                 patch.object(ui, 'Button', return_value=button), \
-                patch.object(ui, 'T5UIC1Display', FakeLCD), \
+                patch.object(startup, 'T5UIC1Display', FakeLCD), \
                 patch.object(ui, 'PowerMonitor'), \
-                patch.object(ui, 'PanelProbe'), \
+                patch.object(startup, 'PanelProbe'), \
                 patch.object(ui.PetrelDisplay, 'Draw_Prepare_Menu', prepare):
             subscription.return_value.snapshot.return_value = snapshot
             display = ui.PetrelDisplay('fake-port', (21, 19), 13, '')

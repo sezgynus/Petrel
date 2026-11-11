@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-import system_info
+import petrel.features.info.system as system_info
 
 
 class SystemInfoTests(unittest.TestCase):

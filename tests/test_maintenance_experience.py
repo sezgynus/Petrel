@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace as NS
-from maintenance_experience import grouped,result_summary,result_details,device_name
+from petrel.features.maintenance.ui.experience import grouped,result_summary,result_details,device_name
 
 class MaintenanceExperienceTests(unittest.TestCase):
     def row(self,feature,device=None,method=1):

@@ -5,10 +5,10 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from nfc_core import NFCCore
-from nfc_spool_router import NFCSpoolRouter
-from spoolman_tags import SpoolmanTags, describe
-from ui_events import InputEvent
+from petrel.features.nfc.core import NFCCore
+from petrel.features.nfc.spool_router import NFCSpoolRouter
+from petrel.features.spoolman.tags import SpoolmanTags, describe
+from petrel.ui.events import InputEvent
 from test_nfc_core import backend
 from test_capabilities import display
 from test_mmu_control import mmu_snapshot
@@ -152,7 +152,7 @@ class GateUITests(unittest.TestCase):
             self.assertEqual(view.checkkey, getattr(view, origin))
 
     def test_gate_popup_reuses_shared_mmu_icons_without_redrawing_on_rotate(self):
-        from lcd_resources import ICON_SPOOL_EMPTY
+        from petrel.artwork.resources import ICON_SPOOL_EMPTY
         from unittest.mock import patch
         view, _ = self.make()
         view._nfc_gate_result()
@@ -251,7 +251,7 @@ class GateUITests(unittest.TestCase):
         self.assertNotIn('55%', texts)
 
     def test_fill_snapshot_validity_and_empty_gate_match_mmu_home_policy(self):
-        from ui_nfc_gate import NFCGateViewMixin
+        from petrel.features.nfc.gate_view import NFCGateViewMixin
         view, snapshot = self.make()
         snapshot['status']['mmu']['gate_spool_id'][1] = 17
         state = view.pd.mmu_session.state
@@ -363,7 +363,7 @@ class GateUITests(unittest.TestCase):
         self.assertEqual(len(popup['link_segments']), 1)
 
     def test_gif_easing_and_timing_match_sampled_motions(self):
-        from ui_nfc_gate import NFCGateViewMixin
+        from petrel.features.nfc.gate_view import NFCGateViewMixin
         ease = NFCGateViewMixin._nfc_gate_ease
         for phase, expected in ((0, 0), (.5, .5), (1, 1)):
             self.assertAlmostEqual(ease(phase), expected, places=9)
@@ -409,7 +409,7 @@ class GateUITests(unittest.TestCase):
 
     def test_popup_uses_native_packet_opcode_09_with_filled_clear_mode(self):
         from test_t5uic1_driver import driver
-        from ui_nfc_gate import NFCGateViewMixin
+        from petrel.features.nfc.gate_view import NFCGateViewMixin
         lcd = driver()
         lcd.move_area(1, 1, 12, NFCGateViewMixin.GATE_BG, 19, 234, 72, 285)
         packet = lcd.serial.frames[-1]
@@ -420,8 +420,8 @@ class GateUITests(unittest.TestCase):
 
     def test_panel_move_preserves_pixels_and_clears_vacated_strips(self):
         """Real driver + emulator: no icon re-upload and no motion trails."""
-        from dwin_emulator.framebuffer import Framebuffer, rgb565
-        from dwin_emulator.assets import PanelAssets
+        from petrel.emulator.framebuffer import Framebuffer, rgb565
+        from petrel.emulator.assets import PanelAssets
         from test_t5uic1_driver import driver
         lcd = driver()
         model = Framebuffer(PanelAssets())

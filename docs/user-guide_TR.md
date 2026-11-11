@@ -194,7 +194,7 @@ Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `o
 
 ### İsimli buzzer melodileri
 
-Bütün nota dizileri `buzzer_melodies.py` içinde tutulur. Kütüphanede
+Bütün nota dizileri `petrel/features/buzzer/melodies.py` içinde tutulur. Kütüphanede
 `PRINT_DONE`, `HEATING_DONE`, `COOLING_DONE`, `ERROR`, `FILAMENT_OUT`, `BOOT`,
 `SHUTDOWN`, `PAUSE`, `RESUME`, `LAYER_CHANGE`, `HOMING`, `PROBE_SUCCESS`,
 `PROBE_FAIL`, `WARNING` ve `CUSTOM_EVENT` bulunur. Kısa, olaya özgü motifler ve açık sessiz beklemeler kullanılır. Mevcut UI tonları ve emergency

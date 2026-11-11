@@ -1,11 +1,11 @@
 import unittest
 from types import SimpleNamespace
-from maintenance_assessment_service import MaintenanceAssessment
-from maintenance_heater import ThermalResult
-from maintenance_discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _index_for
-from maintenance_heater import thermal_adapters
-from maintenance_planner import build_plan
-from maintenance_assessment_rules import MetricPolicy
+from petrel.features.maintenance.assessment.service import MaintenanceAssessment
+from petrel.features.maintenance.domains.thermal.controller import ThermalResult
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, DeviceCapabilities, AUTOMATIC, _index_for
+from petrel.features.maintenance.domains.thermal.controller import thermal_adapters
+from petrel.features.maintenance.execution.planner import build_plan
+from petrel.features.maintenance.assessment.rules import MetricPolicy
 
 class AssessmentBackendTest(unittest.TestCase):
     def setup_backend(self):

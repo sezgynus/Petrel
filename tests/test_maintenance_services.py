@@ -5,9 +5,9 @@ from concurrent.futures import Future
 from pathlib import Path
 from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maintenance_services import parse_evidence, probe, _ENDPOINTS
-from maintenance_session import MaintenanceDiscoveryManager, idle
-from maintenance_discovery import INFORMATION
+from petrel.features.maintenance.discovery.services import parse_evidence, probe, _ENDPOINTS
+from petrel.features.maintenance.discovery.session import MaintenanceDiscoveryManager, idle
+from petrel.features.maintenance.discovery.discovery import INFORMATION
 
 
 class State:
@@ -52,7 +52,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(parse_evidence({'/server/history/totals': {'error': 'bad'}}), ())
 
     def test_storage_capability_from_registered_roots_without_directory_listing(self):
-        from maintenance_discovery import discover, INFORMATION
+        from petrel.features.maintenance.discovery.discovery import discover, INFORMATION
         roots = '/server/files/roots'
         positive = parse_evidence({roots: {'result': [
             {'name': 'config', 'permissions': 'rw'},
@@ -68,7 +68,7 @@ class Tests(unittest.TestCase):
             self.assertNotIn('machine.disk', parse_evidence({roots: bad}))
 
     def test_tmc_thermal_monitor_is_structured_api_evidence(self):
-        from maintenance_discovery import discover, NONE, AUTOMATIC
+        from petrel.features.maintenance.discovery.discovery import discover, NONE, AUTOMATIC
         evidence = parse_evidence({
             '/printer/objects/query?heaters=available_monitors': {
                 'result': {'status': {'heaters': {
@@ -153,7 +153,7 @@ class Tests(unittest.TestCase):
                     return {'result': {'job_totals': {}}}
                 return {'result': {}}
 
-        with self.assertLogs('maintenance_session', level='INFO') as captured:
+        with self.assertLogs('petrel.features.maintenance.discovery.session', level='INFO') as captured:
             first = manager.ready(s, Client(), worker, lambda: s)
             self.assertIs(manager.ready(s, Client(), worker, lambda: s), first)
             worker.drain()
@@ -177,7 +177,7 @@ class Tests(unittest.TestCase):
             def get(self, path):
                 return {'result': {}}
 
-        with self.assertLogs('maintenance_session', level='INFO') as captured:
+        with self.assertLogs('petrel.features.maintenance.discovery.session', level='INFO') as captured:
             manager.ready(s, Client(), worker, lambda: s)
             worker.drain()
         lines = [r.getMessage() for r in captured.records]

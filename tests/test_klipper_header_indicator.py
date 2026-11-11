@@ -2,9 +2,9 @@
 import unittest
 from unittest.mock import call, patch
 
-from lcd_resources import (
+from petrel.artwork.resources import (
     ICON_LIBRARY_ID, ICON_PROGRESS_FILL, ICON_PROGRESS_TRACK, ICON_WIFI_STRONG)
-from printer_state import PrinterState
+from petrel.printer.state import PrinterState
 from test_capabilities import display, snapshot
 from test_regressions import ui
 

@@ -75,15 +75,15 @@ def parse_args(argv=None):
 def main():
     logging.basicConfig(level=logging.INFO)
     if os.environ.get('PETREL_PROFILE_MEMORY_DIR'):
-        from ui_memory_profile import start_from_environment
+        from petrel.diagnostics.memory_profile import start_from_environment
         start_from_environment()
-    from petrel_migration import bootstrap
+    from petrel.migration import bootstrap
     if bootstrap():
         return  # The independent migration job starts Petrel with its new paths.
     args = parse_args()
     # Keep explicit CLI overrides in sync with the hardware PWM worker.
     os.environ['PETREL_BUZZER_GPIO'] = str(args.buzzer_gpio)
-    from petrel_ui import PetrelDisplay
+    from petrel.application.display import PetrelDisplay
     display = PetrelDisplay(args.serial_port, tuple(args.encoder_pins), args.button_pin,
              os.environ.get('MOONRAKER_API_KEY', ''),
              moonraker_url=args.moonraker_url, request_timeout=args.request_timeout,
@@ -96,8 +96,8 @@ def main():
     server = None
     try:
         if os.environ.get('PETREL_KLIPPER_BUZZER', '0').lower() in ('1', 'true', 'yes', 'on'):
-            from buzzer_control import Player
-            from buzzer_ipc import BuzzerServer
+            from petrel.features.buzzer.control import Player
+            from petrel.features.buzzer.ipc import BuzzerServer
             from pathlib import Path
             if getattr(display, '_buzzer_player', None) is None:
                 display._buzzer_player = Player()

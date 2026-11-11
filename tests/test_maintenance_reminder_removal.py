@@ -5,11 +5,11 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
 import tempfile
 import unittest
-from maintenance_assessment_store import AssessmentStore, ServicePolicy
-from maintenance_ui_records import request
+from petrel.features.maintenance.assessment.store import AssessmentStore, ServicePolicy
+from petrel.features.maintenance.records.ui_requests import request
 from test_maintenance_ui_services import DeferredWorker
 from test_capabilities import display, snapshot
-from maintenance_experience import Choice
+from petrel.features.maintenance.ui.experience import Choice
 
 
 class ReminderRemovalStore(unittest.TestCase):
@@ -68,7 +68,7 @@ class ReminderRemovalStore(unittest.TestCase):
             self.assertEqual(store.service_policies(),(policy,))
 
     def test_worker_removal_needs_no_live_device_or_usage_read(self):
-        with tempfile.TemporaryDirectory() as folder, patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder, patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             store=AssessmentStore(Path(folder)/'.config/Petrel/maintenance-assessment.json')
             policy=ServicePolicy('inspect_clean','output_pin removed','sampled_on_s',100,'user')
             store.set_service_policy(policy)

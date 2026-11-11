@@ -3,13 +3,13 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
-from maintenance_records import MaintenanceBook
-from maintenance_travel import OBJECT, AXES
-from maintenance_assessment_store import ServicePolicy
-from maintenance_ui_records import request
-from maintenance_care_view import care_items
+from petrel.features.maintenance.records.book import MaintenanceBook
+from petrel.features.maintenance.records.travel import OBJECT, AXES
+from petrel.features.maintenance.assessment.store import ServicePolicy
+from petrel.features.maintenance.records.ui_requests import request
+from petrel.features.maintenance.ui.care import care_items
 from test_maintenance_ui_services import DeferredWorker
-from maintenance_experience import Choice
+from petrel.features.maintenance.ui.experience import Choice
 
 
 def state(session='a'*32,x=0.,ready=True):
@@ -19,7 +19,7 @@ def state(session='a'*32,x=0.,ready=True):
 
 class TravelLedgerTests(unittest.TestCase):
     def test_restart_reconnect_session_change_and_disabled_preserve_totals(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(folder)):
             book=MaintenanceBook(DeferredWorker());book.note(state(x=100),0)
             first=book.service_counters()
             self.assertEqual(first['travel_mm']['axis_x'],100)
@@ -36,15 +36,15 @@ class TravelLedgerTests(unittest.TestCase):
             self.assertNotIn(('axis_x','travel_mm'),stopped['available_metrics'])
 
     def test_failed_save_retries_without_loss_or_double_count(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(folder)):
             book=MaintenanceBook(DeferredWorker());book.note(state(x=100),0)
-            with patch('maintenance_records.write_json',side_effect=OSError('full')):
+            with patch('petrel.features.maintenance.records.book.write_json',side_effect=OSError('full')):
                 with self.assertRaises(OSError): book.service_counters()
             self.assertEqual(book.service_counters()['travel_mm']['axis_x'],100)
             self.assertEqual(book.service_counters()['travel_mm']['axis_x'],100)
 
     def test_option_off_and_invalid_values_do_not_consume_counters(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.book.Path.home',return_value=Path(folder)):
             book=MaintenanceBook(DeferredWorker())
             with patch.dict('os.environ',{'PETREL_AXIS_TRAVEL':'0'}): book.note(state(x=100),0)
             self.assertEqual(book.service_counters()['travel_mm'],{})
@@ -52,7 +52,7 @@ class TravelLedgerTests(unittest.TestCase):
             self.assertEqual(book.service_counters()['travel_mm'],{})
 
     def test_distance_policy_due_completion_pause_and_reenable(self):
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             worker=DeferredWorker();policy=ServicePolicy('lubricate','axis_x','travel_mm',1000,'user')
             usage=dict(travel_mm={'axis_x':100.},travel_counter_id='a'*32,
                        available_metrics=(('axis_x','travel_mm'),))
@@ -113,8 +113,8 @@ class ExistingAxisReminderTests(unittest.TestCase):
                     self.assertNotIn('travel_mm',view.pd.maintenance_service_bases(device))
 
     def test_existing_axis_policy_resolves_counter_and_legacy_policy_keeps_anchor(self):
-        from maintenance_usage import metric_counter
-        with tempfile.TemporaryDirectory() as folder,patch('maintenance_ui_records.Path.home',return_value=Path(folder)):
+        from petrel.features.maintenance.records.usage import metric_counter
+        with tempfile.TemporaryDirectory() as folder,patch('petrel.features.maintenance.records.ui_requests.Path.home',return_value=Path(folder)):
             worker=DeferredWorker()
             usage=dict(travel_mm={'axis_x':100.},travel_counter_id='a'*32,
                        available_metrics=(('axis_x','travel_mm'),))

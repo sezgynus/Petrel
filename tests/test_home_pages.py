@@ -1,8 +1,8 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 import unittest
 from unittest.mock import Mock
 from test_capabilities import snapshot,display
-from lcd_resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
+from petrel.artwork.resources import ICON_RFID_HOME_NORMAL, ICON_RFID_HOME_SELECTED
 
 
 class HomePageTests(unittest.TestCase):
@@ -162,7 +162,7 @@ class HomePageTests(unittest.TestCase):
             view.pd.sendGCode.assert_not_called()
 
     def test_mmu_icon_uses_icon_library_for_both_selection_states(self):
-        from lcd_resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
+        from petrel.artwork.resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
         view = self.make()
         for selection, icon in ((5, ICON_MMU_HOME_NORMAL), (4, ICON_MMU_HOME_SELECTED)):
             view.select_page.set(selection)
@@ -189,7 +189,7 @@ class HomePageTests(unittest.TestCase):
             view.pd.sendGCode.assert_not_called()
 
     def test_display_uses_device_gear_library_icon_for_normal_and_selected(self):
-        from lcd_resources import ICON_DISPLAY_NORMAL, ICON_DISPLAY_SELECTED
+        from petrel.artwork.resources import ICON_DISPLAY_NORMAL, ICON_DISPLAY_SELECTED
         view = self.make()
         for selection, icon in ((4, ICON_DISPLAY_NORMAL), (5, ICON_DISPLAY_SELECTED)):
             view.select_page.set(selection)

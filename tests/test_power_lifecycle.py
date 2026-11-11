@@ -1,8 +1,9 @@
+from test_regressions import startup
 import unittest
 from concurrent.futures import Future
 from unittest.mock import Mock, patch
-from power_lifecycle import PowerMonitor
-from moonraker_subscription import MoonrakerSubscription
+from petrel.features.power.lifecycle import PowerMonitor
+from petrel.moonraker.subscription import MoonrakerSubscription
 import test_uart_reconnect as reconnect
 from test_regressions import ui
 
@@ -30,7 +31,7 @@ class RelayLifecycleTests(unittest.TestCase):
         self.assertEqual(v.checkkey, v.MainMenu)
         old.close.assert_called_once()
         self.assertFalse(v._uart_online)
-        with patch.object(ui, 'T5UIC1Display') as factory:
+        with patch.object(startup, 'T5UIC1Display') as factory:
             self.assertFalse(v._ensure_uart())
         factory.assert_not_called()
         v.pd.sendGCode.assert_not_called()
@@ -43,7 +44,7 @@ class RelayLifecycleTests(unittest.TestCase):
         v._power_focus = True
         v._poll_panel_power()
         new = Mock()
-        with patch.object(ui, 'T5UIC1Display', return_value=new) as factory:
+        with patch.object(startup, 'T5UIC1Display', return_value=new) as factory:
             self.assertTrue(v._ensure_uart())
         factory.assert_called_once()
         self.assertIs(v.lcd, new)
@@ -65,7 +66,7 @@ class RelayLifecycleTests(unittest.TestCase):
             return lcd
 
         v.HMI_StartFrame = lambda update: lcd.clear(0)
-        with patch.object(ui, 'T5UIC1Display', side_effect=construct):
+        with patch.object(startup, 'T5UIC1Display', side_effect=construct):
             self.assertTrue(v._ensure_uart())
         opcodes = [frame[1] for frame in lcd.serial.frames]
         self.assertEqual(opcodes[0], 0x22)
@@ -127,21 +128,21 @@ class RelayLifecycleTests(unittest.TestCase):
 
     def test_poll_does_not_block_or_overlap_reads_and_errors_are_unknown(self):
         client = Mock(timeout=1)
-        with patch('power_lifecycle.ReadWorker') as worker:
+        with patch('petrel.features.power.lifecycle.ReadWorker') as worker:
             monitor = PowerMonitor(client, 'Printer')
         future = Future()
         worker.return_value.submit.return_value = future
-        with patch('power_lifecycle.time.monotonic', return_value=0):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=0):
             self.assertIsNone(monitor.poll())
             self.assertIsNone(monitor.poll())
         worker.return_value.submit.assert_called_once()
         future.set_result({'result': {'devices': [{'device': 'printer', 'status': 'off'}]}})
-        with patch('power_lifecycle.time.monotonic', return_value=.5):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=.5):
             self.assertEqual(monitor.poll(), 'off')
         failure = Future()
         failure.set_exception(RuntimeError('network down'))
         monitor.future = failure
-        with patch('power_lifecycle.time.monotonic', return_value=.5):
+        with patch('petrel.features.power.lifecycle.time.monotonic', return_value=.5):
             self.assertIsNone(monitor.poll())
         monitor.close()
         worker.return_value.close.assert_called_once()

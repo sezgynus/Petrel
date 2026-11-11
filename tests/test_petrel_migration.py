@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-import petrel_migration as migration
+import petrel.migration as migration
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,8 +50,8 @@ class MigrationTests(unittest.TestCase):
         m.as_user = Mock(side_effect=user_command)
         return m
 
-    @patch('petrel_migration.time.sleep')
-    @patch('petrel_migration.shutil.chown')
+    @patch('petrel.migration.time.sleep')
+    @patch('petrel.migration.shutil.chown')
     def test_installed_update_moves_every_identity_and_preserves_settings(self, *_):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
@@ -80,9 +80,9 @@ class MigrationTests(unittest.TestCase):
             self.assertTrue((m.state / 'previous-python').exists())
             self.assertTrue((home / 'Petrel-screenshots').exists())
 
-    @patch('petrel_migration.subprocess.run')
-    @patch('petrel_migration.time.sleep')
-    @patch('petrel_migration.shutil.chown')
+    @patch('petrel.migration.subprocess.run')
+    @patch('petrel.migration.time.sleep')
+    @patch('petrel.migration.shutil.chown')
     def test_failed_service_start_restores_original_files_paths_and_origin(self, *_):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
@@ -116,8 +116,8 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual((m.repo / 'personal-file').read_text(), 'keep')
             self.assertTrue(m.old_repo.exists())
 
-    @patch('petrel_migration.time.sleep')
-    @patch('petrel_migration.shutil.chown')
+    @patch('petrel.migration.time.sleep')
+    @patch('petrel.migration.shutil.chown')
     def test_runtime_created_cache_and_capture_directories_do_not_block_migration(self, *_):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
@@ -137,9 +137,9 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual((home / 'Petrel-screenshots/new.png').read_bytes(), b'new capture')
             self.assertEqual((m.state / 'previous-screenshots/old.png').read_bytes(), b'old capture')
 
-    @patch('petrel_migration.subprocess.run')
-    @patch('petrel_migration.time.sleep')
-    @patch('petrel_migration.shutil.chown')
+    @patch('petrel.migration.subprocess.run')
+    @patch('petrel.migration.time.sleep')
+    @patch('petrel.migration.shutil.chown')
     def test_archive_moves_are_rolled_back_without_touching_existing_cache(self, *_):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
@@ -169,8 +169,8 @@ class MigrationTests(unittest.TestCase):
         self.assertIn('[update_manager Petrel]\npath: ~/Petrel', converted)
         self.assertTrue(converted.endswith('[server]\nport: 7125\n'))
 
-    @patch('petrel_migration.time.sleep')
-    @patch('petrel_migration.urlopen')
+    @patch('petrel.migration.time.sleep')
+    @patch('petrel.migration.urlopen')
     def test_migration_waits_for_moonraker_to_finish_full_update(self, request, sleep):
         from io import BytesIO
         with tempfile.TemporaryDirectory() as tmp:
@@ -183,20 +183,20 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(request.call_args.args[0].get_header('X-api-key'), 'secret-DWIN_TOKEN')
             m.command.assert_not_called()
 
-    @patch('petrel_migration.subprocess.run')
+    @patch('petrel.migration.subprocess.run')
     def test_developer_checkout_does_not_launch_migration(self, command):
         migration.bootstrap()
         command.assert_not_called()
 
-    @patch('petrel_migration.subprocess.run')
+    @patch('petrel.migration.subprocess.run')
     def test_legacy_start_schedules_independent_job_and_maps_runtime_settings(self, command):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             command.return_value.returncode = 0
             env = {'DWIN_SERIAL_PORT': '/dev/legacy', 'MOONRAKER_API_KEY': 'private'}
-            with patch('petrel_migration.sys.platform', 'linux'), patch('petrel_migration.Path.home', return_value=home), \
-                    patch('petrel_migration.Path.owner', return_value='user'), \
-                    patch('petrel_migration.__file__', str(home / migration.LEGACY_APP / 'petrel_migration.py')), \
+            with patch('petrel.migration.sys.platform', 'linux'), patch('petrel.migration.Path.home', return_value=home), \
+                    patch('petrel.migration.Path.owner', return_value='user'), \
+                    patch('petrel.migration.__file__', str(home / migration.LEGACY_APP / 'petrel/migration.py')), \
                     patch.dict(os.environ, env, clear=True):
                 self.assertTrue(migration.bootstrap())
                 self.assertEqual(os.environ['PETREL_SERIAL_PORT'], '/dev/legacy')
@@ -208,8 +208,8 @@ class MigrationTests(unittest.TestCase):
     def test_legacy_eeprom_settings_remain_readable(self):
         import struct
         import zlib
-        import display_settings
-        from buzzer_control import Settings
+        import petrel.features.display_settings.settings as display_settings
+        from petrel.features.buzzer.control import Settings
         for magic in (b'KDWDSPL1', b'KDWDSPL2'):
             payload = struct.pack('>8sBBB1x', magic, 80, 5, 20)
             self.assertEqual(display_settings.decode(payload + struct.pack('>I', zlib.crc32(payload))),
@@ -219,8 +219,8 @@ class MigrationTests(unittest.TestCase):
                 b'Buzzer\0').ljust(124, b'\0')
         self.assertEqual(Settings.decode(body + struct.pack('>I', zlib.crc32(body))), setting)
 
-    @patch('petrel_migration.subprocess.run')
-    @patch('petrel_migration.shutil.chown')
+    @patch('petrel.migration.subprocess.run')
+    @patch('petrel.migration.shutil.chown')
     def test_preparation_failure_resumes_old_service_without_rescheduling(self, _, command):
         from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as tmp:
@@ -229,9 +229,9 @@ class MigrationTests(unittest.TestCase):
             account = SimpleNamespace(pw_uid=1000, pw_dir=tmp)
             pwd = SimpleNamespace(getpwnam=Mock(return_value=account))
             with patch.dict('sys.modules', {'pwd': pwd}), \
-                    patch('petrel_migration.os.geteuid', return_value=0, create=True), \
-                    patch('petrel_migration.Migration', return_value=m), \
-                    patch('sys.argv', ['petrel_migration.py', '--user', 'user']), \
+                    patch('petrel.migration.os.geteuid', return_value=0, create=True), \
+                    patch('petrel.migration.Migration', return_value=m), \
+                    patch('sys.argv', ['petrel/migration.py', '--user', 'user']), \
                     self.assertLogs(level='ERROR'):
                 self.assertEqual(migration.main(), 1)
             self.assertTrue((m.state / 'migration-failed').exists())

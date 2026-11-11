@@ -3,8 +3,8 @@ import ctypes as C
 import unittest
 from unittest.mock import Mock
 
-from libnfc_api import NFCTargetSession
-from nfc_ndef import AID_V2, CC, ndef_uri_file
+from petrel.features.nfc.libnfc import NFCTargetSession
+from petrel.features.nfc.ndef import AID_V2, CC, ndef_uri_file
 
 
 URL = 'https://github.com/sezgynus/Petrel'

@@ -33,7 +33,7 @@ def main():
             if icon_id == 0:
                 # Antialiased brand edges blend into Graphite; empty pixels stay
                 # pure black for the panel's enhanced transparency filter.
-                from graphite_theme import BACKGROUND_RGB
+                from petrel.ui.theme import BACKGROUND_RGB
                 rgba = image.convert('RGBA').resize((width, height), Image.Resampling.LANCZOS)
                 coverage = rgba.getchannel('A')
                 rendered = Image.new('RGB', (width, height), BACKGROUND_RGB)

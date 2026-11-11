@@ -5,8 +5,8 @@ from threading import Event
 import unittest
 from unittest.mock import Mock, patch
 
-from moonraker_client import MoonrakerError
-from moonraker_subscription import MoonrakerSubscription
+from petrel.moonraker.client import MoonrakerError
+from petrel.moonraker.subscription import MoonrakerSubscription
 
 
 class FakeSocket:
@@ -133,7 +133,7 @@ class SubscriptionTests(unittest.TestCase):
         self.assertEqual(client.url, 'wss://localhost/proxy/websocket')
 
     def test_state_reuses_frozen_settings_without_reusing_status(self):
-        from printer_state import PrinterState
+        from petrel.printer.state import PrinterState
         raw = {'state': 'ready', 'epoch': 1, 'revision': 1,
                'status': {'toolhead': {'position': [1, 2, 3, 4]}},
                'settings': {'configfile': {'features': list(range(5000))}}}
@@ -150,7 +150,7 @@ class SubscriptionTests(unittest.TestCase):
         client = self.subscription()
         client._settings = {'large': {'entries': list(range(5000))}}
         client._status = {'toolhead': {'position': list(range(5000))}}
-        with patch('moonraker_subscription.copy.deepcopy',
+        with patch('petrel.moonraker.subscription.copy.deepcopy',
                    side_effect=AssertionError('unexpected deep copy')):
             quick = client.lifecycle()
         self.assertEqual(quick['epoch'], client.snapshot()['epoch'])
@@ -316,7 +316,7 @@ class SubscriptionTests(unittest.TestCase):
 
 class CommandEpochTests(unittest.TestCase):
     def test_changed_epoch_rejects_queued_command_before_network(self):
-        from moonraker_client import MoonrakerClient
+        from petrel.moonraker.client import MoonrakerClient
         opener = Mock()
         client = MoonrakerClient(opener=opener)
         self.addCleanup(client.close)

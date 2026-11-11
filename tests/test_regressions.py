@@ -9,24 +9,30 @@ from unittest.mock import Mock, patch
 
 def load_application():
     # Only import-time dependencies are replaced. Application methods stay real.
-    importlib.import_module('ui_events')
-    importlib.import_module('printer_state')
+    importlib.import_module('petrel.ui.events')
+    importlib.import_module('petrel.printer.state')
     dependencies = {}
-    for name in ('requests', 'requests.exceptions', 'multitimer', 'encoder',
+    for name in ('requests', 'requests.exceptions', 'multitimer', 'petrel.hardware.encoder',
                  'gpiozero', 'gpiozero.pins', 'gpiozero.pins.lgpio', 'serial'):
         dependencies[name] = types.ModuleType(name)
     dependencies['requests.exceptions'].ConnectionError = ConnectionError
-    dependencies['encoder'].Encoder = Mock()
+    dependencies['petrel.hardware.encoder'].Encoder = Mock()
     dependencies['gpiozero'].Button = Mock()
     dependencies['gpiozero'].Device = types.SimpleNamespace(pin_factory=None)
     dependencies['gpiozero.pins.lgpio'].LGPIOFactory = Mock()
     with patch.dict(sys.modules, dependencies):
-        backend = importlib.import_module('printerInterface')
-        ui = importlib.import_module('petrel_ui')
-    return backend, ui
+        backend = importlib.import_module('petrel.printer.interface')
+        ui = importlib.import_module('petrel.application.display')
+        # Capture owners before patch.dict restores the import cache.
+        startup = sys.modules[ui.PetrelDisplay._ensure_uart.__module__]
+        dashboard = sys.modules[ui.PetrelDisplay.Draw_Status_Area.__module__]
+        info_backend = sys.modules[backend.PrinterData.refresh_system_info.__module__]
+        nfc_backend = sys.modules[backend.PrinterData.get_nfc_core.__module__]
+        maintenance_backend = sys.modules[backend.PrinterData.maintenance_guided_plan.__module__]
+    return backend, ui, startup, dashboard, info_backend, nfc_backend, maintenance_backend
 
 
-backend, ui = load_application()
+backend, ui, startup, dashboard, info_backend, nfc_backend, maintenance_backend = load_application()
 
 
 class RegressionContracts(unittest.TestCase):

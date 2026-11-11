@@ -7,9 +7,9 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from printer_state import PrinterState
-from maintenance_discovery import MaintenanceSnapshot, INFORMATION, _add
-from maintenance_controller import MaintenanceReadController
+from petrel.printer.state import PrinterState
+from petrel.features.maintenance.discovery.discovery import MaintenanceSnapshot, INFORMATION, _add
+from petrel.features.maintenance.execution.controller import MaintenanceReadController
 
 
 class Worker:
@@ -166,7 +166,7 @@ class MaintenanceBridgeTests(unittest.TestCase):
     def test_petrel_backend_owns_bridge_without_new_threads(self):
         from unittest.mock import patch
         import tempfile
-        import printerInterface as backend
+        import petrel.printer.interface as backend
         from read_fixture import ImmediateReadWorker
         with patch.object(backend, 'MoonrakerClient'), \
                 patch.object(backend, 'MoonrakerSubscription'), \

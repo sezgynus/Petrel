@@ -1,9 +1,9 @@
 """Negative safety and documentation/registry boundaries."""
 from pathlib import Path
 import unittest
-from maintenance_thermal import contract
-from maintenance_heater import thermal_adapters
-from maintenance_executor import read_only_adapters
+from petrel.features.maintenance.domains.thermal.measurements import contract
+from petrel.features.maintenance.domains.thermal.controller import thermal_adapters
+from petrel.features.maintenance.execution.executor import read_only_adapters
 
 class ThermalAuditTests(unittest.TestCase):
     def test_command_override_is_not_a_trusted_heater_api(self):

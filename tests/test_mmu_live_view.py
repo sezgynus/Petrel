@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from petrel.artwork.resources import ICON_LIBRARY_ID
 import unittest
 import time
 from dataclasses import replace
@@ -6,8 +6,8 @@ from unittest.mock import Mock, patch
 import test_mmu_control as control
 import test_mmu_ui as ui
 from test_mmu_control import mmu_snapshot
-from mmu_control import MMUState
-from mmu_filament_view import MMUFilamentView, filament_height
+from petrel.features.mmu.state import MMUState
+from petrel.features.mmu.filament_view import MMUFilamentView, filament_height
 
 
 class LiveMMUStateTests(unittest.TestCase):
@@ -108,8 +108,8 @@ class LiveMMUViewTests(unittest.TestCase):
 
     def test_native_incremental_pixels_match_fresh_render_after_progress_and_purge(self):
         from test_t5uic1_driver import driver
-        from dwin_emulator.assets import PanelAssets, rgb565
-        from dwin_emulator.framebuffer import Framebuffer
+        from petrel.emulator.assets import PanelAssets, rgb565
+        from petrel.emulator.framebuffer import Framebuffer
         assets = PanelAssets()
         def canvas():
             lcd = driver()
