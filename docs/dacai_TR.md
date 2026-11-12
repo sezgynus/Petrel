@@ -43,7 +43,7 @@ Host'a bağlı NFC okuyucular (USB ya da Pi'nin kendi UART/I²C/SPI arayüzü) b
 | 115200 | Varsayılan; panelin açılış hızı |
 | 230400, 460800, 921600 | Daha hızlı görsel yükleme ve önizleme; üçü de referans panelde hatasız çalıştı |
 
-Panel, yükseltilmiş hızı güç kesilene kadar korur. Petrel kapanırken hızı 115200'e geri alır ve paneli beklerken iki hızı da dener; böylece çöken veya yeniden başlatılan servis paneli yine bulur.
+Panel, yükseltilmiş hızı güç kesilene kadar korur. Petrel kapanırken hızı 115200'e geri alır ve paneli beklerken tüm host hızlarını (önce yapılandırılanı) dener; böylece çöken servis, hız ayarı değiştirilmiş olsa bile paneli yine bulur.
 
 ## Petrel'in yüklediği içerik
 
@@ -55,7 +55,7 @@ microSD kart gerekmez. İlk açılışta Petrel UART üzerinden şunları yükle
 | 1 | Ortak arayüz görseli (Info QR bölgeleri) |
 | 16 ve üzeri | İkon sprite sayfaları: 272×480 JPEG sayfalarına yerleştirilmiş ikon kütüphanesinin tamamı (şu anda 8 sayfa) |
 
-Her resim panel belleğinde 32 KB yer kaplar (toplam yaklaşık 320 KB). İlk yükleme 460800 baud'da yaklaşık 20 saniye, 115200 baud'da yaklaşık bir dakika sürer. İçerik parmak izleri panelin Data Flash alanında saklanır; sonraki açılışlarda yalnızca değişen resimler yüklenir.
+Her resim panel belleğinde 32 KB yer kaplar (toplam yaklaşık 320 KB). İlk yükleme 460800 baud'da yaklaşık 15 saniye, 115200 baud'da yaklaşık 40 saniye sürer (referans panelde ölçüldü). İçerik parmak izleri panelin Data Flash alanında saklanır; sonraki açılışlarda yalnızca değişen resimler yüklenir.
 
 DACAI panelleri ikonları yalnızca kendi ikon dosyalarından okur ve bu dosyalar UART üzerinden yazılamaz. Bu yüzden Petrel her ikonu sanal ekran alanı 1'deki bir sprite sayfasından kopyalayarak çizer ve ikon animasyonlarını (açılış ilerlemesi, fan, NFC yaklaşma) host tarafında ilerletir. Büyük NFC animasyon kareleri, ilk kare ile sonraki her karenin değişen dikdörtgeni olarak saklanır; böylece kütüphanenin tamamı 8 sayfaya sığar. Diğer Petrel özellikleri değişmeden çalışır.
 
@@ -72,6 +72,15 @@ sudo systemctl start Petrel.service
 ```
 
 `/dev/ttyS0` yerine yapılandırmanızdaki UART'ı kullanın.
+
+## Yüklemeden sonra ikonlar boş kalıyor
+
+Panel her resmi 1 MB'lık flash dosya sistemindeki küçük bir dizinde (16 girdi) dosya olarak
+saklar ve dosyayı saklayamadığında bile `0x33` komutunu onaylar. Resimler UART üzerinden geri
+okunamadığı için Petrel bunu fark edemez: günlük yüklemenin tamamlandığını bildirir, ancak
+ikonlar boş kalır. Bu durum, dosya sistemi çevrimdışı düzenlenmiş ve silinmiş dizin girdileri
+bırakılmış bir panelde görüldü. Dosyalarını sıfırlamak için paneli microSD kartından
+güncelleyin, ardından görselleri yukarıda anlatıldığı gibi yeniden yükleyin.
 
 ## Sınırlar
 

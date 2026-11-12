@@ -43,7 +43,7 @@ NFC readers connected to the host (USB or the Pi's own UART/I²C/SPI) are unaffe
 | 115200 | Default; the panel's power-on speed |
 | 230400, 460800, 921600 | Faster artwork upload and thumbnails; all three were error-free on the reference panel |
 
-The panel keeps a raised speed until it loses power. Petrel switches it back to 115200 when it exits and tries both speeds while it waits for the panel, so a crashed or restarted service still finds it.
+The panel keeps a raised speed until it loses power. Petrel switches it back to 115200 when it exits and, while it waits for the panel, tries every host speed (the configured one first), so a crashed service still finds it, even after the speed setting was changed.
 
 ## What Petrel uploads
 
@@ -55,7 +55,7 @@ No microSD card is needed. On the first start Petrel uploads over the UART:
 | 1 | Shared UI artwork (Info QR regions) |
 | 16 and up | Icon sprite sheets: the complete icon library packed onto 272×480 JPEG sheets (currently 8) |
 
-Each picture occupies 32 KB of panel storage (about 320 KB in total). The first upload takes about 20 seconds at 460800 baud and about a minute at 115200. Content fingerprints are stored in the panel's Data Flash, so later starts upload only changed pictures.
+Each picture occupies 32 KB of panel storage (about 320 KB in total). The first upload takes about 15 seconds at 460800 baud and about 40 seconds at 115200 (measured on the reference panel). Content fingerprints are stored in the panel's Data Flash, so later starts upload only changed pictures.
 
 DACAI panels only read icons from their own icon files, which cannot be written over the UART. Petrel therefore draws each icon by copying it from a sprite sheet in virtual display area 1, and steps icon animations (boot progress, fan, NFC approach) from the host. The large NFC animation frames are stored as their first frame plus the changed rectangle of every later frame, which keeps the whole library on 8 sheets. Other Petrel features work unchanged.
 
@@ -72,6 +72,15 @@ sudo systemctl start Petrel.service
 ```
 
 Use the UART from your configuration instead of `/dev/ttyS0`.
+
+## Icons stay empty after an upload
+
+The panel stores every picture as a file in a small directory (16 entries) on its 1 MB flash
+file system and acknowledges `0x33` even when it cannot store the file. Pictures cannot be read
+back over the UART, so Petrel cannot detect this: the log reports a completed upload, but the
+icons stay empty. This was seen on a panel whose file system had been edited offline and left
+deleted directory entries behind. Update the panel from its microSD card to reset its files,
+then upload the artwork again as described above.
 
 ## Limits
 
