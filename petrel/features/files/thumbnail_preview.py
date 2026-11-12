@@ -4,7 +4,7 @@ import posixpath
 import time
 import logging
 from urllib.parse import quote
-from PIL import Image
+from PIL import Image, ImageChops
 from petrel.features.files.metadata import PreviewData, details_from_metadata
 
 MIN_FOREGROUND_LUMA = 48
@@ -35,7 +35,7 @@ def _protect_dark_foreground(rgba):
 
 
 def _opaque_canvas(size):
-    """DACAI draws SRAM JPEGs opaque (0x70), so black backing would stay visible.
+    """For panels that draw SRAM JPEGs opaque, black backing would stay visible.
 
     Compose the picture on what is behind it instead: the UI background, or for
     the 88 px print tile the tile artwork itself with background-coloured corners.
@@ -51,15 +51,22 @@ def _opaque_canvas(size):
             with Image.open(SOURCE_DIRECTORY / f'{ICON_PREVIEW_BACKING:03d}.jpg') as tile:
                 tile = tile.convert('RGB')
             if tile.size == (size, size):
-                tile.putdata([background if max(pixel) < 24 else pixel for pixel in tile.getdata()])
+                r, g, b = tile.split()
+                dark = ImageChops.lighter(ImageChops.lighter(r, g), b).point(
+                    [255 if v < 24 else 0 for v in range(256)])
+                tile.paste(background, (0, 0, size, size), dark)
                 return tile
         except OSError:
             pass
     return Image.new('RGB', (size, size), background)
 
 
-def image_jpeg(data, size=128):
-    """Reserve black backing for filtered drawing, protecting dark model details."""
+def image_jpeg(data, size=128, *, opaque=False):
+    """Reserve black backing for filtered drawing, protecting dark model details.
+
+    ``opaque`` (the panel's OPAQUE_SRAM_JPEG) composes the thumbnail on the UI
+    background instead, for panels that cannot filter black.
+    """
     if size not in (88, 128):
         raise ValueError('Unsupported panel thumbnail size')
     with Image.open(BytesIO(data)) as source:
@@ -67,12 +74,10 @@ def image_jpeg(data, size=128):
             raise ValueError('Thumbnail too large')
         source.thumbnail((size, size), Image.Resampling.LANCZOS)
         rgba = _protect_dark_foreground(source.convert('RGBA'))
-        from petrel.hardware.dwin import dacai
-        opaque = dacai.enabled()
         canvas = _opaque_canvas(size) if opaque else Image.new('RGB', (size, size), 'black')
         canvas.paste(rgba, ((size-rgba.width)//2, (size-rgba.height)//2), rgba)
     output = BytesIO()
-    # DACAI decodes 4:2:0 only; maximum quality keeps the colour fringe at model edges small.
+    # Opaque thumbnails: maximum 4:2:0 quality keeps the colour fringe at model edges small.
     canvas.save(output, format='JPEG', quality=100 if opaque else 94, subsampling=2,
                 progressive=False, optimize=False)
     jpeg = output.getvalue()
@@ -81,7 +86,7 @@ def image_jpeg(data, size=128):
     return jpeg
 
 
-def load_thumbnail(client, filename, metadata=None, size=128):
+def load_thumbnail(client, filename, metadata=None, size=128, *, opaque=False):
     started = time.monotonic()
     if metadata is None:
         metadata = client.get('/server/files/metadata?filename=' + quote(filename, safe=''))['result']
@@ -103,7 +108,7 @@ def load_thumbnail(client, filename, metadata=None, size=128):
         try:
             data = client.get_bytes('/server/files/gcodes/' + quote(path, safe='/'), max_bytes=2_000_000)
             downloaded = time.monotonic()
-            jpeg = image_jpeg(data,size=size)
+            jpeg = image_jpeg(data,size=size,opaque=opaque)
         except Exception as error:
             logging.info('Thumbnail candidate unavailable: %s', type(error).__name__)
             continue
@@ -115,12 +120,12 @@ def load_thumbnail(client, filename, metadata=None, size=128):
     raise NoThumbnail('No thumbnail')
 
 
-def load_preview(client, filename, size=128):
+def load_preview(client, filename, size=128, *, opaque=False):
     metadata = client.get('/server/files/metadata?filename=' + quote(filename, safe=''))['result']
     details = details_from_metadata(metadata)
     retryable = True
     try:
-        jpeg = load_thumbnail(client, filename, metadata=metadata, size=size)
+        jpeg = load_thumbnail(client, filename, metadata=metadata, size=size, opaque=opaque)
     except NoThumbnail:
         jpeg, retryable = None, False
     except Exception as error:

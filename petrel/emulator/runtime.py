@@ -48,11 +48,11 @@ class Emulator:
             self.baseline = False
             self.online = False
 
-    def reset_panel(self):
+    def reset_panel(self, protocol='dwin'):
         with self.lock:
             if self.model is not None:
                 self._generation += 1
-                self.model.reset()
+                self.model.reset(protocol=protocol)
                 self.baseline = True
                 self.online = True
 

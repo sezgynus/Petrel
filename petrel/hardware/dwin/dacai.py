@@ -12,9 +12,13 @@ a Max Neo panel; see docs/dacai.md:
 * Icon files cannot be written over UART. Icons are packed onto JPEG sprite
   sheets (petrel.artwork.sprites) and drawn with 0x25 + 0x27; animations
   (0x28) are stepped by the host.
+* 0x03 draws only horizontal and vertical segments; a diagonal segment
+  becomes one L-shaped step. Diagonals are sent as pixel staircases.
 * Data-Flash writes are acknowledged with a bare ``A5 'OK'``.
 * 0x30 is clamped to 0..63; 0x38 re-clocks the host UART until power loss.
 * Picture IDs above 15 are accepted.
+* There is no auxiliary UART: 0x38 re-clocks the host link and 0x39 is not
+  implemented, so the DWIN auxiliary-UART feature is rejected.
 """
 import logging
 import os
@@ -29,6 +33,10 @@ UART_CLOCK = 15667200
 DEFAULT_BAUD = 115200
 HOST_BAUDS = (115200, 230400, 460800, 921600)
 PICTURE_SIZE = 0x8000
+
+
+class UnsupportedPanelFeature(RuntimeError):
+    """A DWIN T5UIC1 feature that DACAI panels do not provide."""
 
 
 def enabled():
@@ -48,6 +56,59 @@ def configured_baud():
     return baud
 
 
+def check_transport():
+    """DACAI cannot share its UART through the DWIN auxiliary-UART broker.
+
+    The broker's receive parser rejects DACAI's bare acknowledgements, and its
+    auxiliary baud command (0x38) changes the DACAI host link speed instead.
+    """
+    if enabled() and os.environ.get('PETREL_DWIN_SOCKET'):
+        raise UnsupportedPanelFeature(
+            'PETREL_DACAI=1 cannot use the DWIN auxiliary UART broker '
+            '(PETREL_DWIN_SOCKET); run ./configure.sh to remove it')
+
+
+def staircase(x0, y0, x1, y1):
+    """Axis-aligned polyline points that rasterize the segment like a line.
+
+    Pixels follow the segment along its major axis (minor coordinate rounded
+    half up); runs of equal minor coordinate are joined by one-pixel steps.
+    """
+    dx, dy = x1 - x0, y1 - y0
+    if not dx or not dy:
+        return [(x0, y0), (x1, y1)]
+    steep = abs(dy) > abs(dx)
+    if steep:  # rasterize along y, then swap back
+        x0, y0, x1, y1, dx, dy = y0, x0, y1, x1, dy, dx
+    major, minor = (1 if dx > 0 else -1), (1 if dy > 0 else -1)
+    runs = []  # [minor offset, first major, last major]
+    for i in range(abs(dx) + 1):
+        offset = (2 * i * abs(dy) + abs(dx)) // (2 * abs(dx))
+        x = x0 + major * i
+        if runs and runs[-1][0] == offset:
+            runs[-1][2] = x
+        else:
+            runs.append([offset, x, x])
+    points = []
+    for offset, first, last in runs:
+        y = y0 + minor * offset
+        if points:
+            points.append((points[-1][0], y))  # one-pixel step on the minor axis
+        points += [(first, y), (last, y)]
+    if steep:
+        points = [(y, x) for x, y in points]
+    path = [points[0]]
+    for point in points[1:]:
+        if point == path[-1]:
+            continue
+        if len(path) >= 2 and (path[-2][0] == path[-1][0] == point[0]
+                               or path[-2][1] == path[-1][1] == point[1]):
+            path[-1] = point  # extend a straight run instead of adding a corner
+        else:
+            path.append(point)
+    return path
+
+
 def picture_payload(data, size=PICTURE_SIZE):
     """Pad a JPEG with a COM segment to exactly ``size`` bytes.
 
@@ -64,13 +125,17 @@ def picture_payload(data, size=PICTURE_SIZE):
 
 
 class DacaiDriver(T5UIC1Display):
+    PANEL_PROTOCOL = 'dacai'
     PICTURE_ID_MAX = 255
     BARE_FLASH_ACK = True
+    # 0x70 draws SRAM JPEGs opaque: thumbnails must carry their own background.
+    OPAQUE_SRAM_JPEG = True
     # The firmware clamps 0x30 to 0..63 (63 = 100 %); 4 is the darkest usable level.
     BACKLIGHT_MAX = 63
     BACKLIGHT_MIN = 4
 
     def __init__(self, *args, host_baud=None, **kwargs):
+        check_transport()
         self.host_baud = configured_baud() if host_baud is None else host_baud
         self._sprites = None
         self._sprite_animations = {}
@@ -145,6 +210,40 @@ class DacaiDriver(T5UIC1Display):
     def prepare_picture(self, data):
         return picture_payload(data)
 
+    def draw_polyline(self, color, points):
+        points = tuple(points)
+        if len(points) < 2:
+            raise ValueError("a polyline needs at least two points")
+        for point in points:
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
+                raise ValueError("points must contain (x, y) pairs")
+        path = [tuple(points[0])]
+        for (x0, y0), (x1, y1) in zip(points, points[1:]):
+            for point in staircase(self._u16(x0), self._u16(y0),
+                                   self._u16(x1), self._u16(y1))[1:]:
+                if point != path[-1]:
+                    path.append(point)
+        if len(path) == 1:
+            path.append(path[0])
+        # One 0x03 frame holds at most 61 points; chunks share their end point.
+        limit = (self.MAX_DATA_LENGTH - 2) // 4
+        for start in range(0, len(path) - 1, limit - 1):
+            super().draw_polyline(color, path[start:start + limit])
+
+    # DWIN auxiliary UART (0x38/0x39): not available on DACAI. The panel's own
+    # host-link speed switch is _send_baud, used only by this driver.
+    def set_aux_baud_divisor(self, divisor):
+        raise UnsupportedPanelFeature('DACAI panels have no auxiliary UART')
+
+    def set_aux_baudrate(self, baudrate):
+        raise UnsupportedPanelFeature('DACAI panels have no auxiliary UART')
+
+    def aux_write(self, data):
+        raise UnsupportedPanelFeature('DACAI panels have no auxiliary UART')
+
+    def poll_aux_data(self):
+        raise UnsupportedPanelFeature('DACAI panels have no auxiliary UART')
+
     # ------------------------------------------------------------------
     # Icons from sprite sheets
     # ------------------------------------------------------------------
@@ -162,48 +261,58 @@ class DacaiDriver(T5UIC1Display):
         return None  # First install: draw the boot frame without icons.
 
     def _startup_sync_icons(self):
+        # Failures propagate like the DWIN icon-library sync: the panel's own
+        # icon files are not Petrel's, so there is no silent fallback.
         self.sync_sprites()
         self._assets_synced = True
 
     def sync_sprites(self, *, force=False):
-        """Upload changed sheets; ``force`` repairs pictures removed by a microSD update."""
+        """Upload changed sheets; ``force`` repairs pictures removed by a microSD update.
+
+        Raises on any upload or verification failure; the sheets are used only
+        after their metadata checkpoint has been verified.
+        """
         from petrel.artwork import sprites
         self._sprite_animations.clear()
-        try:
-            current = sprites.load()
-            if sprites.sync(self, force=force, sprites=current):
-                self._cached_picture1 = None
-            self._sprites = current.index
-        except (OSError, T5UIC1TimeoutError):
-            raise
-        except Exception:
-            # Without sheets, show_icon falls back to the panel's own icon files.
-            logging.exception('Sprite sheet upload failed; using panel icon files')
-            self._sprites = None
+        self._sprites = None
+        current = sprites.load()
+        if sprites.sync(self, force=force, sprites=current):
+            self._cached_picture1 = None
+        self._sprites = current.index
 
     def show_icon(self, library_id, icon_ids, x, y, *, background=True,
                   restore=False, enhanced=False):
         icons = (icon_ids,) if isinstance(icon_ids, int) else tuple(icon_ids)
-        if icons and self._draw_sprites(library_id, icons, x, y, background):
+        if icons and self._sprite_library(library_id):
+            self._draw_sprites(icons, x, y, background)
             return
         super().show_icon(library_id, icon_ids, x, y, background=background,
                           restore=restore, enhanced=enhanced)
 
-    def _draw_sprites(self, library_id, icons, x, y, background):
-        """Copy icons from their sheets in a row; False leaves the call to 0x23."""
+    def _sprite_library(self, library_id):
         from petrel.artwork.resources import ICON_LIBRARY_ID
+        return self._sprites is not None and library_id == ICON_LIBRARY_ID
+
+    def _draw_sprites(self, icons, x, y, background):
+        """Copy icons from their sheets in a row; False if any icon is missing.
+
+        Missing icons are skipped rather than drawn with 0x23: the panel's own
+        icon files do not hold Petrel's artwork.
+        """
         from petrel.artwork.sprites import FIRST_SLOT
-        if self._sprites is None or library_id != ICON_LIBRARY_ID:
-            return False
-        entries = [self._sprites.get(icon) for icon in icons]
-        if None in entries:
-            return False
-        for sheet, x0, y0, width, height in entries:
-            self.ensure_cached_picture(FIRST_SLOT + sheet)
-            self.copy_cache(1, x0, y0, x0 + width - 1, y0 + height - 1, x, y,
-                            background=background, enhanced=False)
-            x += width
-        return True
+        complete = True
+        for icon in icons:
+            pieces = self._sprites.get(icon)
+            if not pieces:
+                logging.warning('Icon %s is not on the DACAI sprite sheets', icon)
+                complete = False
+                continue
+            for sheet, x0, y0, width, height, dx, dy in pieces:
+                self.ensure_cached_picture(FIRST_SLOT + sheet)
+                self.copy_cache(1, x0, y0, x0 + width - 1, y0 + height - 1, x + dx, y + dy,
+                                background=background, enhanced=False)
+            x += pieces[0][3]
+        return complete
 
     def configure_animation(self, animation_id, enabled, library_id,
                             first_icon, last_icon, x, y, interval,
@@ -222,14 +331,20 @@ class DacaiDriver(T5UIC1Display):
     def _sprite_animation(self, animation_id, enabled, library_id, first_icon, last_icon,
                           x, y, interval, restart_from_first):
         """Host-side replacement for 0x28 while icons come from sprite sheets."""
-        from petrel.artwork.resources import ICON_LIBRARY_ID
-        if self._sprites is None or library_id != ICON_LIBRARY_ID:
+        if not self._sprite_library(library_id):
             return False
         if not 0 <= animation_id <= 15:
             raise ValueError('animation ID must be 0..15')
         frames = range(first_icon, last_icon + 1)
-        if not frames or any(icon not in self._sprites for icon in frames):
+        if not frames:
             return False
+        missing = [icon for icon in frames if icon not in self._sprites]
+        if missing:
+            # Never fall back to 0x28: the native icon files are not Petrel's.
+            logging.warning('Animation %d frames %s are not on the DACAI sprite sheets',
+                            animation_id, missing)
+            self._sprite_animations.pop(animation_id, None)
+            return True
         previous = self._sprite_animations.pop(animation_id, None)
         if not enabled:
             return True
@@ -253,8 +368,7 @@ class DacaiDriver(T5UIC1Display):
             if not (self._sprite_mask >> animation_id) & 1:
                 continue
             if now >= animation['due']:
-                from petrel.artwork.resources import ICON_LIBRARY_ID
-                if not self._draw_sprites(ICON_LIBRARY_ID, (animation['frame'],),
+                if not self._draw_sprites((animation['frame'],),
                                           animation['x'], animation['y'], True):
                     self._sprite_animations.pop(animation_id, None)
                     continue

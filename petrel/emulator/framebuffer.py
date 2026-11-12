@@ -13,14 +13,21 @@ class Framebuffer:
     TAIL = b'\xcc\x33\xc3\x3c'
     # Nonvisual commands intentionally do not affect screenshots/backlight pixels.
     NONVISUAL = {0x00, 0x30, 0x32, 0x38, 0x39}
+    # Packet dialects: DWIN T5UIC1 and DACAI (see docs/dacai.md). DACAI draws
+    # SRAM JPEGs opaque with 0x70 and inverts 0x27 bit 7 (set = black
+    # transparent); its icon sprite sheets live in pictures 16+.
+    PROTOCOLS = ('dwin', 'dacai')
 
     def __init__(self, assets=None):
         self.assets = assets or PanelAssets()
         self.lock = RLock()
         self.reset()
 
-    def reset(self):
+    def reset(self, protocol='dwin'):
+        if protocol not in self.PROTOCOLS:
+            raise ValueError(f'Unknown panel protocol {protocol!r}')
         with self.lock:
+            self.protocol = protocol
             self.direction = 1
             splash = self.assets.picture(0).transpose(Image.Transpose.ROTATE_270)
             self.image = splash.copy()
@@ -78,6 +85,9 @@ class Framebuffer:
                 with Image.open(BytesIO(self.flash_blocks[slot])) as image:
                     physical = panel_colors(image)
                 self.pictures[slot] = physical
+            elif self.protocol == 'dacai' and slot >= 16:
+                # Sheets uploaded before this emulator session are resident.
+                physical = self.assets.sprite_sheet(slot)
             else:
                 physical = self.assets.picture(slot)
         turns = {0: None, 1: Image.Transpose.ROTATE_270,
@@ -198,8 +208,16 @@ class Framebuffer:
                     self._paste(panel_colors(image), x, y, p[4])
             elif opcode in (0x26, 0x27):
                 mode = 0x81 if opcode == 0x26 else p[0]
+                if opcode == 0x27 and self.protocol == 'dacai':
+                    mode ^= 0x80
                 x0, y0, x1, y1, x, y = self.words(p if opcode == 0x26 else p[1:])
                 self._paste(self.areas[mode & 1].crop((x0, y0, x1 + 1, y1 + 1)), x, y, mode)
+            elif opcode == 0x70 and self.protocol == 'dacai':
+                # DACAI: SRAM JPEG at x, y from address, always opaque.
+                x, y, address = self.words(p)
+                with Image.open(BytesIO(self.sram[address:])) as image:
+                    from .assets import panel_colors
+                    self._paste(panel_colors(image), x, y, 0x80)
             elif opcode == 0x28:
                 if len(p) != 9:
                     raise ValueError('Invalid animation payload')

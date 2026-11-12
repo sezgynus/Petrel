@@ -2,7 +2,6 @@
 """Kconfig terminal frontend with explicit, reversible installation/apply."""
 import argparse
 from contextlib import contextmanager
-import fcntl
 import json
 import math
 import os
@@ -34,6 +33,8 @@ INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
         'PETREL_BUTTON_PIN': (0, 65535), 'PETREL_POWER_ON_HOLD_MS': (0, 2147483647),
         'PETREL_REMOTE_PORT': (1, 65535), 'PETREL_DACAI_BAUD': (115200, 921600)}
 DACAI_BAUDS = ('115200', '230400', '460800', '921600')
+DACAI_AUX_CONFLICT = ('A DACAI panel has no DWIN auxiliary UART: disable '
+                      'PETREL_AUX_UART or PETREL_DACAI')
 SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
 RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
            - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
@@ -198,6 +199,8 @@ def validate(values):
             raise ValueError(name + ' must be an absolute path')
     if values['PETREL_DACAI_BAUD'] not in DACAI_BAUDS:
         raise ValueError('DACAI baud must be one of ' + ', '.join(DACAI_BAUDS))
+    if values['PETREL_DACAI'] == 'y' and values['PETREL_AUX_UART'] == 'y':
+        raise ValueError(DACAI_AUX_CONFLICT)
     if values['PETREL_REMOTE'] == 'y' and not values['PETREL_REMOTE_HOST'].strip():
         raise ValueError('Remote bind address cannot be empty')
 
@@ -405,6 +408,11 @@ def main():
             kconf.load_config(str(args.apply_config), replace=False)
             if kconf.warnings or kconf.missing_syms:
                 raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
+            requested = args.apply_config.read_text()
+            if (kconf.syms['PETREL_DACAI'].str_value == 'y'
+                    and re.search(r'^CONFIG_PETREL_AUX_UART=y\s*$', requested, re.MULTILINE)):
+                # Kconfig would silently drop the hidden option; refuse instead.
+                raise ValueError(DACAI_AUX_CONFLICT)
             selected = collect(kconf)
         else:
             if not sys.stdin.isatty() or not sys.stdout.isatty():
@@ -416,6 +424,7 @@ def main():
         validate(selected)
         config_dir = env_file.parent
         config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        import fcntl  # Linux only; imported here so the helpers stay testable elsewhere.
         with (config_dir / 'configure.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             apply(selected, repo=args.repo, home=args.home, user=args.user,

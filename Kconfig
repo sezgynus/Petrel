@@ -36,7 +36,9 @@ config PETREL_DACAI
       microSD card uses a "private" folder instead of "DWIN_SET". Petrel then
       uploads the boot picture, shared artwork and icon sprite sheets over the
       UART, so no microSD card is needed. Never copy a DWIN_SET to this panel.
-      The panel has no auxiliary UART. See docs/dacai.md.
+      The panel has no auxiliary UART: selecting DACAI hides the DWIN auxiliary
+      UART option, and Apply removes an installed auxiliary-UART broker.
+      NFC readers connected to the host are unaffected. See docs/dacai.md.
 config PETREL_DACAI_BAUD
     int "DACAI host UART speed (baud)"
     depends on PETREL_DACAI
@@ -143,8 +145,10 @@ endmenu
 menu "DWIN auxiliary UART"
 config PETREL_AUX_UART
     bool "DWIN auxiliary UART as a Linux serial port"
+    depends on !PETREL_DACAI
     default n
     help
+      Not available with a DACAI panel (Display panel menu).
       Expose /dev/ttyDWIN0 with data transfer and baud control (8N1).
       Auxiliary baud rates below about 15300, including 9600, are unsupported.
       Applying this option installs/removes a DKMS module and shared broker.

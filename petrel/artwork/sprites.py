@@ -4,6 +4,13 @@ DACAI panels only read icons from their own icon files, which cannot be written
 over UART. They do store full JPEG pictures with 0x33, so the icons are packed
 onto portrait sheets, uploaded once into picture slots ``FIRST_SLOT``.. and
 drawn by copying from virtual area 1 (0x25 + 0x27). No microSD card is needed.
+
+Every icon is drawn from one or more pieces ``(sheet, x, y, width, height, dx,
+dy)``: a piece copies ``width`` x ``height`` pixels from ``(x, y)`` on its sheet
+to ``(dx, dy)`` inside the icon. Most icons are one full piece. The large NFC
+animation frames (160x160) differ from the first frame of their sequence only
+around the moving card, so later frames are the first frame plus one patch.
+That keeps all NFC artwork on a few sheets instead of nine more.
 """
 from functools import lru_cache
 import hashlib
@@ -14,7 +21,7 @@ import re
 import time
 import zlib
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 from petrel.artwork.icon_library import SOURCE_DIRECTORY
 from petrel.artwork.resources import (
@@ -34,16 +41,18 @@ MAX_JPEG = 0x8000 - 4
 METADATA_ADDRESS = 0x0600
 METADATA_SIZE = 576
 MAGIC = b'PETSPR01'
-# Large NFC approach frames: DACAI has no auxiliary UART for an NFC reader.
-SKIPPED_IDS = frozenset(
-    list(range(ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST + 1))
-    + list(range(ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST + 1))
-    + list(range(ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST + 1)))
+# Animation sequences stored as first frame + per-frame patches.
+DELTA_SEQUENCES = ((ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST),
+                   (ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST),
+                   (ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST))
+# A pixel belongs to a patch when any channel differs by more than this from
+# the first frame (the sources are JPEGs, so tiny differences are noise).
+DELTA_THRESHOLD = 8
 _ATTEMPTS = set()
 
 
 class SpriteSet:
-    """Encoded sheets plus icon ID -> (sheet, x, y, width, height)."""
+    """Encoded sheets plus icon ID -> pieces ``((sheet, x, y, w, h, dx, dy), ...)``."""
 
     def __init__(self, payloads, index):
         self.payloads = tuple(payloads)
@@ -107,25 +116,50 @@ def encode(sheet):
     return best
 
 
+def _delta_patch(base, frame):
+    """Changed region of ``frame`` against ``base`` as (x0, y0, x1, y1), or None."""
+    difference = ImageChops.difference(frame, base).split()
+    changed = ImageChops.lighter(ImageChops.lighter(difference[0], difference[1]), difference[2])
+    return changed.point([255 if v > DELTA_THRESHOLD else 0 for v in range(256)]).getbbox()
+
+
 def build(directory=SOURCE_DIRECTORY):
     images = {}
     for path in sorted(Path(directory).iterdir()):
         if not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg'):
             continue
         match = re.fullmatch(r'(\d{1,3})(?:[-_].*)?', path.stem)
-        if not match or int(match[1]) in SKIPPED_IDS:
+        if not match:
             continue
         with Image.open(path) as image:
             images[int(match[1])] = image.convert('RGB')
     if not images:
         raise ValueError('Icon source directory is empty')
-    count, placement = pack({i: image.size for i, image in images.items()})
+    # Pieces to pack: (icon, 0) is a full icon, (icon, 1) a patch over its base.
+    crops, layout = {}, {}
+    for icon, image in images.items():
+        crops[(icon, 0)] = image
+        layout[icon] = [((icon, 0), 0, 0)]
+    for first, last in DELTA_SEQUENCES:
+        base = images.get(first)
+        if base is None:
+            continue
+        for icon in range(first + 1, last + 1):
+            frame = images.get(icon)
+            if frame is None or frame.size != base.size:
+                continue
+            del crops[(icon, 0)]
+            box = _delta_patch(base, frame)
+            layout[icon] = [((first, 0), 0, 0)]
+            if box is not None:
+                crops[(icon, 1)] = frame.crop(box)
+                layout[icon].append(((icon, 1), box[0], box[1]))
+    count, placement = pack({key: image.size for key, image in crops.items()})
     sheets = [Image.new('RGB', (SHEET_WIDTH, SHEET_HEIGHT)) for _ in range(count)]
-    index = {}
-    for icon, (number, x, y) in placement.items():
-        image = images[icon]
-        sheets[number].paste(image, (x, y))
-        index[icon] = (number, x, y) + image.size
+    for key, (number, x, y) in placement.items():
+        sheets[number].paste(crops[key], (x, y))
+    index = {icon: tuple(placement[key] + crops[key].size + (dx, dy) for key, dx, dy in pieces)
+             for icon, pieces in layout.items()}
     return SpriteSet([encode(sheet) for sheet in sheets], index)
 
 

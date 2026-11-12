@@ -57,6 +57,10 @@ class T5UIC1Display:
     PICTURE_ID_MAX = 15
     # Accept a bare A5 'OK' data-Flash acknowledgement (see protocol.take_response).
     BARE_FLASH_ACK = False
+    # Packet dialect announced to the emulator (packet_observer.reset_panel).
+    PANEL_PROTOCOL = 'dwin'
+    # True when show_sram_jpeg cannot filter black: thumbnails need a background.
+    OPAQUE_SRAM_JPEG = False
     HEIGHT = 480
     SRAM_SIZE = 32 * 1024
     FLASH_SIZE = 16 * 1024
@@ -176,7 +180,7 @@ class T5UIC1Display:
 
         try:
             if packet_observer is not None:
-                packet_observer.reset_panel()
+                packet_observer.reset_panel(protocol=self.PANEL_PROTOCOL)
             if connected_serial is None:
                 time.sleep(wake_delay)
                 for _ in range(handshake_attempts):
