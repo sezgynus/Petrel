@@ -15,7 +15,8 @@ class Framebuffer:
     NONVISUAL = {0x00, 0x30, 0x32, 0x38, 0x39}
     # Packet dialects: DWIN T5UIC1 and DACAI (see docs/dacai.md). DACAI draws
     # SRAM JPEGs opaque with 0x70 and inverts 0x27 bit 7 (set = black
-    # transparent) and copies one row below the 0x27 rectangle; its icon
+    # transparent), copies one row below the 0x27 rectangle and excludes the
+    # last column/row of 0x09 moves to the left or up; its icon
     # sprite sheets live in pictures 16+.
     PROTOCOLS = ('dwin', 'dacai')
 
@@ -162,6 +163,9 @@ class Framebuffer:
                 self.image.paste(patch, (x, y))
             elif opcode == 0x09:
                 distance, color, x0, y0, x1, y1 = self.words(p[1:])
+                if self.protocol == 'dacai' and p[0] & 3 in (0, 2):
+                    # DACAI: moving left/up excludes the last column/row.
+                    x1, y1 = (x1 - 1, y1) if p[0] & 3 == 0 else (x1, y1 - 1)
                 x1, y1 = min(x1, self.image.width - 1), min(y1, self.image.height - 1)
                 patch = self.image.crop((x0, y0, x1 + 1, y1 + 1))
                 dx, dy = ((-distance, 0), (distance, 0), (0, -distance), (0, distance))[p[0] & 3]

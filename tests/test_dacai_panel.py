@@ -103,6 +103,17 @@ class DacaiProtocolTests(unittest.TestCase):
         lcd.copy_cache(1, 0, 0, 9, 9, 5, 5, background=False, enhanced=False)
         self.assertEqual([payload[0] for _, payload in sent(lcd)], [0x01, 0x81])
 
+    def test_move_area_left_and_up_include_the_last_column_and_row(self):
+        # Measured: moving left/up treats x1/y1 as exclusive; right/down are exact.
+        lcd = dacai_driver()
+        for direction in range(4):
+            lcd.move_area(1, direction, 24, 0, 0, 36, 255, 349)
+        lcd.move_area(1, 2, 24, 0, 0, 36, 272, 479)  # already at the screen edge
+        self.assertEqual([payload[5:] for _, payload in sent(lcd)],
+                         [lcd._words(0, 36, 256, 349), lcd._words(0, 36, 255, 349),
+                          lcd._words(0, 36, 255, 350), lcd._words(0, 36, 255, 349),
+                          lcd._words(0, 36, 272, 480)])
+
     def test_copy_cache_sends_the_last_row_one_lower(self):
         # Measured: the panel copies rows y0..y1+1 (columns x0..x1 exactly).
         lcd = dacai_driver()
@@ -728,6 +739,21 @@ class DacaiEmulatorTests(unittest.TestCase):
         self.assertGreater(image.getpixel((115, 102))[0], 200)
         self.assertLess(max(image.getpixel((102, 202))), 16)
         self.assertGreater(image.getpixel((115, 202))[0], 200)
+
+    def test_scrolling_up_leaves_no_line_and_keeps_the_row_below(self):
+        # Like the Info list: scroll up one row, then redraw the exposed band.
+        for protocol in ('dacai', 'dwin'):
+            model, lcd = self.model(protocol)
+            model.image.paste((255, 255, 255), (0, 36, 272, 350))
+            model.image.paste((255, 0, 0), (0, 350, 272, 351))
+            for _ in range(3):
+                lcd.move_area(1, 2, 24, 0, 0, 36, 255, 349)
+                lcd.draw_rectangle(1, 0xFFFF, 0, 326, 255, 349)
+            lcd.update()
+            image, _ = model.snapshot()
+            column = [image.getpixel((100, y)) for y in range(36, 350)]
+            self.assertEqual(set(column), {(255, 255, 255)}, protocol)
+            self.assertEqual(image.getpixel((100, 350)), (255, 0, 0), protocol)
 
     def test_area_copy_draws_exactly_the_requested_rows(self):
         # The emulator copies one row more like the panel; the driver compensates.

@@ -8,6 +8,7 @@ a Max Neo panel; see docs/dacai.md:
 * SRAM JPEGs are drawn with 0x70 (0x24 is not implemented).
 * 0x27 bit 7 is inverted: set = black transparent, clear = opaque.
 * 0x27 copies one row more than asked (rows y0..y1+1; columns are exact).
+* 0x09 moving left or up treats x1/y1 as exclusive; right and down are exact.
 * 0x33 stores the whole 32 KB SRAM as ``image/<id>.jpg`` and the loader
   requires FF D9 at the end of the file, so JPEGs are padded to 32 KB.
 * Icon files cannot be written over UART. Icons are packed onto JPEG sprite
@@ -203,6 +204,16 @@ class DacaiDriver(T5UIC1Display):
             raise ValueError('SRAM address outside 32KB range')
         # 0x24 is not implemented; 0x70 draws the SRAM JPEG opaque.
         self._send(0x70, self._words(x, y, address))
+
+    def move_area(self, mode, direction, distance, color, x0, y0, x1, y1):
+        # Moving left (0) or up (2) treats x1/y1 as exclusive: the last
+        # column/row stays and the fill starts one early, leaving a line per
+        # move. Right and down are exact.
+        if direction == 0:
+            x1 = min(x1 + 1, self.WIDTH)
+        elif direction == 2:
+            y1 = min(y1 + 1, self.HEIGHT)
+        super().move_area(mode, direction, distance, color, x0, y0, x1, y1)
 
     def copy_cache(self, cache_id, x0, y0, x1, y1, x, y, *,
                    background=False, restore=False, enhanced=True):
