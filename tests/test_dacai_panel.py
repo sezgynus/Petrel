@@ -272,22 +272,50 @@ class DacaiBaudTests(unittest.TestCase):
         self.assertEqual(lcd.serial.baudrate, 115200)
         self.assertEqual(lcd._send.call_args_list[-1].args, (0x38, lcd._word(136)))
 
-    def test_probe_alternates_speeds_only_for_dacai(self):
+    def probe_speeds(self, environment, sends):
         port = MagicMock(spec=serial.Serial, baudrate=115200, in_waiting=0)
         port.write.side_effect = len
         from petrel.hardware.dwin.startup import PanelProbe
         with patch('petrel.hardware.dwin.startup.open_display_serial', return_value=port), \
-                patch.dict('os.environ', {'PETREL_DACAI': '1', 'PETREL_DACAI_BAUD': '460800'}):
+                patch.dict('os.environ', environment):
             probe = PanelProbe('/dev/null')
             speeds = []
-            for _ in range(3):
+            for _ in range(sends):
                 probe.next_send = 0
                 probe.poll()
                 speeds.append(port.baudrate)
-        self.assertEqual(speeds, [460800, 115200, 460800])
-        with patch('petrel.hardware.dwin.startup.open_display_serial', return_value=port), \
-                patch.dict('os.environ', {'PETREL_DACAI': '0'}):
-            self.assertEqual(PanelProbe('/dev/null').alt_baud, 0)
+        return speeds
+
+    def test_probe_cycles_all_host_speeds_configured_first(self):
+        self.assertEqual(self.probe_speeds({'PETREL_DACAI': '1', 'PETREL_DACAI_BAUD': '460800'}, 5),
+                         [460800, 115200, 230400, 921600, 460800])
+
+    def test_probe_finds_a_speed_left_by_an_interrupted_session(self):
+        # Killed at 460800, then reconfigured to 921600 or back to 115200.
+        for configured in ('921600', '115200'):
+            with self.subTest(configured=configured):
+                speeds = self.probe_speeds({'PETREL_DACAI': '1', 'PETREL_DACAI_BAUD': configured}, 4)
+                self.assertEqual(speeds[0], int(configured))
+                self.assertIn(460800, speeds)
+
+    def test_probe_keeps_115200_for_dwin(self):
+        self.assertEqual(self.probe_speeds({'PETREL_DACAI': '0'}, 3), [115200] * 3)
+
+    def test_link_ends_at_the_configured_speed_after_probing(self):
+        for found, configured in ((460800, 921600), (460800, 115200), (115200, 460800)):
+            with self.subTest(found=found, configured=configured):
+                lcd = self.link([True])
+                lcd.serial = MagicMock(spec=serial.Serial, baudrate=found)
+                lcd.host_baud = configured
+                with patch('petrel.hardware.dwin.dacai.time.sleep'):
+                    lcd._after_handshake()
+                self.assertEqual(lcd.serial.baudrate, configured)
+                lcd._send.assert_called_once_with(0x38, lcd._word(round(dacai.UART_CLOCK / configured)))
+        lcd = self.link([True])
+        lcd.serial = MagicMock(spec=serial.Serial, baudrate=460800)
+        lcd.host_baud = 460800
+        lcd._after_handshake()
+        lcd._send.assert_not_called()
 
 
 class SpritePackingTests(unittest.TestCase):

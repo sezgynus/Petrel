@@ -147,7 +147,9 @@ class DacaiDriver(T5UIC1Display):
     # ------------------------------------------------------------------
 
     def _after_handshake(self):
-        if self.host_baud != DEFAULT_BAUD and isinstance(self.serial, serial.Serial):
+        # The startup probe may have found the panel at another speed left
+        # over from an interrupted session; always end at the configured one.
+        if isinstance(self.serial, serial.Serial):
             self._switch_baud(self.host_baud)
 
     def _send_baud(self, baud):
@@ -164,7 +166,7 @@ class DacaiDriver(T5UIC1Display):
         self._send_baud(target)
         for _ in range(3):
             if self.handshake(.5):
-                logging.info('DACAI host UART raised to %d baud', target)
+                logging.info('DACAI host UART set to %d baud', target)
                 return
         logging.warning('DACAI baud switch to %d failed; staying at %d', target, DEFAULT_BAUD)
         self._send_baud(DEFAULT_BAUD)
