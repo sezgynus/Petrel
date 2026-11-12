@@ -8,9 +8,10 @@ drawn by copying from virtual area 1 (0x25 + 0x27). No microSD card is needed.
 Every icon is drawn from one or more pieces ``(sheet, x, y, width, height, dx,
 dy)``: a piece copies ``width`` x ``height`` pixels from ``(x, y)`` on its sheet
 to ``(dx, dy)`` inside the icon. Most icons are one full piece. The large NFC
-animation frames (160x160) differ from the first frame of their sequence only
-around the moving card, so later frames are the first frame plus one patch.
-That keeps all NFC artwork on a few sheets instead of nine more.
+animation frames (160x160) differ from each other only around the moving card
+and the waves, so every later frame is drawn as the most similar earlier frame
+of its sequence plus one patch. That keeps all NFC artwork on a few sheets
+instead of nine more.
 """
 from functools import lru_cache
 import hashlib
@@ -65,35 +66,64 @@ def _cells(pixels):
 
 
 def _fit(sheet, width, height):
-    for shelf in sheet['shelves']:
-        if height <= shelf[1] and shelf[2] + width <= SHEET_WIDTH:
-            x = shelf[2]
-            shelf[2] += width
-            return x, shelf[0]
-    if sheet['height'] + height <= SHEET_HEIGHT and width <= SHEET_WIDTH:
-        y = sheet['height']
-        sheet['shelves'].append([y, height, width])
-        sheet['height'] += height
-        return 0, y
+    """Lowest, then leftmost free spot for whole cells; ``sheet`` is a list of row bitmasks."""
+    columns, rows = width // CELL, height // CELL
+    mask = (1 << columns) - 1
+    for y in range(len(sheet) - rows + 1):
+        for x in range(SHEET_WIDTH // CELL - columns + 1):
+            if not any(sheet[row] & (mask << x) for row in range(y, y + rows)):
+                for row in range(y, y + rows):
+                    sheet[row] |= mask << x
+                return x * CELL, y * CELL
     return None
 
 
-def pack(sizes):
-    """Shelf-pack {id: (w, h)} on the 16 px grid; returns (sheet_count, {id: (sheet, x, y)})."""
-    order = sorted(sizes, key=lambda i: (-_cells(sizes[i][1]), -_cells(sizes[i][0]), i))
+def pack(sizes, groups=()):
+    """Pack {id: (w, h)} on the 16 px grid; returns (sheet_count, {id: (sheet, x, y)}).
+
+    Largest first, each at the lowest free spot of the first sheet it fits on.
+
+    Each group (a collection of ids) starts on a sheet of its own, so an
+    animation drawn from several pieces does not switch sheets between
+    frames; the remaining ids fill the free space of all sheets.
+    """
+    def order(ids):
+        return sorted(ids, key=lambda i: (-_cells(sizes[i][1]), -_cells(sizes[i][0]), i))
+
     sheets, placement = [], {}
-    for index in order:
+
+    def place(index, candidates):
         width, height = (_cells(v) for v in sizes[index])
         if width > SHEET_WIDTH or height > SHEET_HEIGHT:
             raise ValueError(f'Icon {index} is larger than a sprite sheet')
-        for number, sheet in enumerate(sheets):
-            spot = _fit(sheet, width, height)
+        for number in candidates:
+            spot = _fit(sheets[number], width, height)
             if spot is not None:
                 break
         else:
-            sheets.append({'shelves': [], 'height': 0})
+            sheets.append([0] * (SHEET_HEIGHT // CELL))
             number, spot = len(sheets) - 1, _fit(sheets[-1], width, height)
         placement[index] = (number, spot[0], spot[1])
+
+    grouped = set()
+    for group in groups:
+        members = [i for i in group if i in sizes]
+        grouped.update(members)
+        # Prefer an order that fits the whole group on one sheet.
+        for key in ((lambda i: (-_cells(sizes[i][0]), -_cells(sizes[i][1]), i)),
+                    (lambda i: (-_cells(sizes[i][0]) * _cells(sizes[i][1]), i))):
+            trial = [0] * (SHEET_HEIGHT // CELL)
+            spots = [(i, _fit(trial, *(_cells(v) for v in sizes[i]))) for i in sorted(members, key=key)]
+            if all(spot for _, spot in spots):
+                sheets.append(trial)
+                placement.update((i, (len(sheets) - 1,) + spot) for i, spot in spots)
+                break
+        else:
+            start = len(sheets)
+            for index in order(members):
+                place(index, range(start, len(sheets)))
+    for index in order(i for i in sizes if i not in grouped):
+        place(index, range(len(sheets)))
     if len(sheets) > MAX_SHEETS:
         raise ValueError(f'Icons need {len(sheets)} sprite sheets (max {MAX_SHEETS})')
     return len(sheets), placement
@@ -155,6 +185,51 @@ def _grid_padded(image):
     return padded
 
 
+def _compose(crops, pieces, size):
+    image = Image.new('RGB', size)
+    for key, box, position in pieces:
+        image.paste(crops[key].crop(box), position)
+    return image
+
+
+def _patched_layout(images, crops, layout, first, icon):
+    """Pieces for animation frame ``icon``: an earlier frame of its sequence plus one patch.
+
+    The earlier frame that needs the smallest patch wins, as long as the
+    composed frame stays within DELTA_THRESHOLD of the source everywhere (small
+    differences outside a patch must not add up along a chain of frames).
+    Stores the chosen patch in ``crops``.
+    """
+    frame = images[icon]
+    best = None
+    for reference in range(first, icon):
+        if reference not in layout or images.get(reference) is None \
+                or images[reference].size != frame.size:
+            continue
+        patch = _delta_patch(images[reference], frame)
+        pieces = list(layout[reference])
+        cells = 0
+        if patch is not None:
+            stored, drawn = patch
+            cells = (stored[2] - stored[0]) * (stored[3] - stored[1]) // (CELL * CELL)
+            inner = (drawn[0] - stored[0], drawn[1] - stored[1],
+                     drawn[2] - stored[0], drawn[3] - stored[1])
+            pieces.append(((icon, 1), inner, drawn[:2]))
+        rank = (cells, len(pieces), reference)
+        if best is not None and rank >= best[0]:
+            continue
+        trial = dict(crops)
+        if patch is not None:
+            trial[(icon, 1)] = frame.crop(stored)
+        error = ImageChops.difference(_compose(trial, pieces, frame.size), frame).getextrema()
+        if max(high for _, high in error) <= DELTA_THRESHOLD:
+            best = rank, pieces, patch and frame.crop(stored)
+    _, pieces, crop = best
+    if crop is not None:
+        crops[(icon, 1)] = crop
+    return pieces
+
+
 def build(directory=SOURCE_DIRECTORY):
     images = {}
     for path in sorted(Path(directory).iterdir()):
@@ -185,24 +260,23 @@ def build(directory=SOURCE_DIRECTORY):
         layout[icon] = [((icon, 0), (0, 0) + image.size, (0, 0))]
     for first, last in DELTA_SEQUENCES:
         base = images.get(first)
-        if base is None:
+        if base is None or first in same:
             continue
         for icon in range(first + 1, last + 1):
             frame = images.get(icon)
-            if frame is None or frame.size != base.size or icon in same:
+            if frame is None or frame.size != base.size:
+                continue
+            if icon in same:
+                if same[icon] in layout:
+                    layout[icon] = layout[same[icon]]
                 continue
             del crops[(icon, 0)]
-            patch = _delta_patch(base, frame)
-            layout[icon] = [((first, 0), (0, 0) + base.size, (0, 0))]
-            if patch is not None:
-                stored, drawn = patch
-                crops[(icon, 1)] = frame.crop(stored)
-                inner = (drawn[0] - stored[0], drawn[1] - stored[1],
-                         drawn[2] - stored[0], drawn[3] - stored[1])
-                layout[icon].append(((icon, 1), inner, drawn[:2]))
+            layout[icon] = _patched_layout(images, crops, layout, first, icon)
     for icon, original in same.items():
-        layout[icon] = layout[original]
-    count, placement = pack({key: image.size for key, image in crops.items()})
+        layout.setdefault(icon, layout[original])
+    groups = [{(first, 0)} | {(icon, 1) for icon in range(first + 1, last + 1)}
+              for first, last in DELTA_SEQUENCES]
+    count, placement = pack({key: image.size for key, image in crops.items()}, groups)
     sheets = [Image.new('RGB', (SHEET_WIDTH, SHEET_HEIGHT)) for _ in range(count)]
     for key, (number, x, y) in placement.items():
         sheets[number].paste(_grid_padded(crops[key]), (x, y))

@@ -407,7 +407,19 @@ class SpriteBuildTests(unittest.TestCase):
             for icon in range(first, last + 1):
                 self.assertIn(icon, self.set.index)
 
-    def test_nfc_frames_are_first_frame_plus_patch(self):
+    def test_library_fits_on_eight_sheets(self):
+        # A stock Max Neo panel has room for about 8 more 32 KB pictures next to
+        # its own files; a picture that does not fit is acknowledged anyway and
+        # its icons stay empty (see docs/dacai.md).
+        self.assertLessEqual(len(self.set.payloads), 8)
+
+    def test_each_nfc_animation_stays_on_one_sheet(self):
+        # Stepping an animation must not reload virtual area 1 between frames.
+        for first, last in NFC_RANGES:
+            used = {piece[0] for icon in range(first, last + 1) for piece in self.set.index[icon]}
+            self.assertEqual(len(used), 1, (first, used))
+
+    def test_nfc_frames_start_from_the_first_frame(self):
         for first, last in NFC_RANGES:
             base = self.set.index[first]
             self.assertEqual(len(base), 1)
@@ -435,13 +447,19 @@ class SpriteBuildTests(unittest.TestCase):
                 drawn = compose(self.sheets, self.set.index[icon])
                 error = ImageChops.difference(drawn, self.sources[icon]).convert('L')
                 for sheet, x, y, w, h, dx, dy in self.set.index[icon][1:]:
-                    edges = [box for inside, box in (
-                        (dy > 0, (dx, dy, dx + w, dy + 1)),
-                        (dy + h < base[4], (dx, dy + h - 1, dx + w, dy + h)),
-                        (dx > 0, (dx, dy, dx + 1, dy + h)),
-                        (dx + w < base[3], (dx + w - 1, dy, dx + w, dy + h))) if inside]
-                    for box in edges:
-                        self.assertLess(ImageStat.Stat(error.crop(box)).mean[0], 4, (icon, box))
+                    # (edge, the three rows/columns next to it inside the patch)
+                    edges = [boxes for inside, boxes in (
+                        (dy > 0, ((dx, dy, dx + w, dy + 1), (dx, dy + 1, dx + w, dy + 4))),
+                        (dy + h < base[4], ((dx, dy + h - 1, dx + w, dy + h),
+                                            (dx, dy + h - 4, dx + w, dy + h - 1))),
+                        (dx > 0, ((dx, dy, dx + 1, dy + h), (dx + 1, dy, dx + 4, dy + h))),
+                        (dx + w < base[3], ((dx + w - 1, dy, dx + w, dy + h),
+                                            (dx + w - 4, dy, dx + w - 1, dy + h)))) if inside]
+                    for edge, beside in edges:
+                        line = ImageStat.Stat(error.crop(edge)).mean[0]
+                        self.assertLess(line, 6, (icon, edge))
+                        self.assertLess(line, ImageStat.Stat(error.crop(beside)).mean[0] + 2,
+                                        (icon, edge))
 
     def test_identical_frames_share_their_pieces(self):
         for icon, original in ((50, 49), (122, 121), (136, 135)):
