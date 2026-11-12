@@ -13,6 +13,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 ENGLISH_REFERENCES = {'docs/t5uic1-reference.md', 'docs/source-audit.md',
                       'docs/mmu-driver-integration.md'}
+ENGLISH_GITHUB_TEMPLATES = {
+    '.github/ISSUE_TEMPLATE/bug_report.md',
+    '.github/ISSUE_TEMPLATE/feature_request.md',
+    '.github/PULL_REQUEST_TEMPLATE.md',
+}
 BILINGUAL_SINGLE_FILES = {'docs/assets/screens/README.md'}
 
 
@@ -62,8 +67,8 @@ class MarkdownContracts(unittest.TestCase):
 
     def test_language_pairs_cover_all_guides_except_declared_reference_policy(self):
         for path in self.files():
-            relative = str(path.relative_to(ROOT))
-            if relative in ENGLISH_REFERENCES | BILINGUAL_SINGLE_FILES:
+            relative = path.relative_to(ROOT).as_posix()
+            if relative in ENGLISH_REFERENCES | BILINGUAL_SINGLE_FILES | ENGLISH_GITHUB_TEMPLATES:
                 continue
             partner = path.with_name(path.stem[:-3] + '.md' if path.stem.endswith('_TR')
                                      else path.stem + '_TR.md')
