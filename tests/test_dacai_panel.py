@@ -103,6 +103,16 @@ class DacaiProtocolTests(unittest.TestCase):
         lcd.copy_cache(1, 0, 0, 9, 9, 5, 5, background=False, enhanced=False)
         self.assertEqual([payload[0] for _, payload in sent(lcd)], [0x01, 0x81])
 
+    def test_copy_cache_sends_the_last_row_one_lower(self):
+        # Measured: the panel copies rows y0..y1+1 (columns x0..x1 exactly).
+        lcd = dacai_driver()
+        lcd.copy_cache(1, 10, 20, 29, 39, 5, 6)
+        lcd.copy_cache(1, 10, 20, 29, 20, 5, 6)  # one row
+        lcd.copy_cache(1, 10, 0, 29, 0, 5, 6)    # one row at y = 0: best effort
+        self.assertEqual([payload[1:] for _, payload in sent(lcd)],
+                         [lcd._words(10, 20, 29, 38, 5, 6), lcd._words(10, 20, 29, 19, 5, 6),
+                          lcd._words(10, 0, 29, 0, 5, 6)])
+
     def test_backlight_is_scaled_to_firmware_range(self):
         lcd = dacai_driver()
         for value in (0, 1, 128, 255):
@@ -397,6 +407,36 @@ class SpriteBuildTests(unittest.TestCase):
                     self.assertLessEqual(dx + w, base[0][3])
                     self.assertLessEqual(dy + h, base[0][4])
 
+    def test_patches_sit_on_the_jpeg_grid_of_their_frame(self):
+        # Sheet and frame grid coincide, so a patch block never mixes in
+        # neighbouring sheet content (visible as lines on the panel).
+        for first, last in NFC_RANGES:
+            for icon in range(first + 1, last + 1):
+                for sheet, x, y, w, h, dx, dy in self.set.index[icon][1:]:
+                    self.assertEqual(((x - dx) % sprites.CELL, (y - dy) % sprites.CELL), (0, 0), icon)
+
+    def test_patch_borders_inside_the_frame_do_not_bleed(self):
+        # A patch edge inside the frame showed as a line on the panel. (Edges on
+        # the frame border are the icon outline, like every other sprite.)
+        for first, last in NFC_RANGES:
+            for icon in range(first + 1, last + 1):
+                base = self.set.index[first][0]
+                drawn = compose(self.sheets, self.set.index[icon])
+                error = ImageChops.difference(drawn, self.sources[icon]).convert('L')
+                for sheet, x, y, w, h, dx, dy in self.set.index[icon][1:]:
+                    edges = [box for inside, box in (
+                        (dy > 0, (dx, dy, dx + w, dy + 1)),
+                        (dy + h < base[4], (dx, dy + h - 1, dx + w, dy + h)),
+                        (dx > 0, (dx, dy, dx + 1, dy + h)),
+                        (dx + w < base[3], (dx + w - 1, dy, dx + w, dy + h))) if inside]
+                    for box in edges:
+                        self.assertLess(ImageStat.Stat(error.crop(box)).mean[0], 4, (icon, box))
+
+    def test_identical_frames_share_their_pieces(self):
+        for icon, original in ((50, 49), (122, 121), (136, 135)):
+            self.assertEqual(self.sources[icon].tobytes(), self.sources[original].tobytes())
+            self.assertEqual(self.set.index[icon], self.set.index[original])
+
     def test_composed_icons_match_their_sources(self):
         for first, last in NFC_RANGES + ((ICON_FAN_FIRST, ICON_FAN_LAST),):
             for icon in range(first, last + 1):
@@ -548,16 +588,16 @@ class SpriteDrawingTests(unittest.TestCase):
         frames = sent(self.lcd)
         self.assertEqual(frames[0], (0x25, bytes((1, sprites.FIRST_SLOT + 1))))
         self.assertEqual([op for op, _ in frames], [0x25, 0x27, 0x27])
-        self.assertEqual(frames[1][1], bytes((0x81,)) + self.lcd._words(32, 48, 51, 67, 100, 200))
-        self.assertEqual(frames[2][1][1:], self.lcd._words(64, 48, 83, 67, 120, 200))
+        self.assertEqual(frames[1][1], bytes((0x81,)) + self.lcd._words(32, 48, 51, 66, 100, 200))
+        self.assertEqual(frames[2][1][1:], self.lcd._words(64, 48, 83, 66, 120, 200))
 
     def test_patched_frame_draws_base_then_patch_at_offset(self):
         self.lcd.show_icon(ICON_LIBRARY_ID, (10, 7), 100, 200)
         frames = [(op, payload) for op, payload in sent(self.lcd) if op == 0x27]
-        self.assertEqual(frames[0][1][1:], self.lcd._words(32, 48, 51, 67, 100, 200))
-        self.assertEqual(frames[1][1][1:], self.lcd._words(32, 0, 39, 5, 104, 205))
+        self.assertEqual(frames[0][1][1:], self.lcd._words(32, 48, 51, 66, 100, 200))
+        self.assertEqual(frames[1][1][1:], self.lcd._words(32, 0, 39, 4, 104, 205))
         # The next icon follows the full width of the patched frame.
-        self.assertEqual(frames[2][1][1:], self.lcd._words(32, 48, 51, 67, 120, 200))
+        self.assertEqual(frames[2][1][1:], self.lcd._words(32, 48, 51, 66, 120, 200))
 
     def test_sheet_is_loaded_only_when_it_changes(self):
         self.lcd.show_icon(ICON_LIBRARY_ID, 7, 0, 0)
@@ -688,6 +728,20 @@ class DacaiEmulatorTests(unittest.TestCase):
         self.assertGreater(image.getpixel((115, 102))[0], 200)
         self.assertLess(max(image.getpixel((102, 202))), 16)
         self.assertGreater(image.getpixel((115, 202))[0], 200)
+
+    def test_area_copy_draws_exactly_the_requested_rows(self):
+        # The emulator copies one row more like the panel; the driver compensates.
+        model, lcd = self.model('dacai')
+        model.areas[1] = Image.new('RGB', (272, 480), (250, 0, 0))
+        model.areas[1].paste((0, 250, 0), (0, 0, 20, 10))
+        model.image.paste((0, 0, 250), (0, 0, 272, 480))
+        lcd.copy_cache(1, 0, 0, 19, 9, 100, 100, background=True)
+        lcd.update()
+        image, _ = model.snapshot()
+        self.assertEqual(image.getpixel((110, 109)), (0, 250, 0))
+        self.assertEqual(image.getpixel((110, 110)), (0, 0, 250))
+        self.assertEqual(image.getpixel((120, 105)), (0, 0, 250))
+        self.assertFalse(model.errors)
 
     def test_resident_sprite_sheets_render_icons(self):
         model, lcd = self.model('dacai')

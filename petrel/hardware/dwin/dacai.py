@@ -7,6 +7,7 @@ a Max Neo panel; see docs/dacai.md:
 
 * SRAM JPEGs are drawn with 0x70 (0x24 is not implemented).
 * 0x27 bit 7 is inverted: set = black transparent, clear = opaque.
+* 0x27 copies one row more than asked (rows y0..y1+1; columns are exact).
 * 0x33 stores the whole 32 KB SRAM as ``image/<id>.jpg`` and the loader
   requires FF D9 at the end of the file, so JPEGs are padded to 32 KB.
 * Icon files cannot be written over UART. Icons are packed onto JPEG sprite
@@ -206,7 +207,10 @@ class DacaiDriver(T5UIC1Display):
     def copy_cache(self, cache_id, x0, y0, x1, y1, x, y, *,
                    background=False, restore=False, enhanced=True):
         # Bit 7 has the opposite meaning: set = black transparent.
-        super().copy_cache(cache_id, x0, y0, x1, y1, x, y, background=not background,
+        # The panel copies rows y0..y1+1, so the last row is sent one lower.
+        # A one-row copy at y = 0 cannot be expressed and copies two rows.
+        super().copy_cache(cache_id, x0, y0, x1, max(y1 - 1, 0), x, y,
+                           background=not background,
                            restore=restore, enhanced=enhanced)
 
     def prepare_picture(self, data):

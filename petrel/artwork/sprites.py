@@ -117,10 +117,42 @@ def encode(sheet):
 
 
 def _delta_patch(base, frame):
-    """Changed region of ``frame`` against ``base`` as (x0, y0, x1, y1), or None."""
+    """Patch of ``frame`` over ``base``: (stored box, drawn box), or None if equal.
+
+    The stored box is the changed region plus a 1 px margin, widened to the
+    16 px JPEG grid of the frame. Placed on the grid of a sheet, every JPEG
+    block of the patch holds patch pixels only. Chroma upsampling still blends
+    the outermost pixel row with the sheet neighbour, so the drawn box leaves
+    out that row wherever it is margin (the base frame already shows it).
+    """
     difference = ImageChops.difference(frame, base).split()
     changed = ImageChops.lighter(ImageChops.lighter(difference[0], difference[1]), difference[2])
-    return changed.point([255 if v > DELTA_THRESHOLD else 0 for v in range(256)]).getbbox()
+    box = changed.point([255 if v > DELTA_THRESHOLD else 0 for v in range(256)]).getbbox()
+    if box is None:
+        return None
+    width, height = frame.size
+    x0, y0 = max(0, box[0] - 1) // CELL * CELL, max(0, box[1] - 1) // CELL * CELL
+    x1, y1 = min(width, _cells(box[2] + 1)), min(height, _cells(box[3] + 1))
+    drawn = (x0 + (x0 > 0), y0 + (y0 > 0), x1 - (x1 < width), y1 - (y1 < height))
+    return (x0, y0, x1, y1), drawn
+
+
+def _grid_padded(image):
+    """``image`` extended to whole 16 px cells by repeating its last column/row.
+
+    The padding fills the JPEG blocks at the right and bottom edge, so the
+    encoder does not blend the icon border with the black sheet background.
+    """
+    width, height = image.size
+    padded = Image.new('RGB', (_cells(width), _cells(height)))
+    padded.paste(image, (0, 0))
+    if padded.width > width:
+        padded.paste(image.crop((width - 1, 0, width, height)).resize((padded.width - width, height)),
+                     (width, 0))
+    if padded.height > height:
+        padded.paste(padded.crop((0, height - 1, padded.width, height)).resize(
+            (padded.width, padded.height - height)), (0, height))
+    return padded
 
 
 def build(directory=SOURCE_DIRECTORY):
@@ -136,29 +168,47 @@ def build(directory=SOURCE_DIRECTORY):
     if not images:
         raise ValueError('Icon source directory is empty')
     # Pieces to pack: (icon, 0) is a full icon, (icon, 1) a patch over its base.
+    # layout: icon -> [(piece, drawn box inside the piece, position in the icon)]
     crops, layout = {}, {}
+    # Pixel-identical icons (repeated animation frames) are stored once.
+    first_of, same = {}, {}
+    for icon in sorted(images):
+        key = (images[icon].size, images[icon].tobytes())
+        if key in first_of:
+            same[icon] = first_of[key]
+        else:
+            first_of[key] = icon
     for icon, image in images.items():
+        if icon in same:
+            continue
         crops[(icon, 0)] = image
-        layout[icon] = [((icon, 0), 0, 0)]
+        layout[icon] = [((icon, 0), (0, 0) + image.size, (0, 0))]
     for first, last in DELTA_SEQUENCES:
         base = images.get(first)
         if base is None:
             continue
         for icon in range(first + 1, last + 1):
             frame = images.get(icon)
-            if frame is None or frame.size != base.size:
+            if frame is None or frame.size != base.size or icon in same:
                 continue
             del crops[(icon, 0)]
-            box = _delta_patch(base, frame)
-            layout[icon] = [((first, 0), 0, 0)]
-            if box is not None:
-                crops[(icon, 1)] = frame.crop(box)
-                layout[icon].append(((icon, 1), box[0], box[1]))
+            patch = _delta_patch(base, frame)
+            layout[icon] = [((first, 0), (0, 0) + base.size, (0, 0))]
+            if patch is not None:
+                stored, drawn = patch
+                crops[(icon, 1)] = frame.crop(stored)
+                inner = (drawn[0] - stored[0], drawn[1] - stored[1],
+                         drawn[2] - stored[0], drawn[3] - stored[1])
+                layout[icon].append(((icon, 1), inner, drawn[:2]))
+    for icon, original in same.items():
+        layout[icon] = layout[original]
     count, placement = pack({key: image.size for key, image in crops.items()})
     sheets = [Image.new('RGB', (SHEET_WIDTH, SHEET_HEIGHT)) for _ in range(count)]
     for key, (number, x, y) in placement.items():
-        sheets[number].paste(crops[key], (x, y))
-    index = {icon: tuple(placement[key] + crops[key].size + (dx, dy) for key, dx, dy in pieces)
+        sheets[number].paste(_grid_padded(crops[key]), (x, y))
+    index = {icon: tuple((placement[key][0], placement[key][1] + box[0], placement[key][2] + box[1],
+                          box[2] - box[0], box[3] - box[1]) + position
+                         for key, box, position in pieces)
              for icon, pieces in layout.items()}
     return SpriteSet([encode(sheet) for sheet in sheets], index)
 
