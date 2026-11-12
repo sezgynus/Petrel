@@ -64,6 +64,7 @@ sudo systemctl start Petrel.service
 - **Yazı tipi:** Metinler panelde kurulu TrueType yazı tipini (`private/truefont`) kullanır. Petrel yazı tipi yüklemez.
 - **Yardımcı UART yok:** Panelde ikinci bir UART bulunmaz; bu nedenle [DWIN yardımcı UART](dwin-uart_TR.md) ve ekrana bağlanan NFC okuyucular kullanılamaz. Büyük NFC yaklaşma animasyonları yüklenmez.
 - **Siyah saydamdır:** DWIN ikon çiziminde olduğu gibi saydam ikonlarda siyaha yakın pikseller arka plan sayılır; çok ince koyu ayrıntılar kaybolabilir.
+- **Önizlemeler opaktır:** `0x70`, siyah zemini `0x24` gibi filtreleyemez; bu yüzden Petrel baskı önizlemelerini siyah yerine arayüz arka planına (veya baskı kutucuğuna) yerleştirir. Panel yalnızca 4:2:0 JPEG çözdüğü için model kenarlarında en fazla 2 piksellik ince bir renk saçağı kalabilir.
 - **Emülatör:** Ekran görüntüleri DWIN çizim yolunu gösterir.
 
 ## Geliştiriciler için
@@ -95,7 +96,7 @@ Referans panelde (Ender 3 Max Neo, kart Rev 1.5) ölçülmüştür. Sürücü `p
 
 | Komut | DACAI davranışı | Sürücü |
 |---|---|---|
-| `0x24` SRAM JPEG | Uygulanmamış | DACAI `0x70 x y adres` komutunu kullanır |
+| `0x24` SRAM JPEG | Uygulanmamış; DACAI `0x70 x y adres` opak çizer | `0x70` kullanır; önizlemeler arayüz arka planına, RGB565 basamağının ortasında, JPEG kalitesi 100 ile yerleştirilir |
 | `0x27` alan kopyalama | Bit 7 ters: ayarlı = siyah saydam | Bit 7'yi tersine çevirir |
 | `0x33` SRAM → resim | 32 KB'nin tamamını `image/<id>.jpg` olarak saklar; dosya `FF D9` ile bitmelidir; 15'ten büyük ID'ler kabul edilir | JPEG'leri COM segmentiyle 32 KB'ye tamamlar |
 | İkon kütüphanesi | İkon dosyaları UART üzerinden yazılamaz | Sprite sayfaları + `0x25`/`0x27` |

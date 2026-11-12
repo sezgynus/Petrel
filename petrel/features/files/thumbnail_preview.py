@@ -34,6 +34,30 @@ def _protect_dark_foreground(rgba):
     return protected
 
 
+def _opaque_canvas(size):
+    """DACAI draws SRAM JPEGs opaque (0x70), so black backing would stay visible.
+
+    Compose the picture on what is behind it instead: the UI background, or for
+    the 88 px print tile the tile artwork itself with background-coloured corners.
+    """
+    from petrel.ui.theme import BACKGROUND_COLOR
+    # Centre of the RGB565 step: small JPEG errors still decode to the exact UI colour.
+    background = ((BACKGROUND_COLOR >> 11) * 8 + 4, ((BACKGROUND_COLOR >> 5) & 63) * 4 + 2,
+                  (BACKGROUND_COLOR & 31) * 8 + 4)
+    if size == 88:
+        from petrel.artwork.icon_library import SOURCE_DIRECTORY
+        from petrel.artwork.resources import ICON_PREVIEW_BACKING
+        try:
+            with Image.open(SOURCE_DIRECTORY / f'{ICON_PREVIEW_BACKING:03d}.jpg') as tile:
+                tile = tile.convert('RGB')
+            if tile.size == (size, size):
+                tile.putdata([background if max(pixel) < 24 else pixel for pixel in tile.getdata()])
+                return tile
+        except OSError:
+            pass
+    return Image.new('RGB', (size, size), background)
+
+
 def image_jpeg(data, size=128):
     """Reserve black backing for filtered drawing, protecting dark model details."""
     if size not in (88, 128):
@@ -43,10 +67,13 @@ def image_jpeg(data, size=128):
             raise ValueError('Thumbnail too large')
         source.thumbnail((size, size), Image.Resampling.LANCZOS)
         rgba = _protect_dark_foreground(source.convert('RGBA'))
-        canvas = Image.new('RGB', (size, size), 'black')
+        from petrel.hardware.dwin import dacai
+        opaque = dacai.enabled()
+        canvas = _opaque_canvas(size) if opaque else Image.new('RGB', (size, size), 'black')
         canvas.paste(rgba, ((size-rgba.width)//2, (size-rgba.height)//2), rgba)
     output = BytesIO()
-    canvas.save(output, format='JPEG', quality=94, subsampling=2,
+    # DACAI decodes 4:2:0 only; maximum quality keeps the colour fringe at model edges small.
+    canvas.save(output, format='JPEG', quality=100 if opaque else 94, subsampling=2,
                 progressive=False, optimize=False)
     jpeg = output.getvalue()
     if len(jpeg) > 32768:

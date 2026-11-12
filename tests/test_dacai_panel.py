@@ -314,6 +314,29 @@ class SpriteDrawingTests(unittest.TestCase):
         self.assertEqual([op for op, _ in sent(self.lcd)], [0x28])
 
 
+class OpaqueThumbnailTests(unittest.TestCase):
+    def thumb(self, size, dacai_on):
+        from petrel.features.files.thumbnail_preview import image_jpeg
+        source = Image.new('RGBA', (64, 32), (0, 0, 0, 0))
+        source.paste((250, 120, 0, 255), (16, 8, 48, 24))
+        buffer = io.BytesIO()
+        source.save(buffer, 'PNG')
+        with patch.dict('os.environ', {'PETREL_DACAI': '1' if dacai_on else '0'}):
+            return Image.open(io.BytesIO(image_jpeg(buffer.getvalue(), size=size))).convert('RGB')
+
+    def test_dacai_thumbnails_sit_on_the_ui_background(self):
+        from petrel.ui.theme import BACKGROUND_COLOR
+        corner = self.thumb(128, True).getpixel((2, 2))
+        rgb565 = ((corner[0] >> 3) << 11) | ((corner[1] >> 2) << 5) | (corner[2] >> 3)
+        self.assertEqual(rgb565, BACKGROUND_COLOR, corner)
+        self.assertLess(max(self.thumb(128, False).getpixel((2, 2))), 12)
+
+    def test_print_tile_keeps_its_artwork(self):
+        tile = self.thumb(88, True)
+        centre_edge = tile.getpixel((44, 4))
+        self.assertGreater(max(centre_edge), 30)
+
+
 class DacaiConfigurationTests(unittest.TestCase):
     def test_kconfig_round_trip_and_baud_validation(self):
         from tools.configure import Configuration, collect, defaults, render_env, validate

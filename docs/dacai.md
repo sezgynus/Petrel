@@ -64,6 +64,7 @@ Use the UART from your configuration instead of `/dev/ttyS0`.
 - **Font:** text uses the TrueType font installed on the panel (`private/truefont`). Petrel does not upload fonts.
 - **No auxiliary UART:** the panel has no second UART, so [DWIN auxiliary UART](dwin-uart.md) and NFC readers attached to the display cannot be used. The large NFC approach animations are not uploaded.
 - **Black is transparent:** like DWIN icon drawing, transparent icons treat near-black pixels as background, so very thin dark details can disappear.
+- **Thumbnails are opaque:** `0x70` cannot filter the black backing like `0x24`, so Petrel composes print previews on the UI background (or the print tile) instead. The panel decodes only 4:2:0 JPEGs, so a thin colour fringe of up to 2 px can remain at model edges.
 - **Emulator:** screenshots show the DWIN rendering path.
 
 ## For developers
@@ -94,7 +95,7 @@ Measured on the reference panel (Ender 3 Max Neo, board Rev 1.5). The driver is 
 
 | Command | DACAI behavior | Driver |
 |---|---|---|
-| `0x24` SRAM JPEG | Not implemented | Uses DACAI `0x70 x y address` |
+| `0x24` SRAM JPEG | Not implemented; DACAI `0x70 x y address` draws opaque | Uses `0x70`; thumbnails composed on the UI background at the centre of its RGB565 step, JPEG quality 100 |
 | `0x27` copy area | Bit 7 inverted: set = black transparent | Inverts bit 7 |
 | `0x33` SRAM → picture | Stores all 32 KB as `image/<id>.jpg`; the file must end with `FF D9`; IDs above 15 accepted | Pads JPEGs to 32 KB with a COM segment |
 | Icon library | Icon files cannot be written over UART | Sprite sheets + `0x25`/`0x27` |
