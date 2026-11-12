@@ -89,6 +89,8 @@ Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki varsayılan ö
 Kurulumu seçmek için işaretleyin; kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
 uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
 [UART rehberine](dwin-uart_TR.md) bakın.
+**DACAI panel** işaretliyken bu seçenek gizlenir; DACAI panellerinde yardımcı UART yoktur
+([ayrıntılar](dacai_TR.md#dwin-yardımcı-uart)).
 
 ![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
 

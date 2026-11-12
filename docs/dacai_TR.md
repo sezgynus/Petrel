@@ -26,6 +26,18 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 `./configure.sh` çalıştırın, **Display panel** menüsünü açın, **DACAI panel** seçeneğini işaretleyin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
 
+DACAI desteği `feature/dacai-support` dalında geliştirilir. Petrel kurulum betiği Moonraker güncelleyicisini `master` için kaydeder; bu nedenle güncelleyici bu dalı izlemez: başka bir dalda Moonraker Petrel deposunu geçersiz olarak gösterir ve güncelleme sunmaz. Bir test kurulumunu `~/Petrel` içinde `git pull` ile güncelleyin ve `Petrel.service` servisini yeniden başlatın; `git checkout master` ve `./install.sh` normal sürüme geri döndürür.
+
+### DWIN yardımcı UART
+
+Panelde yardımcı UART bulunmadığından **DACAI panel** ve **DWIN auxiliary UART as a Linux serial port** birbirini dışlar:
+
+- **DACAI panel** işaretlendiğinde yardımcı UART seçeneği gizlenir. Apply bu seçeneği kapatır ve kurulu bir yardımcı UART aracısını (çekirdek sürücüsü, servis ve `/var/lib/Petrel/dwin-uart.json`) kaldırır; böylece mevcut bir kurulum tek adımda DACAI paneline geçebilir.
+- `configure.sh --apply-config` ikisini birden etkinleştiren bir dosyayı reddeder; `Petrel.env` hem `PETREL_DACAI=1` hem `PETREL_AUX_UART=1` içeriyorsa `install.sh` hiçbir şeyi değiştirmeden durur.
+- Petrel bir DACAI panelini aracı soketi (`PETREL_DWIN_SOCKET`) üzerinden başlatmayı reddeder.
+
+Host'a bağlı NFC okuyucular (USB ya da Pi'nin kendi UART/I²C/SPI arayüzü) bundan etkilenmez.
+
 | Hız | Kullanım |
 |---|---|
 | 115200 | Varsayılan; panelin açılış hızı |
@@ -41,11 +53,13 @@ microSD kart gerekmez. İlk açılışta Petrel UART üzerinden şunları yükle
 |---|---|
 | 0 | Açılış görseli |
 | 1 | Ortak arayüz görseli (Info QR bölgeleri) |
-| 16 ve üzeri | İkon sprite sayfaları: 272×480 JPEG sayfalarına yerleştirilmiş ikon kütüphanesi |
+| 16 ve üzeri | İkon sprite sayfaları: 272×480 JPEG sayfalarına yerleştirilmiş ikon kütüphanesinin tamamı (şu anda 8 sayfa) |
 
-İlk yükleme 460800 baud'da yaklaşık 15 saniye sürer. İçerik parmak izleri panelin Data Flash alanında saklanır; sonraki açılışlarda yalnızca değişen resimler yüklenir.
+Her resim panel belleğinde 32 KB yer kaplar (toplam yaklaşık 320 KB). İlk yükleme 460800 baud'da yaklaşık 20 saniye, 115200 baud'da yaklaşık bir dakika sürer. İçerik parmak izleri panelin Data Flash alanında saklanır; sonraki açılışlarda yalnızca değişen resimler yüklenir.
 
-DACAI panelleri ikonları yalnızca kendi ikon dosyalarından okur ve bu dosyalar UART üzerinden yazılamaz. Bu yüzden Petrel her ikonu sanal ekran alanı 1'deki bir sprite sayfasından kopyalayarak çizer ve ikon animasyonlarını (açılış ilerlemesi, fan) host tarafında ilerletir. Diğer Petrel özellikleri değişmeden çalışır.
+DACAI panelleri ikonları yalnızca kendi ikon dosyalarından okur ve bu dosyalar UART üzerinden yazılamaz. Bu yüzden Petrel her ikonu sanal ekran alanı 1'deki bir sprite sayfasından kopyalayarak çizer ve ikon animasyonlarını (açılış ilerlemesi, fan, NFC yaklaşma) host tarafında ilerletir. Büyük NFC animasyon kareleri, ilk kare ile sonraki her karenin değişen dikdörtgeni olarak saklanır; böylece kütüphanenin tamamı 8 sayfaya sığar. Diğer Petrel özellikleri değişmeden çalışır.
+
+Yükleme veya doğrulaması başarısız olursa Petrel görselleri senkronize olarak işaretlemez: hatayı başarısız bir DWIN görsel senkronu gibi bildirir, eski sayfalardan çizim yapmaz ve bir sonraki açılışta yeniden yükler.
 
 ## microSD güncellemesinden sonra
 
@@ -62,10 +76,11 @@ sudo systemctl start Petrel.service
 ## Sınırlar
 
 - **Yazı tipi:** Metinler panelde kurulu TrueType yazı tipini (`private/truefont`) kullanır. Petrel yazı tipi yüklemez.
-- **Yardımcı UART yok:** Panelde ikinci bir UART bulunmaz; bu nedenle [DWIN yardımcı UART](dwin-uart_TR.md) ve ekrana bağlanan NFC okuyucular kullanılamaz. Büyük NFC yaklaşma animasyonları yüklenmez.
+- **Yardımcı UART yok:** Panelde ikinci bir UART bulunmaz; bu nedenle [DWIN yardımcı UART](dwin-uart_TR.md) ve ekrana bağlanan NFC okuyucular kullanılamaz (yukarıdaki [DWIN yardımcı UART](#dwin-yardımcı-uart) bölümüne bakın). Host'a bağlı NFC okuyucular çalışır.
+- **Çapraz çizgiler:** Panelin `0x03` komutu yalnızca yatay ve dikey parçalar çizer; çapraz bir parça tek bir L biçimli basamağa dönüşür. Petrel çapraz çizgileri bir piksellik merdivenler olarak gönderir; bunlar normal çizgiler gibi görünür.
 - **Siyah saydamdır:** DWIN ikon çiziminde olduğu gibi saydam ikonlarda siyaha yakın pikseller arka plan sayılır; çok ince koyu ayrıntılar kaybolabilir.
 - **Önizlemeler opaktır:** `0x70`, siyah zemini `0x24` gibi filtreleyemez; bu yüzden Petrel baskı önizlemelerini siyah yerine arayüz arka planına (veya baskı kutucuğuna) yerleştirir. Panel yalnızca 4:2:0 JPEG çözdüğü için model kenarlarında en fazla 2 piksellik ince bir renk saçağı kalabilir.
-- **Emülatör:** Ekran görüntüleri DWIN çizim yolunu gösterir.
+- **Emülatör ve uzak ekran:** Sürücü DACAI lehçesini bildirir; böylece emülatör `0x70` komutunu, ters çevrilmiş `0x27` bit 7'yi ve panelde kayıtlı sprite sayfalarını panel gibi yorumlar.
 
 ## Geliştiriciler için
 
@@ -77,18 +92,25 @@ değişmeden kalır. Ekran kodunu değiştirirken şu noktalara dikkat edin:
   yeniden tanımlanmıştır. Ham opcode'ları `_send` ile gönderen kod DACAI işlemesini atlar.
 - **İkonlar için ek iş gerekmez.** Sprite sayfaları çalışma anında `assets/icons` klasöründen
   oluşturulur (`petrel/artwork/sprites.py`); yeni veya değişen ikonlar bir sonraki açılışta
-  yüklenir. `sprites.SKIPPED_IDS` içindeki ikon ID'leri (büyük NFC kareleri) yüklenmez.
+  yüklenir. `sprites.DELTA_SEQUENCES` karelerinin (büyük NFC animasyonları) her biri ilk kare
+  üzerine bir yama olarak saklanır.
+- **Panel kontrolü yerine yetenekler.** Özellik kodu `dacai.enabled()` yerine sürücüye sorar:
+  `OPAQUE_SRAM_JPEG` (önizlemelerin arka plana ihtiyacı vardır) ve `PANEL_PROTOCOL` (emülatör
+  için paket lehçesi).
+- **Çizgiler:** `draw_polyline`/`draw_line` çapraz parçaları merdivenlere dönüştürür; uzun
+  merdivenler birden çok `0x03` çerçevesine bölünür.
 - **Kütüphane 2 animasyonları** host tarafından ilerletilir (`poll_host_animations`, arayüz
   tick'inden çağrılır). Aralık `0x28` birimini (10 ms) korur; en kısa kare süresi 40 ms'dir.
 - **Ayrılmış kaynaklar:** resim 0 (açılış), 1 (ortak görsel) ve 16 ve üzeri (sprite sayfaları);
   DWIN kayıtlarına ek olarak Data Flash `0x0600`–`0x083F` (sprite kontrol kayıtları).
 - **DACAI'de bulunmayanlar:** `0x24` (`show_sram_jpeg` kullanın), `0x39`/`0x3A` (yardımcı UART
-  yok), ikon dosyası yazma. Yeni bir opcode için `DacaiDriver` içinde yeniden tanımlama
+  yok; yardımcı UART metotları `UnsupportedPanelFeature` hatası verir), ikon dosyası yazma. Yeni bir opcode için `DacaiDriver` içinde yeniden tanımlama
   gerekebilir; aşağıdaki tabloya bakın.
 - **Resimlere yeni görsel:** JPEG baytlarını `write_sram` + `store_sram_as_picture` öncesinde
   `lcd.prepare_picture()` üzerinden geçirin (baseline 4:2:0, DACAI'de en fazla 32.764 bayt).
-- **Testler:** `tests/test_dacai_panel.py` protokol farklarını, sprite yerleşimini/senkronunu ve
-  host animasyonlarını kapsar.
+- **Testler:** `tests/test_dacai_panel.py` protokol farklarını, sprite yerleşimini/senkronunu,
+  senkron hatalarını, host animasyonlarını, çapraz çizgileri, emülatör lehçesini ve yardımcı UART
+  dışlamasını kapsar.
 
 ## DWIN T5UIC1'den farklar
 
@@ -98,6 +120,7 @@ Referans panelde (Ender 3 Max Neo, kart Rev 1.5) ölçülmüştür. Sürücü `p
 |---|---|---|
 | `0x24` SRAM JPEG | Uygulanmamış; DACAI `0x70 x y adres` opak çizer | `0x70` kullanır; önizlemeler arayüz arka planına, RGB565 basamağının ortasında, JPEG kalitesi 100 ile yerleştirilir |
 | `0x27` alan kopyalama | Bit 7 ters: ayarlı = siyah saydam | Bit 7'yi tersine çevirir |
+| `0x03` çoklu çizgi | Yalnızca yatay/dikey parçalar çizer; çapraz parça L biçimli basamağa dönüşür | Çapraz çizgileri merdiven olarak gönderir |
 | `0x33` SRAM → resim | 32 KB'nin tamamını `image/<id>.jpg` olarak saklar; dosya `FF D9` ile bitmelidir; 15'ten büyük ID'ler kabul edilir | JPEG'leri COM segmentiyle 32 KB'ye tamamlar |
 | İkon kütüphanesi | İkon dosyaları UART üzerinden yazılamaz | Sprite sayfaları + `0x25`/`0x27` |
 | `0x28` animasyon | Yalnızca panelin kendi ikon dosyaları için | Animasyonlar host tarafından ilerletilir |

@@ -26,6 +26,18 @@ copy `firmware.zlib` and the `private` folder from that package to the root of a
 
 Run `./configure.sh`, open **Display panel**, check **DACAI panel** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
 
+DACAI support is developed on the `feature/dacai-support` branch. Petrel's installer registers the Moonraker updater for `master`, so it does not follow this branch: on any other branch Moonraker reports the Petrel repository as invalid and offers no updates. Update a test installation with `git pull` in `~/Petrel` and restart `Petrel.service`; `git checkout master` and `./install.sh` return to the regular release.
+
+### DWIN auxiliary UART
+
+The panel has no auxiliary UART, so **DACAI panel** and **DWIN auxiliary UART as a Linux serial port** exclude each other:
+
+- Checking **DACAI panel** hides the auxiliary UART option. Apply turns it off and removes an installed auxiliary-UART broker (kernel driver, service and `/var/lib/Petrel/dwin-uart.json`), so an existing installation can switch to a DACAI panel in one step.
+- `configure.sh --apply-config` refuses a file that enables both, and `install.sh` stops before changing anything when `Petrel.env` contains `PETREL_DACAI=1` together with `PETREL_AUX_UART=1`.
+- Petrel refuses to start a DACAI panel through the broker socket (`PETREL_DWIN_SOCKET`).
+
+NFC readers connected to the host (USB or the Pi's own UART/I²C/SPI) are unaffected.
+
 | Speed | Use |
 |---|---|
 | 115200 | Default; the panel's power-on speed |
@@ -41,11 +53,13 @@ No microSD card is needed. On the first start Petrel uploads over the UART:
 |---|---|
 | 0 | Boot artwork |
 | 1 | Shared UI artwork (Info QR regions) |
-| 16 and up | Icon sprite sheets: the icon library packed onto 272×480 JPEG sheets |
+| 16 and up | Icon sprite sheets: the complete icon library packed onto 272×480 JPEG sheets (currently 8) |
 
-The first upload takes about 15 seconds at 460800 baud. Content fingerprints are stored in the panel's Data Flash, so later starts upload only changed pictures.
+Each picture occupies 32 KB of panel storage (about 320 KB in total). The first upload takes about 20 seconds at 460800 baud and about a minute at 115200. Content fingerprints are stored in the panel's Data Flash, so later starts upload only changed pictures.
 
-DACAI panels only read icons from their own icon files, which cannot be written over the UART. Petrel therefore draws each icon by copying it from a sprite sheet in virtual display area 1, and steps icon animations (boot progress, fan) from the host. Other Petrel features work unchanged.
+DACAI panels only read icons from their own icon files, which cannot be written over the UART. Petrel therefore draws each icon by copying it from a sprite sheet in virtual display area 1, and steps icon animations (boot progress, fan, NFC approach) from the host. The large NFC animation frames are stored as their first frame plus the changed rectangle of every later frame, which keeps the whole library on 8 sheets. Other Petrel features work unchanged.
+
+If the upload or its verification fails, Petrel does not mark the artwork as synced: it reports the error like a failed DWIN artwork sync, does not draw from stale sheets, and uploads again on the next start.
 
 ## After a microSD update
 
@@ -62,10 +76,11 @@ Use the UART from your configuration instead of `/dev/ttyS0`.
 ## Limits
 
 - **Font:** text uses the TrueType font installed on the panel (`private/truefont`). Petrel does not upload fonts.
-- **No auxiliary UART:** the panel has no second UART, so [DWIN auxiliary UART](dwin-uart.md) and NFC readers attached to the display cannot be used. The large NFC approach animations are not uploaded.
+- **No auxiliary UART:** the panel has no second UART, so [DWIN auxiliary UART](dwin-uart.md) and NFC readers attached to the display cannot be used (see [DWIN auxiliary UART](#dwin-auxiliary-uart) above). NFC readers connected to the host work.
+- **Diagonal lines:** the panel's `0x03` draws only horizontal and vertical segments; a diagonal segment becomes one L-shaped step. Petrel sends diagonals as one-pixel staircases, which look like normal lines.
 - **Black is transparent:** like DWIN icon drawing, transparent icons treat near-black pixels as background, so very thin dark details can disappear.
 - **Thumbnails are opaque:** `0x70` cannot filter the black backing like `0x24`, so Petrel composes print previews on the UI background (or the print tile) instead. The panel decodes only 4:2:0 JPEGs, so a thin colour fringe of up to 2 px can remain at model edges.
-- **Emulator:** screenshots show the DWIN rendering path.
+- **Emulator and remote display:** the driver announces the DACAI dialect, so the emulator interprets `0x70`, the inverted `0x27` bit 7 and the resident sprite sheets like the panel.
 
 ## For developers
 
@@ -76,18 +91,25 @@ unchanged. Keep these points in mind when changing display code:
   `copy_cache`, `show_sram_jpeg`, `set_backlight` and `prepare_picture` are overridden. Code that
   sends raw opcodes with `_send` bypasses the DACAI handling.
 - **Icons need no extra work.** Sprite sheets are built from `assets/icons` at runtime
-  (`petrel/artwork/sprites.py`); new or changed icons are uploaded on the next start. Icon IDs
-  in `sprites.SKIPPED_IDS` (the large NFC frames) are not uploaded.
+  (`petrel/artwork/sprites.py`); new or changed icons are uploaded on the next start. Frames of
+  `sprites.DELTA_SEQUENCES` (the large NFC animations) are stored as a patch over the first frame.
+- **Capabilities instead of panel checks.** Feature code asks the driver, not `dacai.enabled()`:
+  `OPAQUE_SRAM_JPEG` (thumbnails need a background) and `PANEL_PROTOCOL` (packet dialect for the
+  emulator).
+- **Lines:** `draw_polyline`/`draw_line` turn diagonal segments into staircases; long staircases
+  are split into several `0x03` frames.
 - **Animations** of library 2 are stepped by the host (`poll_host_animations`, called from the UI
   tick). The interval keeps the `0x28` unit of 10 ms; the shortest frame time is 40 ms.
 - **Reserved resources:** pictures 0 (boot), 1 (shared artwork) and 16 and up (sprite sheets);
   Data Flash `0x0600`–`0x083F` (sprite checkpoints) in addition to the DWIN records.
-- **Not available on DACAI:** `0x24` (use `show_sram_jpeg`), `0x39`/`0x3A` (no auxiliary UART),
-  writing icon files. A new opcode may need an override in `DacaiDriver`; see the table below.
+- **Not available on DACAI:** `0x24` (use `show_sram_jpeg`), `0x39`/`0x3A` (no auxiliary UART;
+  the aux methods raise `UnsupportedPanelFeature`), writing icon files. A new opcode may need an
+  override in `DacaiDriver`; see the table below.
 - **New artwork in pictures:** pass JPEG bytes through `lcd.prepare_picture()` before
   `write_sram` + `store_sram_as_picture` (baseline 4:2:0, at most 32,764 bytes on DACAI).
-- **Tests:** `tests/test_dacai_panel.py` covers the protocol differences, sprite packing/sync and
-  host animations.
+- **Tests:** `tests/test_dacai_panel.py` covers the protocol differences, sprite packing/sync,
+  sync failures, host animations, diagonal lines, the emulator dialect and the auxiliary-UART
+  exclusion.
 
 ## Differences from DWIN T5UIC1
 
@@ -97,6 +119,7 @@ Measured on the reference panel (Ender 3 Max Neo, board Rev 1.5). The driver is 
 |---|---|---|
 | `0x24` SRAM JPEG | Not implemented; DACAI `0x70 x y address` draws opaque | Uses `0x70`; thumbnails composed on the UI background at the centre of its RGB565 step, JPEG quality 100 |
 | `0x27` copy area | Bit 7 inverted: set = black transparent | Inverts bit 7 |
+| `0x03` polyline | Draws only horizontal/vertical segments; a diagonal becomes an L-shaped step | Sends diagonals as staircases |
 | `0x33` SRAM → picture | Stores all 32 KB as `image/<id>.jpg`; the file must end with `FF D9`; IDs above 15 accepted | Pads JPEGs to 32 KB with a COM segment |
 | Icon library | Icon files cannot be written over UART | Sprite sheets + `0x25`/`0x27` |
 | `0x28` animation | Only for the panel's own icon files | Animations stepped by the host |

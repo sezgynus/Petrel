@@ -86,6 +86,8 @@ reveals its bind address and port settings. See the [emulator guide](ui-emulator
 Toggle installation of the Linux serial port. The default below is unchecked. Check
 it to select installation; save, exit and confirm Apply to perform it. Unchecking and applying
 removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
+The option is hidden while **DACAI panel** is checked; DACAI panels have no auxiliary UART
+([details](dacai.md#dwin-auxiliary-uart)).
 
 ![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)
 
