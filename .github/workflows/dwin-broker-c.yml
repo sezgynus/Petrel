@@ -21,7 +21,7 @@ on:
       - 'Petrel.env.example'
       - '.github/workflows/dwin*.yml'
   pull_request:
-    branches: [master]
+    branches: [master, feature/dacai-support]
     paths:
       - 'native/**'
       - 'kernel/dwin_uart/**'
