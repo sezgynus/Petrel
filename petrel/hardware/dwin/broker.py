@@ -6,6 +6,7 @@ inside a panel frame. Kernel TTY backend integration is isolated in AuxBackend.
 """
 from collections import deque
 import os
+import sys
 import selectors
 import socket
 import time
@@ -170,7 +171,10 @@ class Broker:
         self._uart_events()
 
     def _receive(self):
-        self.rx.extend(self.uart.read(4096))
+        data = self.uart.read(4096)
+        if data and self._flash_busy() and os.environ.get("PETREL_TRACE_FLASH") == "1":
+            print(f"issue-41 broker UART RX: {data.hex(' ')}", file=sys.stderr, flush=True)
+        self.rx.extend(data)
         while True:
             response = take_response(self.rx)
             if response is None:
