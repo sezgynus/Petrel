@@ -9,7 +9,7 @@ Petrel aynı 272×480 dikey arayüzü DWIN T5UIC1 ve uyumlu Creality DACAI panel
 - **DWIN T5UIC1:** Uyumlu 4,3 inç Ender 3 V2 paneli; T5UIC1 komutları ve ekran yönü **1** kullanılır. Stok font desteklenir, Petrel'in HZK fontu isteğe bağlıdır.
 - **DACAI:** Örnek doğrulanmış donanım Ender 3 Max Neo revizyon 1.5'tir. Kartta Allwinner F1C100s ve çoğu zaman 大彩 etiketi bulunur; güncelleme klasörü `DWIN_SET` yerine `private` adını taşır. Ayrıntılı [firmware/test kapsamı](dacai_TR.md) başka revizyonları veya firmware sürümlerini otomatik doğrulamaz.
 
-Kurulumda [panelinizi seçin](installation_TR.md#panelinizi-seçin). Panel seçimi otomatik algılanmaz; DWIN için **DACAI panel** kapalı, DACAI için açık olmalıdır.
+Kurulumda [panelinizi seçin](installation_TR.md#panelinizi-seçin). Panel seçimi otomatik algılanmaz; **Display panel → Panel type** altında **DWIN T5UIC1** veya **DACAI** seçin.
 
 ## Panel özellikleri
 

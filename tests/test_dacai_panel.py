@@ -928,7 +928,7 @@ class DacaiConfigurationTests(unittest.TestCase):
         kconf = Configuration(ROOT, values)
         self.assertEqual(kconf.syms['PETREL_AUX_UART'].visibility, 0)
         self.assertEqual(collect(kconf)['PETREL_AUX_UART'], 'n')
-        kconf.syms['PETREL_DACAI'].set_value('n')
+        kconf.syms['PETREL_DWIN'].set_value('y')
         self.assertEqual(collect(kconf)['PETREL_AUX_UART'], 'y')
 
     def apply(self, home, original, values, manifest):

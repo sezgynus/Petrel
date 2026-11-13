@@ -35,7 +35,7 @@ In `sudo raspi-config`, enable serial hardware and disable the serial login cons
 
 ## DACAI test branch
 
-This guide covers both panels in one installation flow. For DACAI, the chosen release must contain **Display panel → DACAI panel**. Before DACAI support reaches the main release, use the following branch for testing; once support is released, the normal installation path applies.
+This guide covers both panels in one installation flow. For DACAI, the chosen release must contain **Display panel → Panel type → DACAI**. Before DACAI support reaches the main release, use the following branch for testing; once support is released, the normal installation path applies.
 
 For a new installation, replace the clone line in **Install** below with:
 
@@ -76,7 +76,7 @@ The first installation opens the Kconfig menu. Review these defaults, then save,
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
-| Display panel → DACAI panel | Off (DWIN); enable for DACAI |
+| Display panel → Panel type | DWIN T5UIC1 (default) or DACAI |
 | DACAI host UART speed | `115200` |
 | Encoder A/B | `21 16` |
 | Encoder button | `20` |
@@ -101,7 +101,7 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 In the first-install menu, or later with `./configure.sh`:
 
 1. Under **Connections and power → Physical display UART**, select the host port wired to the display; do not use `/dev/ttyDWIN0`.
-2. Open **Display panel**. For **DWIN T5UIC1**, leave **DACAI panel** unchecked. For **DACAI**, check it and leave **DACAI host UART speed** at **115200** for the first test.
+2. Open **Display panel**. Under **Panel type**, choose **DWIN T5UIC1** or **DACAI**. For DACAI, leave **DACAI host UART speed** at **115200** for the first test.
 3. Match **Encoder and presets** pins to your wiring. Use arrows/Enter to navigate and Space to toggle; press **S** to save, **Q** to exit, then answer **y** to **Apply saved configuration**.
 
 Panel detection is not automatic; the wrong selection can cause icon/preview and connection failures. Existing settings are preserved: updating software alone does not enable DACAI. Selecting DACAI turns off DWIN auxiliary UART and Apply removes an installed broker; close applications using that port first. NFC connected directly to the Pi is unaffected.
@@ -200,7 +200,7 @@ git pull --ff-only
 sudo systemctl restart Petrel.service
 ```
 
-Keep the pre-update revision. If an update fails, use `git -C ~/Petrel checkout <revision>` to return to a revision **known to work on DACAI**, run `./install.sh` in `~/Petrel` and restart the service. Resume testing with `git checkout feature/dacai-support` then `git pull --ff-only`. An older `master` without the DACAI driver is not a rollback for a DACAI panel. If physically returning to a DWIN panel, first uncheck **DACAI panel** in configuration. Panel resource recovery is separate from software rollback; see [LCD compatibility](lcd-assets.md).
+Keep the pre-update revision. If an update fails, use `git -C ~/Petrel checkout <revision>` to return to a revision **known to work on DACAI**, run `./install.sh` in `~/Petrel` and restart the service. Resume testing with `git checkout feature/dacai-support` then `git pull --ff-only`. An older `master` without the DACAI driver is not a rollback for a DACAI panel. If physically returning to a DWIN panel, first select **Panel type → DWIN T5UIC1** in configuration. Panel resource recovery is separate from software rollback; see [LCD compatibility](lcd-assets.md).
 
 
 ### Updates and migration from older installations

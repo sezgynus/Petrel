@@ -10,7 +10,7 @@ The configurator adds no background work to the running UI.
 
 ![Petrel Kconfig main menu](assets/configuration/main-menu.png)
 
-The screenshots capture the current Kconfig terminal UI with clean first-install Kconfig defaults, plus an explicitly enabled DACAI example, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
+The screenshots capture the current Kconfig terminal UI with clean first-install Kconfig defaults, plus an explicit DACAI selection example, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
 
 ## Navigate and apply
 
@@ -43,15 +43,15 @@ Set the Moonraker URL, request timeout, physical display UART and power controls
 
 ### Display panel
 
-Check **DACAI panel** only for Creality DACAI displays (microSD folder `private`, e.g.
-Ender 3 Max Neo). It reveals **DACAI host UART speed** (115200, 230400, 460800 or 921600).
-DWIN T5UIC1 panels keep the default, unchecked. See the [DACAI guide](dacai.md).
+Open **Panel type** with Enter, select **DWIN T5UIC1** or **DACAI** with the arrow keys and confirm with Enter. Exactly one panel is selected; DWIN is the default. DACAI displays (microSD folder `private`, e.g. Ender 3 Max Neo) reveal **DACAI host UART speed** (115200, 230400, 460800 or 921600). See the [DACAI guide](dacai.md).
 
 Panel detection is not automatic. Check the selection on first install and after updates; existing DWIN settings do not switch themselves to DACAI. Start at **115200**; 230400/460800/921600 can upload artwork faster. A raised speed lasts until panel power loss; Petrel restores 115200 on normal exit and probes all four supported speeds on startup, starting with the configured one.
 
 The DACAI choice is saved as **PETREL_DACAI=1** and **PETREL_DACAI_BAUD**. Apply turns off auxiliary UART and removes an installed broker; close clients using that port first. Host-connected NFC and shared features remain available. Unattended configuration enabling both UART paths is rejected. [Panel features](lcd-assets.md#panel-features).
 
-![Default panel selection for DWIN, with DACAI unchecked](assets/configuration/display-panel.png)
+The runtime setting remains `PETREL_DACAI=0` for DWIN or `PETREL_DACAI=1` for DACAI. Existing settings and legacy `CONFIG_PETREL_DACAI=y/n` files remain compatible. Exported Kconfig files include the explicit DWIN/DACAI choice; files selecting both or neither are rejected.
+
+![Default DWIN T5UIC1 panel selection](assets/configuration/display-panel.png)
 
 ![DACAI selected, revealing the host UART speed](assets/configuration/display-panel-dacai.png)
 
@@ -94,7 +94,7 @@ reveals its bind address and port settings. See the [emulator guide](ui-emulator
 Toggle installation of the Linux serial port. The default below is unchecked. Check
 it to select installation; save, exit and confirm Apply to perform it. Unchecking and applying
 removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
-The option is hidden while **DACAI panel** is checked; the DACAI driver does not support this auxiliary UART path
+The option is hidden while **Panel type → DACAI** is selected; the DACAI driver does not support this auxiliary UART path
 ([details](dacai.md#dwin-auxiliary-uart)).
 
 ![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)

@@ -9,7 +9,7 @@ Petrel provides the same 272×480 portrait interface on DWIN T5UIC1 and compatib
 - **DWIN T5UIC1:** Compatible 4.3-inch Ender 3 V2 panel; uses T5UIC1 commands and display direction **1**. The stock font is supported; Petrel's HZK font is optional.
 - **DACAI:** The validated reference hardware is Ender 3 Max Neo revision 1.5. Look for an Allwinner F1C100s and often a 大彩 sticker; its update folder is `private` rather than `DWIN_SET`. The detailed [firmware/testing scope](dacai.md) does not automatically validate other revisions or firmware.
 
-[Choose your panel](installation.md#choose-your-panel) during installation. The controller is not detected automatically: **DACAI panel** must be off for DWIN and on for DACAI.
+[Choose your panel](installation.md#choose-your-panel) during installation. The controller is not detected automatically: select **DWIN T5UIC1** or **DACAI** under **Display panel → Panel type**.
 
 ## Panel features
 

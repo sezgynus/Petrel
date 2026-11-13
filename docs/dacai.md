@@ -24,15 +24,15 @@ copy `firmware.zlib` and the `private` folder from that package to the root of a
 
 ## Enable
 
-Run `./configure.sh`, open **Display panel**, check **DACAI panel** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
+Run `./configure.sh`, open **Display panel**, choose **Panel type → DACAI** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
 
 First installation, panel selection, test-branch switching and software updates/rollback are covered in the [shared installation guide](installation.md). The [panel feature table](lcd-assets.md#panel-features) summarizes DWIN/DACAI differences. This reference retains firmware, recovery, storage measurements and protocol details.
 
 ### DWIN auxiliary UART
 
-The DWIN auxiliary UART protocol is unsupported by Petrel's DACAI driver, so **DACAI panel** and **DWIN auxiliary UART as a Linux serial port** exclude each other:
+The DWIN auxiliary UART protocol is unsupported by Petrel's DACAI driver, so **Panel type → DACAI** and **DWIN auxiliary UART as a Linux serial port** exclude each other:
 
-- Checking **DACAI panel** hides the auxiliary UART option. Apply turns it off and removes an installed auxiliary-UART broker (kernel driver, service and `/var/lib/Petrel/dwin-uart.json`), so an existing installation can switch to a DACAI panel in one step.
+- Selecting **Panel type → DACAI** hides the auxiliary UART option. Apply turns it off and removes an installed auxiliary-UART broker (kernel driver, service and `/var/lib/Petrel/dwin-uart.json`), so an existing installation can switch to a DACAI panel in one step.
 - `configure.sh --apply-config` refuses a file that enables both, and `install.sh` stops before changing anything when `Petrel.env` contains `PETREL_DACAI=1` together with `PETREL_AUX_UART=1`.
 - Petrel refuses to start a DACAI panel through the broker socket (`PETREL_DWIN_SOCKET`).
 

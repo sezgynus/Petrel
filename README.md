@@ -51,7 +51,7 @@ MMU and Spoolman are optional. Menus depend on discovered configuration and vali
 ## Compatibility and requirements
 
 - **272×480 portrait DWIN T5UIC1** or compatible **Creality DACAI** knob display. DWIN includes the compatible Ender 3 V2 panel; DACAI hardware validation covers the Ender 3 Max Neo revision 1.5 with the firmware listed in the [DACAI reference](docs/dacai.md). Other panel revisions/firmware need verification; TJC and unrelated DWIN models are not supported by this claim.
-- Select the actual controller in **Display panel** during installation: leave **DACAI panel** unchecked for DWIN; check it for DACAI.
+- Select the actual controller in **Display panel** during installation: choose **Panel type → DWIN T5UIC1** or **Panel type → DACAI**.
 - Raspberry Pi or compatible Linux SBC with UART/GPIO and **Python 3.11+**.
 - Working **Klipper and Moonraker**, authorized network access, crossed TX/RX and configured encoder pins.
 
@@ -76,7 +76,7 @@ cd ~/Petrel
 ./install.sh
 ```
 
-In the first-install menu, open **Display panel**: leave **DACAI panel** unchecked for DWIN, or check it for DACAI and start at **115200**. Save, exit and confirm Apply. See [panel setup](docs/installation.md#choose-your-panel).
+In the first-install menu, open **Display panel**: choose **Panel type → DWIN T5UIC1** or **Panel type → DACAI** and start at **115200**. Save, exit and confirm Apply. See [panel setup](docs/installation.md#choose-your-panel).
 
 The installer prepares dependencies, `Petrel.service`, external settings and Moonraker Update Manager. Complete the [first-start checks](docs/installation.md#lcd-resources-and-first-start). You can update Petrel through Moonraker Update Manager or the LCD Info screen; see the [update guidance](docs/installation.md#update). Existing installations preserve settings during [migration](docs/installation.md#update).
 

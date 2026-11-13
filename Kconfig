@@ -28,9 +28,18 @@ config PETREL_POWER_ON_HOLD_MS
 endmenu
 
 menu "Display panel"
+choice PETREL_PANEL
+    prompt "Panel type"
+    default PETREL_DWIN
+    help
+      Select the controller fitted to your display. Exactly one panel type
+      must be selected; Petrel does not detect it automatically.
+config PETREL_DWIN
+    bool "DWIN T5UIC1"
+    help
+      DWIN T5UIC1 panel with DWIN_SET resources and optional auxiliary UART.
 config PETREL_DACAI
-    bool "DACAI panel (Creality, e.g. Ender 3 Max Neo)"
-    default n
+    bool "DACAI (Creality, e.g. Ender 3 Max Neo)"
     help
       Some Creality printers ship a DWIN-compatible panel made by DACAI: its
       microSD card uses a "private" folder instead of "DWIN_SET". Petrel then
@@ -39,6 +48,7 @@ config PETREL_DACAI
       The panel has no auxiliary UART: selecting DACAI hides the DWIN auxiliary
       UART option, and Apply removes an installed auxiliary-UART broker.
       NFC readers connected to the host are unaffected. See docs/dacai.md.
+endchoice
 config PETREL_DACAI_BAUD
     int "DACAI host UART speed (baud)"
     depends on PETREL_DACAI
@@ -47,7 +57,7 @@ config PETREL_DACAI_BAUD
     help
       115200, 230400, 460800 or 921600. A faster link uploads artwork and
       thumbnails sooner. The panel keeps a raised speed until it loses power;
-      Petrel restores 115200 when it exits and probes both speeds on start.
+      Petrel restores 115200 when it exits and probes all four supported speeds on start.
 endmenu
 
 menu "Encoder and presets"
@@ -145,7 +155,7 @@ endmenu
 menu "DWIN auxiliary UART"
 config PETREL_AUX_UART
     bool "DWIN auxiliary UART as a Linux serial port"
-    depends on !PETREL_DACAI
+    depends on PETREL_DWIN
     default n
     help
       Not available with a DACAI panel (Display panel menu).

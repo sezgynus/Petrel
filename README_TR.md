@@ -51,7 +51,7 @@ MMU ve Spoolman isteğe bağlıdır. Menüler algılanan yapılandırmaya ve ge�
 ## Uyumluluk ve gereksinimler
 
 - **272×480 dikey DWIN T5UIC1** veya uyumlu **Creality DACAI** düğmeli ekran. DWIN için uyumlu Ender 3 V2 paneli; DACAI için [DACAI referansındaki](docs/dacai_TR.md) firmware ile Ender 3 Max Neo revizyon 1.5 donanımda doğrulanmıştır. Diğer revizyonlar/firmware sürümleri ayrıca doğrulanmalıdır; bu kapsam TJC veya ilgisiz DWIN modellerini içermez.
-- Kurulumdaki **Display panel** menüsünde gerçek kontrolcünüzü seçin: DWIN için **DACAI panel** işaretsiz, DACAI için işaretli olmalıdır.
+- Kurulumdaki **Display panel** menüsünde gerçek kontrolcünüzü seçin: **Panel type** altında **DWIN T5UIC1** veya **DACAI** seçin.
 - UART/GPIO bulunan Raspberry Pi veya uyumlu Linux SBC ve **Python 3.11+**.
 - Çalışan **Klipper ve Moonraker**, yetkili ağ erişimi, çapraz TX/RX bağlantısı ve yapılandırılmış enkoder pinleri.
 
@@ -76,7 +76,7 @@ cd ~/Petrel
 ./install.sh
 ```
 
-İlk kurulum menüsünde **Display panel** açın: DWIN için **DACAI panel** işaretsiz kalsın; DACAI için işaretleyip **115200** ile başlayın. Kaydedin, çıkın ve Apply sorusunu onaylayın. [Panel seçimi](docs/installation_TR.md#panelinizi-seçin).
+İlk kurulum menüsünde **Display panel** açın: **Panel type** altında **DWIN T5UIC1** veya **DACAI** seçin; DACAI için **115200** ile başlayın. Kaydedin, çıkın ve Apply sorusunu onaylayın. [Panel seçimi](docs/installation_TR.md#panelinizi-seçin).
 
 Installer bağımlılıkları, `Petrel.service` servisini, harici ayarları ve Moonraker Update Manager kaydını hazırlar. [İlk açılış kontrollerini](docs/installation_TR.md#lcd-kaynakları-ve-ilk-açılış) tamamlayın. Petrel'i Moonraker Update Manager veya LCD'deki Info ekranından güncelleyebilirsiniz; ayrıntılar için [güncelleme rehberine](docs/installation_TR.md#güncelleme) bakın. Mevcut kurulumların ayarları [geçişte](docs/installation_TR.md#güncelleme) korunur.
 

@@ -35,6 +35,7 @@ INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
 DACAI_BAUDS = ('115200', '230400', '460800', '921600')
 DACAI_AUX_CONFLICT = ('A DACAI panel has no DWIN auxiliary UART: disable '
                       'PETREL_AUX_UART or PETREL_DACAI')
+PANEL_CHOICES = ('PETREL_DWIN', 'PETREL_DACAI')
 SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
 RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
            - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
@@ -145,6 +146,8 @@ class Configuration(kconfiglib.Kconfig):
                 continue
             if not self.syms[name].set_value(value):
                 raise ValueError('Invalid existing setting: ' + name)
+        # Keep the installed runtime flag compatible with the panel choice.
+        self.syms['PETREL_DACAI' if values['PETREL_DACAI'] == 'y' else 'PETREL_DWIN'].set_value('y')
         pin = int(values['PETREL_BUZZER_GPIO'])
         matching = [name for name, candidate in BUZZER_GPIO_CHOICES.items()
                     if candidate == pin]
@@ -159,13 +162,43 @@ class Configuration(kconfiglib.Kconfig):
 
 def config_text(values):
     """Full seed includes hidden preferences so toggling their parent restores them."""
-    lines = []
+    lines = ['CONFIG_PETREL_DWIN=' + ('n' if values['PETREL_DACAI'] == 'y' else 'y') + '\n']
     for name in sorted(SYMBOLS):
         value = ('y' if int(values['PETREL_BUZZER_GPIO']) == BUZZER_GPIO_CHOICES[name] else 'n') if name in BUZZER_GPIO_CHOICES else values[name]
         if name in STRINGS:
             value = '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
         lines.append('CONFIG_' + name + '=' + value + '\n')
     return ''.join(lines)
+
+
+def load_selection(kconf, path):
+    """Load an overlay, including legacy DACAI toggles, without ambiguous choices."""
+    requested = path.read_text()
+    panel = {}
+    for line in requested.splitlines():
+        match = re.fullmatch(r'CONFIG_(PETREL_DWIN|PETREL_DACAI)=([yn])\s*', line)
+        unset = re.fullmatch(r'# CONFIG_(PETREL_DWIN|PETREL_DACAI) is not set\s*', line)
+        if match or unset:
+            name, value = (match.group(1), match.group(2)) if match else (unset.group(1), 'n')
+            if name in panel and panel[name] != value:
+                raise ValueError('Conflicting panel type assignments')
+            panel[name] = value
+    if len(panel) == 2 and len(set(panel.values())) == 1:
+        raise ValueError('Choose exactly one panel type: DWIN or DACAI')
+    kconf.load_config(str(path), replace=False)
+    if kconf.warnings or kconf.missing_syms:
+        raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
+    if panel:
+        # A legacy CONFIG_PETREL_DACAI=n must also switch an installed DACAI to DWIN.
+        chosen = next((name for name, value in panel.items() if value == 'y'), None)
+        if chosen is None:
+            chosen = next(name for name in PANEL_CHOICES if name not in panel)
+        kconf.syms[chosen].set_value('y')
+    if (kconf.syms['PETREL_DACAI'].str_value == 'y'
+            and re.search(r'^CONFIG_PETREL_AUX_UART=y\s*$', requested, re.MULTILINE)):
+        # Kconfig would silently drop the hidden option; refuse instead.
+        raise ValueError(DACAI_AUX_CONFLICT)
+    return collect(kconf)
 
 
 def validate(values):
@@ -405,15 +438,7 @@ def main():
             atomic_private(args.export_config, config_text(values))
             return 0
         if args.apply_config:
-            kconf.load_config(str(args.apply_config), replace=False)
-            if kconf.warnings or kconf.missing_syms:
-                raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
-            requested = args.apply_config.read_text()
-            if (kconf.syms['PETREL_DACAI'].str_value == 'y'
-                    and re.search(r'^CONFIG_PETREL_AUX_UART=y\s*$', requested, re.MULTILINE)):
-                # Kconfig would silently drop the hidden option; refuse instead.
-                raise ValueError(DACAI_AUX_CONFLICT)
-            selected = collect(kconf)
+            selected = load_selection(kconf, args.apply_config)
         else:
             if not sys.stdin.isatty() or not sys.stdout.isatty():
                 raise ValueError('A terminal is required. Use --apply-config FILE for explicit unattended configuration.')

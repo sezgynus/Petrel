@@ -26,7 +26,7 @@ kaldırmak portu kaldırır. İlk `./install.sh` kurulumu da
 bu seçimi içerir. Mevcut ayarlar korunur; aynı yapılandırmayla tekrar etkinleştirme,
 çalışan portu kesmez. Kaldırmadan veya kurulumu değiştirmeden önce yardımcı portu
 kullanan programları kapatın. Kaldırma, Petrel'in doğrudan ekran bağlantısını geri getirir.
-DACAI sürücüsü DWIN yardımcı UART protokolünü desteklemez; **DACAI panel** işaretlendiğinde bu seçenek gizlenir ve
+DACAI sürücüsü DWIN yardımcı UART protokolünü desteklemez; **Panel type → DACAI** seçildiğinde bu seçenek gizlenir ve
 Apply kurulu portu kaldırır ([DACAI panelleri](dacai_TR.md#dwin-yardımcı-uart)).
 
 ![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)

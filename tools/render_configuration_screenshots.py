@@ -37,7 +37,9 @@ def capture(index=None, dacai=False):
                               KCONFIG_CONFIG='example.config', srctree=str(ROOT))
             os.chdir(directory)
             os.execv(sys.executable, [sys.executable, '-c',
-                "import kconfiglib, menuconfig; menuconfig.menuconfig(kconfiglib.Kconfig())"])
+                "import kconfiglib, menuconfig; kconf = kconfiglib.Kconfig(); "
+                + ("kconf.syms['PETREL_DACAI'].set_value('y'); " if dacai else "")
+                + "menuconfig.menuconfig(kconf)"])
         screen = pyte.Screen(COLS, ROWS)
         stream = pyte.Stream(screen)
         def drain():
@@ -72,8 +74,6 @@ def capture(index=None, dacai=False):
             if dacai:
                 if index != MENUS.index('display-panel'):
                     raise ValueError('DACAI example must use the Display panel menu')
-                os.write(fd, b' ')
-                drain()
             text = '\n'.join(screen.display)
             if 'Petrel' not in text or (index is None and 'NFC' not in text):
                 raise RuntimeError('Incomplete menuconfig screen')
@@ -84,7 +84,7 @@ def capture(index=None, dacai=False):
                 # Title text must occur, including in the actual submenu breadcrumb.
                 if expected not in text or '--->' in next((x for x in screen.display if expected in x), ''):
                     raise RuntimeError('Did not enter submenu: ' + expected)
-            if dacai and ('[*] DACAI panel' not in text or 'DACAI host UART speed' not in text):
+            if dacai and ('Panel type (DACAI' not in text or 'DACAI host UART speed' not in text):
                 raise RuntimeError('DACAI example did not reveal the UART speed setting')
             return screen
         finally:

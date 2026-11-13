@@ -35,7 +35,7 @@ Eski [bağlantı fotoğrafları ve GPIO çizimi](../images/README_TR.md), farkl�
 
 ## DACAI test dalı
 
-Bu rehber iki panelin ortak kurulumunu anlatır. DACAI için seçtiğiniz sürümde **Display panel → DACAI panel** seçeneği bulunmalıdır. DACAI desteği ana sürüme alınmadan önce test için aşağıdaki dalı kullanın; destek yayımlandıktan sonra normal kurulum yolunu kullanabilirsiniz.
+Bu rehber iki panelin ortak kurulumunu anlatır. DACAI için seçtiğiniz sürümde **Display panel → Panel type → DACAI** seçeneği bulunmalıdır. DACAI desteği ana sürüme alınmadan önce test için aşağıdaki dalı kullanın; destek yayımlandıktan sonra normal kurulum yolunu kullanabilirsiniz.
 
 Yeni kurulumda aşağıdaki **Kurulum** bölümündeki klonlama satırını bununla değiştirin:
 
@@ -76,7 +76,7 @@ cd ~/Petrel
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
-| Display panel → DACAI panel | Kapalı (DWIN); DACAI için açın |
+| Display panel → Panel type | DWIN T5UIC1 (varsayılan) veya DACAI |
 | DACAI host UART speed | `115200` |
 | Encoder A/B | `21 16` |
 | Encoder düğmesi | `20` |
@@ -101,7 +101,7 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 İlk kurulumda açılan menüde veya daha sonra `./configure.sh` ile:
 
 1. **Connections and power → Physical display UART** altında ekrana bağlı host portunu seçin; `/dev/ttyDWIN0` kullanmayın.
-2. **Display panel** menüsünü açın. **DWIN T5UIC1** için **DACAI panel** işaretsiz kalsın. **DACAI** için işaretleyin; ilk denemede **DACAI host UART speed** değerini **115200** bırakın.
+2. **Display panel** menüsünü açın. **Panel type** altında **DWIN T5UIC1** veya **DACAI** seçin; DACAI için ilk denemede **DACAI host UART speed** değerini **115200** bırakın.
 3. **Encoder and presets** pinlerini kablolamanızla eşleştirin. Oklar/Enter ile gezinin, Space ile seçenek değiştirin; **S** ile kaydedip **Q** ile çıkın ve **Apply saved configuration** sorusuna **y** deyin.
 
 Panel otomatik algılanmaz; yanlış seçim ikon/önizleme ve bağlantı hatalarına yol açabilir. Mevcut ayarlar korunur: yalnız yazılımı güncellemek DACAI seçeneğini kendiliğinden açmaz. DACAI seçimi DWIN yardımcı UART seçeneğini kapatır ve Apply kurulu aracı servisini kaldırır; önce bu portu kullanan programları kapatın. Pi'ye doğrudan bağlı NFC etkilenmez.
@@ -200,7 +200,7 @@ git pull --ff-only
 sudo systemctl restart Petrel.service
 ```
 
-Güncellemeden önceki revizyonu saklayın. Sorunda `git -C ~/Petrel checkout <revision>` ile **DACAI'de çalıştığı doğrulanmış** sürüme dönün; `~/Petrel` içinde `./install.sh` çalıştırıp servisi yeniden başlatın. Teste dönmek için `git checkout feature/dacai-support`, ardından `git pull --ff-only` kullanın. DACAI içermeyen eski `master` sürümü DACAI paneli için geri dönüş değildir. Gerçekten DWIN panele geçiyorsanız önce yapılandırmada **DACAI panel** işaretini kaldırın. Panel kaynak kurtarması yazılım revizyonundan ayrıdır; [LCD uyumluluğuna](lcd-assets_TR.md) bakın.
+Güncellemeden önceki revizyonu saklayın. Sorunda `git -C ~/Petrel checkout <revision>` ile **DACAI'de çalıştığı doğrulanmış** sürüme dönün; `~/Petrel` içinde `./install.sh` çalıştırıp servisi yeniden başlatın. Teste dönmek için `git checkout feature/dacai-support`, ardından `git pull --ff-only` kullanın. DACAI içermeyen eski `master` sürümü DACAI paneli için geri dönüş değildir. Gerçekten DWIN panele geçiyorsanız önce yapılandırmada **Panel type → DWIN T5UIC1** seçin. Panel kaynak kurtarması yazılım revizyonundan ayrıdır; [LCD uyumluluğuna](lcd-assets_TR.md) bakın.
 
 
 ### Güncelleme ve eski kurulumdan geçiş
@@ -230,7 +230,7 @@ sudo systemctl restart Petrel.service
 | Güncelleme engelleniyor | Yerel repo değişiklikleri ve Moonraker Update Manager durumu |
 | İşlem başarısız veya zaman aşımına uğradı | Tekrarlamadan önce Mainsail'den gerçek yazıcı durumunu kontrol edin |
 
-Hata bildirimine panel ailesini/kart revizyonunu, biliniyorsa panel firmware'ini, **DACAI panel** seçimini, host–ekran hızını ve yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
+Hata bildirimine panel ailesini/kart revizyonunu, biliniyorsa panel firmware'ini, **Panel type** seçimini, host–ekran hızını ve yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
 
 ### Extra güncellemesinde sensör olay sayaçları
 

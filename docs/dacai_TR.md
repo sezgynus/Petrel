@@ -24,7 +24,7 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 ## Etkinleştirme
 
-`./configure.sh` çalıştırın, **Display panel** menüsünü açın, **DACAI panel** seçeneğini işaretleyin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
+`./configure.sh` çalıştırın, **Display panel** menüsünü açın, **Panel type → DACAI** seçin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
 
 İlk kurulum, panel seçimi, test dalına geçiş ve yazılım güncelleme/geri dönüş adımları artık [ortak kurulum rehberinde](installation_TR.md) yer alır. [Panel özellikleri tablosu](lcd-assets_TR.md#panel-özellikleri) DWIN/DACAI ayrımını özetler. Bu referans firmware, kurtarma, depolama ölçümleri ve protokol ayrıntılarını korur.
 
@@ -32,7 +32,7 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 Petrel'in DACAI sürücüsünde DWIN yardımcı UART protokolü desteklenmediğinden **DACAI panel** ve **DWIN auxiliary UART as a Linux serial port** birbirini dışlar:
 
-- **DACAI panel** işaretlendiğinde yardımcı UART seçeneği gizlenir. Apply bu seçeneği kapatır ve kurulu bir yardımcı UART aracısını (çekirdek sürücüsü, servis ve `/var/lib/Petrel/dwin-uart.json`) kaldırır; böylece mevcut bir kurulum tek adımda DACAI paneline geçebilir.
+- **Panel type → DACAI** seçildiğinde yardımcı UART seçeneği gizlenir. Apply bu seçeneği kapatır ve kurulu bir yardımcı UART aracısını (çekirdek sürücüsü, servis ve `/var/lib/Petrel/dwin-uart.json`) kaldırır; böylece mevcut bir kurulum tek adımda DACAI paneline geçebilir.
 - `configure.sh --apply-config` ikisini birden etkinleştiren bir dosyayı reddeder; `Petrel.env` hem `PETREL_DACAI=1` hem `PETREL_AUX_UART=1` içeriyorsa `install.sh` hiçbir şeyi değiştirmeden durur.
 - Petrel bir DACAI panelini aracı soketi (`PETREL_DWIN_SOCKET`) üzerinden başlatmayı reddeder.
 

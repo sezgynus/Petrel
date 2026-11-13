@@ -10,7 +10,7 @@ plan işi eklemez.
 
 ![Petrel Kconfig ana menüsü](assets/configuration/main-menu.png)
 
-Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; ayrıca DACAI seçeneği açık bir örnek sunulur; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
+Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; ayrıca DACAI seçili bir örnek sunulur; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
 
 ## Gezinme ve uygulama
 
@@ -43,16 +43,15 @@ ayarlayın. **Physical display UART**, host üzerinde ekrana bağlı porttur; bu
 
 ### Display panel
 
-**DACAI panel** seçeneğini yalnızca Creality DACAI ekranları için işaretleyin (microSD
-klasörü `private`, ör. Ender 3 Max Neo). Bu seçenek **DACAI host UART speed** ayarını
-gösterir (115200, 230400, 460800 veya 921600). DWIN T5UIC1 panellerinde varsayılan
-işaretsiz kalır. Ayrıntılar [DACAI rehberindedir](dacai_TR.md).
+**Panel type** seçeneğini Enter ile açın, ok tuşlarıyla **DWIN T5UIC1** veya **DACAI** seçin ve Enter ile onaylayın. Aynı anda yalnız bir panel seçilir; varsayılan DWIN'dir. DACAI ekranlarında (microSD klasörü `private`, ör. Ender 3 Max Neo) **DACAI host UART speed** ayarı görünür (115200, 230400, 460800 veya 921600). Ayrıntılar [DACAI rehberindedir](dacai_TR.md).
 
 Panel otomatik algılanmaz. İlk kurulum ve güncelleme sonrası seçimi kontrol edin; mevcut DWIN ayarları DACAI'ye kendiliğinden geçmez. İlk denemede **115200** kullanın; 230400/460800/921600 daha hızlı görsel yükleyebilir. Hız panelin enerjisi kesilene kadar korunur; Petrel normal çıkışta 115200'e döndürür ve açılışta yapılandırılmış hızdan başlayıp desteklenen dört hızı dener.
 
 DACAI seçimi **PETREL_DACAI=1** ve **PETREL_DACAI_BAUD** olarak kaydedilir. Apply yardımcı UART'ı kapatıp kurulu broker'ı kaldırır; o portu kullanan istemcileri önce kapatın. Host'a bağlı NFC ve diğer ortak özellikler korunur. İki UART seçeneğini birlikte etkinleştiren otomatik yapılandırma reddedilir. [Panel özellikleri](lcd-assets_TR.md#panel-özellikleri).
 
-![DWIN için varsayılan işaretsiz DACAI panel seçimi](assets/configuration/display-panel.png)
+Çalışma zamanı ayarı DWIN için `PETREL_DACAI=0`, DACAI için `PETREL_DACAI=1` olarak korunur. Mevcut ayarlar ve eski `CONFIG_PETREL_DACAI=y/n` dosyaları uyumludur. Dışa aktarılan Kconfig dosyaları açık DWIN/DACAI seçimini içerir; ikisini birden seçen veya ikisini de seçmeyen dosyalar reddedilir.
+
+![Varsayılan DWIN T5UIC1 panel seçimi](assets/configuration/display-panel.png)
 
 ![DACAI seçiliyken görünen host UART hızı](assets/configuration/display-panel-dacai.png)
 
@@ -97,7 +96,7 @@ Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki varsayılan ö
 Kurulumu seçmek için işaretleyin; kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
 uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
 [UART rehberine](dwin-uart_TR.md) bakın.
-**DACAI panel** işaretliyken bu seçenek gizlenir; DACAI sürücüsü bu yardımcı UART yolunu desteklemez
+**Panel type → DACAI** seçiliyken bu seçenek gizlenir; DACAI sürücüsü bu yardımcı UART yolunu desteklemez
 ([ayrıntılar](dacai_TR.md#dwin-yardımcı-uart)).
 
 ![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)

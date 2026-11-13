@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from tools.configure import Configuration, apply, choose, collect, config_text, defaults, read_settings, render_env, validate
+from tools.configure import Configuration, apply, choose, collect, config_text, defaults, load_selection, read_settings, render_env, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,6 +35,61 @@ class KconfigConfigurationTests(unittest.TestCase):
         self.assertEqual(config.syms['PETREL_KLIPPER_DIR'].str_value, '/opt/custom klipper')
         self.assertEqual(config.syms['PETREL_REMOTE_PORT'].str_value, '8099')
         self.assertEqual(config.syms['PETREL_BUTTON_PIN'].str_value, '13')
+
+
+    def test_panel_choice_preserves_installed_selection_and_runtime_format(self):
+        for enabled, symbol in [('0', 'PETREL_DWIN'), ('1', 'PETREL_DACAI')]:
+            with self.subTest(enabled=enabled):
+                values = read_settings(Path('/home/printer'),
+                                       'PETREL_DACAI=' + enabled + '\nPETREL_DACAI_BAUD=460800\n')
+                config = Configuration(ROOT, values)
+                self.assertEqual(config.named_choices['PETREL_PANEL'].selection.name, symbol)
+                self.assertEqual(sum(config.syms[name].str_value == 'y'
+                                     for name in ('PETREL_DWIN', 'PETREL_DACAI')), 1)
+                self.assertEqual(collect(config), values)
+                self.assertIn('PETREL_DACAI=' + enabled + '\n', render_env(collect(config), ''))
+                self.assertNotIn('PETREL_DWIN=', render_env(collect(config), ''))
+                for name in ('PETREL_DWIN', 'PETREL_DACAI'):
+                    config.syms[name].set_value('y')
+                    self.assertEqual(config.named_choices['PETREL_PANEL'].selection.name, name)
+                    self.assertEqual(config.syms['PETREL_DACAI_BAUD'].visibility > 0,
+                                     name == 'PETREL_DACAI')
+                    self.assertEqual(config.syms['PETREL_AUX_UART'].visibility > 0,
+                                     name == 'PETREL_DWIN')
+                    self.assertEqual(collect(config)['PETREL_DACAI_BAUD'], '460800')
+
+    def test_panel_export_round_trip_and_legacy_overlays(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'selection.config'
+            for old in ('n', 'y'):
+                values = self.values(Path(tmp))
+                values.update(PETREL_DACAI=old, PETREL_DACAI_BAUD='921600')
+                path.write_text(config_text(values))
+                config = Configuration(ROOT, defaults(Path(tmp)))
+                self.assertEqual(load_selection(config, path), values)
+                for text, expected in [
+                    ('CONFIG_PETREL_DACAI=n\n', 'n'),
+                    ('# CONFIG_PETREL_DACAI is not set\n', 'n'),
+                    ('CONFIG_PETREL_DACAI=y\n', 'y'),
+                    ('CONFIG_PETREL_DWIN=y\n', 'n'),
+                    ('CONFIG_PETREL_DWIN=n\n', 'y'),
+                    ('CONFIG_PETREL_REMOTE_PORT=8099\n', old),
+                ]:
+                    with self.subTest(old=old, text=text):
+                        path.write_text(text)
+                        selected = load_selection(Configuration(ROOT, values), path)
+                        self.assertEqual(selected['PETREL_DACAI'], expected)
+                        self.assertEqual(selected['PETREL_DACAI_BAUD'], '921600')
+
+    def test_ambiguous_panel_selection_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'selection.config'
+            for text in ('CONFIG_PETREL_DWIN=y\nCONFIG_PETREL_DACAI=y\n',
+                         'CONFIG_PETREL_DWIN=n\nCONFIG_PETREL_DACAI=n\n',
+                         'CONFIG_PETREL_DACAI=y\nCONFIG_PETREL_DACAI=n\n'):
+                path.write_text(text)
+                with self.assertRaisesRegex(ValueError, 'panel type'):
+                    load_selection(Configuration(ROOT, defaults(Path(tmp))), path)
 
     def test_pwm_gpio_choice_excludes_nonhardware_pins_and_is_distinct(self):
         values = self.values(Path('/home/printer'))
