@@ -337,6 +337,12 @@ static bool receive_uart(struct broker *b)
     if (b->rx_size >= sizeof(b->rx)) { errno = ENOBUFS; return false; }
     ssize_t n = read(b->uart, b->rx + b->rx_size, sizeof(b->rx) - b->rx_size);
     if (n < 0) return again();
+    const char *trace = getenv("PETREL_TRACE_FLASH");
+    if (n > 0 && now() < b->flash_until && trace && strcmp(trace, "1") == 0) {
+        fprintf(stderr, "issue-41 broker UART RX:");
+        for (ssize_t i = 0; i < n; ++i) fprintf(stderr, " %02x", (unsigned)b->rx[b->rx_size + i]);
+        fputc('\n', stderr);
+    }
     b->rx_size += (size_t)n;
     size_t used = 0;
     while (used < b->rx_size) {
