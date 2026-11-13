@@ -142,6 +142,7 @@ class DacaiDriver(T5UIC1Display):
         self._sprites = None
         self._sprite_animations = {}
         self._sprite_mask = 0xFFFF
+        self._assets_synced = False
         super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
@@ -281,34 +282,48 @@ class DacaiDriver(T5UIC1Display):
         # Failures propagate like the DWIN icon-library sync: the panel's own
         # icon files are not Petrel's, so there is no silent fallback.
         self.sync_sprites()
-        self._assets_synced = True
 
     def sync_sprites(self, *, force=False):
         """Upload changed sheets; ``force`` repairs pictures removed by a microSD update.
 
         Raises on any upload or verification failure; the sheets are used only
-        after their metadata checkpoint has been verified.
+        after their metadata checkpoint has been verified. This method alone
+        owns ``_sprites`` and ``_assets_synced``: both are cleared before any
+        picture is touched and set again only after a verified sync, so a
+        failed resync leaves the driver unsynchronized and without an index.
         """
         from petrel.artwork import sprites
+        self._assets_synced = False
         self._sprite_animations.clear()
         self._sprites = None
+        # Picture slots may be rewritten: reload the sheet before the next copy.
+        self._cached_picture1 = None
         current = sprites.load()
-        if sprites.sync(self, force=force, sprites=current):
-            self._cached_picture1 = None
+        sprites.sync(self, force=force, sprites=current)
         self._sprites = current.index
+        self._assets_synced = True
 
     def show_icon(self, library_id, icon_ids, x, y, *, background=True,
                   restore=False, enhanced=False):
         icons = (icon_ids,) if isinstance(icon_ids, int) else tuple(icon_ids)
-        if icons and self._sprite_library(library_id):
-            self._draw_sprites(icons, x, y, background)
+        if not self._managed_library(library_id):
+            super().show_icon(library_id, icon_ids, x, y, background=background,
+                              restore=restore, enhanced=enhanced)
             return
-        super().show_icon(library_id, icon_ids, x, y, background=background,
-                          restore=restore, enhanced=enhanced)
+        if not icons:
+            raise ValueError("at least one icon ID is required")
+        if self._sprites is None:
+            # No verified sheets: skip rather than draw the panel's own icon
+            # files with 0x23, which do not hold Petrel's artwork.
+            logging.debug('DACAI sprite sheets unavailable; icons %s skipped', icons)
+            return
+        self._draw_sprites(icons, x, y, background)
 
-    def _sprite_library(self, library_id):
+    @staticmethod
+    def _managed_library(library_id):
+        """Petrel's own library: always drawn from the sprite sheets, never natively."""
         from petrel.artwork.resources import ICON_LIBRARY_ID
-        return self._sprites is not None and library_id == ICON_LIBRARY_ID
+        return library_id == ICON_LIBRARY_ID
 
     def _draw_sprites(self, icons, x, y, background):
         """Copy icons from their sheets in a row; False if any icon is missing.
@@ -347,14 +362,22 @@ class DacaiDriver(T5UIC1Display):
 
     def _sprite_animation(self, animation_id, enabled, library_id, first_icon, last_icon,
                           x, y, interval, restart_from_first):
-        """Host-side replacement for 0x28 while icons come from sprite sheets."""
-        if not self._sprite_library(library_id):
+        """Host-side replacement for 0x28 for the managed library.
+
+        Returns False only for other libraries. Requests for the managed
+        library never reach 0x28: without verified sheets they are dropped.
+        """
+        if not self._managed_library(library_id):
             return False
         if not 0 <= animation_id <= 15:
             raise ValueError('animation ID must be 0..15')
         frames = range(first_icon, last_icon + 1)
-        if not frames:
-            return False
+        if self._sprites is None or not frames:
+            if enabled:
+                logging.debug('DACAI animation %d skipped: no sprite sheets or frames',
+                              animation_id)
+            self._sprite_animations.pop(animation_id, None)
+            return True
         missing = [icon for icon in frames if icon not in self._sprites]
         if missing:
             # Never fall back to 0x28: the native icon files are not Petrel's.

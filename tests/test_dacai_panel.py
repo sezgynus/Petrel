@@ -31,6 +31,7 @@ def dacai_driver():
     lcd._sprites = None
     lcd._sprite_animations = {}
     lcd._sprite_mask = 0xFFFF
+    lcd._assets_synced = False
     return lcd
 
 
@@ -574,35 +575,71 @@ class SpriteStartupStateTests(unittest.TestCase):
                 patch('petrel.artwork.sprites.time.sleep'):
             self.lcd._startup_sync_icons()
 
+    def resync(self):
+        with patch('petrel.artwork.sprites.load', return_value=self.set), \
+                patch('petrel.artwork.sprites.time.sleep'):
+            self.lcd.sync_sprites(force=True)
+
+    def assert_unsynchronized_and_silent(self):
+        """No index, not synchronized, and managed artwork never reaches 0x23/0x27/0x28."""
+        self.assertFalse(self.lcd._assets_synced)
+        self.assertIsNone(self.lcd._sprites)
+        before = len(sent(self.lcd))
+        self.lcd.show_icon(ICON_LIBRARY_ID, 7, 0, 0)
+        self.lcd.show_icon(ICON_LIBRARY_ID, (7, 7), 0, 0)
+        self.lcd.configure_animation(1, True, ICON_LIBRARY_ID, 7, 7, 0, 0, 10)
+        self.lcd.configure_animation(1, False, ICON_LIBRARY_ID, 7, 7, 0, 0, 10)
+        self.assertEqual(sent(self.lcd)[before:], [])
+        self.assertEqual(self.lcd._sprite_animations, {})
+        self.assertIsNone(self.lcd.poll_host_animations(10))
+
     def test_failed_metadata_verification_fails_startup(self):
         self.flash.corrupt_writes = True
         with self.assertRaisesRegex(RuntimeError, 'metadata verification failed'):
             self.sync()
-        self.assertFalse(getattr(self.lcd, '_assets_synced', False))
-        self.assertIsNone(self.lcd._sprites)
-        # Icons are not silently drawn from the panel's own icon files.
-        self.lcd.show_icon(ICON_LIBRARY_ID, 7, 0, 0)
-        self.assertNotIn(0x27, [op for op, _ in sent(self.lcd)])
+        self.assert_unsynchronized_and_silent()
 
     def test_failed_upload_fails_startup(self):
         self.lcd.store_sram_as_picture = Mock(side_effect=TimeoutError('no ack'))
         with self.assertRaises(TimeoutError):
             self.sync()
-        self.assertFalse(getattr(self.lcd, '_assets_synced', False))
-        self.assertIsNone(self.lcd._sprites)
+        self.assert_unsynchronized_and_silent()
 
     def test_verified_upload_marks_assets_synchronized(self):
         self.sync()
         self.assertTrue(self.lcd._assets_synced)
         self.assertEqual(self.lcd._sprites, self.set.index)
 
-    def test_failed_resync_drops_the_previous_sheets(self):
+    def test_failed_resync_clears_the_previous_synchronized_state(self):
+        self.sync()
+        self.assertTrue(self.lcd._assets_synced)
+        self.lcd.configure_animation(1, True, ICON_LIBRARY_ID, 7, 7, 0, 0, 10)
+        self.assertIn(1, self.lcd._sprite_animations)
+        self.flash.corrupt_writes = True
+        with self.assertRaisesRegex(RuntimeError, 'metadata verification failed'):
+            self.resync()
+        self.assert_unsynchronized_and_silent()
+
+    def test_resync_failing_before_upload_clears_the_state(self):
+        self.sync()
+        with patch('petrel.artwork.sprites.load', side_effect=OSError('sheets missing')), \
+                self.assertRaises(OSError):
+            self.lcd.sync_sprites(force=True)
+        self.assert_unsynchronized_and_silent()
+
+    def test_successful_resync_restores_the_state(self):
         self.sync()
         self.flash.corrupt_writes = True
-        with patch('petrel.artwork.sprites.load', return_value=self.set), \
-                patch('petrel.artwork.sprites.time.sleep'), self.assertRaises(RuntimeError):
-            self.lcd.sync_sprites(force=True)
-        self.assertIsNone(self.lcd._sprites)
+        with self.assertRaises(RuntimeError):
+            self.resync()
+        self.flash.corrupt_writes = False
+        self.resync()
+        self.assertTrue(self.lcd._assets_synced)
+        self.assertEqual(self.lcd._sprites, self.set.index)
+        before = len(sent(self.lcd))
+        self.lcd.show_icon(ICON_LIBRARY_ID, 7, 0, 0)
+        # The sheet is reloaded (0x25) because the resync may have rewritten its slot.
+        self.assertEqual([op for op, _ in sent(self.lcd)[before:]], [0x25, 0x27])
 
 
 class SpriteDrawingTests(unittest.TestCase):
@@ -639,11 +676,18 @@ class SpriteDrawingTests(unittest.TestCase):
             self.lcd.show_icon(ICON_LIBRARY_ID, (99, 7), 0, 0)
         self.assertEqual([op for op, _ in sent(self.lcd)], [0x25, 0x27])
 
-    def test_other_library_or_no_sheets_use_0x23(self):
+    def test_other_libraries_use_0x23_with_or_without_sheets(self):
         self.lcd.show_icon(9, 7, 0, 0)
         self.lcd._sprites = None
-        self.lcd.show_icon(ICON_LIBRARY_ID, 7, 0, 0)
+        self.lcd.show_icon(9, 7, 0, 0)
         self.assertEqual([op for op, _ in sent(self.lcd)], [0x23, 0x23])
+
+    def test_managed_library_without_sheets_draws_nothing(self):
+        self.lcd._sprites = None
+        self.lcd.show_icon(ICON_LIBRARY_ID, (7, 8), 0, 0)
+        self.assertEqual(sent(self.lcd), [])
+        with self.assertRaises(ValueError):
+            self.lcd.show_icon(ICON_LIBRARY_ID, (), 0, 0)
 
     def test_animation_is_stepped_by_host_and_wraps(self):
         with patch('petrel.hardware.dwin.dacai.time.monotonic', return_value=100.0):
@@ -675,10 +719,22 @@ class SpriteDrawingTests(unittest.TestCase):
         self.assertEqual(sent(self.lcd), [])
         self.assertEqual(self.lcd._sprite_animations, {})
 
-    def test_animation_without_sheets_uses_panel_0x28(self):
+    def test_managed_animation_without_sheets_is_dropped(self):
+        self.lcd.configure_animation(1, True, ICON_LIBRARY_ID, 7, 8, 0, 0, 10)
         self.lcd._sprites = None
         self.lcd.configure_animation(1, True, ICON_LIBRARY_ID, 7, 8, 0, 0, 10)
-        self.assertEqual([op for op, _ in sent(self.lcd)], [0x28])
+        self.assertNotIn(0x28, [op for op, _ in sent(self.lcd)])
+        self.assertEqual(self.lcd._sprite_animations, {})
+
+    def test_managed_animation_with_empty_range_never_uses_panel_0x28(self):
+        self.lcd.configure_animation(2, True, ICON_LIBRARY_ID, 8, 7, 0, 0, 10)
+        self.assertEqual(sent(self.lcd), [])
+
+    def test_other_library_animation_uses_panel_0x28_with_or_without_sheets(self):
+        self.lcd.configure_animation(1, True, 9, 7, 8, 0, 0, 10)
+        self.lcd._sprites = None
+        self.lcd.configure_animation(1, True, 9, 7, 8, 0, 0, 10)
+        self.assertEqual([op for op, _ in sent(self.lcd)], [0x28, 0x28])
 
 
 class HostNfcReaderTests(unittest.TestCase):
@@ -852,7 +908,7 @@ class OpaqueThumbnailTests(unittest.TestCase):
 class DacaiConfigurationTests(unittest.TestCase):
     def test_kconfig_round_trip_and_baud_validation(self):
         from tools.configure import Configuration, collect, defaults, render_env, validate
-        values = defaults(Path('/home/pi'))
+        values = defaults(Path(tempfile.gettempdir()).resolve())
         values.update(PETREL_DACAI='y', PETREL_DACAI_BAUD='460800')
         validate(values)
         self.assertEqual(collect(Configuration(ROOT, values))['PETREL_DACAI_BAUD'], '460800')
@@ -865,7 +921,7 @@ class DacaiConfigurationTests(unittest.TestCase):
 
     def test_dacai_and_auxiliary_uart_are_mutually_exclusive(self):
         from tools.configure import Configuration, collect, defaults, validate
-        values = defaults(Path('/home/pi'))
+        values = defaults(Path(tempfile.gettempdir()).resolve())
         values.update(PETREL_DACAI='y', PETREL_AUX_UART='y')
         with self.assertRaisesRegex(ValueError, 'auxiliary UART'):
             validate(values)
