@@ -21,14 +21,14 @@ import pyte
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-MENUS = ('connections-power', 'encoder-presets', 'buzzer-pwm', 'virtual-buzzer',
+MENUS = ('connections-power', 'display-panel', 'encoder-presets', 'buzzer-pwm', 'virtual-buzzer',
          'maintenance-counters', 'display-tools', 'auxiliary-uart', 'nfc', 'apply-options')
 COLS, ROWS = 110, 32
 PALETTE = dict(black='#101820', red='#d75f5f', green='#5faf87', brown='#af875f',
                blue='#264b70', magenta='#af87af', cyan='#63b7c7', white='#d7dfe7')
 
 
-def capture(index=None):
+def capture(index=None, dacai=False):
     with tempfile.TemporaryDirectory(prefix='petrel-kconfig-') as directory:
         pid, fd = pty.fork()
         if pid == 0:
@@ -69,16 +69,23 @@ def capture(index=None):
                     drain()
                 os.write(fd, b'\n')
                 drain()
+            if dacai:
+                if index != MENUS.index('display-panel'):
+                    raise ValueError('DACAI example must use the Display panel menu')
+                os.write(fd, b' ')
+                drain()
             text = '\n'.join(screen.display)
             if 'Petrel' not in text or (index is None and 'NFC' not in text):
                 raise RuntimeError('Incomplete menuconfig screen')
             if index is not None:
-                expected = ('Connections and power', 'Encoder and presets', 'Buzzer hardware PWM',
+                expected = ('Connections and power', 'Display panel', 'Encoder and presets', 'Buzzer hardware PWM',
                             'Klipper virtual buzzer', 'Maintenance usage counters', 'Display tools',
                             'DWIN auxiliary UART', 'NFC', 'Apply options')[index]
                 # Title text must occur, including in the actual submenu breadcrumb.
                 if expected not in text or '--->' in next((x for x in screen.display if expected in x), ''):
                     raise RuntimeError('Did not enter submenu: ' + expected)
+            if dacai and ('[*] DACAI panel' not in text or 'DACAI host UART speed' not in text):
+                raise RuntimeError('DACAI example did not reveal the UART speed setting')
             return screen
         finally:
             os.kill(pid, signal.SIGTERM)
@@ -113,9 +120,11 @@ def main():
         stage = Path(directory)
         for name, index in [('main-menu', None), *[(name, i) for i, name in enumerate(MENUS)]]:
             render(capture(index), stage / (name + '.png'))
+        render(capture(MENUS.index('display-panel'), dacai=True),
+               stage / 'display-panel-dacai.png')
         for path in stage.glob('*.png'):
             (target/path.name).write_bytes(path.read_bytes())
-    print('Captured real Kconfig main menu and nine submenus; no settings applied.')
+    print('Captured real Kconfig main menu, ten submenus and DACAI example; no settings applied.')
 
 
 if __name__ == '__main__':
