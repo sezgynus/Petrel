@@ -8,6 +8,7 @@ renderers used by Petrel to preserve its current visual output.
 
 import logging
 import math
+import os
 import struct
 import time
 import unicodedata
@@ -311,6 +312,8 @@ class T5UIC1Display:
             waiting = int(getattr(self.serial, "in_waiting", 0) or 0)
             if waiting:
                 data = self.serial.read(min(waiting, 4096))
+                if getattr(self, "_trace_flash_write", False):
+                    logging.warning("issue-41 Petrel RX: %s", data.hex(" "))
                 self._rx.extend(data)
                 counts = getattr(self,'_diagnostic_counts',None)
                 if counts is not None:
@@ -869,12 +872,29 @@ class T5UIC1Display:
             offset = 0
             while offset < len(data):
                 chunk = data[offset:offset + self.MEMORY_WRITE_CHUNK]
-                self._send(0x31, bytes((memory,)) + self._word(address + offset) + chunk)
-                if memory == self.MEMORY_FLASH:
-                    payload = self._wait_response(
-                        0x31, timeout,
-                        lambda value: value == bytes((self.MEMORY_FLASH,)) + b"OK",
-                    )
+                flash = memory == self.MEMORY_FLASH
+                trace = flash and os.environ.get("PETREL_TRACE_FLASH") == "1"
+                self._trace_flash_write = trace
+                try:
+                    if trace:
+                        logging.warning(
+                            "issue-41 Flash TX: address=0x%04x size=%d transport=%s",
+                            address + offset, len(chunk), type(self.serial).__name__,
+                        )
+                    self._send(0x31, bytes((memory,)) + self._word(address + offset) + chunk)
+                    if flash:
+                        payload = self._wait_response(
+                            0x31, timeout,
+                            lambda value: value == bytes((self.MEMORY_FLASH,)) + b"OK",
+                        )
+                except T5UIC1TimeoutError as error:
+                    if trace:
+                        error.flash_trace_timeout = True
+                        logging.exception("issue-41 Flash acknowledgement timeout")
+                    raise
+                finally:
+                    self._trace_flash_write = False
+                if flash:
                     if payload != bytes((self.MEMORY_FLASH,)) + b"OK":
                         raise T5UIC1ProtocolError("Invalid Flash write acknowledgement")
                 offset += len(chunk)
