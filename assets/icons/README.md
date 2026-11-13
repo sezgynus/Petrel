@@ -2,6 +2,10 @@
 
 [English](README.md) · [Türkçe](README_TR.md)
 
+## Shared sources, panel-specific packing
+
+Icon IDs and JPEG/SVG sources are shared. ICO, 32 KiB blocks, PETICO06 and native animations below describe **DWIN**. DACAI uses `petrel/artwork/sprites.py`: currently eight 272×480 sheets at pictures 16+, with NFC frames stored as the closest earlier frame plus the changed rectangle. Each NFC animation stays on one sheet; host timers advance its frames. Checkpoints use Data Flash `0x0600`–`0x083F`. Never upload the DWIN ICO to DACAI. Validate both packages and physical panels after source changes; DWIN package size alone does not validate DACAI storage. [DACAI details](../../docs/dacai.md).
+
 The library contains **186 icons, IDs 0–185**. **186–255 are free**; use **186** for the next icon and continue sequentially. Filenames are zero-padded (`186.jpg`, `assets/icon-source/186.svg`). Bind UI and generator code through `petrel/artwork/resources.py`. The [original ID migration map](id-migration.json) records the first migration. The subsequent [axis deduplication map](id-deduplication.json) maps the 212-ID directory to the intermediate 209-ID directory, including aliases 42→31, 43→32 and 44→33. The [native-confirm migration](id-native-confirm.json) then removes the old text-bearing button at ID 49 and the eight unused legacy Print icons at IDs 16–23, closing all nine gaps in one final map. These are review records, not runtime translations.
 
 Second audit: removed unused boot bar (16), old ABS preheat (21), and 12 byte-identical JPEG/SVG copies, including seven spool flanges. **14 IDs and 12,868 JPEG bytes** reclaimed. See [migration map](id-redundancy-cleanup.json).
@@ -53,7 +57,7 @@ Stop Petrel before manual diagnostic uploads. `tools/reload_icons.py` forces che
 | Bed Mesh menu | 142 | Symbolic `ICON_BED_MESH` |
 | Fan; boot | 166–173; 181–185 | Native animation channels 1 / 0 |
 
-Phone sharing loops in 2.4 s without host frame timers. Reader completion, failure, cancellation and window replacement stop its animation. Capability discovery controls the small NFC share control before the Petrel version in Software; no extra QR share row is added. Failed sharing displays a static first frame.
+Phone sharing loops in 2.4 s without host frame timers on DWIN; DACAI advances the same frames on the host. Reader completion, failure, cancellation and window replacement stop its animation. Capability discovery controls the small NFC share control before the Petrel version in Software; no extra QR share row is added. Failed sharing displays a static first frame.
 
 Spool and generic card enrollment share the capture popup. Emergency Assign/Replace uses card frames; spool assignment uses spool frames. Clicking cancels; reading stops animation before explicit UID/save confirmation. A read alone never writes a Spoolman assignment. Power overlays, disconnect/close and screen replacement stop or clear animation; a retained capture resumes or completes when its origin returns. Redraws and encoder movement do not restart capture.
 

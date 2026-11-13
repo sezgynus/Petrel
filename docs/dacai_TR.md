@@ -26,21 +26,11 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 `./configure.sh` çalıştırın, **Display panel** menüsünü açın, **DACAI panel** seçeneğini işaretleyin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
 
-DACAI desteği `feature/dacai-support` dalında geliştirilir. Petrel kurulum betiği Moonraker güncelleyicisini `master` için kaydeder; bu nedenle güncelleyici bu dalı izlemez: başka bir dalda Moonraker Petrel deposunu geçersiz olarak gösterir ve güncelleme sunmaz. Bir test kurulumunu `~/Petrel` içinde `git pull` ile güncelleyin ve `Petrel.service` servisini yeniden başlatın.
-
-**Geri dönüş.** `master` DACAI panellerini desteklemez: DACAI sürücüsünü seçmez ve paneli DWIN ekranı olarak sürer. Bu nedenle `git checkout master` bir DACAI paneli için geri dönüş yolu **değildir**. Her güncellemeden önce çalışan sürümü not edin:
-
-```sh
-git -C ~/Petrel rev-parse HEAD
-```
-
-Güncelleme sorun çıkarırsa `git -C ~/Petrel checkout <sürüm>` ile bu bilinen iyi sürüme dönün, `~/Petrel` içinde `./install.sh` çalıştırın ve `Petrel.service` servisini yeniden başlatın. Daha sonra `git checkout feature/dacai-support` ve ardından `git pull` ile teste devam edilir.
-
-`git checkout master` ve `./install.sh` **yalnızca yeniden DWIN paneline geçmiş bir yazıcı için** normal sürüme geri döndürür; geçişten önce `./configure.sh` içinde **DACAI panel** seçeneğini kaldırın.
+İlk kurulum, panel seçimi, test dalına geçiş ve yazılım güncelleme/geri dönüş adımları artık [ortak kurulum rehberinde](installation_TR.md) yer alır. [Panel özellikleri tablosu](lcd-assets_TR.md#panel-özellikleri) DWIN/DACAI ayrımını özetler. Bu referans firmware, kurtarma, depolama ölçümleri ve protokol ayrıntılarını korur.
 
 ### DWIN yardımcı UART
 
-Panelde yardımcı UART bulunmadığından **DACAI panel** ve **DWIN auxiliary UART as a Linux serial port** birbirini dışlar:
+Petrel'in DACAI sürücüsünde DWIN yardımcı UART protokolü desteklenmediğinden **DACAI panel** ve **DWIN auxiliary UART as a Linux serial port** birbirini dışlar:
 
 - **DACAI panel** işaretlendiğinde yardımcı UART seçeneği gizlenir. Apply bu seçeneği kapatır ve kurulu bir yardımcı UART aracısını (çekirdek sürücüsü, servis ve `/var/lib/Petrel/dwin-uart.json`) kaldırır; böylece mevcut bir kurulum tek adımda DACAI paneline geçebilir.
 - `configure.sh --apply-config` ikisini birden etkinleştiren bir dosyayı reddeder; `Petrel.env` hem `PETREL_DACAI=1` hem `PETREL_AUX_UART=1` içeriyorsa `install.sh` hiçbir şeyi değiştirmeden durur.
@@ -97,7 +87,7 @@ güncelleyin, ardından görselleri yukarıda anlatıldığı gibi yeniden yükl
 ## Sınırlar
 
 - **Yazı tipi:** Metinler panelde kurulu TrueType yazı tipini (`private/truefont`) kullanır. Petrel yazı tipi yüklemez.
-- **Yardımcı UART yok:** Panelde ikinci bir UART bulunmaz; bu nedenle [DWIN yardımcı UART](dwin-uart_TR.md) ve ekrana bağlanan NFC okuyucular kullanılamaz (yukarıdaki [DWIN yardımcı UART](#dwin-yardımcı-uart) bölümüne bakın). Host'a bağlı NFC okuyucular çalışır.
+- **Yardımcı UART yok:** Petrel bu panelde DWIN yardımcı UART protokolünü desteklemez; bu nedenle [DWIN yardımcı UART](dwin-uart_TR.md) ve ekrana bağlanan NFC okuyucular kullanılamaz (yukarıdaki [DWIN yardımcı UART](#dwin-yardımcı-uart) bölümüne bakın). Host'a bağlı NFC okuyucular çalışır.
 - **Çapraz çizgiler:** Panelin `0x03` komutu yalnızca yatay ve dikey parçalar çizer; çapraz bir parça tek bir L biçimli basamağa dönüşür. Petrel çapraz çizgileri bir piksellik merdivenler olarak gönderir; bunlar normal çizgiler gibi görünür.
 - **Siyah saydamdır:** DWIN ikon çiziminde olduğu gibi saydam ikonlarda siyaha yakın pikseller arka plan sayılır; çok ince koyu ayrıntılar kaybolabilir.
 - **Önizlemeler opaktır:** `0x70`, siyah zemini `0x24` gibi filtreleyemez; bu yüzden Petrel baskı önizlemelerini siyah yerine arayüz arka planına (veya baskı kutucuğuna) yerleştirir. Panel yalnızca 4:2:0 JPEG çözdüğü için model kenarlarında en fazla 2 piksellik ince bir renk saçağı kalabilir.

@@ -2,7 +2,7 @@
   <img src="assets/petrel-readme.png" width="600" alt="Petrel — yazıcı üzerindeki yerel arayüz">
 </p>
 
-**Desteklenen stok DWIN ekranları için Moonraker ile çalışan hafif yazıcı arayüzü.**
+**Desteklenen DWIN ve DACAI ekranları için Moonraker ile çalışan hafif yazıcı arayüzü.**
 
 Klipper'a geçtikten sonra uyumlu Ender 3 V2 ekranını yeniden kullanın: yazıcının enkoderinden dosya seçin, baskıyı ayarlayın, tablayı hazırlayın ve filament bilgilerini inceleyin.
 
@@ -50,17 +50,22 @@ MMU ve Spoolman isteğe bağlıdır. Menüler algılanan yapılandırmaya ve ge�
 
 ## Uyumluluk ve gereksinimler
 
-- Uyumlu 4.3 inç Ender 3 V2 paneli dahil **272×480 dikey DWIN T5UIC1**. Diğer DWIN modellerinin veya DACAI/TJC'nin çalıştığı varsayılmaz.
+- **272×480 dikey DWIN T5UIC1** veya uyumlu **Creality DACAI** düğmeli ekran. DWIN için uyumlu Ender 3 V2 paneli; DACAI için [DACAI referansındaki](docs/dacai_TR.md) firmware ile Ender 3 Max Neo revizyon 1.5 donanımda doğrulanmıştır. Diğer revizyonlar/firmware sürümleri ayrıca doğrulanmalıdır; bu kapsam TJC veya ilgisiz DWIN modellerini içermez.
+- Kurulumdaki **Display panel** menüsünde gerçek kontrolcünüzü seçin: DWIN için **DACAI panel** işaretsiz, DACAI için işaretli olmalıdır.
 - UART/GPIO bulunan Raspberry Pi veya uyumlu Linux SBC ve **Python 3.11+**.
 - Çalışan **Klipper ve Moonraker**, yetkili ağ erişimi, çapraz TX/RX bağlantısı ve yapılandırılmış enkoder pinleri.
 
-**Stok DWIN LCD fontu tamamen desteklenir.** Petrel ile sunulan font **isteğe bağlıdır** ve yalnızca yazı görünümünü değiştirir; açılış görseli ve ikonlar UART üzerinden otomatik eşitlenir.
+Yukarıdaki günlük kontroller, kurulu yazıcı entegrasyonlarına bağlı olarak iki panel ailesinde ortaktır. [Panel özelliklerini karşılaştırın](docs/lcd-assets_TR.md#panel-özellikleri): ekranın ek UART özelliği yalnız DWIN içindir; host'a bağlı NFC iki panelde de çalışır. DWIN stok fontunu veya Petrel'in isteğe bağlı DWIN fontunu, DACAI ise kurulu TrueType fontunu kullanır. Görseller iki panelde de UART üzerinden otomatik eşitlenir.
 
 Başlamadan önce [ekran/kaynaklar](docs/lcd-assets_TR.md) ve [bağlantıları](docs/installation_TR.md#bağlantı-ve-seri-port-hazırlığı) kontrol edin. Desteklenen mevcut panel yeni ekran alma ihtiyacını azaltır; SBC/kablo gereksinimlerini ortadan kaldırmaz.
 
 ## Hızlı başlangıç
 
 > **⚠️ Önemli — Petrel LCD'nin kalıcı görsel kaynaklarını değiştirir.** Desteklenen DWIN T5UIC1 ekranlarda güncel Petrel sürümleri, stok açılış JPEG'ini, slot-1 resmini ve ikon kütüphanesi verilerini daha akıcı ve tutarlı arayüz için LCD'nin kalıcı Picture Flash belleğinde otomatik olarak değiştirir. Pi üzerindeki yazılımı güncellemek veya kaldırmak **stok görselleri geri getirmez**. Orijinal Creality ikonlarına ve JPEG'lerine dönmek için Petrel'i durdurup [repodaki orijinal DWIN_SET](assets/stock-dwin/DWIN_SET) paketini **LCD'nin microSD yuvasından** yükleyin; önce [stok kaynaklara dönüş rehberini](docs/restore-stock-dwin_TR.md) okuyun. Bu işlem yazıcının ana kart firmware'ini geri yüklemez.
+
+> **DACAI:** Petrel açılış/ortak resimleri ve ikon sayfalarını panelin kalıcı depolamasına yazar. DWIN_SET ve HZK font paketlerini kullanmayın; [DACAI firmware ve kaynak kurtarma](docs/dacai_TR.md) adımlarını izleyin. Pi yazılımını kaldırmak burada da stok görselleri geri getirmez.
+
+**DACAI geliştirme dalını deniyorsanız:** aşağıdaki normal klonlama satırı yerine `git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git` kullanın. Desteğin bulunduğu sürümü seçme ve güncelleme için [kurulum rehberine](docs/installation_TR.md#dacai-test-dalı) bakın.
 
 Petrel'i kurun:
 
@@ -71,9 +76,13 @@ cd ~/Petrel
 ./install.sh
 ```
 
+İlk kurulum menüsünde **Display panel** açın: DWIN için **DACAI panel** işaretsiz kalsın; DACAI için işaretleyip **115200** ile başlayın. Kaydedin, çıkın ve Apply sorusunu onaylayın. [Panel seçimi](docs/installation_TR.md#panelinizi-seçin).
+
 Installer bağımlılıkları, `Petrel.service` servisini, harici ayarları ve Moonraker Update Manager kaydını hazırlar. [İlk açılış kontrollerini](docs/installation_TR.md#lcd-kaynakları-ve-ilk-açılış) tamamlayın. Petrel'i Moonraker Update Manager veya LCD'deki Info ekranından güncelleyebilirsiniz; ayrıntılar için [güncelleme rehberine](docs/installation_TR.md#güncelleme) bakın. Mevcut kurulumların ayarları [geçişte](docs/installation_TR.md#güncelleme) korunur.
 
-Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` içinde `./configure.sh` ile [Kconfig yapılandırma menüsünü](docs/configuration_TR.md) açın. Gezinmek için çevirin, seçmek için basın; sayısal değerlerde çevirip yeniden basarak onaylayın. Tune düzenleyicisi **Apply** kullanır; bazı sayfalarda ayrıca **Save** gerekir. **Back** geri döner; Home sayfaları arasında ilerlemek için çevirmeye devam edin.
+Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` içinde `./configure.sh` ile [Kconfig yapılandırma menüsünü](docs/configuration_TR.md) açın; klavyede oklar/Enter ile gezinin, Space ile seçenek değiştirin, S ile kaydedin, Q ile çıkın ve Apply sorusunu onaylayın.
+
+**Fiziksel ekranda** gezinmek için çevirin, seçmek için basın; sayısal değerlerde çevirip yeniden basarak onaylayın. Tune düzenleyicisi **Apply** kullanır; bazı sayfalarda ayrıca **Save** gerekir. **Back** geri döner; Home sayfaları arasında ilerlemek için çevirmeye devam edin.
 
 ## Doğru rehberi bulun
 
@@ -90,7 +99,7 @@ Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` 
 
 ## Mimari ve geliştirme
 
-Petrel, Moonraker aboneliğinden gelen durumla enkoder girdisini T5UIC1 UART çizim komutlarına dönüştürür. Önizlemeler panel SRAM'ini kullanır; yönetilen açılış/ikon kaynakları Picture Flash ve değişmeyen blokları tekrar yüklemeyi önleyen parmak izleri kullanır. Kalıcı ekran/buzzer kayıtları ayrı Data Flash içindedir.
+Petrel, Moonraker aboneliğinden gelen durumla enkoder girdisini panel sürücüsü üzerinden UART çizim komutlarına dönüştürür. DWIN T5UIC1 sürücüsü temel API'yi sağlar; DACAI sürücüsü protokol farklarını ve host tarafından ilerletilen ikon animasyonlarını uyarlar. Önizlemeler panel SRAM'ini kullanır; yönetilen açılış/ikon kaynakları Picture Flash ve değişmeyen blokları tekrar yüklemeyi önleyen parmak izleri kullanır. Kalıcı ekran/buzzer kayıtları ayrı Data Flash içindedir.
 
 Bağlantı kurulurken Moonraker nesne listesi ve yapılandırma okunur; yeniden bağlantıda tekrarlanır. Capability/durum modelleri görünen kontrolleri ve sınırları belirler. Bu koşullu menü görünürlüğüdür; dinamik modül yükleme değildir. Yeni bir MMU protokolü, algılamanın yanında durum eşlemesi, komut uyarlaması ve testler gerektirir.
 
@@ -102,5 +111,7 @@ Açılış bağlantı bekleyişi ve açık Klipper hatası farklı [kurtarma dav
 ## Projenin kökeni ve lisans
 
 Petrel, [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) ve [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD) projelerinden doğmuş; kendi mimarisi ve özellikleriyle bağımsız olarak geliştirilmektedir. Özgün telif bildirimleri ve Git geçmişi korunur.
+
+DACAI sürücüsü, protokol araştırması ve Ender 3 Max Neo üzerindeki donanım testleri için [xCollxn](https://github.com/xCollxn)'e teşekkürler ([PR #40](https://github.com/sezgynus/Petrel/pull/40)).
 
 **GNU GPL v3.0** lisanslıdır; [LICENSE](LICENSE) dosyasına bakın.

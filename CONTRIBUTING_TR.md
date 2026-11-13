@@ -2,6 +2,8 @@
 
 [English](CONTRIBUTING.md) · [Türkçe](CONTRIBUTING_TR.md) · [Dokümantasyon](docs/README_TR.md)
 
+Panel değişikliklerinde [ortak özellik tablosunu](docs/lcd-assets_TR.md#panel-özellikleri) ve [DACAI geliştirici sözleşmesini](docs/dacai_TR.md#geliştiriciler-için) kullanın. Özellik kodu ham opcode/ortam değişkeniyle panel seçmek yerine sürücü API'si ve `OPAQUE_SRAM_JPEG`/`PANEL_PROTOCOL` yeteneklerini kullanmalıdır. DWIN/DACAI donanım kabulünü ayrı kaydedin; emülatör başarısı fiziksel kabul değildir.
+
 ## Hata bildirme veya özellik önerme
 
 GitHub issue açıp ne denediğinizi, ne beklediğinizi ve ne olduğunu anlatın. Petrel revizyonunu, Pi/işletim sistemini, ekran modelini, ilgili Klipper/Happy Hare sürümlerini, tekrar üretme adımlarını ve kısa servis günlüğünü ekleyin. Görsel sorunlarda özgün boyutlu ekran görüntüsü ve gerektiğinde fiziksel ekran fotoğrafı paylaşın. Kimlik bilgilerini ve özel ağ bilgilerini kaldırın.
@@ -37,6 +39,8 @@ Kurulu Pi'de mevcut uygulama ortamı çalışma bağımlılıklarını içerir. 
 ```
 
 Uygulamayı manuel denerken UART ve encoderi tek süreç kullansın diye önce kurulu servisi durdurun. Kendi bağlantı/pin değerlerinizi verin; `run.py` doğrudan çalıştırıldığında servisin ortam dosyasını okumaz ve yalın UART/düğme varsayılanları kurulumdan farklıdır:
+
+**DACAI manuel çalışma:** `run.py` öncesinde `export PETREL_DACAI=1 PETREL_DACAI_BAUD=115200` ve `unset PETREL_DWIN_SOCKET` kullanın; aşağıdaki broker seçimi DACAI için uygulanmaz. DWIN için `PETREL_DACAI=0` seçin. Servis ortamı doğrudan çalıştırmada otomatik okunmaz.
 
 ```bash
 sudo systemctl stop Petrel.service

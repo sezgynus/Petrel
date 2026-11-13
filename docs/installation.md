@@ -6,9 +6,13 @@
 
 > **⚠️ Persistent LCD resource overwrite:** On first connection or when resources change, Petrel automatically writes its own boot JPEG, shared slot-1 JPEG page and icon library to the DWIN LCD's non-volatile Picture Flash. These replace stock visual data and remain after shutdown or Pi software removal. This is required for Petrel's current interface symbols, animations and efficient native rendering. The [original Creality DWIN_SET](../assets/stock-dwin/DWIN_SET) and a [step-by-step stock restoration guide](restore-stock-dwin.md) are included. **Review this before installing or updating.**
 
-Use a compatible DWIN T5UIC1 panel, a Linux SBC with UART/GPIO, Python 3.11+ and a working Klipper/Moonraker setup. Check [LCD compatibility](lcd-assets.md). The installer does not flash LCD kernel firmware or fonts; the application synchronizes Petrel icons automatically at its first LCD connection.
+Use a compatible DWIN T5UIC1 or DACAI panel, a Linux SBC with UART/GPIO, Python 3.11+ and a working Klipper/Moonraker setup. Check [LCD compatibility](lcd-assets.md). The installer does not flash LCD kernel firmware or fonts; the application synchronizes Petrel icons automatically at its first LCD connection.
+
+**DACAI resources:** Boot/shared pictures and icon sheets are also written automatically to persistent DACAI storage; uninstalling the software does not restore stock artwork. The DWIN_SET restoration above is DWIN-only. For DACAI use its [firmware/recovery reference](dacai.md); do not install DWIN fonts or resource packs.
 
 ## Wiring and serial setup
+
+The host signals below apply to both panel families. With power off, identify RX/TX, power and encoder pins on your own panel; identical enclosures do not guarantee identical connector pinouts.
 
 | Display connection | Raspberry Pi connection |
 |---|---|
@@ -29,9 +33,33 @@ The old [wiring photos and GPIO drawing](../images/README.md) are historical ins
 
 In `sudo raspi-config`, enable serial hardware and disable the serial login console, then reboot. Confirm which UART device uses GPIO14/15 on your Pi and OS. The installer suggests `/dev/ttyS0`; choose the device appropriate for your installation.
 
+## DACAI test branch
+
+This guide covers both panels in one installation flow. For DACAI, the chosen release must contain **Display panel → DACAI panel**. Before DACAI support reaches the main release, use the following branch for testing; once support is released, the normal installation path applies.
+
+For a new installation, replace the clone line in **Install** below with:
+
+```bash
+git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git
+```
+
+For an existing `~/Petrel` installation, back up settings while the printer is idle and run:
+
+```bash
+cd ~/Petrel
+git rev-parse HEAD
+sudo systemctl stop Petrel.service
+git fetch origin
+git checkout feature/dacai-support
+git pull --ff-only
+./configure.sh
+```
+
+Keep the first command's revision output for rollback. If Git reports local changes/conflicts, stop and resolve them without deleting your files. After saving and applying the panel selection below, run `./install.sh` and `sudo systemctl restart Petrel.service`. Test-branch updates/rollback are in [Update](#update).
+
 ## Install
 
-Run as the user who will own the service. The checkout must be clean and located at `~/Petrel`:
+Run these commands in an SSH terminal on the Pi/Linux host, not the Mainsail/Fluidd G-code console. Run as the user who will own the service. The checkout must be clean and located at `~/Petrel`:
 
 ```bash
 cd ~
@@ -48,6 +76,8 @@ The first installation opens the Kconfig menu. Review these defaults, then save,
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
+| Display panel → DACAI panel | Off (DWIN); enable for DACAI |
+| DACAI host UART speed | `115200` |
 | Encoder A/B | `21 16` |
 | Encoder button | `20` |
 | Moonraker power device | `Printer` |
@@ -65,6 +95,18 @@ For a nonstandard Moonraker configuration location:
 ```bash
 MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ```
+
+### Choose your panel
+
+In the first-install menu, or later with `./configure.sh`:
+
+1. Under **Connections and power → Physical display UART**, select the host port wired to the display; do not use `/dev/ttyDWIN0`.
+2. Open **Display panel**. For **DWIN T5UIC1**, leave **DACAI panel** unchecked. For **DACAI**, check it and leave **DACAI host UART speed** at **115200** for the first test.
+3. Match **Encoder and presets** pins to your wiring. Use arrows/Enter to navigate and Space to toggle; press **S** to save, **Q** to exit, then answer **y** to **Apply saved configuration**.
+
+Panel detection is not automatic; the wrong selection can cause icon/preview and connection failures. Existing settings are preserved: updating software alone does not enable DACAI. Selecting DACAI turns off DWIN auxiliary UART and Apply removes an installed broker; close applications using that port first. NFC connected directly to the Pi is unaffected.
+
+DWIN works with its stock font; the optional DWIN HZK font is DWIN-only. DACAI uses its installed TrueType font. See [panel features](lcd-assets.md#panel-features) and [DACAI firmware requirements](dacai.md#panel-firmware).
 
 ## Optional axis travel counters
 
@@ -90,7 +132,9 @@ The Klipper extra communicates with Petrel via a private local socket at `~/.con
 
 ## LCD resources and first start
 
-**LCD font installation is optional.** Petrel works with the stock DWIN font. For the typography shown in Petrel's screenshots, you may optionally [install the bundled LCD font](lcd-assets.md#lcd-font) from the display's SD slot. Icons and boot artwork synchronize automatically over UART.
+**DWIN:** LCD font installation is optional. Petrel works with the stock DWIN font. For the typography shown in Petrel's screenshots, you may optionally [install the bundled LCD font](lcd-assets.md#lcd-font) from the display's SD slot. Icons and boot artwork synchronize automatically over UART.
+
+**DACAI:** Do not install a font; the panel's TrueType is used. Artwork including icons uploads automatically (about 40 seconds at 115200 on the reference panel). With compatible firmware, this needs no SD card. For empty icons/previews follow the [DACAI firmware/storage checks](dacai.md).
 
 1. Wait for Petrel startup progress to finish and **Home** to appear.
 2. Rotate the encoder and open a menu; check temperatures against the web interface.
@@ -144,6 +188,21 @@ Restart after editing: `sudo systemctl restart Petrel.service`. Keep private key
 
 ## Update
 
+**Normal release:** The Moonraker/LCD update flow below follows `master`. For a DACAI panel, make sure the target release contains the DACAI driver.
+
+**Test branch:** Moonraker's updater does not follow `feature/dacai-support` and may mark the repository invalid. Instead of a recovery action that changes the branch, while idle run:
+
+```bash
+cd ~/Petrel
+git rev-parse HEAD
+git pull --ff-only
+./install.sh
+sudo systemctl restart Petrel.service
+```
+
+Keep the pre-update revision. If an update fails, use `git -C ~/Petrel checkout <revision>` to return to a revision **known to work on DACAI**, run `./install.sh` in `~/Petrel` and restart the service. Resume testing with `git checkout feature/dacai-support` then `git pull --ff-only`. An older `master` without the DACAI driver is not a rollback for a DACAI panel. If physically returning to a DWIN panel, first uncheck **DACAI panel** in configuration. Panel resource recovery is separate from software rollback; see [LCD compatibility](lcd-assets.md).
+
+
 ### Updates and migration from older installations
 
 Existing installations migrate automatically after their next Moonraker update: the old updater downloads this version, and the first service start schedules a separate migration job. It preserves settings, moves the checkout to `~/Petrel`, prepares `~/petrel-env`, installs `Petrel.service` and reloads Moonraker with the new updater. Allow a few minutes for Python dependencies. Automatic migration requires the same passwordless sudo access normally available on the Pi; otherwise run `sudo python3 ~/KlipperDWIN/petrel/migration.py --user "$USER"` once. Migration refuses to overwrite an existing Petrel installation. A failed service switch restores the previous installation; details are in `journalctl -u Petrel-migration.service`.
@@ -171,13 +230,15 @@ sudo systemctl restart Petrel.service
 | Update blocked | Local repository edits and Moonraker Update Manager status |
 | Action failed or timed out | Check the actual printer state in Mainsail before repeating |
 
-For a bug report, include the software revision, Pi/OS, configuration relevant to the problem and the log excerpt. Add a photo or [emulator screenshot](ui-emulator.md) for visual problems; remove credentials before sharing.
+For a bug report, include the panel family/board revision, panel firmware if known, **DACAI panel** selection, host–display speed and software revision, Pi/OS, configuration relevant to the problem and the log excerpt. Add a photo or [emulator screenshot](ui-emulator.md) for visual problems; remove credentials before sharing.
 
 ### Sensor event counters in an extra update
 
 The existing optional axis-travel extra now also supplies event-based sensor counters. The shared `configure.sh` option preserves its existing `PETREL_AXIS_TRAVEL` key. No additional extra file/include is needed. An installed symlink follows the updated file; restart Klipper while idle to load it, then restart Petrel. Klipper is not restarted automatically. An old/disabled/missing extra pauses event-based reminders and preserves histories. See the [usage counter guide](maintenance-usage.md#event-based-sensor-counters) for supported sources and counting coverage.
 
 ## Optional auxiliary UART
+
+**DWIN only:** This option is unavailable on DACAI. Host-connected NFC readers can be used with either panel.
 
 Run `./configure.sh` to install or remove the optional Linux serial port provided
 by the DWIN auxiliary UART. It is off by default. See [setup and limits](dwin-uart.md).

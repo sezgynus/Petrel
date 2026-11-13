@@ -2,9 +2,13 @@
 
 [English](user-guide.md) · [Türkçe](user-guide_TR.md) · [Documentation](README.md)
 
+This usage guide applies to both DWIN and DACAI. [Choose your panel](installation.md#choose-your-panel) during installation; menus and printer actions remain the same. Differences: DACAI uses its installed TrueType font, host-stepped icon animations and opaque print previews that may show thin colour fringes. The extra display UART is DWIN-only; connect NFC readers to the host on DACAI. Pi PWM buzzer, supported NFC functions, MMU and Spoolman do not depend on the panel choice. [Full feature table](lcd-assets.md#panel-features).
+
+On a test-branch installation, use [test-branch update instructions](installation.md#update) instead of the normal Info/Moonraker update action.
+
 ## Navigation and dashboard
 
-The **Device** tile opens **Device settings**, covering the DWIN HMI brightness/dimming, buzzer, event sounds and NFC reader configuration.
+The **Device** tile opens **Device settings**, covering the panel brightness/dimming, buzzer, event sounds and NFC reader configuration.
 
 <p align="center">
   <img src="assets/screens/framed/home.png" width="360" alt="Home, first page">
@@ -290,7 +294,7 @@ without automatic event bindings.
 
 Open **Device → Event sounds** for 18 independent checkboxes: the sixteen events above plus **Emergency card alarm** and **Power button hold**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
 
-Each change is saved automatically to DWIN Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
+Each change is saved automatically to panel Data Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
 
 The master Buzzer switch still mutes all sounds. Ordinary event melodies use Volume. The emergency alarm uses full volume when enabled; disabling its checkbox silences only the alarm and **does not disable the emergency-stop action**. Click and encoder tones keep their existing settings.
 
@@ -746,7 +750,7 @@ shows `--` instead of copying another gate's percentage. Gate captions show
 the currently assigned spool IDs. The selector has no redundant rotate/press
 instructions. Thin connectors join the rounded information card to the moving
 reel and the reel to the selected gate; the lower connector retracts as the
-reel lands. Native DWIN area moves still carry both sprites without redrawing
+reel lands. Panel-driver area moves (adapted for DACAI where needed) still carry both sprites without redrawing
 the icons on every animation frame. Rotate the encoder to select a gate (groups of
 four for larger MMUs), then press to assign. Rotate left to the header Back
 control to cancel. During verification the reel remains above the slot; it descends in one

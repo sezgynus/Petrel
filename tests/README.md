@@ -2,6 +2,10 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Contributing](../CONTRIBUTING.md)
 
+## DWIN and DACAI validation
+
+`test_dacai_panel.py` covers protocol differences, sheets/sync failures, host animations, previews, emulator behavior and auxiliary-UART exclusion. Physically check installation/panel selection, restarts, icons, NFC animations and previews on both panels. On DACAI also verify baud changes, power cycling, crash recovery, interrupted uploads and post-SD re-upload. Preserve the [reference hardware/firmware scope](../docs/dacai.md); automated tests are not hardware acceptance.
+
 ## Run automated checks
 
 From the repository root, with the application's dependencies installed:

@@ -2,6 +2,8 @@
 
 [Yardımcı UART](dwin-uart_TR.md) · [English](dwin-uart-c.md)
 
+**Yalnız DWIN T5UIC1 içindir.** DACAI bu yardımcı UART yolunu desteklemez; DACAI seçimi kurulu broker'ı kaldırır. Host'a bağlı NFC bundan bağımsızdır. [Panel özellikleri](lcd-assets_TR.md#panel-özellikleri).
+
 `master` üzerindeki isteğe bağlı UART installer'ı native C broker'ı derleyip kurar.
 Python referans uygulaması kaynak ağacında korunur; güncel master'da seçilebilir
 bir çalışma zamanı değildir. TTY, takma ad, kernel modülü, ekran soketi handshake'i

@@ -26,21 +26,11 @@ copy `firmware.zlib` and the `private` folder from that package to the root of a
 
 Run `./configure.sh`, open **Display panel**, check **DACAI panel** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
 
-DACAI support is developed on the `feature/dacai-support` branch. Petrel's installer registers the Moonraker updater for `master`, so it does not follow this branch: on any other branch Moonraker reports the Petrel repository as invalid and offers no updates. Update a test installation with `git pull` in `~/Petrel` and restart `Petrel.service`.
-
-**Rolling back.** `master` does not support DACAI panels: it does not select the DACAI driver and talks to the panel as a DWIN display. `git checkout master` is therefore **not** a way back for a DACAI panel. Before each update, note the running revision:
-
-```sh
-git -C ~/Petrel rev-parse HEAD
-```
-
-If the update misbehaves, return to that known-good revision with `git -C ~/Petrel checkout <revision>`, run `./install.sh` in `~/Petrel` and restart `Petrel.service`. `git checkout feature/dacai-support` followed by `git pull` resumes testing later.
-
-`git checkout master` and `./install.sh` return to the regular release **only for a printer that is back on a DWIN panel**; uncheck **DACAI panel** in `./configure.sh` before switching.
+First installation, panel selection, test-branch switching and software updates/rollback are covered in the [shared installation guide](installation.md). The [panel feature table](lcd-assets.md#panel-features) summarizes DWIN/DACAI differences. This reference retains firmware, recovery, storage measurements and protocol details.
 
 ### DWIN auxiliary UART
 
-The panel has no auxiliary UART, so **DACAI panel** and **DWIN auxiliary UART as a Linux serial port** exclude each other:
+The DWIN auxiliary UART protocol is unsupported by Petrel's DACAI driver, so **DACAI panel** and **DWIN auxiliary UART as a Linux serial port** exclude each other:
 
 - Checking **DACAI panel** hides the auxiliary UART option. Apply turns it off and removes an installed auxiliary-UART broker (kernel driver, service and `/var/lib/Petrel/dwin-uart.json`), so an existing installation can switch to a DACAI panel in one step.
 - `configure.sh --apply-config` refuses a file that enables both, and `install.sh` stops before changing anything when `Petrel.env` contains `PETREL_DACAI=1` together with `PETREL_AUX_UART=1`.
@@ -97,7 +87,7 @@ artwork again as described above.
 ## Limits
 
 - **Font:** text uses the TrueType font installed on the panel (`private/truefont`). Petrel does not upload fonts.
-- **No auxiliary UART:** the panel has no second UART, so [DWIN auxiliary UART](dwin-uart.md) and NFC readers attached to the display cannot be used (see [DWIN auxiliary UART](#dwin-auxiliary-uart) above). NFC readers connected to the host work.
+- **No auxiliary UART:** Petrel does not support the DWIN auxiliary UART protocol on this panel, so [DWIN auxiliary UART](dwin-uart.md) and NFC readers attached to the display cannot be used (see [DWIN auxiliary UART](#dwin-auxiliary-uart) above). NFC readers connected to the host work.
 - **Diagonal lines:** the panel's `0x03` draws only horizontal and vertical segments; a diagonal segment becomes one L-shaped step. Petrel sends diagonals as one-pixel staircases, which look like normal lines.
 - **Black is transparent:** like DWIN icon drawing, transparent icons treat near-black pixels as background, so very thin dark details can disappear.
 - **Thumbnails are opaque:** `0x70` cannot filter the black backing like `0x24`, so Petrel composes print previews on the UI background (or the print tile) instead. The panel decodes only 4:2:0 JPEGs, so a thin colour fringe of up to 2 px can remain at model edges.

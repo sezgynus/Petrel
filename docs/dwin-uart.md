@@ -25,7 +25,7 @@ Apply. Checked installs the port; unchecked removes it. First-time `./install.sh
 Existing settings are preserved, and a repeated enable with unchanged configuration
 leaves an active port alone. Close programs using the auxiliary port before removing
 or changing the installation. Removal restores direct Petrel display communication.
-DACAI panels have no auxiliary UART; checking **DACAI panel** hides this option and Apply removes
+The DACAI driver does not support the DWIN auxiliary UART protocol; checking **DACAI panel** hides this option and Apply removes
 an installed port ([DACAI panels](dacai.md#dwin-auxiliary-uart)).
 
 ![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)

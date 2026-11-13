@@ -10,12 +10,12 @@ The configurator adds no background work to the running UI.
 
 ![Petrel Kconfig main menu](assets/configuration/main-menu.png)
 
-The screenshots capture the current Kconfig terminal UI with clean first-install Kconfig defaults, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
+The screenshots are first-install Kconfig references; the new Display panel menu is described below. Use the reproduction steps at the end to refresh captures with the current menu order, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
 
 ## Navigate and apply
 
 Use arrows and Enter to navigate/edit, Space to toggle, `?` for help, `S` to save,
-and `Q` to exit. The menu contains connections/power, encoder/presets, maintenance
+and `Q` to exit. The menu contains connections/power, display panel, encoder/presets, maintenance
 counters, hardware PWM buzzer, Klipper virtual buzzer, display tools, DWIN auxiliary UART, NFC and apply options. Settings that depend
 on a disabled feature are hidden; their saved values are retained for re-enabling.
 
@@ -46,6 +46,10 @@ Set the Moonraker URL, request timeout, physical display UART and power controls
 Check **DACAI panel** only for Creality DACAI displays (microSD folder `private`, e.g.
 Ender 3 Max Neo). It reveals **DACAI host UART speed** (115200, 230400, 460800 or 921600).
 DWIN T5UIC1 panels keep the default, unchecked. See the [DACAI guide](dacai.md).
+
+Panel detection is not automatic. Check the selection on first install and after updates; existing DWIN settings do not switch themselves to DACAI. Start at **115200**; 230400/460800/921600 can upload artwork faster. A raised speed lasts until panel power loss; Petrel restores 115200 on normal exit and probes all four supported speeds on startup, starting with the configured one.
+
+The DACAI choice is saved as **PETREL_DACAI=1** and **PETREL_DACAI_BAUD**. Apply turns off auxiliary UART and removes an installed broker; close clients using that port first. Host-connected NFC and shared features remain available. Unattended configuration enabling both UART paths is rejected. [Panel features](lcd-assets.md#panel-features).
 
 ### Encoder and presets
 
@@ -86,7 +90,7 @@ reveals its bind address and port settings. See the [emulator guide](ui-emulator
 Toggle installation of the Linux serial port. The default below is unchecked. Check
 it to select installation; save, exit and confirm Apply to perform it. Unchecking and applying
 removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
-The option is hidden while **DACAI panel** is checked; DACAI panels have no auxiliary UART
+The option is hidden while **DACAI panel** is checked; the DACAI driver does not support this auxiliary UART path
 ([details](dacai.md#dwin-auxiliary-uart)).
 
 ![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)
@@ -130,12 +134,14 @@ API-key records and other opaque settings are retained from the target machine.
 
 ## NFC
 
+**Available with both panels:** On DACAI, connect the reader directly to the host. The reader path through a display auxiliary UART is DWIN-only.
+
 Enable **NFC reader support (libnfc)** to install the runtime dependency; it defaults off. This option does not select the reader, change its wiring or require the DWIN auxiliary UART. Configure model, interface, port and Test connection separately on **Home → Device → NFC Settings**. [NFC usage](user-guide.md#nfc-and-rfid) and [LCD examples](screenshots.md#nfc-tags-and-spool-assignment) cover the runtime flow. Turning the setup option off removes the managed dependency while retaining reader preferences.
 
 ![Optional NFC reader dependency in Kconfig](assets/configuration/nfc.png)
 
 ## Reproducing configuration captures
 
-`python tools/render_configuration_screenshots.py` captures the actual menuconfig curses output in an isolated Linux PTY. It requires Kconfiglib 14.1.0, pyte 0.8.2, Pillow and the DejaVu Sans Mono system font. It uses no installed environment, does not save or apply configuration, and stages all ten captures before replacing published images. This is separate from the LCD emulator. CI runs it during full documentation publication.
+`python tools/render_configuration_screenshots.py` captures the actual menuconfig curses output in an isolated Linux PTY. It requires Kconfiglib 14.1.0, pyte 0.8.2, Pillow and the DejaVu Sans Mono system font. It uses no installed environment, does not save or apply configuration, and stages all twelve captures before replacing published images. This is separate from the LCD emulator. CI runs it during full documentation publication.
 
 ![Apply/restart preference, without applying it](assets/configuration/apply-options.png)

@@ -2,6 +2,8 @@
 
 [English](ui-emulator.md) · [Türkçe](ui-emulator_TR.md) · [Katkı](../CONTRIBUTING_TR.md)
 
+Ekran görüntüsü ve uzak ekran iki panelde de kullanılabilir. **Display panel** sürücüyü seçer; sürücü protokolünü bildirir. Emülatör DACAI `0x70`, ters `0x27` bit 7, fazladan satır, `0x09` taşıma ve ikon sayfalarını yorumlar. Fiziksel DACAI TrueType görünümü ve aktarım/çizim süresi donanımda doğrulanmalıdır. [Panel farkları](lcd-assets_TR.md#panel-özellikleri).
+
 ## Ne işe yarar
 
 İsteğe bağlı emülatör, çalışan Petrel servisinin çizdiği ekranları yakalar. Yerleşimleri incelemek, dokümantasyonu yenilemek ve görsel hataları özgün boyutlu görsellerle bildirmek için kullanın. Gerçek LCD arayüzünü takip eder; bağımsız yazıcı simülatörü değildir. İsteğe bağlı canlı tarayıcı görüntüleme aşağıda anlatılmıştır. Fiziksel encoderle gezinin, ardından SSH üzerinden görüntü isteyin.

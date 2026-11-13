@@ -6,9 +6,13 @@
 
 > **⚠️ LCD'nin kalıcı kaynakları değiştirilecektir:** Petrel ilk bağlantıda veya görseller değiştiğinde kendi açılış JPEG'ini, ortak slot-1 JPEG sayfasını ve ikon kütüphanesini DWIN LCD'nin kalıcı Picture Flash belleğine otomatik yazar. Stok görsellerin ilgili alanları değiştirilir; bu değişiklik güç kesilince veya Pi yazılımı kaldırılınca geri alınmaz. Petrel'in güncel simgeleri, animasyonları ve hızlı yerel çizim düzeni için bu işlem gereklidir. [Orijinal Creality DWIN_SET](../assets/stock-dwin/DWIN_SET) paketi ve [stok görsellere dönüş rehberi](restore-stock-dwin_TR.md) repoda yer alır. **Kurulumdan veya güncellemeden önce okuyun.**
 
-Uyumlu DWIN T5UIC1 panel, UART/GPIO erişimli Linux SBC, Python 3.11+ ve çalışan Klipper/Moonraker kurulumu kullanın. [LCD uyumluluğunu](lcd-assets_TR.md) kontrol edin. Kurulum betiği LCD kernel firmware'ini veya fontunu yüklemez; Petrel ikonlarını uygulama ilk LCD bağlantısında otomatik eşitler.
+Uyumlu DWIN T5UIC1 veya DACAI panel, UART/GPIO erişimli Linux SBC, Python 3.11+ ve çalışan Klipper/Moonraker kurulumu kullanın. [LCD uyumluluğunu](lcd-assets_TR.md) kontrol edin. Kurulum betiği LCD kernel firmware'ini veya fontunu yüklemez; Petrel ikonlarını uygulama ilk LCD bağlantısında otomatik eşitler.
+
+**DACAI kaynakları:** Açılış/ortak resimler ve ikon sayfaları DACAI panelinin kalıcı depolamasına da otomatik yazılır; yazılımı kaldırmak stok görselleri geri getirmez. Yukarıdaki DWIN_SET geri yüklemesi yalnız DWIN içindir. DACAI için [kendi firmware/kurtarma rehberini](dacai_TR.md) kullanın; DWIN fontu veya kaynak paketi yüklemeyin.
 
 ## Bağlantı ve seri port hazırlığı
+
+Aşağıdaki host sinyalleri iki panel ailesinde de kullanılır. Enerji kapalıyken kendi panelinizin RX/TX, besleme ve enkoder pinlerini doğrulayın; aynı kasa her kartta aynı konnektör dizilimini garanti etmez.
 
 | Ekran bağlantısı | Raspberry Pi bağlantısı |
 |---|---|
@@ -29,9 +33,33 @@ Eski [bağlantı fotoğrafları ve GPIO çizimi](../images/README_TR.md), farkl�
 
 `sudo raspi-config` içinde seri donanımı etkinleştirin, seri giriş konsolunu kapatın ve yeniden başlatın. Pi ve işletim sisteminizde GPIO14/15'i hangi UART aygıtının kullandığını doğrulayın. Kurulum `/dev/ttyS0` önerir; kendi kurulumunuza uygun aygıtı seçin.
 
+## DACAI test dalı
+
+Bu rehber iki panelin ortak kurulumunu anlatır. DACAI için seçtiğiniz sürümde **Display panel → DACAI panel** seçeneği bulunmalıdır. DACAI desteği ana sürüme alınmadan önce test için aşağıdaki dalı kullanın; destek yayımlandıktan sonra normal kurulum yolunu kullanabilirsiniz.
+
+Yeni kurulumda aşağıdaki **Kurulum** bölümündeki klonlama satırını bununla değiştirin:
+
+```bash
+git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git
+```
+
+Mevcut `~/Petrel` kurulumunda, yazıcı boşta iken ayarlarınızı yedekleyin ve:
+
+```bash
+cd ~/Petrel
+git rev-parse HEAD
+sudo systemctl stop Petrel.service
+git fetch origin
+git checkout feature/dacai-support
+git pull --ff-only
+./configure.sh
+```
+
+İlk komutun revizyon çıktısını geri dönüş için saklayın. Git yerel değişiklik/çakışma bildirirse durup çözün; dosyalarınızı silmeyin. Aşağıdaki panel seçimini kaydedip uyguladıktan sonra `./install.sh` ve `sudo systemctl restart Petrel.service` çalıştırın. Test dalının güncelleme/geri dönüş adımları [Güncelleme](#güncelleme) bölümündedir.
+
 ## Kurulum
 
-Servisin sahibi olacak kullanıcıyla çalıştırın. Repo temiz olmalı ve `~/Petrel` konumunda bulunmalıdır:
+Komutları Pi/Linux host'un SSH terminalinde çalıştırın; Mainsail/Fluidd G-code konsolunda değil. Servisin sahibi olacak kullanıcıyla çalıştırın. Repo temiz olmalı ve `~/Petrel` konumunda bulunmalıdır:
 
 ```bash
 cd ~
@@ -48,6 +76,8 @@ cd ~/Petrel
 |---|---|
 | Moonraker URL | `http://127.0.0.1:7125` |
 | UART | `/dev/ttyS0` |
+| Display panel → DACAI panel | Kapalı (DWIN); DACAI için açın |
+| DACAI host UART speed | `115200` |
 | Encoder A/B | `21 16` |
 | Encoder düğmesi | `20` |
 | Moonraker güç aygıtı | `Printer` |
@@ -65,6 +95,18 @@ Moonraker yapılandırmanız farklı konumdaysa:
 ```bash
 MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ```
+
+### Panelinizi seçin
+
+İlk kurulumda açılan menüde veya daha sonra `./configure.sh` ile:
+
+1. **Connections and power → Physical display UART** altında ekrana bağlı host portunu seçin; `/dev/ttyDWIN0` kullanmayın.
+2. **Display panel** menüsünü açın. **DWIN T5UIC1** için **DACAI panel** işaretsiz kalsın. **DACAI** için işaretleyin; ilk denemede **DACAI host UART speed** değerini **115200** bırakın.
+3. **Encoder and presets** pinlerini kablolamanızla eşleştirin. Oklar/Enter ile gezinin, Space ile seçenek değiştirin; **S** ile kaydedip **Q** ile çıkın ve **Apply saved configuration** sorusuna **y** deyin.
+
+Panel otomatik algılanmaz; yanlış seçim ikon/önizleme ve bağlantı hatalarına yol açabilir. Mevcut ayarlar korunur: yalnız yazılımı güncellemek DACAI seçeneğini kendiliğinden açmaz. DACAI seçimi DWIN yardımcı UART seçeneğini kapatır ve Apply kurulu aracı servisini kaldırır; önce bu portu kullanan programları kapatın. Pi'ye doğrudan bağlı NFC etkilenmez.
+
+DWIN stok fontuyla çalışır; isteğe bağlı DWIN HZK fontu yalnız DWIN içindir. DACAI panelde kurulu TrueType fontunu kullanır. [Panel özellikleri](lcd-assets_TR.md#panel-özellikleri) ve [DACAI firmware gereksinimleri](dacai_TR.md#panel-yazılımı).
 
 ## İsteğe bağlı eksen mesafesi sayaçları
 
@@ -90,7 +132,9 @@ Extra fiziksel Klipper pinine değil, Petrel'in `~/.config/Petrel/klipper-buzzer
 
 ## LCD kaynakları ve ilk açılış
 
-**LCD fontunu değiştirmek isteğe bağlıdır.** Petrel stok DWIN fontuyla çalışır. Petrel'in ekran görüntülerindeki yazı görünümünü isteyenler [paketle sunulan LCD fontunu](lcd-assets_TR.md#lcd-fontu) ekranın SD yuvasından isteğe bağlı yükleyebilir. İkonlar ve açılış görseli UART üzerinden otomatik eşitlenir.
+**DWIN:** LCD fontunu değiştirmek isteğe bağlıdır. Petrel stok DWIN fontuyla çalışır. Petrel'in ekran görüntülerindeki yazı görünümünü isteyenler [paketle sunulan LCD fontunu](lcd-assets_TR.md#lcd-fontu) ekranın SD yuvasından isteğe bağlı yükleyebilir. İkonlar ve açılış görseli UART üzerinden otomatik eşitlenir.
+
+**DACAI:** Font yüklemeyin; paneldeki TrueType kullanılır. İkonlar dahil görseller otomatik yüklenir (referans panelde 115200 hızında yaklaşık 40 saniye). Uyumlu firmware varsa bu işlem için SD kart gerekmez. Boş ikonlar/önizlemelerde [DACAI firmware ve depolama kontrollerini](dacai_TR.md) izleyin.
 
 1. Petrel açılış ilerlemesi tamamlanıp **Home** görünene kadar bekleyin.
 2. Enkoderi çevirip bir menü açın; sıcaklıkların web arayüzüyle uyuştuğunu kontrol edin.
@@ -144,6 +188,21 @@ Düzenleme sonrası `sudo systemctl restart Petrel.service` ile yeniden başlat�
 
 ## Güncelleme
 
+**Normal sürüm:** Aşağıdaki Moonraker/LCD güncelleme yolu `master` dalını izler. DACAI paneli için hedef sürümün DACAI sürücüsünü içerdiğinden emin olun.
+
+**Test dalı:** Moonraker güncelleyicisi `feature/dacai-support` dalını izlemez; depoyu geçersiz gösterebilir. Dalı değiştiren recovery seçeneği yerine, yazıcı boşta iken:
+
+```bash
+cd ~/Petrel
+git rev-parse HEAD
+git pull --ff-only
+./install.sh
+sudo systemctl restart Petrel.service
+```
+
+Güncellemeden önceki revizyonu saklayın. Sorunda `git -C ~/Petrel checkout <revision>` ile **DACAI'de çalıştığı doğrulanmış** sürüme dönün; `~/Petrel` içinde `./install.sh` çalıştırıp servisi yeniden başlatın. Teste dönmek için `git checkout feature/dacai-support`, ardından `git pull --ff-only` kullanın. DACAI içermeyen eski `master` sürümü DACAI paneli için geri dönüş değildir. Gerçekten DWIN panele geçiyorsanız önce yapılandırmada **DACAI panel** işaretini kaldırın. Panel kaynak kurtarması yazılım revizyonundan ayrıdır; [LCD uyumluluğuna](lcd-assets_TR.md) bakın.
+
+
 ### Güncelleme ve eski kurulumdan geçiş
 
 Mevcut kurulum, sonraki Moonraker güncellemesinden sonra otomatik taşınır: eski updater bu sürümü indirir ve ilk servis açılışı ayrı bir geçiş işi başlatır. Ayarlar korunur, repo `~/Petrel` konumuna taşınır, `~/petrel-env` hazırlanır, `Petrel.service` kurulur ve Moonraker yeni updater kaydıyla yeniden başlatılır. Python bağımlılıkları için birkaç dakika bekleyin. Otomatik geçiş Pi üzerinde şifresiz sudo erişimi gerektirir; bu yoksa bir kez `sudo python3 ~/KlipperDWIN/petrel/migration.py --user "$USER"` çalıştırın. Mevcut bir Petrel kurulumunun üzerine yazılmaz. Servis geçişi başarısız olursa önceki kurulum geri yüklenir; ayrıntılar `journalctl -u Petrel-migration.service` içindedir.
@@ -171,13 +230,15 @@ sudo systemctl restart Petrel.service
 | Güncelleme engelleniyor | Yerel repo değişiklikleri ve Moonraker Update Manager durumu |
 | İşlem başarısız veya zaman aşımına uğradı | Tekrarlamadan önce Mainsail'den gerçek yazıcı durumunu kontrol edin |
 
-Hata bildirimine yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
+Hata bildirimine panel ailesini/kart revizyonunu, biliniyorsa panel firmware'ini, **DACAI panel** seçimini, host–ekran hızını ve yazılım revizyonunu, Pi/işletim sistemini, ilgili yapılandırmayı ve günlük bölümünü ekleyin. Görsel sorunlarda fotoğraf veya [emülatör ekran görüntüsü](ui-emulator_TR.md) ekleyin; paylaşmadan önce kimlik bilgilerini kaldırın.
 
 ### Extra güncellemesinde sensör olay sayaçları
 
 Mevcut isteğe bağlı axis-travel extra’sı artık olay tabanlı sensör sayaçlarını da sunar. `configure.sh` içindeki ortak seçeneğin mevcut `PETREL_AXIS_TRAVEL` anahtarı korunur. Yeni eklenti dosyası/include eklemek gerekmez. Kurulu symlink güncel dosyayı izler; yüklemek için yazıcı boşta iken Klipper’ı yeniden başlatın, ardından Petrel’i yeniden başlatın. Otomatik Klipper restart yapılmaz. Extra eski/kapalı/eksikse sensör olay reminder’ları duraklar, geçmişler silinmez. Kaynaklar ve sayım kapsamı için [kullanım sayaçları rehberine](maintenance-usage_TR.md#olay-tabanlı-sensör-sayaçları) bakın.
 
 ## İsteğe bağlı yardımcı UART
+
+**Yalnız DWIN:** DACAI için bu seçenek kullanılamaz. Host'a bağlı NFC okuyucuları iki panelde de kullanılabilir.
 
 DWIN yardımcı UART üzerinden sunulan isteğe bağlı Linux seri portunu kurmak veya
 kaldırmak için `./configure.sh` çalıştırın. Varsayılan kapalıdır. [Kurulum ve sınırlar](dwin-uart_TR.md).

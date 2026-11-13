@@ -2,6 +2,8 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Capture guide](../../docs/ui-emulator.md)
 
+The HZK and ICO files below are DWIN resources, not DACAI upload files. The DACAI driver announces `PANEL_PROTOCOL`; the emulator interprets its sheets and commands. The physical panel uses `private/truefont` TrueType. Emulator typography and speed do not prove physical rendering or performance. [Panel comparison](../../docs/lcd-assets.md#panel-features).
+
 ## Choose matching resources
 
 These files are inputs for screenshot rendering on the Pi. Enabling the emulator does not install them on the physical display or replace its fonts/icons.

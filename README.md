@@ -2,7 +2,7 @@
   <img src="assets/petrel-readme.png" width="600" alt="Petrel — local printer interface">
 </p>
 
-**A lightweight printer UI for supported stock DWIN displays, powered by Moonraker.**
+**A lightweight printer UI for supported DWIN and DACAI displays, powered by Moonraker.**
 
 Reuse the compatible Ender 3 V2 screen after moving to Klipper: choose a file, adjust a print, prepare the bed and inspect filament from the printer's rotary encoder.
 
@@ -50,17 +50,22 @@ MMU and Spoolman are optional. Menus depend on discovered configuration and vali
 
 ## Compatibility and requirements
 
-- **272×480 portrait DWIN T5UIC1**, including the compatible 4.3-inch Ender 3 V2 panel. Other DWIN models and DACAI/TJC are not implied to work.
+- **272×480 portrait DWIN T5UIC1** or compatible **Creality DACAI** knob display. DWIN includes the compatible Ender 3 V2 panel; DACAI hardware validation covers the Ender 3 Max Neo revision 1.5 with the firmware listed in the [DACAI reference](docs/dacai.md). Other panel revisions/firmware need verification; TJC and unrelated DWIN models are not supported by this claim.
+- Select the actual controller in **Display panel** during installation: leave **DACAI panel** unchecked for DWIN; check it for DACAI.
 - Raspberry Pi or compatible Linux SBC with UART/GPIO and **Python 3.11+**.
 - Working **Klipper and Moonraker**, authorized network access, crossed TX/RX and configured encoder pins.
 
-The **stock DWIN LCD font is fully supported**. Petrel's bundled font is **optional** and changes text appearance only; boot artwork and icons synchronize automatically over UART.
+The daily controls above are shared by both panel families, subject to installed printer integrations. [Compare panel features](docs/lcd-assets.md#panel-features): the extra display UART is DWIN-only, while host-connected NFC works with either panel. DWIN uses its stock font or Petrel's optional DWIN font; DACAI uses its installed TrueType font. Artwork synchronizes automatically over UART on both.
 
 Check [display/resources](docs/lcd-assets.md) and [wiring](docs/installation.md#wiring-and-serial-setup) before starting. Existing supported hardware avoids buying a replacement display; it does not remove the SBC/cable requirements.
 
 ## Quick start
 
 > **⚠️ Important — Petrel permanently changes LCD artwork.** On supported DWIN T5UIC1 screens, current Petrel releases automatically replace the stock boot JPEG, slot-1 picture and icon-library data in the LCD's non-volatile Picture Flash with resources optimized for Petrel's interface and drawing performance. Updating or uninstalling the Pi software alone **does not restore the stock images**. To return to Creality's original icons and JPEGs, stop Petrel and flash the [bundled original DWIN_SET](assets/stock-dwin/DWIN_SET) through the **LCD's microSD slot**; follow the [stock restoration guide](docs/restore-stock-dwin.md). This does **not** restore the printer mainboard firmware.
+
+> **DACAI:** Petrel writes boot/shared pictures and icon sheets to persistent panel storage. Do not use DWIN_SET or HZK font packages; use the [DACAI firmware and resource recovery instructions](docs/dacai.md). Removing the Pi software does not restore the stock artwork here either.
+
+**Testing the DACAI development branch:** replace the normal clone line below with `git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git`. See [installation](docs/installation.md#dacai-test-branch) for choosing a release containing this support and updating a test checkout.
 
 Install Petrel:
 
@@ -71,9 +76,13 @@ cd ~/Petrel
 ./install.sh
 ```
 
+In the first-install menu, open **Display panel**: leave **DACAI panel** unchecked for DWIN, or check it for DACAI and start at **115200**. Save, exit and confirm Apply. See [panel setup](docs/installation.md#choose-your-panel).
+
 The installer prepares dependencies, `Petrel.service`, external settings and Moonraker Update Manager. Complete the [first-start checks](docs/installation.md#lcd-resources-and-first-start). You can update Petrel through Moonraker Update Manager or the LCD Info screen; see the [update guidance](docs/installation.md#update). Existing installations preserve settings during [migration](docs/installation.md#update).
 
-To change connection/encoder/power settings later, open the [Kconfig configuration menu](docs/configuration.md) with `./configure.sh` from `~/Petrel`. Rotate to navigate and press to select; confirm numeric values by rotating and pressing again. The Tune editor uses **Apply**; some pages also require **Save**. **Back** returns; keep rotating to move between Home pages.
+To change connection/encoder/power settings later, open the [Kconfig configuration menu](docs/configuration.md) with `./configure.sh` from `~/Petrel`; use keyboard arrows/Enter, Space to toggle, S to save, Q to exit, then confirm Apply.
+
+On the **physical display**, rotate to navigate and press to select; confirm numeric values by rotating and pressing again. The Tune editor uses **Apply**; some pages also require **Save**. **Back** returns; keep rotating to move between Home pages.
 
 ## Find the right guide
 
@@ -90,7 +99,7 @@ Runtime settings do not replace persistent Klipper/probe configuration. Screw ad
 
 ## Architecture and development
 
-Petrel translates subscribed Moonraker state and encoder input into T5UIC1 UART drawing commands. Thumbnails use panel SRAM; managed boot/icon resources use Picture Flash and fingerprints to avoid uploading unchanged blocks. Persistent display/buzzer records use separate Data Flash.
+Petrel translates subscribed Moonraker state and encoder input into panel-driver UART drawing commands. The DWIN T5UIC1 driver provides the base API; the DACAI driver adapts protocol differences and host-stepped sprite animations. Thumbnails use panel SRAM; managed boot/icon resources use Picture Flash and fingerprints to avoid uploading unchanged blocks. Persistent display/buzzer records use separate Data Flash.
 
 Discovery reads Moonraker's object list and configuration when a connection is established; it repeats after reconnect. Capability/status models determine visible controls and limits. This is conditional menu visibility, not dynamic module loading. A new MMU protocol would need status mapping, command adaptation and tests in addition to detection.
 
@@ -102,5 +111,7 @@ Startup connection delays and explicit Klipper errors have separate [recovery be
 ## Project origin and license
 
 Petrel originated from [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) and [bustedlogic/DWIN_T5UIC1_LCD](https://github.com/bustedlogic/DWIN_T5UIC1_LCD), and is developed independently with its own architecture and feature set. Original copyright notices and Git history are retained.
+
+Thanks to [xCollxn](https://github.com/xCollxn) for the DACAI driver, protocol investigation and physical testing on the Ender 3 Max Neo ([PR #40](https://github.com/sezgynus/Petrel/pull/40)).
 
 Licensed under **GNU GPL v3.0**; see [LICENSE](LICENSE).

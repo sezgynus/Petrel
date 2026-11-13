@@ -2,6 +2,12 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Contributing](../CONTRIBUTING.md)
 
+## Resource path by panel
+
+JPEG icons, boot and shared artwork are common sources; upload formats differ. DWIN packs icons into ICO library 2/slots 2–15. DACAI packs the same sources into currently eight sheets at picture 16 and above; the host advances animations. Boot/shared pictures are 0/1 on both. DACAI pictures pass through `lcd.prepare_picture()` (baseline 4:2:0, at most 32,764 bytes, padded to 32 KB).
+
+ICO blocks and manual tools below describe **DWIN only**. Do not use `flash_icon_library.py` or `reload_icons.py` on DACAI; use the [DACAI recovery tool](../docs/dacai.md#after-a-microsd-update). Managed DACAI icons are skipped until verified sheet synchronization completes, without native-icon fallback. See [shared compatibility](../docs/lcd-assets.md).
+
 ## Files in this folder
 
 | File | Purpose |
@@ -14,7 +20,7 @@
 | [emulator/](emulator/README.md) | Host-side stock icon and font inputs for screenshots |
 | [stock-dwin/](stock-dwin/README.md) | Original Creality DWIN_SET bundle for restoring stock LCD firmware and artwork |
 
-The boot JPEG is 480×272 for panel picture slot 0. It is shown directly without cache copies. After boot artwork synchronization, the splash, progress bar and loading animation are displayed before icon-library preparation and checks. Unchanged icon synchronization does not stop the animation; actual icon uploads stop it temporarily and the next boot stage restarts it.
+**DWIN startup flow:** The boot JPEG is 480×272 for panel picture slot 0. It is shown directly without cache copies. After boot artwork synchronization, the splash, progress bar and loading animation are displayed before icon-library preparation and checks. Unchanged icon synchronization does not stop the animation; actual icon uploads stop it temporarily and the next boot stage restarts it.
 
 Changed boot artwork is uploaded automatically to picture slot 0 on the first LCD connection. A verified fingerprint at Flash address `0x0120` prevents repeated writes; the JPEG must be baseline 480×272 and at most 32767 bytes.
 
@@ -38,7 +44,7 @@ User-interface screenshots belong in `docs/assets/screens/`, not this artwork fo
 
 ## After reinstalling panel resources
 
-After reinstalling panel resources, force a reload of the managed icons over SSH as the service user:
+After reinstalling **DWIN panel resources**, force a reload of the managed icons over SSH as the service user:
 
 ```bash
 sudo systemctl stop Petrel.service

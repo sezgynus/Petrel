@@ -2,9 +2,13 @@
 
 [English](user-guide.md) · [Türkçe](user-guide_TR.md) · [Dokümantasyon](README_TR.md)
 
+Bu kullanım rehberi DWIN ve DACAI için ortaktır. Kurulumda [panelinizi seçin](installation_TR.md#panelinizi-seçin); menüler ve yazıcı işlemleri aynı kalır. Farklar: DACAI panelde kurulu TrueType fontunu kullanır, ikon animasyonlarını host ilerletir ve baskı önizlemeleri opaktır; ince renk saçakları görülebilir. Ekran yardımcı UART'ı yalnız DWIN'de kullanılabilir; DACAI'de NFC okuyucuyu host'a bağlayın. Pi PWM buzzer, desteklenen NFC işlevleri, MMU ve Spoolman panel seçiminden bağımsızdır. [Tam özellik tablosu](lcd-assets_TR.md#panel-özellikleri).
+
+Test dalındaki kurulumlarda normal Info/Moonraker güncellemesi yerine [test dalı güncelleme adımlarını](installation_TR.md#güncelleme) kullanın.
+
 ## Gezinme ve durum alanı
 
-**Device** simgesi **Device settings** menüsünü açar; DWIN HMI parlaklık/karartma, buzzer, olay sesleri ve NFC okuyucu ayarları burada bulunur.
+**Device** simgesi **Device settings** menüsünü açar; panel parlaklık/karartma, buzzer, olay sesleri ve NFC okuyucu ayarları burada bulunur.
 
 <p align="center">
   <img src="assets/screens/framed/home.png" width="360" alt="Ana ekran, birinci sayfa">
@@ -188,7 +192,7 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 ### Buzzer ve tuş sesleri
 
-**Device → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **Enabled/Disabled** olarak ayarlar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar DWIN Flash'ta kalıcıdır.
+**Device → Buzzer** artık ayrı çıkış seçme ekranı yerine sesi doğrudan **Enabled/Disabled** olarak ayarlar. **Volume**, **Click tone**, **Encoder tone** satırları buzzer kapalıyken de düzenlenir. Basıp enkoderle değiştirin, yeniden basarak kaydedin. Volume %0–100 aralığında %10 adımlarla ayarlanır; %100 için fiziksel PWM duty %50'dir. Tonlar Off, Tick, Short beep, Low, High, Double. Ayarlar panel Data Flash'ta kalıcıdır.
 
 Buzzer artık Raspberry Pi **donanımsal PWM** ile, Klipper `pwm_cycle_time`, `output_pin` veya Moonraker G-code kullanmadan çalışır. Fiziksel buzzer pini yalnızca `./configure.sh` → **Buzzer hardware PWM** üzerinden GPIO12/13/18/19 arasından seçilir. Kurucu device-tree overlay ve PWM servis erişimini hazırlar; boot ayarı değişmişse Pi'yi yeniden başlatın. NFC kart sesi asenkron Spoolman sorgusunu bekler: eşleşmede yalnız NFC_SPOOL_MATCH, eşleşme yoksa veya sorgu hatasında yalnız NFC_TAG_READ seçilir. Atama NFC_TAG_READ kullanır. Genel Buzzer Enabled/Disabled, Volume ve seçilen olay anahtarı geçerlidir; kapalı ses yerine başka ses çalmaz. Hızlı encoder hareketlerinde bekleyen ses kuyruğu birikmez.
 
@@ -289,7 +293,7 @@ olmadan isimle çağrılabilir.
 
 **Device → Event sounds** altında 18 bağımsız checkbox bulunur: yukarıdaki on altı olay, **Emergency card alarm** ve **Power button hold**. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
 
-Her değişiklik DWIN Flash'a otomatik kaydedilir ve geri okunarak doğrulanır. Kayıt sürerken son doğrulanan seçimler geçerlidir. **Not saved** durumunda önceki seçimler korunur; tekrar basarak kaydı deneyin. **Retry read** ayarları yeniden okur. `0x0480` adresindeki ayrı, CRC korumalı 16 baytlık kayıt mevcut ekran ve buzzer ayarlarını korur.
+Her değişiklik panel Data Flash'a otomatik kaydedilir ve geri okunarak doğrulanır. Kayıt sürerken son doğrulanan seçimler geçerlidir. **Not saved** durumunda önceki seçimler korunur; tekrar basarak kaydı deneyin. **Retry read** ayarları yeniden okur. `0x0480` adresindeki ayrı, CRC korumalı 16 baytlık kayıt mevcut ekran ve buzzer ayarlarını korur.
 
 Ana Buzzer anahtarı bütün sesleri susturmaya devam eder. Normal olay melodileri Volume ayarını kullanır. Acil durum alarmı açıkken tam sesle çalar; kendi kutusunu kapatmak yalnız alarmı susturur, **acil durdurma işlemini devre dışı bırakmaz**. Tuş ve enkoder tonları mevcut ayarlarını kullanmaya devam eder.
 
@@ -713,7 +717,7 @@ bir gate'in yüzdesi atanmaz, `--` gösterilir. Gate altındaki yazılar mevcut
 makara atamasını gösterir. Gereksiz enkoder kullanım açıklamaları gösterilmez.
 Bilgi kartından hareketli makaraya ve makaradan seçili gate'e ince bağlantı
 çizgileri uzanır; gate'e inişte alt çizgi kısalıp kaybolur. Animasyon
-karelerinde ikonlar yeniden çizilmez; DWIN'in bölge taşıma komutu kullanılır.
+karelerinde ikonlar yeniden çizilmez; panel sürücüsünün bölge taşıma komutu kullanılır (DACAI farklarını sürücü uyarlar).
 Enkoderle gate seçilir (dörtten fazla gate için sayfalama); basıldığında
 önce kartın Spoolman eşleşmesi doğrulanır. Happy Hare ataması başarılı bir geri okumayla doğrulandıktan sonra makara
 GIF'teki gibi yaklaşık 600 ms süren tek bir yumuşak inişle gate'e oturur. Başlıktaki Back seçeneği atamadan vazgeçirir.
