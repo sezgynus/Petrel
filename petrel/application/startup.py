@@ -317,8 +317,11 @@ class PanelStartupMixin:
             logging.info('LCD UART connected; %s', 'boot readiness pending'
                          if getattr(self, '_boot_active', False) else 'current screen restored')
             return True
-        except (OSError, TimeoutError):
+        except (OSError, TimeoutError) as error:
             self._uart_failed()
+            if getattr(error, "flash_trace_timeout", False):
+                self._next_uart_retry = float("inf")
+                logging.warning("issue-41 trace stopped after the first Flash timeout")
             return False
 
     def _draw_progress_track(self, lcd, x, y, width, value, *, use_icons=True):
