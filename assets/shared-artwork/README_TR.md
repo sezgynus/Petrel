@@ -2,7 +2,7 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [LCD görselleri](../README_TR.md#ortak-ui-görsel-sayfası)
 
-Ortak sayfa iki panelde de resim 1 için kullanılır. Aşağıdaki üretici çıktısı DWIN boyut/yerleşim sözleşmesidir; DACAI sürücüsü `prepare_picture()` ile portre 4:2:0 JPEG üretip 32 KB dolgusu uygular. DACAI yükleme sınırı 32.764 bayttır; üreticinin 32.767 bayt sınırı tek başına DACAI uygunluğunu kanıtlamaz. [DACAI geliştirici notları](../../docs/dacai_TR.md#geliştiriciler-için).
+Ortak sayfa iki panelde de resim 1 için kullanılır. Aşağıdaki üretici çıktısı DWIN boyut/yerleşim sözleşmesidir; DACAI sürücüsü `prepare_picture()` ile mevcut JPEG'e COM bölümü ekleyip 32 KB dolgusu uygular. Bu adım görseli döndürmez veya yeniden kodlamaz; baseline 4:2:0 JPEG kaynakları sağlayın. DACAI yükleme sınırı 32.764 bayttır; üreticinin 32.767 bayt sınırı tek başına DACAI uygunluğunu kanıtlamaz. [DACAI geliştirici notları](../../docs/dacai_TR.md#geliştiriciler-için).
 
 Her kaynak görseli buraya `.jpg` veya `.jpeg` olarak koyun. Repo kökünden çalıştırın:
 

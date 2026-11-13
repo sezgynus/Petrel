@@ -2,7 +2,7 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [LCD artwork](../README.md#shared-ui-artwork-page)
 
-The shared page serves picture 1 on both panels. The generator output below follows the DWIN size/layout contract; the DACAI driver calls `prepare_picture()` to produce a portrait 4:2:0 JPEG and pad it to 32 KB. The DACAI payload limit is 32,764 bytes; the generator's 32,767-byte limit alone does not prove DACAI suitability. See [DACAI developer notes](../../docs/dacai.md#for-developers).
+The shared page serves picture 1 on both panels. The generator output below follows the DWIN size/layout contract; the DACAI driver calls `prepare_picture()` to pad the existing JPEG to 32 KB with a COM segment. This step does not rotate or re-encode the image; supply baseline 4:2:0 JPEG sources. The DACAI payload limit is 32,764 bytes; the generator's 32,767-byte limit alone does not prove DACAI suitability. See [DACAI developer notes](../../docs/dacai.md#for-developers).
 
 Put each source image here as a `.jpg` or `.jpeg`. From the repository root, run:
 

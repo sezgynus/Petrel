@@ -10,7 +10,7 @@ The configurator adds no background work to the running UI.
 
 ![Petrel Kconfig main menu](assets/configuration/main-menu.png)
 
-The screenshots are first-install Kconfig references; the new Display panel menu is described below. Use the reproduction steps at the end to refresh captures with the current menu order, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
+The screenshots capture the current Kconfig terminal UI with clean first-install Kconfig defaults, plus an explicitly enabled DACAI example, without importing a machine’s private environment. Paths left blank must be selected for your installation. Existing installations import their saved values, so their encoder or other settings can differ; applying does not silently replace legacy wiring. Menu labels remain in English in both guides.
 
 ## Navigate and apply
 
@@ -50,6 +50,10 @@ DWIN T5UIC1 panels keep the default, unchecked. See the [DACAI guide](dacai.md).
 Panel detection is not automatic. Check the selection on first install and after updates; existing DWIN settings do not switch themselves to DACAI. Start at **115200**; 230400/460800/921600 can upload artwork faster. A raised speed lasts until panel power loss; Petrel restores 115200 on normal exit and probes all four supported speeds on startup, starting with the configured one.
 
 The DACAI choice is saved as **PETREL_DACAI=1** and **PETREL_DACAI_BAUD**. Apply turns off auxiliary UART and removes an installed broker; close clients using that port first. Host-connected NFC and shared features remain available. Unattended configuration enabling both UART paths is rejected. [Panel features](lcd-assets.md#panel-features).
+
+![Default panel selection for DWIN, with DACAI unchecked](assets/configuration/display-panel.png)
+
+![DACAI selected, revealing the host UART speed](assets/configuration/display-panel-dacai.png)
 
 ### Encoder and presets
 

@@ -10,7 +10,7 @@ plan işi eklemez.
 
 ![Petrel Kconfig ana menüsü](assets/configuration/main-menu.png)
 
-Görseller ilk-kurulum Kconfig varsayılanları için referanstır; yeni Display panel menüsü aşağıda açıklanmıştır. Görselleri güncel menü sırasıyla yenilemek için belgenin sonundaki üretim adımlarını kullanın; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
+Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; ayrıca DACAI seçeneği açık bir örnek sunulur; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
 
 ## Gezinme ve uygulama
 
@@ -51,6 +51,10 @@ işaretsiz kalır. Ayrıntılar [DACAI rehberindedir](dacai_TR.md).
 Panel otomatik algılanmaz. İlk kurulum ve güncelleme sonrası seçimi kontrol edin; mevcut DWIN ayarları DACAI'ye kendiliğinden geçmez. İlk denemede **115200** kullanın; 230400/460800/921600 daha hızlı görsel yükleyebilir. Hız panelin enerjisi kesilene kadar korunur; Petrel normal çıkışta 115200'e döndürür ve açılışta yapılandırılmış hızdan başlayıp desteklenen dört hızı dener.
 
 DACAI seçimi **PETREL_DACAI=1** ve **PETREL_DACAI_BAUD** olarak kaydedilir. Apply yardımcı UART'ı kapatıp kurulu broker'ı kaldırır; o portu kullanan istemcileri önce kapatın. Host'a bağlı NFC ve diğer ortak özellikler korunur. İki UART seçeneğini birlikte etkinleştiren otomatik yapılandırma reddedilir. [Panel özellikleri](lcd-assets_TR.md#panel-özellikleri).
+
+![DWIN için varsayılan işaretsiz DACAI panel seçimi](assets/configuration/display-panel.png)
+
+![DACAI seçiliyken görünen host UART hızı](assets/configuration/display-panel-dacai.png)
 
 ### Encoder and presets
 
