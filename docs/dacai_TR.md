@@ -26,7 +26,17 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 `./configure.sh` çalıştırın, **Display panel** menüsünü açın, **DACAI panel** seçeneğini işaretleyin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
 
-DACAI desteği `feature/dacai-support` dalında geliştirilir. Petrel kurulum betiği Moonraker güncelleyicisini `master` için kaydeder; bu nedenle güncelleyici bu dalı izlemez: başka bir dalda Moonraker Petrel deposunu geçersiz olarak gösterir ve güncelleme sunmaz. Bir test kurulumunu `~/Petrel` içinde `git pull` ile güncelleyin ve `Petrel.service` servisini yeniden başlatın; `git checkout master` ve `./install.sh` normal sürüme geri döndürür.
+DACAI desteği `feature/dacai-support` dalında geliştirilir. Petrel kurulum betiği Moonraker güncelleyicisini `master` için kaydeder; bu nedenle güncelleyici bu dalı izlemez: başka bir dalda Moonraker Petrel deposunu geçersiz olarak gösterir ve güncelleme sunmaz. Bir test kurulumunu `~/Petrel` içinde `git pull` ile güncelleyin ve `Petrel.service` servisini yeniden başlatın.
+
+**Geri dönüş.** `master` DACAI panellerini desteklemez: DACAI sürücüsünü seçmez ve paneli DWIN ekranı olarak sürer. Bu nedenle `git checkout master` bir DACAI paneli için geri dönüş yolu **değildir**. Her güncellemeden önce çalışan sürümü not edin:
+
+```sh
+git -C ~/Petrel rev-parse HEAD
+```
+
+Güncelleme sorun çıkarırsa `git -C ~/Petrel checkout <sürüm>` ile bu bilinen iyi sürüme dönün, `~/Petrel` içinde `./install.sh` çalıştırın ve `Petrel.service` servisini yeniden başlatın. Daha sonra `git checkout feature/dacai-support` ve ardından `git pull` ile teste devam edilir.
+
+`git checkout master` ve `./install.sh` **yalnızca yeniden DWIN paneline geçmiş bir yazıcı için** normal sürüme geri döndürür; geçişten önce `./configure.sh` içinde **DACAI panel** seçeneğini kaldırın.
 
 ### DWIN yardımcı UART
 

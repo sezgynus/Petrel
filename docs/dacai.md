@@ -26,7 +26,17 @@ copy `firmware.zlib` and the `private` folder from that package to the root of a
 
 Run `./configure.sh`, open **Display panel**, check **DACAI panel** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
 
-DACAI support is developed on the `feature/dacai-support` branch. Petrel's installer registers the Moonraker updater for `master`, so it does not follow this branch: on any other branch Moonraker reports the Petrel repository as invalid and offers no updates. Update a test installation with `git pull` in `~/Petrel` and restart `Petrel.service`; `git checkout master` and `./install.sh` return to the regular release.
+DACAI support is developed on the `feature/dacai-support` branch. Petrel's installer registers the Moonraker updater for `master`, so it does not follow this branch: on any other branch Moonraker reports the Petrel repository as invalid and offers no updates. Update a test installation with `git pull` in `~/Petrel` and restart `Petrel.service`.
+
+**Rolling back.** `master` does not support DACAI panels: it does not select the DACAI driver and talks to the panel as a DWIN display. `git checkout master` is therefore **not** a way back for a DACAI panel. Before each update, note the running revision:
+
+```sh
+git -C ~/Petrel rev-parse HEAD
+```
+
+If the update misbehaves, return to that known-good revision with `git -C ~/Petrel checkout <revision>`, run `./install.sh` in `~/Petrel` and restart `Petrel.service`. `git checkout feature/dacai-support` followed by `git pull` resumes testing later.
+
+`git checkout master` and `./install.sh` return to the regular release **only for a printer that is back on a DWIN panel**; uncheck **DACAI panel** in `./configure.sh` before switching.
 
 ### DWIN auxiliary UART
 
