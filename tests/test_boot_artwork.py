@@ -14,6 +14,7 @@ class BootArtworkTests(unittest.TestCase):
     @patch('petrel.artwork.boot.time.sleep')
     def test_picture_is_acknowledged_before_checkpoint_and_unchanged_image_skips(self, _):
         lcd = Mock()
+        lcd.prepare_picture.side_effect = lambda data: data
         flash = {}
         lcd.read_flash.side_effect = lambda address, size: flash.get(address, bytes(size))
         lcd.write_flash.side_effect = lambda address, data: flash.update({address: data})

@@ -4,7 +4,7 @@
 
 ## Supported display
 
-Petrel targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable.
+Petrel targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable. Creality **DACAI** panels (e.g. Ender 3 Max Neo) are supported through a separate driver; see [DACAI panels](dacai.md).
 
 The panel must support T5UIC1 commands and display direction **1**. Petrel renders text with the **stock DWIN font**; the [bundled LCD font](#lcd-font) is **optional**, for a different visual style. The application automatically uploads boot artwork and library **2** icons from repository sources; a preinstalled ICO library and English bitmap labels are not prerequisites.
 

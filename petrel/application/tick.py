@@ -30,11 +30,26 @@ class DisplayTickMixin:
             self._ui_tick_body()
         finally:
             self._tick_active = False
+            self._poll_host_animations()
             self._cap_flash_interval()
             if any(getattr(getattr(self.pd, name, None), 'pending', False) is True
                    for name in ('maintenance_pulse', 'maintenance_reader')):
                 if hasattr(self, '_loop'):
                     self._loop.cap_interval(.1)
+
+    def _poll_host_animations(self):
+        """Panels without native icon animation (DACAI) are stepped by the host."""
+        if not getattr(self, '_uart_online', False):
+            return
+        poll = getattr(getattr(self, 'lcd', None), 'poll_host_animations', None)
+        if not callable(poll):
+            return
+        try:
+            wait = poll(time.monotonic())
+            if isinstance(wait, (int, float)) and hasattr(self, '_loop'):
+                self._loop.cap_interval(max(.02, wait))
+        except Exception:
+            logging.exception('Host animation failed')
 
     def _ui_tick_body(self):
         if (getattr(self, '_rfid_assignment', None) is not None

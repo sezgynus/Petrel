@@ -16,6 +16,7 @@
 | [MMU and filament](mmu-guide.md) | Happy Hare gates, spool assignment, tool map, EndlessSpool and recovery |
 | [NFC tags and sharing](user-guide.md#nfc-and-rfid) | Emergency stop, spool tags/gates, phone link sharing; [Kconfig setup](configuration.md#nfc) and LCD Device → NFC Settings |
 | [LCD compatibility](lcd-assets.md) | Choosing the supported display and checking panel resources |
+| [DACAI panels](dacai.md) | Creality DACAI displays (e.g. Ender 3 Max Neo): enabling, uploaded artwork and differences from DWIN |
 | [Restore original DWIN resources](restore-stock-dwin.md) | Persistent Flash warning, supplied Creality DWIN_SET and LCD microSD recovery steps |
 | [Print and Tune](print-controls.md) | Print dashboard, quiet runtime edits and optional job policy switches |
 

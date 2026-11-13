@@ -41,6 +41,12 @@ Set the Moonraker URL, request timeout, physical display UART and power controls
 
 ![Moonraker, physical display UART and power settings](assets/configuration/connections-power.png)
 
+### Display panel
+
+Check **DACAI panel** only for Creality DACAI displays (microSD folder `private`, e.g.
+Ender 3 Max Neo). It reveals **DACAI host UART speed** (115200, 230400, 460800 or 921600).
+DWIN T5UIC1 panels keep the default, unchecked. See the [DACAI guide](dacai.md).
+
 ### Encoder and presets
 
 Set the encoder A/B and button GPIOs in BCM numbering, plus the external preset JSON
@@ -80,6 +86,8 @@ reveals its bind address and port settings. See the [emulator guide](ui-emulator
 Toggle installation of the Linux serial port. The default below is unchecked. Check
 it to select installation; save, exit and confirm Apply to perform it. Unchecking and applying
 removes it. See the [UART guide](dwin-uart.md) for hardware location, use and limits.
+The option is hidden while **DACAI panel** is checked; DACAI panels have no auxiliary UART
+([details](dacai.md#dwin-auxiliary-uart)).
 
 ![DWIN auxiliary UART disabled by default in Kconfig](assets/configuration/auxiliary-uart.png)
 

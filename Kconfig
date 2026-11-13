@@ -27,6 +27,29 @@ config PETREL_POWER_ON_HOLD_MS
     default 2000
 endmenu
 
+menu "Display panel"
+config PETREL_DACAI
+    bool "DACAI panel (Creality, e.g. Ender 3 Max Neo)"
+    default n
+    help
+      Some Creality printers ship a DWIN-compatible panel made by DACAI: its
+      microSD card uses a "private" folder instead of "DWIN_SET". Petrel then
+      uploads the boot picture, shared artwork and icon sprite sheets over the
+      UART, so no microSD card is needed. Never copy a DWIN_SET to this panel.
+      The panel has no auxiliary UART: selecting DACAI hides the DWIN auxiliary
+      UART option, and Apply removes an installed auxiliary-UART broker.
+      NFC readers connected to the host are unaffected. See docs/dacai.md.
+config PETREL_DACAI_BAUD
+    int "DACAI host UART speed (baud)"
+    depends on PETREL_DACAI
+    range 115200 921600
+    default 115200
+    help
+      115200, 230400, 460800 or 921600. A faster link uploads artwork and
+      thumbnails sooner. The panel keeps a raised speed until it loses power;
+      Petrel restores 115200 when it exits and probes both speeds on start.
+endmenu
+
 menu "Encoder and presets"
 config ENCODER_A_GPIO
     int "Encoder A GPIO (BCM)"
@@ -122,8 +145,10 @@ endmenu
 menu "DWIN auxiliary UART"
 config PETREL_AUX_UART
     bool "DWIN auxiliary UART as a Linux serial port"
+    depends on !PETREL_DACAI
     default n
     help
+      Not available with a DACAI panel (Display panel menu).
       Expose /dev/ttyDWIN0 with data transfer and baud control (8N1).
       Auxiliary baud rates below about 15300, including 9600, are unsupported.
       Applying this option installs/removes a DKMS module and shared broker.

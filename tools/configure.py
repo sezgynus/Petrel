@@ -2,7 +2,6 @@
 """Kconfig terminal frontend with explicit, reversible installation/apply."""
 import argparse
 from contextlib import contextmanager
-import fcntl
 import json
 import math
 import os
@@ -23,7 +22,8 @@ if str(ROOT) not in sys.path:
 from tools.axis_travel_install import install as install_axis
 from tools.klipper_buzzer_install import install as install_buzzer
 
-BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
+BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC',
+         'PETREL_DACAI', 'RESTART_PETREL'}
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
@@ -31,7 +31,10 @@ BUZZER_GPIO_CHOICES = {'PETREL_BUZZER_GPIO12': 12, 'PETREL_BUZZER_GPIO13': 13,
                        'PETREL_BUZZER_GPIO18': 18, 'PETREL_BUZZER_GPIO19': 19}
 INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
         'PETREL_BUTTON_PIN': (0, 65535), 'PETREL_POWER_ON_HOLD_MS': (0, 2147483647),
-        'PETREL_REMOTE_PORT': (1, 65535)}
+        'PETREL_REMOTE_PORT': (1, 65535), 'PETREL_DACAI_BAUD': (115200, 921600)}
+DACAI_BAUDS = ('115200', '230400', '460800', '921600')
+DACAI_AUX_CONFLICT = ('A DACAI panel has no DWIN auxiliary UART: disable '
+                      'PETREL_AUX_UART or PETREL_DACAI')
 SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
 RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
            - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
@@ -89,7 +92,8 @@ def defaults(home):
                 PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_BUZZER='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
                 PETREL_EMULATOR='n', PETREL_REMOTE='n', PETREL_REMOTE_HOST='0.0.0.0',
-                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n', RESTART_PETREL='y')
+                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n',
+                PETREL_DACAI='n', PETREL_DACAI_BAUD='115200', RESTART_PETREL='y')
 
 
 def normalize_bool(value):
@@ -193,6 +197,10 @@ def validate(values):
     for name in PATHS:
         if not Path(values[name]).is_absolute():
             raise ValueError(name + ' must be an absolute path')
+    if values['PETREL_DACAI_BAUD'] not in DACAI_BAUDS:
+        raise ValueError('DACAI baud must be one of ' + ', '.join(DACAI_BAUDS))
+    if values['PETREL_DACAI'] == 'y' and values['PETREL_AUX_UART'] == 'y':
+        raise ValueError(DACAI_AUX_CONFLICT)
     if values['PETREL_REMOTE'] == 'y' and not values['PETREL_REMOTE_HOST'].strip():
         raise ValueError('Remote bind address cannot be empty')
 
@@ -400,6 +408,11 @@ def main():
             kconf.load_config(str(args.apply_config), replace=False)
             if kconf.warnings or kconf.missing_syms:
                 raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
+            requested = args.apply_config.read_text()
+            if (kconf.syms['PETREL_DACAI'].str_value == 'y'
+                    and re.search(r'^CONFIG_PETREL_AUX_UART=y\s*$', requested, re.MULTILINE)):
+                # Kconfig would silently drop the hidden option; refuse instead.
+                raise ValueError(DACAI_AUX_CONFLICT)
             selected = collect(kconf)
         else:
             if not sys.stdin.isatty() or not sys.stdout.isatty():
@@ -411,6 +424,7 @@ def main():
         validate(selected)
         config_dir = env_file.parent
         config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        import fcntl  # Linux only; imported here so the helpers stay testable elsewhere.
         with (config_dir / 'configure.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             apply(selected, repo=args.repo, home=args.home, user=args.user,

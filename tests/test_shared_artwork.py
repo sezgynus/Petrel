@@ -14,6 +14,7 @@ class SharedArtworkTests(unittest.TestCase):
     @patch('petrel.artwork.shared.time.sleep')
     def test_sync_commits_only_after_picture_ack_and_skips_unchanged(self, _):
         lcd = Mock()
+        lcd.prepare_picture.side_effect = lambda data: data
         memory = {}
         lcd.read_flash.side_effect = lambda address, size: memory.get(address, bytes(size))
         lcd.write_flash.side_effect = lambda address, data: memory.update({address: data})

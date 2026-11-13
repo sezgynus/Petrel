@@ -53,6 +53,14 @@ class T5UIC1Display:
     TAIL = b"\xCC\x33\xC3\x3C"
 
     WIDTH = 272
+    # Highest picture ID accepted by 0x22/0x25/0x33 (panel subclasses may raise it).
+    PICTURE_ID_MAX = 15
+    # Accept a bare A5 'OK' data-Flash acknowledgement (see protocol.take_response).
+    BARE_FLASH_ACK = False
+    # Packet dialect announced to the emulator (packet_observer.reset_panel).
+    PANEL_PROTOCOL = 'dwin'
+    # True when show_sram_jpeg cannot filter black: thumbnails need a background.
+    OPAQUE_SRAM_JPEG = False
     HEIGHT = 480
     SRAM_SIZE = 32 * 1024
     FLASH_SIZE = 16 * 1024
@@ -172,7 +180,7 @@ class T5UIC1Display:
 
         try:
             if packet_observer is not None:
-                packet_observer.reset_panel()
+                packet_observer.reset_panel(protocol=self.PANEL_PROTOCOL)
             if connected_serial is None:
                 time.sleep(wake_delay)
                 for _ in range(handshake_attempts):
@@ -180,6 +188,7 @@ class T5UIC1Display:
                         break
                 else:
                     raise T5UIC1TimeoutError("DWIN handshake timed out")
+            self._after_handshake()
             # The panel CFG already selects portrait orientation. Preserve
             # its power-on picture instead of reapplying direction via 0x34.
             from petrel.artwork.boot import sync
@@ -203,6 +212,9 @@ class T5UIC1Display:
         except BaseException:
             self.close()
             raise
+
+    def _after_handshake(self):
+        """Panel-specific link setup before any artwork is checked."""
 
     def _startup_animation_library(self):
         """Use only a verified resident directory during library migration."""
@@ -322,7 +334,7 @@ class T5UIC1Display:
 
     def _parse_rx(self):
         while True:
-            response = dwin_protocol.take_response(self._rx)
+            response = dwin_protocol.take_response(self._rx, bare_flash_ack=self.BARE_FLASH_ACK)
             if response is None:
                 return
             command, payload = response
@@ -769,8 +781,8 @@ class T5UIC1Display:
         self._send(0x21, self._words(x, y) + bytes((pixel_size,)) + data)
 
     def show_jpeg(self, jpeg_id):
-        if not isinstance(jpeg_id, int) or not 0 <= jpeg_id <= 15:
-            raise ValueError("JPEG ID must be 0..15")
+        if not isinstance(jpeg_id, int) or not 0 <= jpeg_id <= self.PICTURE_ID_MAX:
+            raise ValueError(f"JPEG ID must be 0..{self.PICTURE_ID_MAX}")
         self._send(0x22, bytes((0, jpeg_id)))
 
     def show_icon(self, library_id, icon_ids, x, y, *, background=True,
@@ -791,8 +803,8 @@ class T5UIC1Display:
         self._send(0x24, self._words(x, y) + bytes((mode,)) + self._word(address))
 
     def cache_jpeg(self, jpeg_id, area=1):
-        if not isinstance(jpeg_id, int) or not 0 <= jpeg_id <= 15:
-            raise ValueError("JPEG ID must be 0..15")
+        if not isinstance(jpeg_id, int) or not 0 <= jpeg_id <= self.PICTURE_ID_MAX:
+            raise ValueError(f"JPEG ID must be 0..{self.PICTURE_ID_MAX}")
         if area != 1:
             raise ValueError("cache-only JPEG loading supports virtual area 1; use show_jpeg for area 0")
         self._send(0x25, bytes((area, jpeg_id)))
@@ -802,6 +814,10 @@ class T5UIC1Display:
         """Reuse Area 1 until another picture or connection replaces it."""
         if getattr(self, '_cached_picture1', None) != jpeg_id:
             self.cache_jpeg(jpeg_id)
+
+    def prepare_picture(self, data):
+        """Bytes to place in SRAM before store_sram_as_picture."""
+        return data
 
     def copy_cache1(self, x0, y0, x1, y1, x, y):
         self._send(0x26, self._words(x0, y0, x1, y1, x, y))
@@ -1123,8 +1139,8 @@ class T5UIC1Display:
         return self.read_memory(self.MEMORY_FLASH, address, length, timeout=timeout)
 
     def store_sram_as_picture(self, picture_id, *, timeout=2.5):
-        if not isinstance(picture_id, int) or not 0 <= picture_id <= 15:
-            raise ValueError("picture ID must be 0..15")
+        if not isinstance(picture_id, int) or not 0 <= picture_id <= self.PICTURE_ID_MAX:
+            raise ValueError(f"picture ID must be 0..{self.PICTURE_ID_MAX}")
         if getattr(self, '_cached_picture1', None) == picture_id:
             self._cached_picture1 = None
         with self._transaction_lock:

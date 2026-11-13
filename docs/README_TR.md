@@ -16,6 +16,7 @@
 | [MMU ve filament](mmu-guide_TR.md) | Happy Hare kanalları, makara atama, takım eşlemesi, EndlessSpool ve kurtarma |
 | [NFC kartları ve paylaşım](user-guide_TR.md#nfc-ve-rfid) | Acil durdurma, makara kartı/gate, telefonla bağlantı paylaşma; [Kconfig kurulumu](configuration_TR.md#nfc) ve LCD Device → NFC Settings |
 | [LCD uyumluluğu](lcd-assets_TR.md) | Desteklenen ekranı seçme ve panel kaynaklarını kontrol etme |
+| [DACAI panelleri](dacai_TR.md) | Creality DACAI ekranları (ör. Ender 3 Max Neo): etkinleştirme, yüklenen görseller ve DWIN'den farklar |
 | [Orijinal DWIN kaynaklarına dönüş](restore-stock-dwin_TR.md) | Kalıcı Flash uyarısı, Creality DWIN_SET paketi ve LCD microSD geri yükleme adımları |
 | [Print ve Tune](print-controls_TR.md) | Baskı ekranı, çalışma zamanı ayarları ve isteğe bağlı politika switchleri |
 

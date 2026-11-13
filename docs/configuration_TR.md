@@ -41,6 +41,13 @@ ayarlayın. **Physical display UART**, host üzerinde ekrana bağlı porttur; bu
 
 ![Moonraker, fiziksel ekran UART'ı ve güç ayarları](assets/configuration/connections-power.png)
 
+### Display panel
+
+**DACAI panel** seçeneğini yalnızca Creality DACAI ekranları için işaretleyin (microSD
+klasörü `private`, ör. Ender 3 Max Neo). Bu seçenek **DACAI host UART speed** ayarını
+gösterir (115200, 230400, 460800 veya 921600). DWIN T5UIC1 panellerinde varsayılan
+işaretsiz kalır. Ayrıntılar [DACAI rehberindedir](dacai_TR.md).
+
 ### Encoder and presets
 
 Enkoder A/B ve düğme GPIO'larını BCM numaralandırmasıyla, harici preset JSON dosyasının
@@ -82,6 +89,8 @@ Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki varsayılan ö
 Kurulumu seçmek için işaretleyin; kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
 uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
 [UART rehberine](dwin-uart_TR.md) bakın.
+**DACAI panel** işaretliyken bu seçenek gizlenir; DACAI panellerinde yardımcı UART yoktur
+([ayrıntılar](dacai_TR.md#dwin-yardımcı-uart)).
 
 ![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
 

@@ -13,6 +13,15 @@ class PanelProbe:
         self.received = bytearray()
         self.next_send = 0
         self.fast_until = 0
+        # A DACAI panel keeps a raised host baud (0x38) until it loses power:
+        # after an interrupted session it may answer at any host speed, also
+        # one configured before a change. Try the configured speed first.
+        from petrel.hardware.dwin import dacai
+        self.bauds = (115200,)
+        if dacai.enabled() and isinstance(self.serial, serial.Serial):
+            self.bauds = tuple(dict.fromkeys(
+                (dacai.configured_baud(), dacai.DEFAULT_BAUD) + dacai.HOST_BAUDS))
+        self._baud_index = 0
 
     def accelerate(self):
         self.fast_until = time.monotonic() + 10
@@ -28,6 +37,10 @@ class PanelProbe:
             self.received = self.received[-7:]
         now = time.monotonic()
         if now >= self.next_send:
+            if len(self.bauds) > 1:
+                self.serial.baudrate = self.bauds[self._baud_index]
+                self._baud_index = (self._baud_index + 1) % len(self.bauds)
+                self.received.clear()
             if self.serial.write(self.REQUEST) != len(self.REQUEST):
                 raise OSError('Incomplete panel handshake write')
             self.next_send = now + (.15 if now < self.fast_until else 5)

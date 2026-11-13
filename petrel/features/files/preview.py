@@ -27,6 +27,9 @@ class FilePreviewMixin:
         self._sync_file_lifecycle()
         if not hasattr(self, '_thumbnail_cache'):
             self._thumbnail_cache = ThumbnailCache(self.pd.client)
+        # Rendering capability of the connected panel; a new panel connection
+        # changes _uart_epoch, which also clears thumbnails made for another one.
+        self._thumbnail_cache.opaque = getattr(getattr(self, 'lcd', None), 'OPAQUE_SRAM_JPEG', False) is True
         # File size/mtime identify replacements without flushing unrelated images.
         revision = self.pd.state.file_revision
         stamp = (getattr(self, '_uart_epoch', 0), self.pd.state.epoch, revision,
