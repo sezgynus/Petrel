@@ -39,7 +39,7 @@ config PETREL_DWIN
     help
       DWIN T5UIC1 panel with DWIN_SET resources and optional auxiliary UART.
 config PETREL_DACAI
-    bool "DACAI (Creality, e.g. Ender 3 Max Neo)"
+    bool "DACAI"
     help
       Some Creality printers ship a DWIN-compatible panel made by DACAI: its
       microSD card uses a "private" folder instead of "DWIN_SET". Petrel then
