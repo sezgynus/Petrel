@@ -7,7 +7,7 @@
 | Rehber | Kullanım amacı |
 |---|---|
 | [Yazıcı bağlantısı ve kurtarma](klipper-recovery_TR.md) | Olağan açılış bekleyişi, hata ayrıntıları ve korumalı restart eylemleri |
-| [Kurulum ve yapılandırma](installation_TR.md) | DWIN/DACAI seçimi, ortak kurulum, test dalı, güncelleme/geri dönüş ve sorun giderme |
+| [Kurulum ve yapılandırma](installation_TR.md) | DWIN/DACAI seçimi, ortak kurulum, güncelleme/geri dönüş ve sorun giderme |
 | [Kconfig yapılandırma menüsü](configuration_TR.md) | Menüde gezinme, ayarları kaydetme ve uygulama, isteğe bağlı bileşenler ve otomatik yapılandırma |
 | [DWIN yardımcı UART](dwin-uart_TR.md) | İsteğe bağlı Linux seri portunu kurma/kaldırma, programlardan erişim, baud hızları ve bağlantı sınırları |
 | [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Device, Info, ışık ve güç |

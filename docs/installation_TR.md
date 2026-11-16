@@ -33,30 +33,6 @@ Eski [bağlantı fotoğrafları ve GPIO çizimi](../images/README_TR.md), farkl�
 
 `sudo raspi-config` içinde seri donanımı etkinleştirin, seri giriş konsolunu kapatın ve yeniden başlatın. Pi ve işletim sisteminizde GPIO14/15'i hangi UART aygıtının kullandığını doğrulayın. Kurulum `/dev/ttyS0` önerir; kendi kurulumunuza uygun aygıtı seçin.
 
-## DACAI test dalı
-
-Bu rehber iki panelin ortak kurulumunu anlatır. DACAI için seçtiğiniz sürümde **Display panel → Panel type → DACAI** seçeneği bulunmalıdır. DACAI desteği ana sürüme alınmadan önce test için aşağıdaki dalı kullanın; destek yayımlandıktan sonra normal kurulum yolunu kullanabilirsiniz.
-
-Yeni kurulumda aşağıdaki **Kurulum** bölümündeki klonlama satırını bununla değiştirin:
-
-```bash
-git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git
-```
-
-Mevcut `~/Petrel` kurulumunda, yazıcı boşta iken ayarlarınızı yedekleyin ve:
-
-```bash
-cd ~/Petrel
-git rev-parse HEAD
-sudo systemctl stop Petrel.service
-git fetch origin
-git checkout feature/dacai-support
-git pull --ff-only
-./configure.sh
-```
-
-İlk komutun revizyon çıktısını geri dönüş için saklayın. Git yerel değişiklik/çakışma bildirirse durup çözün; dosyalarınızı silmeyin. Aşağıdaki panel seçimini kaydedip uyguladıktan sonra `./install.sh` ve `sudo systemctl restart Petrel.service` çalıştırın. Test dalının güncelleme/geri dönüş adımları [Güncelleme](#güncelleme) bölümündedir.
-
 ## Kurulum
 
 Komutları Pi/Linux host'un SSH terminalinde çalıştırın; Mainsail/Fluidd G-code konsolunda değil. Servisin sahibi olacak kullanıcıyla çalıştırın. Repo temiz olmalı ve `~/Petrel` konumunda bulunmalıdır:
@@ -188,20 +164,18 @@ Düzenleme sonrası `sudo systemctl restart Petrel.service` ile yeniden başlat�
 
 ## Güncelleme
 
-**Normal sürüm:** Aşağıdaki Moonraker/LCD güncelleme yolu `master` dalını izler. DACAI paneli için hedef sürümün DACAI sürücüsünü içerdiğinden emin olun.
-
-**Test dalı:** Moonraker güncelleyicisi `feature/dacai-support` dalını izlemez; depoyu geçersiz gösterebilir. Dalı değiştiren recovery seçeneği yerine, yazıcı boşta iken:
+Moonraker ve LCD güncelleyicileri her iki panel için de `master` dalını izler. Önceki DACAI test kurulumunu standart güncelleme yoluna geçirmek için yazıcı boşta iken şu komutları çalıştırın:
 
 ```bash
-cd ~/Petrel
-git rev-parse HEAD
-git pull --ff-only
-./install.sh
+cd ~/Petrel &&
+git fetch origin &&
+git switch master &&
+git pull --ff-only origin master &&
+./install.sh &&
 sudo systemctl restart Petrel.service
 ```
 
-Güncellemeden önceki revizyonu saklayın. Sorunda `git -C ~/Petrel checkout <revision>` ile **DACAI'de çalıştığı doğrulanmış** sürüme dönün; `~/Petrel` içinde `./install.sh` çalıştırıp servisi yeniden başlatın. Teste dönmek için `git checkout feature/dacai-support`, ardından `git pull --ff-only` kullanın. DACAI içermeyen eski `master` sürümü DACAI paneli için geri dönüş değildir. Gerçekten DWIN panele geçiyorsanız önce yapılandırmada **Panel type → DWIN T5UIC1** seçin. Panel kaynak kurtarması yazılım revizyonundan ayrıdır; [LCD uyumluluğuna](lcd-assets_TR.md) bakın.
-
+Geri dönüş için panelinizde çalıştığını doğruladığınız bir revizyon kullanın. DACAI panelinde bu revizyon DACAI sürücüsünü içermelidir. Panel kaynaklarını geri yüklemek ayrı bir işlemdir. [LCD uyumluluğuna](lcd-assets_TR.md) bakın.
 
 ### Güncelleme ve eski kurulumdan geçiş
 

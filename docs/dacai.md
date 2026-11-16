@@ -26,7 +26,7 @@ copy `firmware.zlib` and the `private` folder from that package to the root of a
 
 Run `./configure.sh`, open **Display panel**, choose **Panel type → DACAI** and optionally choose a faster **DACAI host UART speed**. Save, exit and confirm Apply. The settings are stored as `PETREL_DACAI=1` and `PETREL_DACAI_BAUD` in `Petrel.env`.
 
-First installation, panel selection, test-branch switching and software updates/rollback are covered in the [shared installation guide](installation.md). The [panel feature table](lcd-assets.md#panel-features) summarizes DWIN/DACAI differences. This reference retains firmware, recovery, storage measurements and protocol details.
+First installation, panel selection and software updates/rollback are covered in the [shared installation guide](installation.md). The [panel feature table](lcd-assets.md#panel-features) summarizes DWIN/DACAI differences. This reference retains firmware, recovery, storage measurements and protocol details.
 
 ### DWIN auxiliary UART
 

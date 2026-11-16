@@ -4,8 +4,6 @@
 
 This usage guide applies to both DWIN and DACAI. [Choose your panel](installation.md#choose-your-panel) during installation; menus and printer actions remain the same. Differences: DACAI uses its installed TrueType font, host-stepped icon animations and opaque print previews that may show thin colour fringes. The extra display UART is DWIN-only; connect NFC readers to the host on DACAI. Pi PWM buzzer, supported NFC functions, MMU and Spoolman do not depend on the panel choice. [Full feature table](lcd-assets.md#panel-features).
 
-On a test-branch installation, use [test-branch update instructions](installation.md#update) instead of the normal Info/Moonraker update action.
-
 ## Navigation and dashboard
 
 The **Device** tile opens **Device settings**, covering the panel brightness/dimming, buzzer, event sounds and NFC reader configuration.

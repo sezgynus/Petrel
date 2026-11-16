@@ -26,7 +26,7 @@ yazılımla doğrulandı.** İkonlar veya önizlemeler boş kalırsa önce panel
 
 `./configure.sh` çalıştırın, **Display panel** menüsünü açın, **Panel type → DACAI** seçin ve isterseniz daha hızlı bir **DACAI host UART speed** seçin. Kaydedin, çıkın ve Apply sorusunu onaylayın. Ayarlar `Petrel.env` içinde `PETREL_DACAI=1` ve `PETREL_DACAI_BAUD` olarak saklanır.
 
-İlk kurulum, panel seçimi, test dalına geçiş ve yazılım güncelleme/geri dönüş adımları artık [ortak kurulum rehberinde](installation_TR.md) yer alır. [Panel özellikleri tablosu](lcd-assets_TR.md#panel-özellikleri) DWIN/DACAI ayrımını özetler. Bu referans firmware, kurtarma, depolama ölçümleri ve protokol ayrıntılarını korur.
+İlk kurulum, panel seçimi ve yazılım güncelleme/geri dönüş adımları artık [ortak kurulum rehberinde](installation_TR.md) yer alır. [Panel özellikleri tablosu](lcd-assets_TR.md#panel-özellikleri) DWIN/DACAI ayrımını özetler. Bu referans firmware, kurtarma, depolama ölçümleri ve protokol ayrıntılarını korur.
 
 ### DWIN yardımcı UART
 

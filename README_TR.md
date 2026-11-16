@@ -65,7 +65,7 @@ Başlamadan önce [ekran/kaynaklar](docs/lcd-assets_TR.md) ve [bağlantıları](
 
 > **DACAI:** Petrel açılış/ortak resimleri ve ikon sayfalarını panelin kalıcı depolamasına yazar. DWIN_SET ve HZK font paketlerini kullanmayın; [DACAI firmware ve kaynak kurtarma](docs/dacai_TR.md) adımlarını izleyin. Pi yazılımını kaldırmak burada da stok görselleri geri getirmez.
 
-**DACAI geliştirme dalını deniyorsanız:** aşağıdaki normal klonlama satırı yerine `git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git` kullanın. Desteğin bulunduğu sürümü seçme ve güncelleme için [kurulum rehberine](docs/installation_TR.md#dacai-test-dalı) bakın.
+DACAI desteği `master` dalındaki standart kuruluma dahildir. Kurulum menüsünde **Display panel → Panel type → DACAI** seçin.
 
 Petrel'i kurun:
 

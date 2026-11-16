@@ -33,30 +33,6 @@ The old [wiring photos and GPIO drawing](../images/README.md) are historical ins
 
 In `sudo raspi-config`, enable serial hardware and disable the serial login console, then reboot. Confirm which UART device uses GPIO14/15 on your Pi and OS. The installer suggests `/dev/ttyS0`; choose the device appropriate for your installation.
 
-## DACAI test branch
-
-This guide covers both panels in one installation flow. For DACAI, the chosen release must contain **Display panel → Panel type → DACAI**. Before DACAI support reaches the main release, use the following branch for testing; once support is released, the normal installation path applies.
-
-For a new installation, replace the clone line in **Install** below with:
-
-```bash
-git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git
-```
-
-For an existing `~/Petrel` installation, back up settings while the printer is idle and run:
-
-```bash
-cd ~/Petrel
-git rev-parse HEAD
-sudo systemctl stop Petrel.service
-git fetch origin
-git checkout feature/dacai-support
-git pull --ff-only
-./configure.sh
-```
-
-Keep the first command's revision output for rollback. If Git reports local changes/conflicts, stop and resolve them without deleting your files. After saving and applying the panel selection below, run `./install.sh` and `sudo systemctl restart Petrel.service`. Test-branch updates/rollback are in [Update](#update).
-
 ## Install
 
 Run these commands in an SSH terminal on the Pi/Linux host, not the Mainsail/Fluidd G-code console. Run as the user who will own the service. The checkout must be clean and located at `~/Petrel`:
@@ -188,20 +164,18 @@ Restart after editing: `sudo systemctl restart Petrel.service`. Keep private key
 
 ## Update
 
-**Normal release:** The Moonraker/LCD update flow below follows `master`. For a DACAI panel, make sure the target release contains the DACAI driver.
-
-**Test branch:** Moonraker's updater does not follow `feature/dacai-support` and may mark the repository invalid. Instead of a recovery action that changes the branch, while idle run:
+Moonraker and LCD updates follow `master` for both panels. To move an earlier DACAI test installation to the standard update path, run these commands while the printer is idle:
 
 ```bash
-cd ~/Petrel
-git rev-parse HEAD
-git pull --ff-only
-./install.sh
+cd ~/Petrel &&
+git fetch origin &&
+git switch master &&
+git pull --ff-only origin master &&
+./install.sh &&
 sudo systemctl restart Petrel.service
 ```
 
-Keep the pre-update revision. If an update fails, use `git -C ~/Petrel checkout <revision>` to return to a revision **known to work on DACAI**, run `./install.sh` in `~/Petrel` and restart the service. Resume testing with `git checkout feature/dacai-support` then `git pull --ff-only`. An older `master` without the DACAI driver is not a rollback for a DACAI panel. If physically returning to a DWIN panel, first select **Panel type → DWIN T5UIC1** in configuration. Panel resource recovery is separate from software rollback; see [LCD compatibility](lcd-assets.md).
-
+For rollback, use a revision known to work with your panel. For DACAI, that revision must include the DACAI driver. Restoring panel resources is a separate operation. See [LCD compatibility](lcd-assets.md).
 
 ### Updates and migration from older installations
 

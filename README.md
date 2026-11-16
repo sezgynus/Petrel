@@ -65,7 +65,7 @@ Check [display/resources](docs/lcd-assets.md) and [wiring](docs/installation.md#
 
 > **DACAI:** Petrel writes boot/shared pictures and icon sheets to persistent panel storage. Do not use DWIN_SET or HZK font packages; use the [DACAI firmware and resource recovery instructions](docs/dacai.md). Removing the Pi software does not restore the stock artwork here either.
 
-**Testing the DACAI development branch:** replace the normal clone line below with `git clone --branch feature/dacai-support https://github.com/sezgynus/Petrel.git`. See [installation](docs/installation.md#dacai-test-branch) for choosing a release containing this support and updating a test checkout.
+DACAI support is included in the standard installation from `master`. Select **Display panel → Panel type → DACAI** in the configuration menu.
 
 Install Petrel:
 

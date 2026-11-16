@@ -7,7 +7,7 @@
 | Guide | Use it for |
 |---|---|
 | [Printer connection and recovery](klipper-recovery.md) | Normal startup delay, error details and guarded restart actions |
-| [Installation and configuration](installation.md) | DWIN/DACAI selection, shared installation, test branch, updates/rollback and troubleshooting |
+| [Installation and configuration](installation.md) | DWIN/DACAI selection, shared installation, updates/rollback and troubleshooting |
 | [Kconfig configuration menu](configuration.md) | Menu navigation, saving and applying settings, optional components and automated configuration |
 | [DWIN auxiliary UART](dwin-uart.md) | Optional Linux serial port installation/removal, application access, baud rates and transport limits |
 | [Daily use](user-guide.md) | Printing, movement, heating, calibration, Device, Info, light and power |

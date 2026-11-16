@@ -4,8 +4,6 @@
 
 Bu kullanım rehberi DWIN ve DACAI için ortaktır. Kurulumda [panelinizi seçin](installation_TR.md#panelinizi-seçin); menüler ve yazıcı işlemleri aynı kalır. Farklar: DACAI panelde kurulu TrueType fontunu kullanır, ikon animasyonlarını host ilerletir ve baskı önizlemeleri opaktır; ince renk saçakları görülebilir. Ekran yardımcı UART'ı yalnız DWIN'de kullanılabilir; DACAI'de NFC okuyucuyu host'a bağlayın. Pi PWM buzzer, desteklenen NFC işlevleri, MMU ve Spoolman panel seçiminden bağımsızdır. [Tam özellik tablosu](lcd-assets_TR.md#panel-özellikleri).
 
-Test dalındaki kurulumlarda normal Info/Moonraker güncellemesi yerine [test dalı güncelleme adımlarını](installation_TR.md#güncelleme) kullanın.
-
 ## Gezinme ve durum alanı
 
 **Device** simgesi **Device settings** menüsünü açar; panel parlaklık/karartma, buzzer, olay sesleri ve NFC okuyucu ayarları burada bulunur.
