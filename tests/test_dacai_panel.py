@@ -999,5 +999,47 @@ class DacaiConfigurationTests(unittest.TestCase):
         self.assertLess(check, script.index('dwin_uart_install.py'))
 
 
+class ArtworkToolTests(unittest.TestCase):
+    """tools/dacai_artwork.py uploads every picture exactly once."""
+
+    def setUp(self):
+        sprites._ATTEMPTS.clear()
+        self.set = sprites.SpriteSet([b'\xff\xd8a\xff\xd9'], {7: (piece(0, 0, 0, 20, 20),)})
+        self.calls = []
+        self.patches = [
+            patch('petrel.artwork.boot.sync', side_effect=self.record('boot')),
+            patch('petrel.artwork.shared.sync', side_effect=self.record('shared')),
+            patch('petrel.artwork.sprites.sync', side_effect=self.record('sprites')),
+            patch('petrel.artwork.sprites.load', return_value=self.set),
+            patch.dict('os.environ', {'PETREL_DACAI': '1'}),
+        ]
+        for item in self.patches:
+            item.start()
+            self.addCleanup(item.stop)
+
+    def record(self, name):
+        def call(lcd, *args, force=False, **kwargs):
+            self.calls.append((name, force))
+            return True
+        return call
+
+    def test_regular_driver_still_syncs_on_connect(self):
+        from test_t5uic1_driver import Port
+        DacaiDriver(None, connected_serial=Port())
+        self.assertEqual(self.calls, [('boot', False), ('sprites', False), ('shared', False)])
+
+    def test_tool_forces_each_upload_once(self):
+        from test_t5uic1_driver import Port
+        from tools import dacai_artwork
+        port = Port()
+        tool_class = dacai_artwork.upload_driver_class()
+        with patch.object(dacai_artwork, 'upload_driver_class',
+                          return_value=lambda serial_port: tool_class(serial_port, connected_serial=port)), \
+                patch('builtins.print'):
+            self.assertEqual(dacai_artwork.main(['--serial-port', 'fake']), 0)
+        self.assertEqual(self.calls, [('boot', True), ('shared', True), ('sprites', True)])
+        self.assertEqual(port.closed, 1)
+
+
 if __name__ == '__main__':
     unittest.main()
