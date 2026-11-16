@@ -27,6 +27,20 @@ if [[ -n "$(git -C "$REPO_DIR" status --porcelain)" ]]; then
     exit 1
 fi
 
+env_setting() {
+    [[ -f "$ENV_FILE" ]] || return 0
+    local value
+    value="$(sed -n "s/^$1=//p" "$ENV_FILE" | tail -n 1)"
+    value="${value%\"}"
+    printf '%s' "${value#\"}"
+}
+
+if [[ "$(env_setting PETREL_DACAI)" == 1 && "$(env_setting PETREL_AUX_UART)" == 1 ]]; then
+    echo "PETREL_DACAI=1 cannot be combined with PETREL_AUX_UART=1: a DACAI panel has no DWIN auxiliary UART." >&2
+    echo "Set PETREL_AUX_UART=0 in $ENV_FILE (or run ./configure.sh) and run the installer again." >&2
+    exit 1
+fi
+
 if [[ -n "${MOONRAKER_CONFIG:-}" ]]; then
     MOONRAKER_CONF="$MOONRAKER_CONFIG"
 elif [[ -f "$INSTALL_HOME/printer_data/config/moonraker.conf" ]]; then

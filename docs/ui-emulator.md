@@ -2,6 +2,8 @@
 
 [English](ui-emulator.md) · [Türkçe](ui-emulator_TR.md) · [Contributing](../CONTRIBUTING.md)
 
+Capture and remote display work on both panels. **Display panel** selects the driver, which announces its protocol. The emulator handles DACAI `0x70`, inverted `0x27` bit 7, extra row, `0x09` moves and icon sheets. Physical DACAI TrueType typography and transfer/rendering time require hardware checks. [Panel differences](lcd-assets.md#panel-features).
+
 ## What it is for
 
 The optional emulator captures the screens drawn by the running Petrel service. Use it to review layouts, refresh documentation and report visual bugs as original-size images. It follows the real LCD UI; it is not a standalone printer simulator. A separate opt-in live browser viewer is described below. Navigate with the physical encoder, then request a capture over SSH.

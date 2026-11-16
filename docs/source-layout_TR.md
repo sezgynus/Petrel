@@ -4,6 +4,11 @@
 
 Kaynak ağacı mevcut kodu özellik ve sorumluluğa göre gruplar. Organizasyon refactoring'i çalışma davranışını korur: aynı ekran ve yazıcı nesneleri, worker sahipliği, komut korumaları, olay akışı, ayarlar, ekran koordinatları ve protokol yükleri kullanılmaya devam eder. Metot gövdeleri ve sınıf durumu, mantıkları yeniden yazılmadan taşınır. Yalnızca dosya adı veya satır sayısı, bütünlüklü bir modülü bölmek için gerekçe değildir.
 
+## Panel sürücülerinin sınırı
+
+`hardware/dwin/driver.py` DWIN sürücüsüdür; `hardware/dwin/dacai.py` DACAI komut farklarını uyarlar. Ortak ikon kaynaklarından DACAI sayfalarını `artwork/sprites.py` üretir. Özellik kodu sürücü yeteneklerini kullanır; protokol farklarını ekranlara dağıtmayın. [DACAI geliştirici sözleşmesi](dacai_TR.md#geliştiriciler-için).
+
+
 ## Depo haritası
 
 ```text

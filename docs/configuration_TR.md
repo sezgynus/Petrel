@@ -10,12 +10,12 @@ plan işi eklemez.
 
 ![Petrel Kconfig ana menüsü](assets/configuration/main-menu.png)
 
-Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
+Görseller güncel Kconfig terminal arayüzünü temiz ilk-kurulum Kconfig varsayılanlarıyla gösterir; ayrıca DACAI seçili bir örnek sunulur; özel makine ortamı içeri alınmaz. Boş yollar kendi kurulumunuz için seçilmelidir. Mevcut kurulumlar kayıtlı değerlerini alır; encoder ve diğer ayarlar farklı olabilir, Apply eski kablolamayı sessizce değiştirmez. Menü etiketleri iki dilde de İngilizcedir.
 
 ## Gezinme ve uygulama
 
 Oklar ve Enter ile gezinin/düzenleyin, Space ile seçenek değiştirin, `?` ile yardımı
-açın, `S` ile kaydedin, `Q` ile çıkın. Bağlantı/güç, enkoder/preset, bakım sayaçları,
+açın, `S` ile kaydedin, `Q` ile çıkın. Bağlantı/güç, panel seçimi, enkoder/preset, bakım sayaçları,
 donanımsal PWM buzzer, Klipper virtual buzzer, ekran araçları, DWIN yardımcı UART, NFC ve uygulama seçenekleri menüleri bulunur.
 Kapalı özelliğe bağlı ayarlar gizlenir; tekrar açıldıklarında kayıtlı değerleri korunur.
 
@@ -40,6 +40,20 @@ ayarlayın. **Physical display UART**, host üzerinde ekrana bağlı porttur; bu
 `/dev/ttyDWIN0` veya takma adını girmeyin.
 
 ![Moonraker, fiziksel ekran UART'ı ve güç ayarları](assets/configuration/connections-power.png)
+
+### Display panel
+
+**Panel type** seçeneğini Enter ile açın, ok tuşlarıyla **DWIN T5UIC1** veya **DACAI** seçin ve Enter ile onaylayın. Aynı anda yalnız bir panel seçilir; varsayılan DWIN'dir. DACAI ekranlarında (microSD klasörü `private`, ör. Ender 3 Max Neo) **DACAI host UART speed** ayarı görünür (115200, 230400, 460800 veya 921600). Ayrıntılar [DACAI rehberindedir](dacai_TR.md).
+
+Panel otomatik algılanmaz. İlk kurulum ve güncelleme sonrası seçimi kontrol edin; mevcut DWIN ayarları DACAI'ye kendiliğinden geçmez. İlk denemede **115200** kullanın; 230400/460800/921600 daha hızlı görsel yükleyebilir. Hız panelin enerjisi kesilene kadar korunur; Petrel normal çıkışta 115200'e döndürür ve açılışta yapılandırılmış hızdan başlayıp desteklenen dört hızı dener.
+
+DACAI seçimi **PETREL_DACAI=1** ve **PETREL_DACAI_BAUD** olarak kaydedilir. Apply yardımcı UART'ı kapatıp kurulu broker'ı kaldırır; o portu kullanan istemcileri önce kapatın. Host'a bağlı NFC ve diğer ortak özellikler korunur. İki UART seçeneğini birlikte etkinleştiren otomatik yapılandırma reddedilir. [Panel özellikleri](lcd-assets_TR.md#panel-özellikleri).
+
+Çalışma zamanı ayarı DWIN için `PETREL_DACAI=0`, DACAI için `PETREL_DACAI=1` olarak korunur. Mevcut ayarlar ve eski `CONFIG_PETREL_DACAI=y/n` dosyaları uyumludur. Dışa aktarılan Kconfig dosyaları açık DWIN/DACAI seçimini içerir; ikisini birden seçen veya ikisini de seçmeyen dosyalar reddedilir.
+
+![Varsayılan DWIN T5UIC1 panel seçimi](assets/configuration/display-panel.png)
+
+![DACAI seçiliyken görünen host UART hızı](assets/configuration/display-panel-dacai.png)
 
 ### Encoder and presets
 
@@ -82,6 +96,8 @@ Linux seri portunun kurulumunu açın veya kapatın. Aşağıdaki varsayılan ö
 Kurulumu seçmek için işaretleyin; kaydedin, çıkın ve Apply sorusunu onaylayın. İşareti kaldırıp
 uygulamak portu kaldırır. Donanım konumu, kullanım ve sınırlar için
 [UART rehberine](dwin-uart_TR.md) bakın.
+**Panel type → DACAI** seçiliyken bu seçenek gizlenir; DACAI sürücüsü bu yardımcı UART yolunu desteklemez
+([ayrıntılar](dacai_TR.md#dwin-yardımcı-uart)).
 
 ![Kconfig içinde varsayılan kapalı DWIN yardımcı UART](assets/configuration/auxiliary-uart.png)
 
@@ -125,12 +141,14 @@ atlar. API anahtarı ve menüde yer almayan diğer ayarlar hedef makineden korun
 
 ## NFC
 
+**İki panelde de kullanılabilir:** DACAI'de okuyucuyu host'a doğrudan bağlayın. Ekranın yardımcı UART'ına bağlı okuyucu yolu yalnız DWIN içindir.
+
 **NFC reader support (libnfc)** çalışma bağımlılığını kurar; varsayılan kapalıdır. Okuyucuyu veya kablolamasını seçmez, DWIN yardımcı UART gerektirmez. Model, arayüz, port ve Test connection ayrıca **Home → Device → NFC Settings** üzerinden ayarlanır. [NFC kullanımı](user-guide_TR.md#nfc-ve-rfid) ve [LCD örnekleri](screenshots_TR.md#nfc-kartları-ve-makara-atama) çalışma akışını anlatır. Kurulum seçeneği kapatıldığında okuyucu tercihleri korunarak yönetilen bağımlılık kaldırılır.
 
 ![Kconfig isteğe bağlı NFC okuyucu bağımlılığı](assets/configuration/nfc.png)
 
 ## Yapılandırma görsellerini yeniden üretme
 
-`python tools/render_configuration_screenshots.py`, gerçek menuconfig curses çıktısını izole Linux PTY içinde yakalar. Kconfiglib 14.1.0, pyte 0.8.2, Pillow ve DejaVu Sans Mono sistem fontu gerekir. Kurulu ortam dosyası okunmaz, yapılandırma kaydedilmez/uygulanmaz; on görsel de hazırlanmadan yayımlanmış dosyalar değiştirilmez. LCD emülatöründen ayrı bir araçtır. CI tam doküman yayınında çalıştırır.
+`python tools/render_configuration_screenshots.py`, gerçek menuconfig curses çıktısını izole Linux PTY içinde yakalar. Kconfiglib 14.1.0, pyte 0.8.2, Pillow ve DejaVu Sans Mono sistem fontu gerekir. Kurulu ortam dosyası okunmaz, yapılandırma kaydedilmez/uygulanmaz; on iki görsel de hazırlanmadan yayımlanmış dosyalar değiştirilmez. LCD emülatöründen ayrı bir araçtır. CI tam doküman yayınında çalıştırır.
 
 ![Uygulanmadan gösterilen Apply/restart tercihi](assets/configuration/apply-options.png)

@@ -4,6 +4,10 @@
 
 The source tree groups existing code by feature and responsibility. The organization refactor preserves runtime behavior: the same display and printer objects, worker ownership, command guards, event flow, settings, screen coordinates and protocol payloads remain in use. Method bodies and class state are moved without rewriting their logic. A filename or line count alone is not a reason to split a cohesive module.
 
+## Panel driver boundary
+
+`hardware/dwin/driver.py` owns the DWIN driver; `hardware/dwin/dacai.py` adapts DACAI command differences. `artwork/sprites.py` builds DACAI sheets from shared icon sources. Feature code uses driver capabilities; do not scatter protocol differences through views. See the [DACAI developer contract](dacai.md#for-developers).
+
 ## Repository map
 
 ```text

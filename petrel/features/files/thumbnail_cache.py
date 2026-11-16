@@ -12,8 +12,10 @@ from petrel.features.files.metadata import PreviewData
 class ThumbnailCache:
     capacity = 32768
 
-    def __init__(self, client, loader=None):
+    def __init__(self, client, loader=None, *, opaque=False):
         self.client = client
+        # The connected panel's OPAQUE_SRAM_JPEG rendering capability.
+        self.opaque = opaque
         self.loader = loader or self._load_async
         self.entries = OrderedDict()
         self.details = OrderedDict()
@@ -30,7 +32,8 @@ class ThumbnailCache:
         future = Future()
         def work():
             try:
-                future.set_result(load_preview(self.client, key[0], size=key[4]) if len(key)>4 else load_preview(self.client, key[0]))
+                size = {'size': key[4]} if len(key) > 4 else {}
+                future.set_result(load_preview(self.client, key[0], opaque=self.opaque, **size))
             except Exception as error:
                 future.set_exception(error)
         Thread(target=work, name='thumbnail-loader', daemon=True).start()

@@ -70,6 +70,16 @@ class PanelAssets:
                 raise ValueError(f'Icon {icon} dimensions differ from its directory')
             return panel_colors(image)
 
+    def sprite_sheet(self, slot):
+        """DACAI icon sprite sheet stored in picture ``slot`` (16 and up)."""
+        from petrel.artwork import sprites
+        current = sprites.load(self.root / 'assets/icons')
+        number = slot - sprites.FIRST_SLOT
+        if not 0 <= number < len(current.payloads):
+            raise ValueError(f'No sprite sheet for picture slot {slot}')
+        with Image.open(BytesIO(current.payloads[number])) as image:
+            return panel_colors(image)
+
     def picture(self, slot):
         paths = {0: 'assets/petrel_bootsplash.jpg', 1: 'assets/petrel_shared.jpg'}
         if slot not in paths:

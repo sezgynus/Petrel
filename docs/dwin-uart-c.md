@@ -2,6 +2,8 @@
 
 [Auxiliary UART](dwin-uart.md) · [Türkçe](dwin-uart-c_TR.md)
 
+**DWIN T5UIC1 only.** DACAI does not support this auxiliary UART path; selecting DACAI removes an installed broker. Host-connected NFC is independent. [Panel features](lcd-assets.md#panel-features).
+
 The optional UART installer on `master` builds and installs the native C broker.
 The Python reference implementation remains in the source tree; it is not a
 selectable runtime on current master. The TTY, alias, kernel module, display

@@ -2,7 +2,6 @@
 """Kconfig terminal frontend with explicit, reversible installation/apply."""
 import argparse
 from contextlib import contextmanager
-import fcntl
 import json
 import math
 import os
@@ -23,7 +22,8 @@ if str(ROOT) not in sys.path:
 from tools.axis_travel_install import install as install_axis
 from tools.klipper_buzzer_install import install as install_buzzer
 
-BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC', 'RESTART_PETREL'}
+BOOLS = {'PETREL_AXIS_TRAVEL', 'PETREL_KLIPPER_BUZZER', 'PETREL_EMULATOR', 'PETREL_REMOTE', 'PETREL_AUX_UART', 'PETREL_NFC',
+         'PETREL_DACAI', 'RESTART_PETREL'}
 PATHS = {'PETREL_SETTINGS_FILE', 'PETREL_KLIPPER_DIR', 'PETREL_PRINTER_CONFIG'}
 STRINGS = {'MOONRAKER_URL', 'PETREL_REQUEST_TIMEOUT', 'PETREL_SERIAL_PORT',
            'PETREL_POWER_DEVICE', 'PETREL_REMOTE_HOST'} | PATHS
@@ -31,7 +31,11 @@ BUZZER_GPIO_CHOICES = {'PETREL_BUZZER_GPIO12': 12, 'PETREL_BUZZER_GPIO13': 13,
                        'PETREL_BUZZER_GPIO18': 18, 'PETREL_BUZZER_GPIO19': 19}
 INTS = {'ENCODER_A_GPIO': (0, 65535), 'ENCODER_B_GPIO': (0, 65535),
         'PETREL_BUTTON_PIN': (0, 65535), 'PETREL_POWER_ON_HOLD_MS': (0, 2147483647),
-        'PETREL_REMOTE_PORT': (1, 65535)}
+        'PETREL_REMOTE_PORT': (1, 65535), 'PETREL_DACAI_BAUD': (115200, 921600)}
+DACAI_BAUDS = ('115200', '230400', '460800', '921600')
+DACAI_AUX_CONFLICT = ('A DACAI panel has no DWIN auxiliary UART: disable '
+                      'PETREL_AUX_UART or PETREL_DACAI')
+PANEL_CHOICES = ('PETREL_DWIN', 'PETREL_DACAI')
 SYMBOLS = BOOLS | STRINGS | INTS.keys() | BUZZER_GPIO_CHOICES.keys()
 RUNTIME = (SYMBOLS - BUZZER_GPIO_CHOICES.keys()
            - {'ENCODER_A_GPIO', 'ENCODER_B_GPIO', 'RESTART_PETREL'}) | {'PETREL_BUZZER_GPIO'}
@@ -89,7 +93,8 @@ def defaults(home):
                 PETREL_AXIS_TRAVEL='y', PETREL_KLIPPER_BUZZER='y', PETREL_KLIPPER_DIR=str(home / 'klipper'),
                 PETREL_PRINTER_CONFIG=str(home / 'printer_data/config/printer.cfg'),
                 PETREL_EMULATOR='n', PETREL_REMOTE='n', PETREL_REMOTE_HOST='0.0.0.0',
-                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n', RESTART_PETREL='y')
+                PETREL_REMOTE_PORT='8088', PETREL_AUX_UART='n', PETREL_NFC='n',
+                PETREL_DACAI='n', PETREL_DACAI_BAUD='115200', RESTART_PETREL='y')
 
 
 def normalize_bool(value):
@@ -141,6 +146,8 @@ class Configuration(kconfiglib.Kconfig):
                 continue
             if not self.syms[name].set_value(value):
                 raise ValueError('Invalid existing setting: ' + name)
+        # Keep the installed runtime flag compatible with the panel choice.
+        self.syms['PETREL_DACAI' if values['PETREL_DACAI'] == 'y' else 'PETREL_DWIN'].set_value('y')
         pin = int(values['PETREL_BUZZER_GPIO'])
         matching = [name for name, candidate in BUZZER_GPIO_CHOICES.items()
                     if candidate == pin]
@@ -155,13 +162,43 @@ class Configuration(kconfiglib.Kconfig):
 
 def config_text(values):
     """Full seed includes hidden preferences so toggling their parent restores them."""
-    lines = []
+    lines = ['CONFIG_PETREL_DWIN=' + ('n' if values['PETREL_DACAI'] == 'y' else 'y') + '\n']
     for name in sorted(SYMBOLS):
         value = ('y' if int(values['PETREL_BUZZER_GPIO']) == BUZZER_GPIO_CHOICES[name] else 'n') if name in BUZZER_GPIO_CHOICES else values[name]
         if name in STRINGS:
             value = '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
         lines.append('CONFIG_' + name + '=' + value + '\n')
     return ''.join(lines)
+
+
+def load_selection(kconf, path):
+    """Load an overlay, including legacy DACAI toggles, without ambiguous choices."""
+    requested = path.read_text()
+    panel = {}
+    for line in requested.splitlines():
+        match = re.fullmatch(r'CONFIG_(PETREL_DWIN|PETREL_DACAI)=([yn])\s*', line)
+        unset = re.fullmatch(r'# CONFIG_(PETREL_DWIN|PETREL_DACAI) is not set\s*', line)
+        if match or unset:
+            name, value = (match.group(1), match.group(2)) if match else (unset.group(1), 'n')
+            if name in panel and panel[name] != value:
+                raise ValueError('Conflicting panel type assignments')
+            panel[name] = value
+    if len(panel) == 2 and len(set(panel.values())) == 1:
+        raise ValueError('Choose exactly one panel type: DWIN or DACAI')
+    kconf.load_config(str(path), replace=False)
+    if kconf.warnings or kconf.missing_syms:
+        raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
+    if panel:
+        # A legacy CONFIG_PETREL_DACAI=n must also switch an installed DACAI to DWIN.
+        chosen = next((name for name, value in panel.items() if value == 'y'), None)
+        if chosen is None:
+            chosen = next(name for name in PANEL_CHOICES if name not in panel)
+        kconf.syms[chosen].set_value('y')
+    if (kconf.syms['PETREL_DACAI'].str_value == 'y'
+            and re.search(r'^CONFIG_PETREL_AUX_UART=y\s*$', requested, re.MULTILINE)):
+        # Kconfig would silently drop the hidden option; refuse instead.
+        raise ValueError(DACAI_AUX_CONFLICT)
+    return collect(kconf)
 
 
 def validate(values):
@@ -193,6 +230,10 @@ def validate(values):
     for name in PATHS:
         if not Path(values[name]).is_absolute():
             raise ValueError(name + ' must be an absolute path')
+    if values['PETREL_DACAI_BAUD'] not in DACAI_BAUDS:
+        raise ValueError('DACAI baud must be one of ' + ', '.join(DACAI_BAUDS))
+    if values['PETREL_DACAI'] == 'y' and values['PETREL_AUX_UART'] == 'y':
+        raise ValueError(DACAI_AUX_CONFLICT)
     if values['PETREL_REMOTE'] == 'y' and not values['PETREL_REMOTE_HOST'].strip():
         raise ValueError('Remote bind address cannot be empty')
 
@@ -397,10 +438,7 @@ def main():
             atomic_private(args.export_config, config_text(values))
             return 0
         if args.apply_config:
-            kconf.load_config(str(args.apply_config), replace=False)
-            if kconf.warnings or kconf.missing_syms:
-                raise ValueError('Invalid or unknown settings in the supplied Kconfig file')
-            selected = collect(kconf)
+            selected = load_selection(kconf, args.apply_config)
         else:
             if not sys.stdin.isatty() or not sys.stdout.isatty():
                 raise ValueError('A terminal is required. Use --apply-config FILE for explicit unattended configuration.')
@@ -411,6 +449,7 @@ def main():
         validate(selected)
         config_dir = env_file.parent
         config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        import fcntl  # Linux only; imported here so the helpers stay testable elsewhere.
         with (config_dir / 'configure.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             apply(selected, repo=args.repo, home=args.home, user=args.user,

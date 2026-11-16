@@ -2,6 +2,8 @@
 
 [English](CONTRIBUTING.md) · [Türkçe](CONTRIBUTING_TR.md) · [Documentation](docs/README.md)
 
+For panel changes use the [shared feature table](docs/lcd-assets.md#panel-features) and [DACAI developer contract](docs/dacai.md#for-developers). Feature code must use driver APIs and `OPAQUE_SRAM_JPEG`/`PANEL_PROTOCOL` capabilities, not raw opcodes or environment-based panel selection. Record DWIN/DACAI hardware acceptance separately; emulator success is not physical acceptance.
+
 ## Report a bug or suggest a feature
 
 Open a GitHub issue describing what you tried, what you expected and what happened. Include the Petrel revision, Pi/OS, display model, relevant Klipper/Happy Hare versions, reproduction steps and a short service-log excerpt. For visual issues, add an original-size screenshot and, when relevant, a photo of the physical display. Remove credentials and private network information.
@@ -37,6 +39,8 @@ On an installed Pi, the existing application environment contains the runtime de
 ```
 
 For manual application testing, stop the installed service first so only one process uses the UART and encoder. Supply your own connection/pin values; running `run.py` directly does not read the service's environment file and its bare UART/button defaults differ from the installer:
+
+**DACAI manual run:** Before `run.py`, use `export PETREL_DACAI=1 PETREL_DACAI_BAUD=115200` and `unset PETREL_DWIN_SOCKET`; the broker selection below does not apply to DACAI. Select `PETREL_DACAI=0` for DWIN. Direct runs do not load the service environment automatically.
 
 ```bash
 sudo systemctl stop Petrel.service

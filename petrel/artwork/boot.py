@@ -35,7 +35,7 @@ def sync(lcd, source=SOURCE, *, force=False):
         if lcd.read_flash(ADDRESS, SIZE) != invalid:
             raise RuntimeError('Boot artwork metadata invalidation failed')
     logging.info('Uploading Petrel boot artwork to picture slot 0')
-    lcd.write_sram(0, data)
+    lcd.write_sram(0, lcd.prepare_picture(data))
     lcd.serial.flush()
     time.sleep(.1)
     _attempts.add(record)

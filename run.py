@@ -67,7 +67,9 @@ def parse_args(argv=None):
             raise ValueError('Power-on hold time must be zero or greater')
         if not 1 <= args.remote_port <= 65535:
             raise ValueError('Remote display port must be 1..65535')
-    except (TypeError, ValueError) as error:
+        from petrel.hardware.dwin import dacai
+        dacai.check_transport()
+    except (TypeError, ValueError, RuntimeError) as error:
         parser.error(str(error))
     return args
 

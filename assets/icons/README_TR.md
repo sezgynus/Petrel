@@ -2,6 +2,10 @@
 
 [English](README.md) · [Türkçe](README_TR.md)
 
+## Ortak kaynaklar, panele özel paketleme
+
+İkon ID'leri ve JPEG/SVG kaynakları ortaktır. Aşağıdaki ICO, 32 KiB bloklar, PETICO06 ve native animasyonlar **DWIN** yolunu anlatır. DACAI `petrel/artwork/sprites.py` kullanır: şu anda 16+ resimlerde sekiz 272×480 sayfa; NFC kareleri en yakın önceki kare ve değişen dikdörtgen olarak saklanır. Her NFC animasyonu tek sayfada kalır; kareleri host ilerletir. Kontrol noktaları Data Flash `0x0600`–`0x083F` aralığındadır. DWIN ICO dosyasını DACAI'ye yüklemeyin. Kaynak değişikliğinde iki paketi ve fiziksel panelleri doğrulayın; DWIN paket boyutu DACAI depolamasını doğrulamaz. [DACAI ayrıntıları](../../docs/dacai_TR.md).
+
 Kütüphanede **186 ikon, 0–185 ID’leri** bulunur. **186–255 boştur**; sonraki ikonu **186** ID’siyle ekleyip sırayla devam edin. Dosya adları sıfır dolgulu olmalıdır (`186.jpg`, `assets/icon-source/186.svg`). UI ve üretim araçlarını `petrel/artwork/resources.py` sabitlerine bağlayın. [İlk ID taşıma haritası](id-migration.json) ilk geçişi kaydeder. Sonraki [eksen tekilleştirme haritası](id-deduplication.json), 212 ID’li dizini ara 209 ID’li dizine taşır; 42→31, 43→32 ve 44→33 ortak kullanımlarını içerir. Ardından [native onay taşıması](id-native-confirm.json), eski 49 numaralı yazılı butonla birlikte 16–23 aralığındaki kullanılmayan sekiz Print ikonunu kaldırır; dokuz boşluğu tek nihai haritada kapatır. Bunlar inceleme kayıtlarıdır; çalışma zamanında ID çevirisi yapılmaz.
 
 İkinci denetimde kullanılmayan eski açılış çubuğu (16) ve ABS ön ısıtma ikonu (21) kaldırıldı. Makara flanşları dahil 12 özdeş JPEG/SVG kopyası birleştirildi. **14 ID ve 12.868 JPEG baytı** kazanıldı. [Taşıma haritası](id-redundancy-cleanup.json) değişiklikleri kaydeder.
@@ -53,7 +57,7 @@ Elle tanılama yüklemesinden önce Petrel’i durdurun. `tools/reload_icons.py`
 | Bed Mesh menüsü | 142 | `ICON_BED_MESH` sabiti |
 | Fan; açılış | 166–173; 181–185 | Native animasyon kanalları 1 / 0 |
 
-Telefon paylaşımı sunucuda kare zamanlayıcısı olmadan 2,4 saniyede döner. Okuma, hata, iptal ve pencere değişimi animasyonu durdurur. Yetenek keşfi Software bölümündeki Petrel sürümünden önceki küçük NFC kontrolünün görünürlüğünü belirler; QR altında ek paylaşım satırı yoktur. Paylaşım hatasında ilk kare sabit gösterilir.
+Telefon paylaşımı DWIN'de host kare zamanlayıcısı olmadan 2,4 saniyede döner; DACAI'de aynı kareleri host ilerletir. Okuma, hata, iptal ve pencere değişimi animasyonu durdurur. Yetenek keşfi Software bölümündeki Petrel sürümünden önceki küçük NFC kontrolünün görünürlüğünü belirler; QR altında ek paylaşım satırı yoktur. Paylaşım hatasında ilk kare sabit gösterilir.
 
 Makara ve genel kart ataması ortak yakalama popup’ını kullanır. Emergency Assign/Replace kart karelerini, makara ataması makara karelerini kullanır. Tıklama iptal eder; okuma, açık UID/kayıt onayından önce animasyonu durdurur. Yalnız okuma Spoolman ataması yazmaz. Güç pencereleri, bağlantı kapanması ve ekran değişimi animasyonu durdurur/temizler; bekleyen yakalama kaynak ekrana dönüldüğünde sürer veya tamamlanır. Yeniden çizim ve enkoder hareketi yakalamayı baştan başlatmaz.
 

@@ -2,6 +2,8 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Görüntü alma rehberi](../../docs/ui-emulator_TR.md)
 
+Aşağıdaki HZK ve ICO dosyaları DWIN kaynaklarıdır; DACAI'ye yüklenmez. DACAI sürücüsü `PANEL_PROTOCOL` bildirir; emülatör sayfalarını ve komutlarını yorumlar. Fiziksel panel `private/truefont` TrueType kullanır. Emülatör yazı görünümü ve hızı fiziksel çizimi veya performansı kanıtlamaz. [Panel karşılaştırması](../../docs/lcd-assets_TR.md#panel-özellikleri).
+
 ## Eşleşen kaynakları seçme
 
 Bu dosyalar Pi üzerinde ekran görüntüsü çiziminde kullanılır. Emülatörü açmak bunları fiziksel ekrana kurmaz veya ekranın font/ikonlarını değiştirmez.

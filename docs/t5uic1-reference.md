@@ -2,6 +2,8 @@
 
 [Documentation index](README.md) · [Türkçe dizin](README_TR.md)
 
+**Scope: DWIN T5UIC1 only.** DACAI emulates part of this protocol but changes command semantics, storage and font handling. Use the [DACAI protocol differences](dacai.md#differences-from-dwin-t5uic1) rather than applying DWIN firmware, ICO, auxiliary-UART or memory assumptions to DACAI.
+
 Optional technical reference for panel firmware and resource work. For installation and everyday controls, start with the [user guides](README.md#user-guides).
 
 Petrel targets the DWIN **T5UIC1** command-driven display used by the

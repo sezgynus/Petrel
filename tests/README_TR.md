@@ -2,6 +2,10 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Katkı](../CONTRIBUTING_TR.md)
 
+## DWIN ve DACAI doğrulaması
+
+`test_dacai_panel.py`; protokol farklarını, sayfaları/eşitleme hatalarını, host animasyonlarını, önizlemeleri, emülatörü ve yardımcı UART dışlamasını kapsar. İki panelde kurulum/panel seçimi, restart, ikonlar, NFC animasyonları ve önizlemeleri fiziksel olarak kontrol edin. DACAI'de hız değişimi, güç kesme, çökme sonrası toparlanma, yarım yükleme ve SD sonrası yeniden yüklemeyi de doğrulayın. [Referans donanım/firmware kapsamını](../docs/dacai_TR.md) koruyun; otomatik testler fiziksel kabul değildir.
+
 ## Otomatik kontrolleri çalıştırma
 
 Uygulama bağımlılıkları kurulu olarak repo kökünden:

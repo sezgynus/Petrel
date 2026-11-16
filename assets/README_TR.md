@@ -2,6 +2,12 @@
 
 [English](README.md) · [Türkçe](README_TR.md) · [Katkı](../CONTRIBUTING_TR.md)
 
+## Panele göre kaynak yolu
+
+JPEG ikonları, açılış ve ortak görseller iki panelde paylaşılır; yükleme biçimi farklıdır. DWIN ikonları ICO kütüphanesi 2/slot 2–15'e paketler. DACAI aynı kaynakları şu anda sekiz sayfaya dönüştürüp resim 16 ve üzerine yükler; animasyonları host ilerletir. Açılış/ortak resimler ikisinde de 0/1'dir. DACAI resimleri `lcd.prepare_picture()` ile uyarlanır (baseline 4:2:0, en çok 32.764 bayt; 32 KB'ye dolgulu).
+
+Aşağıdaki ICO blok ve manuel araç anlatımları **yalnız DWIN** içindir. DACAI'de `flash_icon_library.py` veya `reload_icons.py` kullanmayın; [DACAI kurtarma aracını](../docs/dacai_TR.md#microsd-güncellemesinden-sonra) kullanın. Doğrulanmış sayfa eşitlemesi tamamlanana kadar DACAI ikonları atlanır; yerel ikonlara geri dönüş yapılmaz. [Ortak uyumluluk rehberi](../docs/lcd-assets_TR.md).
+
 ## Bu klasördeki dosyalar
 
 | Dosya | Amaç |
@@ -14,7 +20,7 @@
 | [emulator/](emulator/README_TR.md) | Ekran görüntüleri için bilgisayar tarafı stok ikon ve font girdileri |
 | [stock-dwin/](stock-dwin/README_TR.md) | Stok LCD firmware'ini ve görsellerini geri yüklemek için orijinal Creality DWIN_SET paketi |
 
-Açılış JPEG’i panelin 0 numaralı resim slotu için 480×272 boyutundadır. Önbellek kopyası olmadan doğrudan gösterilir. Açılış görselinin senkronizasyonundan sonra bootsplash, ilerleme çubuğu ve yükleniyor animasyonu ikon kütüphanesi hazırlığı ve kontrollerinden önce gösterilir. Değişiklik yoksa ikon senkronizasyonu animasyonu durdurmaz; gerçek ikon yüklemesinde geçici olarak durdurulur ve sonraki açılış aşamasında yeniden başlatılır.
+**DWIN açılış akışı:** Açılış JPEG’i panelin 0 numaralı resim slotu için 480×272 boyutundadır. Önbellek kopyası olmadan doğrudan gösterilir. Açılış görselinin senkronizasyonundan sonra bootsplash, ilerleme çubuğu ve yükleniyor animasyonu ikon kütüphanesi hazırlığı ve kontrollerinden önce gösterilir. Değişiklik yoksa ikon senkronizasyonu animasyonu durdurmaz; gerçek ikon yüklemesinde geçici olarak durdurulur ve sonraki açılış aşamasında yeniden başlatılır.
 
 Değişen açılış görseli ilk LCD bağlantısında otomatik olarak resim slotu 0’a yüklenir. Flash adresi `0x0120` üzerindeki doğrulanmış parmak izi tekrar yazmayı önler; JPEG baseline 480×272 biçiminde ve en fazla 32767 bayt olmalıdır.
 
@@ -38,7 +44,7 @@ Kullanıcı arayüzü ekran görüntüleri bu görsel klasörüne değil `docs/a
 
 ## Panel kaynaklarını yeniden yükledikten sonra
 
-Panel kaynaklarını yeniden kurduktan sonra yönetilen ikonları SSH üzerinden servis kullanıcısı olarak zorla yeniden yükleyin:
+**DWIN panel kaynaklarını** yeniden kurduktan sonra yönetilen ikonları SSH üzerinden servis kullanıcısı olarak zorla yeniden yükleyin:
 
 ```bash
 sudo systemctl stop Petrel.service
