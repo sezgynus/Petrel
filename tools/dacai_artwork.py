@@ -20,14 +20,34 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+def upload_driver_class():
+    """DacaiDriver that connects without the startup artwork sync.
+
+    The regular startup sync would upload changed pictures once and main()
+    would force them again, so every changed picture was written twice.
+    """
+    from petrel.hardware.dwin.dacai import DacaiDriver
+
+    class ArtworkUploadDriver(DacaiDriver):
+        def _startup_sync_boot_artwork(self):
+            pass
+
+        def _startup_sync_icons(self):
+            pass
+
+        def _startup_sync_shared_artwork(self):
+            pass
+
+    return ArtworkUploadDriver
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--serial-port', default=os.environ.get('PETREL_SERIAL_PORT', '/dev/ttyS0'))
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(message)s')
     from petrel.artwork import boot, shared
-    from petrel.hardware.dwin.dacai import DacaiDriver
-    lcd = DacaiDriver(args.serial_port)
+    lcd = upload_driver_class()(args.serial_port)
     try:
         boot.sync(lcd, force=True)
         shared.sync(lcd, force=True)

@@ -191,8 +191,7 @@ class T5UIC1Display:
             self._after_handshake()
             # The panel CFG already selects portrait orientation. Preserve
             # its power-on picture instead of reapplying direction via 0x34.
-            from petrel.artwork.boot import sync
-            sync(self)
+            self._startup_sync_boot_artwork()
             # Present the complete boot frame before packing/checking icons.
             # Existing panel icons can animate throughout an unchanged sync.
             if startup_progress is not None:
@@ -226,6 +225,10 @@ class T5UIC1Display:
             if hashes and any(hashes[0]):
                 return raw[8]
         return None  # First install/incomplete directory: animate after upload.
+
+    def _startup_sync_boot_artwork(self):
+        from petrel.artwork.boot import sync
+        sync(self)
 
     def _startup_sync_icons(self):
         from petrel.artwork.icon_library import sync_library
