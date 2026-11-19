@@ -140,7 +140,13 @@ class PrinterTelemetryMixin:
                 else:
                     target['celsius'] = int(data[obj]['temperature'])
                     target['target'] = int(data[obj]['target'])
-            thermal['fan_speed'][0] = js_round(data['fan']['speed'] * 100) if caps.fan else 0
+            fan_percent = 0
+            if caps.fan:
+                max_power = state.settings.get('fan', {}).get('max_power')
+                if max_power is None:
+                    max_power = 1.0
+                fan_percent = js_round((data['fan']['speed'] / float(max_power)) * 100)
+            thermal['fan_speed'][0] = fan_percent
             mmu = None
             spoolman_changed = False
             if 'mmu' in data:
