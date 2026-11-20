@@ -71,7 +71,8 @@ class EventSoundUITests(TestCase):
         view=self.make();view._draw_list_menu=Mock()
         view.Draw_Display_Menu()
         rows=view._draw_list_menu.call_args.args[1]
-        self.assertEqual([r[0] for r in rows][-2:],['Event sounds','NFC settings'])
+        self.assertEqual([r[0] for r in rows][-4:],
+                         ['Event sounds', 'NFC settings', 'Auto update check', 'Announcements'])
         view._display_selection=8;view._display_edit=False
         view.HMI_Display_Menu()
         self.assertEqual(view.checkkey,view.EventSoundsMenu)
