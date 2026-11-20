@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from petrel.artwork.resources import ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DOT
 from petrel.features.notifications.store import Notification, NotificationStore, Retention
 from petrel.features.notifications.view import NotificationsViewMixin
 
@@ -97,6 +98,20 @@ class NotificationViewTest(unittest.TestCase):
         view._display_edit = False
         self.assertTrue(view._draw_notification_control())
         self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+
+    def test_badge_overlaps_the_bell_and_count_change_repaints_both(self):
+        view = self.view
+        for key in ('first', 'second'):
+            view.lcd.reset_mock()
+            view.notifications.publish(Notification('test', key, 'Notice'))
+            self.assertTrue(view._draw_notification_control())
+            bell, badge = (call.args for call in view.lcd.show_icon.call_args_list)
+            self.assertEqual(bell[1], ICON_NOTIFICATION_BELL)
+            self.assertEqual(badge[1], ICON_NOTIFICATION_DOT)
+            self.assertGreater(badge[2], bell[2])
+            self.assertLess(badge[2], bell[2] + 20)
+            self.assertLess(badge[3], bell[3])
+            self.assertGreater(badge[3] + 16, bell[3])
 
     def test_last_dismissal_closes_panel_and_removes_control(self):
         view = self.view

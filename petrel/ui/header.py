@@ -6,6 +6,10 @@ import time
 from petrel.hardware.dwin.driver import T5UIC1Display
 
 
+NOTIFICATION_LEFT = 168
+NOTIFICATION_RIGHT = 192
+
+
 class HeaderMixin:
     def _invalidate_header(self):
         self._header_back_render = None
@@ -41,7 +45,7 @@ class HeaderMixin:
         entries = getattr(self, '_notification_entries', None)
         has_notifications = bool(entries and entries())
         x = 34 if back else 14
-        right = 159 if has_notifications else 192
+        right = NOTIFICATION_LEFT - 1 if has_notifications else NOTIFICATION_RIGHT
         cells = (right + 1 - x) // 8
         if len(title)>cells:
             title = title[:cells-3]+'...'

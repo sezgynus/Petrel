@@ -8,6 +8,7 @@ from petrel.artwork.resources import (
 )
 from petrel.features.notifications.store import Retention
 from petrel.hardware.dwin.driver import T5UIC1Display
+from petrel.ui.header import NOTIFICATION_LEFT, NOTIFICATION_RIGHT
 from petrel.ui.theme import show_icon
 
 
@@ -114,21 +115,19 @@ class NotificationsViewMixin:
         if key is not None and previous is None:
             self._paint_header_title(clear=True)
         if key is None:
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 160, 3, 192, 27)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, NOTIFICATION_LEFT, 2, NOTIFICATION_RIGHT, 27)
             self._paint_header_title(clear=True)
             if previous[0] and screen is not None:
                 self._draw_notification_focus_change()
             return True
-        if previous is None or previous[0] != selected:
-            self.lcd.draw_rectangle(1, 0x19E9 if selected else self.lcd.Color_Bg_Blue,
-                                    160, 3, 192, 27)
-            show_icon(self.lcd, self.ICON, ICON_NOTIFICATION_BELL, 160, 6)
-        else:
-            self.lcd.draw_rectangle(1, 0x19E9 if selected else self.lcd.Color_Bg_Blue,
-                                    179, 3, 192, 18)
-        show_icon(self.lcd, self.ICON, ICON_NOTIFICATION_DOT, 179, 3)
+        # The badge overlaps the bell, so repaint both layers when the count changes.
+        self.lcd.draw_rectangle(1, 0x19E9 if selected else self.lcd.Color_Bg_Blue,
+                                NOTIFICATION_LEFT, 2, NOTIFICATION_RIGHT, 27)
+        show_icon(self.lcd, self.ICON, ICON_NOTIFICATION_BELL, NOTIFICATION_LEFT, 8)
+        badge_x = NOTIFICATION_RIGHT - 13
+        show_icon(self.lcd, self.ICON, ICON_NOTIFICATION_DOT, badge_x, 2)
         self.lcd.draw_text(False, False, self.lcd.font6x12, 0, 0,
-                           179 + (14 - 6 * len(badge)) // 2, 5, badge)
+                           badge_x + (14 - 6 * len(badge)) // 2, 4, badge)
         return True
 
     def _notification_boundary_input(self):
