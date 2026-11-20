@@ -106,7 +106,7 @@ class PrintFocusMixin:
         for i, (label, normal) in enumerate(buttons):
             disabled = label == 'Stopping'
             selected = (self.select_print.now == i and not disabled
-                        and getattr(self, '_notification_focus', None) != self.checkkey)
+                        and getattr(self, '_notification_focus', None) != self.PrintProcess)
             color = (0x7BEF if disabled else 0xFBCB if label == 'Stop'
                      and not selected else self.lcd.Color_White)
             start = getattr(self, '_quiet_blinks', {}).get('pause')
@@ -474,7 +474,7 @@ class PrintFocusMixin:
             for i, label in enumerate(('MMU recovery',)):
                 y = 410 + i * 34
                 selected = (self._focus_error_choice == i
-                            and getattr(self, '_notification_focus', None) != self.checkkey)
+                            and getattr(self, '_notification_focus', None) != self.PrintErrorDetails)
                 icon = ICON_MMU_ERROR_SELECTED if selected else ICON_MMU_ERROR_NORMAL
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 14, y, 257, y+29)
                 show_icon(self.lcd, self.ICON, icon, 14, y)
