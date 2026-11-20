@@ -164,7 +164,11 @@ class InfoViewMixin(NFCShareViewMixin):
 
     def _poll_software_update_status(self):
         updater = self._software_updater()
-        updater.poll_automatic_check(lambda: bool(getattr(self, '_pending_start', None)))
+        def automatic_check_blocked():
+            return (not getattr(getattr(self, '_display_network', None), 'automatic_updates', True)
+                    or bool(getattr(self, '_pending_start', None)))
+
+        updater.poll_automatic_check(automatic_check_blocked)
         changed = updater.poll() or updater.observe() is True
         self._sync_update_notification(updater.update_available)
         return changed

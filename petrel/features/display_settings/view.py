@@ -1,12 +1,20 @@
 """Existing display methods grouped by responsibility."""
 from petrel.artwork.resources import ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_IDLE_DIM, ICON_VOLUME
-from petrel.artwork.resources import ICON_NFC
+from petrel.artwork.resources import ICON_NFC, ICON_WIFI_STRONG, ICON_NOTIFICATION_BELL
+from dataclasses import replace
+from petrel.features.display_settings.network import NetworkSettings
 import petrel.features.display_settings.settings as display_settings
 import time
 from petrel.hardware.dwin.driver import T5UIC1ProtocolError
 
 
 class DisplaySettingsViewMixin:
+    _display_network = NetworkSettings()
+    _network_rows = (
+        ('automatic_updates', 'Auto update check', ICON_WIFI_STRONG),
+        ('project_announcements', 'Announcements', ICON_NOTIFICATION_BELL),
+    )
+
     def _display_activity(self):
         panel = getattr(getattr(self,'pd',None),'maintenance_panel',None)
         if panel is not None and panel.pending:
@@ -55,6 +63,11 @@ class DisplaySettingsViewMixin:
             entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
         entries.append(('Event sounds', ICON_BUZZER, None, None))
         entries.append(('NFC settings', ICON_NFC, None, None))
+        for field, label, icon in self._network_rows:
+            value = 'On' if getattr(self._display_network, field) else 'Off'
+            painter = lambda row, value=value: self._draw_menu_value(
+                value, self.MBASE(row) - 1, self.lcd.Color_Bg_Black, self.MENU_WIDE_CELLS)
+            entries.append((label, icon, value, painter))
         self._display_selection = min(selection, len(entries) - 1)
         save_message = getattr(self, '_display_save_message', '')
         title = ('Device - saving...' if save_message == 'Saving...' else
@@ -80,7 +93,7 @@ class DisplaySettingsViewMixin:
                 if index == 0:
                     self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
             else:
-                self._display_selection = max(0, min(5 + len(self._buzzer_rows()), selection + delta))
+                self._display_selection = max(0, min(5 + len(self._buzzer_rows()) + len(self._network_rows), selection + delta))
             self._display_save_message = ''
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
@@ -107,6 +120,21 @@ class DisplaySettingsViewMixin:
                 self._nfc_save_error = False
                 self.checkkey = self.NFCSettingsMenu
                 self.Draw_NFC_Settings_Menu()
+                self.lcd.update()
+                return
+            network_index = selection - (6 + len(self._buzzer_rows()))
+            if 0 <= network_index < len(self._network_rows):
+                field = self._network_rows[network_index][0]
+                settings = replace(self._display_network,
+                                   **{field: not getattr(self._display_network, field)})
+                try:
+                    settings.save()
+                except OSError:
+                    self._display_save_message = 'Not saved. Press to retry'
+                else:
+                    self._display_network = settings
+                    self._display_save_message = ''
+                self.Draw_Display_Menu()
                 self.lcd.update()
                 return
             if editing:

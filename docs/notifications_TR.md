@@ -57,9 +57,8 @@ bir dosya alındığında artık listede bulunmayan ID'lerin okundu kayıtları 
 Dosya alınamazsa veya geçersizse yerel kayıtlar korunur. Her yeni duyuruya yeni
 bir ID verin ve kaldırılan ID'leri tekrar kullanmayın.
 
-Zamanlanmış bir duyuruya `"publish_at": "2027-01-01T12:00"` eklenebilir.
-Saat dilimi eki olmadan ISO yerel tarih ve saat kullanın. Her host kendi
-saatine bakar. Önceden alınmış duyuru, belirtilen saat geldiğinde bir sonraki
-arayüz döngüsünde görünür. İlk başarılı kontrolde saat geçmişse veya
-`publish_at` verilmemişse duyuru hemen görünür. Servis yeniden başladığında
-bekleyen zamanlamalar dosyadan tekrar alınır.
+**Device settings** menüsünde ayrı **Auto update check** ve **Announcements**
+anahtarları vardır. İkisi de varsayılan olarak açıktır ve seçimler host üzerinde
+saklanır. Otomatik kontrol kapalıyken elle güncelleme kontrolü yapılabilir.
+Duyurular kapatılınca arka plan indirmeleri ve zamanlanmış teslim durur.
+Daha önce alınmış duyurular ve okundu kayıtları korunur.

@@ -29,7 +29,7 @@ class DisplayTickMixin:
         try:
             announcements = getattr(self, '_project_announcements', None)
             if announcements is not None:
-                announcements.tick()
+                announcements.tick(enabled=self._display_network.project_announcements)
             self._ui_tick_body()
         finally:
             self._tick_active = False

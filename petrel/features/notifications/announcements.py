@@ -73,19 +73,36 @@ class ProjectAnnouncements:
         self._next_release = None
         self._sync_pending = False
         self._retry_sync_at = 0
+        self._discard_pending = False
 
-    def tick(self):
+    def tick(self, *, enabled=True):
+        if not enabled:
+            self._next_poll = 0
+            self._feed = ()
+            self._next_release = None
+            self._sync_pending = False
+            if self._pending is not None:
+                self._pending.cancel()
+                if self._pending.done():
+                    self._pending = None
+                    self._discard_pending = False
+                else:
+                    self._discard_pending = True
+            return
         now = monotonic()
         if self._pending is not None and self._pending.done():
             pending, self._pending = self._pending, None
-            self._next_poll = now + FEED_INTERVAL
-            try:
-                self._feed = pending.result()
-            except (OSError, ValueError, RuntimeError, HTTPException) as error:
-                logging.debug('Project announcement fetch skipped: %s', error)
+            if self._discard_pending:
+                self._discard_pending = False
             else:
-                self._sync_pending = True
-                self._retry_sync_at = now
+                self._next_poll = now + FEED_INTERVAL
+                try:
+                    self._feed = pending.result()
+                except (OSError, ValueError, RuntimeError, HTTPException) as error:
+                    logging.debug('Project announcement fetch skipped: %s', error)
+                else:
+                    self._sync_pending = True
+                    self._retry_sync_at = now
 
         if self._sync_pending or self._next_release is not None:
             local_now = datetime.now()

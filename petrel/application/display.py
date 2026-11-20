@@ -22,6 +22,7 @@ from petrel.ui.home import HomeViewMixin
 from petrel.artwork.resources import ICON_FLOW, ICON_LIGHT, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE
 from petrel.artwork.resources import ICON_LIBRARY_ID
 import petrel.features.display_settings.settings as display_settings
+from petrel.features.display_settings.network import NetworkSettings
 from petrel.features.nfc.share_view import NFCURIShareComponent
 import time
 import logging
@@ -305,6 +306,7 @@ class PetrelDisplay(
         self._uart_fast_until = 0
         self._uart_start_signal = None
         self._uart_probe_failures = 0
+        self._display_network = NetworkSettings.load()
         self.notifications = NotificationStore(notification_state_path())
         self._project_announcements = ProjectAnnouncements(self.notifications)
         self.notification_actions = {
