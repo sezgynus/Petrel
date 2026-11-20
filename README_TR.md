@@ -94,6 +94,7 @@ Bağlantı/enkoder/güç ayarlarını daha sonra değiştirmek için `~/Petrel` 
 | [MMU ve filament](docs/mmu-guide_TR.md) | Gate/makara, eşleme, EndlessSpool, bypass, durum bildirme ve kurtarma |
 | [Ekran galerisi](docs/screenshots_TR.md) | Özgün panel PNG bağlantılarıyla çerçeveli önizlemeler |
 | [Dokümantasyon dizini](docs/README_TR.md) | Kullanıcı/katkı rotaları ve isteğe bağlı tarihsel kaynaklar |
+| [Çevrimiçi proje duyuruları](docs/announcements_TR.md) | Proje mesajlarının ekrana nasıl ulaştığı ve özelliğin nasıl kapatılacağı |
 
 Çalışma anındaki ayarlar kalıcı Klipper/probe yapılandırmasının yerini almaz. Vida ayarı prob ve yapılandırılmış dört köşe vidası gerektirir. Mesh görüntülemek onu etkinleştirmez; kaydetmek Klipper'ı yeniden başlatır, ölçümü açıkça durdurmak shutdown yapar. MMU kalibrasyonu/özel LED efektleri web arayüzünde kalır. Belirsiz bir komuttan sonra tekrar denemeden önce gerçek yazıcı durumunu kontrol edin.
 

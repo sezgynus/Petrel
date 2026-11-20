@@ -94,6 +94,7 @@ On the **physical display**, rotate to navigate and press to select; confirm num
 | [MMU and filament](docs/mmu-guide.md) | Gates/spools, mapping, EndlessSpool, bypass, state reporting and recovery |
 | [Screenshot gallery](docs/screenshots.md) | Framed previews with original panel PNG links |
 | [Documentation index](docs/README.md) | User and contributor routes plus optional historical references |
+| [Online project announcements](docs/announcements.md) | How messages from the project reach your display and how to turn them off |
 
 Runtime settings do not replace persistent Klipper/probe configuration. Screw adjustment needs a probe and four configured corner screws. Viewing a mesh does not activate it; saving restarts Klipper and explicitly stopping a measurement shuts it down. MMU calibration/custom LED effects stay in the web UI. After an uncertain command, check actual printer state before retrying.
 

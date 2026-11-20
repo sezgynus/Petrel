@@ -1,4 +1,10 @@
 {
   "version": 1,
-  "announcements": []
+  "announcements": [
+    {
+      "id": "online-announcements-introduction",
+      "title": "Online announcements",
+      "detail": "Info: scan QR for project docs"
+    }
+  ]
 }
