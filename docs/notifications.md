@@ -1,11 +1,16 @@
 # Notification infrastructure
 
-PetrelDisplay owns an initially empty, in-memory NotificationStore. Features
-can publish Notification records without calling panel methods. Identity is
+PetrelDisplay owns the NotificationStore. Features can publish Notification
+records without calling panel methods. Identity is
 the pair (source, key); use a stable key for each active condition, and a new
 key for each separate one-shot event. Identical publications are no-ops.
-New entries appear first. Unresolved conditions can be published again by
-their owning feature when it initializes.
+New entries appear first. The persistence field defaults to PERSISTENT.
+These records are restored from Petrel/notifications.json under XDG_CONFIG_HOME
+(normally ~/.config) after a service restart or power cycle. VOLATILE records
+only live in memory. Both policies can be combined with either retention
+policy below. Dismissal and resolution update the on-disk copy of a persistent
+record before it leaves the live feed. A storage failure leaves the live
+persistent record unchanged.
 
 - DISMISSIBLE entries without an action leave the panel when pressed.
 - UNTIL_RESOLVED entries remain until their owner calls resolve(source, key).

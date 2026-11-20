@@ -1,11 +1,17 @@
 # Bildirim altyapısı
 
-PetrelDisplay başlangıçta boş olan bir NotificationStore tutar. Depo
-bellekte çalışır. Özellikler panel komutu çağırmadan Notification kaydı
+PetrelDisplay bir NotificationStore tutar. Özellikler panel komutu
+çağırmadan Notification kaydı
 yayımlayabilir. Kayıt kimliği kaynak ve anahtar çiftinden oluşur. Bir koşul
 etkin kaldığı sürece aynı anahtarı, her yeni tek seferlik olay için yeni bir
 anahtarı kullanın. Özdeş kayıtlar listeyi değiştirmez. Yeni kayıtlar en üstte
-görünür. Özellikler açılışta çözülmemiş koşulları yeniden yayımlayabilir.
+görünür. persistence alanının varsayılanı PERSISTENT değeridir. Bu
+kayıtlar servis yeniden başladığında veya enerji geri geldiğinde
+XDG_CONFIG_HOME (genellikle ~/.config) altındaki Petrel/notifications.json
+dosyasından yüklenir. VOLATILE kayıtlar bellekte kalır. Her iki seçenek
+aşağıdaki temizleme kurallarından bağımsızdır. Kalıcı bir kayıt
+temizlendiğinde veya çözümlendiğinde önce disk güncellenir. Yazma başarısız
+olursa kayıt listede kalır.
 
 - Aksiyonu olmayan DISMISSIBLE kayıtlar satıra basıldığında listeden çıkar.
 - UNTIL_RESOLVED kayıtlar, kaynağı resolve(source, key) çağırana kadar kalır.
