@@ -509,9 +509,13 @@ phone opened its browser. Press the encoder to cancel. Unsupported, disconnected
 or not-yet-discovered reader capability hides the action entirely. A failed
 share is reported in the popup; press to close. This visibility and sharing
 logic belongs to a reusable NFC Core-backed UI component, not to each screen.
+Info reads the update status Moonraker already knows at startup and after a
+refresh from another client. If an update is already available, Info shows
+**Update** when opened.
+
 To update from the LCD:
 
-1. Leave the printer idle and scroll to **Check for updates**. Press the encoder.
+1. Leave the printer idle and scroll to the update button. If it shows **Check for updates**, press the encoder to refresh.
 2. Wait for **Checking…**. Green **Up to date** means no update is needed; an available update changes the button to **Update**.
 3. Select **Update** to install Petrel. Moonraker restarts the service afterwards. This does not update every printer component.
 

@@ -136,6 +136,8 @@ class InfoViewMixin(NFCShareViewMixin):
                                    (272 - len(text) * 8) // 2, line_y, text)
 
     def _refresh_info_update_button(self):
+        if self._notifications_cover_screen():
+            return
         items = self._info_items()
         for index, (kind, _, _) in enumerate(items):
             if kind != 'update':
@@ -152,6 +154,12 @@ class InfoViewMixin(NFCShareViewMixin):
         if not hasattr(self, '_software_update'):
             self._software_update = SoftwareUpdate(self.pd)
         return self._software_update
+
+    def _poll_software_update_status(self):
+        updater = self._software_updater()
+        if updater.poll():
+            return True
+        return updater.observe() is True
 
 
     def _info_items(self):

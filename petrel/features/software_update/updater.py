@@ -1,7 +1,11 @@
-"""User-requested, asynchronous updates scoped to the Petrel updater."""
-from petrel.moonraker.client import MoonrakerClient
-from petrel.printer.background_reads import ReadWorker
+"""Cached update observation and explicit update actions for Petrel."""
+import logging
+import time
+from collections.abc import Mapping
+from concurrent.futures import CancelledError
 from threading import Event
+from petrel.moonraker.client import MoonrakerClient, MoonrakerError
+from petrel.printer.background_reads import ReadPending, ReadWorker
 
 
 class SoftwareUpdate:
@@ -14,6 +18,9 @@ class SoftwareUpdate:
         self.message = ''
         self.name = None
         self.confirm_epoch = None
+        self._observed = None
+        self._status_retry = (None, 0.0)
+        self._action_generation = 0
 
     @property
     def label(self):
@@ -96,6 +103,7 @@ class SoftwareUpdate:
                 client.close()
 
         self.phase = 'recovering' if recover else ('updating' if upgrade else 'checking')
+        self._action_generation += 1
         self.message = 'Please wait...'
         if self._worker is None:
             self._worker = ReadWorker(timeout=1, capacity=1, queue_timeout=5)
@@ -111,6 +119,50 @@ class SoftwareUpdate:
         return (item.get('is_valid', False) and not item.get('is_dirty', False)
                 and bool(item.get('current_hash')) and bool(item.get('remote_hash'))
                 and item['current_hash'] != item['remote_hash'])
+
+    def observe(self):
+        """Read Moonraker's cached result once per connection and update event."""
+        if (self._closed.is_set() or self.future is not None
+                or self.phase in ('confirm_recovery', 'restarting')):
+            return False
+        printer = self.printer
+        life = printer.subscription.lifecycle()
+        if not isinstance(life, Mapping) or life.get('state') != 'ready':
+            return False
+        stamp = (life['epoch'], life.get('update_revision', 0))
+        retry_stamp, retry_at = self._status_retry
+        if stamp == self._observed or (stamp == retry_stamp and time.monotonic() < retry_at):
+            return False
+        try:
+            response = printer._read('petrel_update_status',
+                                     lambda: printer.client.get('/machine/update/status'),
+                                     stamp=(*stamp, self._action_generation))
+            result = response['result']
+            if result.get('busy'):
+                self._status_retry = (stamp, time.monotonic() + 5.0)
+                return False
+            versions = result['version_info']
+            name = next((key for key in versions if key.casefold() == 'petrel'), None)
+            item = versions.get(name, {})
+            available = self.available(item)
+        except ReadPending:
+            return False
+        except (MoonrakerError, OSError, CancelledError, AttributeError, KeyError, TypeError, ValueError) as error:
+            logging.debug('Cannot observe Petrel update status: %s', error)
+            self._status_retry = (stamp, time.monotonic() + 30.0)
+            return False
+        latest = printer.subscription.lifecycle()
+        if (latest.get('state') != 'ready'
+                or stamp != (latest['epoch'], latest.get('update_revision', 0))):
+            return False
+        self._observed = stamp
+        previous = (self.phase, self.message)
+        if available:
+            self.name = name
+            self.phase, self.message = 'available', 'Update available'
+        elif self.phase == 'available':
+            self.phase, self.message = 'idle', ''
+        return previous != (self.phase, self.message)
 
     def poll(self):
         if self.future is None or not self.future.done():

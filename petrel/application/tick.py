@@ -200,6 +200,7 @@ class DisplayTickMixin:
         self._poll_case_light_state()
         # variable update
         update = self._update_ui_state()
+        info_update = self._poll_software_update_status()
         self._poll_maintenance_ui()
         self._focus_tick_quiet()
         if self.pd.connection_error:
@@ -243,15 +244,12 @@ class DisplayTickMixin:
             self._offline = True
             return
         self.pd.probe_wizard.update()
-        info_update = False
-        if self.checkkey == self.Info:
-            info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
             if (system_changed or wifi_changed) and not getattr(self, '_nfc_share_popup', None):
                 self.Draw_Info_Menu()
                 self.lcd.update()
-            elif info_update:
+            elif info_update and not getattr(self, '_nfc_share_popup', None):
                 self._refresh_info_update_button()
         if self._poll_print_start() or getattr(self, '_start_error_visible', False):
             return

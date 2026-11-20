@@ -511,9 +511,13 @@ eder. Desteklenmeyen, bağlantısı kopmuş veya yeteneği henüz keşfedilmemi�
 okuyucuda düğme tamamen gizlenir. Hata popup'ta gösterilir; basarak kapatılır.
 Bu görünürlük ve paylaşım denetimi bütün ekranlarda tekrar kullanılabilecek,
 yalnız NFC Core'a bağlı ortak UI bileşenindedir.
+Info, açılışta ve başka bir istemci kontrol yaptığında Moonraker'ın mevcut
+güncelleme durumunu okur. Güncelleme zaten bulunmuşsa Info açıldığında
+**Update** düğmesi görünür.
+
 LCD'den güncellemek için:
 
-1. Yazıcıyı boşta bırakın ve **Check for updates** düğmesine kaydırın. Encodere basın.
+1. Yazıcıyı boşta bırakın ve güncelleme düğmesine kaydırın. **Check for updates** görünüyorsa kontrol etmek için encodere basın.
 2. **Checking…** aşamasını bekleyin. Yeşil **Up to date** güncelleme gerekmediğini gösterir; güncelleme varsa düğme **Update** olur.
 3. Petrel'i yüklemek için **Update** seçin. Moonraker ardından servisi yeniden başlatır. Bu işlem tüm yazıcı bileşenlerini güncellemez.
 

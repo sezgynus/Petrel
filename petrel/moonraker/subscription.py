@@ -88,6 +88,7 @@ class MoonrakerSubscription:
         self._revision = 0
         self._print_job_generation = 0
         self._file_revision = 0
+        self._update_revision = 0
         self._file_changes = OrderedDict()
         self._file_change_floor = 0
         self._power_devices = {}
@@ -123,6 +124,7 @@ class MoonrakerSubscription:
                     'revision': self._revision, 'epoch': self._epoch,
                     'print_job_generation': self._print_job_generation,
                     'file_revision': self._file_revision,
+                    'update_revision': self._update_revision,
                     'power_devices': dict(self._power_devices),
                     'power_off_serial': dict(self._power_off_serial)}
 
@@ -528,6 +530,12 @@ class MoonrakerSubscription:
                     while len(self._file_changes) > 128:
                         _, revision = self._file_changes.popitem(last=False)
                         self._file_change_floor = max(self._file_change_floor, revision)
+        elif method == 'notify_update_refreshed' or (
+                method == 'notify_update_response' and isinstance(params, list)
+                and len(params) == 1 and isinstance(params[0], dict)
+                and params[0].get('complete') is True):
+            with self._lock:
+                self._update_revision += 1
         elif method == 'notify_gcode_response':
             if isinstance(params, list) and len(params) == 1 and isinstance(params[0], str):
                 with self._lock:

@@ -6,6 +6,52 @@ from petrel.features.software_update.updater import SoftwareUpdate
 
 
 class UpdateTests(unittest.TestCase):
+    def test_passive_status_sync_on_startup_refresh_and_reconnect(self):
+        from petrel.moonraker.subscription import MoonrakerSubscription
+
+        subscription = MoonrakerSubscription('http://localhost:7125', '', 5, autostart=False)
+        subscription._state = 'ready'
+        printer = SimpleNamespace(subscription=subscription, client=Mock())
+        printer._read = Mock(side_effect=lambda key, work, stamp: work())
+        updater = SoftwareUpdate(printer)
+        petrel = {'is_valid': True, 'is_dirty': False, 'current_hash': 'a', 'remote_hash': 'a'}
+        printer.client.get.return_value = {'result': {'version_info': {'Petrel': petrel}}}
+        self.assertFalse(updater.observe())
+        self.assertEqual(updater.label, 'Check for updates')
+        petrel['remote_hash'] = 'b'
+        self.assertFalse(updater.observe())
+        self.assertEqual(printer.client.get.call_count, 1)
+
+        subscription._notification({'method': 'notify_update_refreshed', 'params': [{}]})
+        self.assertTrue(updater.observe())
+        self.assertEqual((updater.label, updater.name), ('Update', 'Petrel'))
+        restarted = SoftwareUpdate(printer)
+        self.assertTrue(restarted.observe())
+        self.assertEqual(restarted.message, 'Update available')
+
+        petrel['current_hash'] = 'b'
+        subscription._notification({'method': 'notify_update_response', 'params': [{'complete': False}]})
+        self.assertFalse(restarted.observe())
+        subscription._notification({'method': 'notify_update_response', 'params': [{'complete': True}]})
+        self.assertTrue(restarted.observe())
+        self.assertEqual(restarted.label, 'Check for updates')
+        subscription._epoch += 1
+        petrel['remote_hash'] = 'c'
+        self.assertTrue(restarted.observe())
+        printer.client.request.assert_not_called()
+        self.assertTrue(all(call.args == ('/machine/update/status',)
+                            for call in printer.client.get.call_args_list))
+
+    def test_passive_read_cannot_overwrite_confirmation_or_pending_operation(self):
+        updater, _, _, _ = self.make()
+        updater.printer._read = Mock()
+        updater.phase = 'confirm_recovery'
+        self.assertFalse(updater.observe())
+        updater.phase = 'checking'
+        updater.future = Future()
+        self.assertFalse(updater.observe())
+        updater.printer._read.assert_not_called()
+
     def test_update_lane_is_separate_from_normal_reads(self):
         from test_capabilities import printer as make_printer, snapshot
         backend = make_printer(snapshot())
