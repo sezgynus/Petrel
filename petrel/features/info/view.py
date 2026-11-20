@@ -207,6 +207,9 @@ class InfoViewMixin(NFCShareViewMixin):
         return items
 
     def Draw_Info_Menu(self):
+        covered = getattr(self, '_notifications_cover_screen', None)
+        if covered and covered():
+            return
         self.lcd.ensure_cached_picture(SHARED_PICTURE_ID)
         self.pd.refresh_system_info()
         items = self._info_items()

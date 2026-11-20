@@ -37,6 +37,9 @@ class ListMenuMixin:
         return draw
 
     def _draw_list_menu(self, title, entries, selection, start=None):
+        covered = getattr(self, '_notifications_cover_screen', None)
+        if covered and covered():
+            return
         # Keep logical return index 0 for controllers; render it in the header.
         header_back = bool(entries and entries[0][0] == 'Back')
         first = 1 if header_back else 0

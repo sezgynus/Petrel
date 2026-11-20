@@ -184,6 +184,9 @@ class DisplayTickMixin:
             if self._draw_header_clock():
                 self.lcd.update()
             self.EachMomentUpdate()
+            draw_notifications = getattr(self, '_sync_notification_overlay', None)
+            if draw_notifications and draw_notifications():
+                self.lcd.update()
         except OSError:
             if self.lcd is not None and getattr(self.lcd, '_closed', False):
                 self._uart_failed()
@@ -323,7 +326,8 @@ class DisplayTickMixin:
             if self.pd.ishomed():
                 self.CompletedHoming()
 
-        if self.checkkey == self.MainMenu:
+        covered = getattr(self, '_notifications_cover_screen', None)
+        if self.checkkey == self.MainMenu and not (covered and covered()):
             mmu_state = self.pd.mmu
             if (mmu_state is None) != (getattr(self, '_drawn_mmu_state', None) is None):
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)

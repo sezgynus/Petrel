@@ -32,7 +32,7 @@ class HomeViewMixin:
             key, label, normal, selected = entries[index]
             slot = index % 4
             x, y = (17 if slot % 2 == 0 else 145), (130 if slot < 2 else 246)
-            active = index == self.select_page.now
+            active = index == self.select_page.now and getattr(self, '_notification_focus', None) != self.MainMenu
             if partial:
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, x, y, x+109, y+99)
             show_theme_icon(self.lcd, self.ICON, selected if active else normal, x, y)
