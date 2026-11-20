@@ -4,6 +4,8 @@
 
 ## Before installation
 
+**Online project announcements are on by default.** Petrel periodically checks a public GitHub file for messages from the project maintainers. You can turn this off under **Device settings → Announcements**. See [Online project announcements](announcements.md) for how it works and what the request sends.
+
 > **⚠️ Persistent LCD resource overwrite:** On first connection or when resources change, Petrel automatically writes its own boot JPEG, shared slot-1 JPEG page and icon library to the DWIN LCD's non-volatile Picture Flash. These replace stock visual data and remain after shutdown or Pi software removal. This is required for Petrel's current interface symbols, animations and efficient native rendering. The [original Creality DWIN_SET](../assets/stock-dwin/DWIN_SET) and a [step-by-step stock restoration guide](restore-stock-dwin.md) are included. **Review this before installing or updating.**
 
 Use a compatible DWIN T5UIC1 or DACAI panel, a Linux SBC with UART/GPIO, Python 3.11+ and a working Klipper/Moonraker setup. Check [LCD compatibility](lcd-assets.md). The installer does not flash LCD kernel firmware or fonts; the application synchronizes Petrel icons automatically at its first LCD connection.
