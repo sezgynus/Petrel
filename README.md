@@ -41,6 +41,7 @@ The interface uses the existing encoder and native panel drawing commands. The h
 | Happy Hare MMU | Live filament path/purge, gates, load/unload, bypass, tool map, EndlessSpool, explicit recovery, supported LEDs and multiple units |
 | Spoolman | Spool IDs and gate material/color; remaining percentage when the Happy Hare/Spoolman integration supplies it |
 | NFC | Optional reader for emergency-stop tags, Spoolman tag binding and gate assignment; share the Petrel link to a phone with a supported PN532. [Usage](docs/user-guide.md#nfc-and-rfid) · [Setup](docs/configuration.md#nfc) |
+| Notifications | Petrel updates, due care plans and project announcements with an optional buzzer chime. [Using notifications](docs/user-guide.md#notifications) |
 | Device and system | Brightness/dimming, buzzer/tones, network/host/MCU/software status, QR link and idle-time Petrel updates |
 | Light and power | Configured PWM case light and Moonraker power device; encoder hold with confirmation and active-print blocking |
 | Maintenance | Capability-based guided checks, care progress, readable results/diagnostics and recorded recommendations |

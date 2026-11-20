@@ -42,6 +42,10 @@ kütüphanesinden çizilir. Rozet sayısı panel yazısıdır. Çizim önbelleğ
 değişen düğmeyi, satırları ve kaydırma çubuğunu günceller. Paneli
 kapatırken mevcut menü çizicisi, panelin altındaki menüyü geri getirir.
 
+## Bildirim sesi
+
+Başarılı bir kayıt işlemi yeni bir `(kaynak, anahtar)` eklediğinde bildirim deposu arayüze ses sinyali verir. Etkin bir kaydı güncellemek veya kayıtlı bildirimleri geri yüklemek sinyal üretmez. Arayüzün iki kontrolü arasında eklenen bildirimler tek melodi çalar. **New notification** olayı mevcut buzzer anahtarını, ses seviyesini ve olay sesi tercihlerini kullanır.
+
 ## Proje duyuruları
 
 Petrel, `master` dalındaki herkese açık `announcements.json` dosyasını açılışta
@@ -49,7 +53,7 @@ ve beş dakikada bir kontrol eder. Dosyada sürüm 1 ve bir `announcements` dizi
 kullanılır. Her kayıtta benzersiz bir `id`, bir `title` ve isteğe bağlı `detail`
 alanı bulunur. ID 1–64 karakter uzunluğundadır. ASCII harf, rakam, nokta, alt
 çizgi ve tire kullanılabilir. İlk karakter harf veya rakam olmalıdır. Başlığı
-ve açıklamayı panele sığacak kadar kısa tutun.
+24, açıklamayı 32 karakterle sınırlayarak ekranda kesilmelerini önleyin. İsteğe bağlı `publish_at` alanı `YYYY-MM-DDTHH:MM` veya `YYYY-MM-DDTHH:MM:SS` biçiminde her cihazın yerel saatini kullanır. Bu alan yoksa duyuru ilk başarılı indirmede görünür. [Duyuru kullanım rehberine](announcements_TR.md) bakın.
 
 Duyuruya basmak onu o kurulumda okundu olarak işaretler. Okunmamış duyurular
 servis yeniden başladığında ve dosyadan kaldırıldığında listede kalır. Geçerli

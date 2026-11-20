@@ -10,6 +10,8 @@ Petrel, proje ekibinin yeni sürüm haberleri ve kullanıcıları ilgilendiren �
 
 Duyuruyu okumak için üst çubuktaki zil simgesini açın. Duyuruyu seçip enkodere bastığınızda okundu olarak işaretlenir ve listeden çıkar. Petrel bu tercihi yeniden başlatma sonrasında da hatırlar. Aynı duyuru dosyada kaldığı sürece tekrar gösterilmez. Henüz okunmamış duyurular da yeniden başlatma sonrasında korunur.
 
+**Device → Event sounds → New notification** açıkken yeni duyuru geldiğinde bildirim melodisi çalar. Bu seçenek sesi, **Device settings → Announcements** ise duyuru alımını kontrol eder.
+
 ## Ağ erişimi ve gizlilik
 
 Petrel, GitHub'daki aynı herkese açık dosyayı her kurulumda HTTPS üzerinden ister. Bu istek için GitHub hesabı gerekmez. İstekle yazıcı bilgisi, cihaz kimliği veya okundu durumu gönderilmez. GitHub, genel IP adresi ve istek zamanı gibi standart bağlantı bilgilerini alır. Okundu kayıtları Petrel'in çalıştığı Linux cihazında saklanır.

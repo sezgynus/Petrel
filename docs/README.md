@@ -10,6 +10,7 @@
 | [Installation and configuration](installation.md) | DWIN/DACAI selection, shared installation, updates/rollback and troubleshooting |
 | [Kconfig configuration menu](configuration.md) | Menu navigation, saving and applying settings, optional components and automated configuration |
 | [DWIN auxiliary UART](dwin-uart.md) | Optional Linux serial port installation/removal, application access, baud rates and transport limits |
+| [Online project announcements](announcements.md) | Delivery, local scheduling, privacy and how to turn announcements off |
 | [Daily use](user-guide.md) | Printing, movement, heating, calibration, Device, Info, light and power |
 | [Using Maintenance](user-guide.md#maintenance) | Care plans, hardware checks, results, diagnostics, recommendations and current screenshots |
 | [Maintenance physical acceptance](maintenance-stage8-acceptance.md) | Guarded physical tests, optional output profiles, operator observation and real-Pi acceptance |
@@ -27,6 +28,7 @@
 | Guide | Use it for |
 |---|---|
 | [Contributing](../CONTRIBUTING.md) | Issues, pull requests, documentation and development checks |
+| [Notification infrastructure](notifications.md) | Storage, retention, rendering, chime and announcement feed format |
 | [Source layout](source-layout.md) | Feature ownership, shared UI, maintenance groups and organization-only change checks |
 | [Emulator screenshots](ui-emulator.md) | Enable capture and save images from the running service |
 | [Tests](../tests/README.md) | Run automated checks and plan hardware validation |

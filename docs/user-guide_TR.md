@@ -37,6 +37,16 @@ Saatin yanındaki küçük Wi-Fi simgesi, Info ekranıyla aynı RSSI eşiklerini
 
 Örnek verilerle gerçek UI emülatörü çıktısıdır.
 
+## Bildirimler
+
+Üst çubuktaki zil, etkin bildirimlerin sayısını gösterir. Enkoderle zili seçip basınca bildirim paneli mevcut ekranın üstüne açılır. Geri düğmesi olan alt menülerde zil, enkoder sıralamasında Geri düğmesinin hemen ardından gelir. Liste boşaldığında zil gizlenir.
+
+- Petrel güncelleme bildirimi **Info** ekranını **Update** seçili olarak açar. Moonraker artık güncelleme olmadığını bildirene kadar kayıt listede kalır.
+- Bakım hatırlatıcısı **Maintenance** altında ilgili planı açar. Bakımı tamamlandı olarak kaydetmek hatırlatıcıyı temizler.
+- [Proje duyurusuna](announcements_TR.md) basmak duyuruyu okundu olarak işaretler ve listeden çıkarır.
+
+**Device → Event sounds → New notification** açıkken yeni bildirim kısa bir melodi çalar. Tekrarlanan kontroller, mevcut kaydın değişmesi ve kayıtlı bildirimlerle yeniden başlatma sessizdir. Bir sonraki ses kontrolüne kadar birden fazla bildirim eklenirse tek melodi çalar.
+
 ## Baskı seçme ve başlatma
 
 <p align="center">
@@ -289,7 +299,7 @@ olmadan isimle çağrılabilir.
 
 ### Olay seslerini açma ve kapatma
 
-**Device → Event sounds** altında 18 bağımsız checkbox bulunur: yukarıdaki on altı olay, **Emergency card alarm** ve **Power button hold**. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
+**Device → Event sounds** altında **Emergency card alarm**, **Power button hold** ve **New notification** dahil 19 bağımsız seçenek bulunur. Enkoderle olayı seçip basarak açıp kapatın. İlk kurulumda ve geçerli kayıt bulunmayan güncellemelerde hepsi varsayılan açıktır. WARNING ve CUSTOM_EVENT yalnız melodi kütüphanesinde kalır.
 
 Her değişiklik panel Data Flash'a otomatik kaydedilir ve geri okunarak doğrulanır. Kayıt sürerken son doğrulanan seçimler geçerlidir. **Not saved** durumunda önceki seçimler korunur; tekrar basarak kaydı deneyin. **Retry read** ayarları yeniden okur. `0x0480` adresindeki ayrı, CRC korumalı 16 baytlık kayıt mevcut ekran ve buzzer ayarlarını korur.
 
@@ -517,7 +527,7 @@ güncelleme durumunu okur. Güncelleme zaten bulunmuşsa Info açıldığında
 
 Petrel, açılışta ve her on dakikada bir, yazıcı boştaysa Moonraker'dan
 Petrel güncellemelerini kontrol etmesini ister. Duraklatılmış baskı dahil
-aktif bir baskı varsa sıradaki kontrol baskı sona erene kadar bekler.
+aktif bir baskı varsa sıradaki kontrol baskı sona erene kadar bekler. **Device settings → Auto update check** varsayılan olarak açıktır. Kapatıldığında elle kontrol kullanılabilir.
 
 LCD'den güncellemek için:
 

@@ -10,6 +10,7 @@
 | [Kurulum ve yapılandırma](installation_TR.md) | DWIN/DACAI seçimi, ortak kurulum, güncelleme/geri dönüş ve sorun giderme |
 | [Kconfig yapılandırma menüsü](configuration_TR.md) | Menüde gezinme, ayarları kaydetme ve uygulama, isteğe bağlı bileşenler ve otomatik yapılandırma |
 | [DWIN yardımcı UART](dwin-uart_TR.md) | İsteğe bağlı Linux seri portunu kurma/kaldırma, programlardan erişim, baud hızları ve bağlantı sınırları |
+| [Çevrimiçi proje duyuruları](announcements_TR.md) | Duyuru alımı, yerel saatle yayın, gizlilik ve kapatma |
 | [Günlük kullanım](user-guide_TR.md) | Baskı, hareket, ısıtma, kalibrasyon, Device, Info, ışık ve güç |
 | [Maintenance kullanımı](user-guide_TR.md#maintenance) | Bakım planları, donanım kontrolleri, sonuçlar, diagnostik, öneriler ve güncel ekranlar |
 | [Maintenance fiziksel kabulü](maintenance-stage8-acceptance_TR.md) | Güvenlik kontrollü fiziksel testler, çıkış izinleri, kullanıcı gözlemi ve gerçek Pi kabulü |
@@ -27,6 +28,7 @@
 | Rehber | Kullanım amacı |
 |---|---|
 | [Katkıda bulunma](../CONTRIBUTING_TR.md) | Issue, pull request, dokümantasyon ve geliştirme kontrolleri |
+| [Bildirim altyapısı](notifications_TR.md) | Saklama, temizleme kuralları, çizim, bildirim sesi ve duyuru dosyası biçimi |
 | [Kaynak kod yerleşimi](source-layout_TR.md) | Özellik sahipliği, ortak UI, maintenance grupları ve yalnız organizasyon değişikliği kontrolleri |
 | [Emülatör ekran görüntüleri](ui-emulator_TR.md) | Çalışan serviste görüntü almayı açma ve görselleri kaydetme |
 | [Testler](../tests/README_TR.md) | Otomatik kontrolleri çalıştırma ve donanım doğrulamasını planlama |

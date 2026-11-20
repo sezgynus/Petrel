@@ -10,6 +10,8 @@ Petrel downloads the public [announcement feed](https://raw.githubusercontent.co
 
 Open the bell in the top bar to read an announcement. Select the announcement and press the encoder to mark it as read and remove it from the list. Petrel remembers that choice across restarts, so the same announcement does not reappear while it remains in the feed. Unread announcements also survive restarts.
 
+A new announcement plays the notification chime when **Device → Event sounds → New notification** is enabled. That switch controls the sound. **Device settings → Announcements** controls delivery.
+
 ## Network access and privacy
 
 Petrel makes an HTTPS request to GitHub for the same public file on every installation. The request requires no GitHub account and sends no printer data, device identifier, or read status. GitHub receives standard connection information such as the public IP address and request time. The read history stays on the Linux host running Petrel.

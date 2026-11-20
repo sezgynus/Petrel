@@ -40,13 +40,17 @@ glyphs. The badge count uses panel text. Cached rendering updates the
 changed control, rows and scroll gutter. Closing restores the menu underneath
 the overlay through the existing view renderer.
 
+## Notification chime
+
+The store signals the UI when a successful commit adds a new `(source, key)`. Updating an active entry or restoring saved entries leaves the signal clear. Additions between UI polls share one chime. The **New notification** event uses the existing buzzer mute, volume and event preferences.
+
 ## Project announcements
 
 Petrel checks the public `announcements.json` file on `master` at startup
 and every five minutes. The file uses version 1 and an `announcements` array. Each entry
 has a unique `id`, a `title`, and optional `detail`. IDs are 1–64 ASCII
 letters, digits, dots, underscores or hyphens and must start with a letter
-or digit. Keep the title and detail short for the panel.
+or digit. Keep the title within 24 characters and the detail within 32 to avoid truncation on the panel. The optional `publish_at` accepts `YYYY-MM-DDTHH:MM` or `YYYY-MM-DDTHH:MM:SS`, using each host's local time. An entry without `publish_at` is delivered on the first successful fetch. See the [announcement user guide](announcements.md).
 
 Press an announcement to mark it read on that installation. Unread entries
 survive restarts and stay in the panel even if removed from the feed. A valid

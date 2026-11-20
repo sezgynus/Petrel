@@ -37,6 +37,16 @@ A compact Wi-Fi icon beside the header clock shows host RSSI using the same thre
 
 Real UI emulator output with example data.
 
+## Notifications
+
+The bell in the top bar shows the number of active notifications. Select it with the encoder and press to open the notification panel over the current screen. In submenus with a Back button, the bell comes immediately after Back in the encoder order. The bell disappears when the list is empty.
+
+- Select a Petrel update notification to open **Info** with **Update** selected. The notification stays until Moonraker reports that the update is no longer available.
+- Select a care reminder to open its plan in **Maintenance**. Recording the service clears the reminder.
+- Select a [project announcement](announcements.md) to mark it as read and remove it from the list.
+
+A newly added notification plays a short chime when enabled under **Device → Event sounds → New notification**. Repeated checks, changes to an existing entry and restarting with saved entries are silent. Notifications added before the next sound check share one chime.
+
 ## Choose and start a print
 
 <p align="center">
@@ -290,7 +300,7 @@ without automatic event bindings.
 
 ### Event sound switches
 
-Open **Device → Event sounds** for 18 independent checkboxes: the sixteen events above plus **Emergency card alarm** and **Power button hold**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
+Open **Device → Event sounds** for 19 independent checkboxes, including **Emergency card alarm**, **Power button hold** and **New notification**. Rotate to an event and press to toggle it. Every option defaults to enabled on first installation or an upgrade without a valid saved record. WARNING and CUSTOM_EVENT remain library-only.
 
 Each change is saved automatically to panel Data Flash and read back for verification. While saving, the last verified choices remain effective. **Not saved** retains those choices; press again to retry. **Retry read** retries loading preferences. The separate CRC-protected 16-byte record at `0x0480` preserves existing display and buzzer settings.
 
@@ -515,7 +525,7 @@ refresh from another client. If an update is already available, Info shows
 
 Petrel also asks Moonraker to check Petrel at startup and every ten minutes
 while the printer is idle. A due check waits until the print has finished,
-including while the print is paused.
+including while the print is paused. **Device settings → Auto update check** is enabled by default. Turn it off to stop automatic checks while keeping the manual check available.
 
 To update from the LCD:
 
