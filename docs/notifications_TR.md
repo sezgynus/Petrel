@@ -45,7 +45,7 @@ kapatırken mevcut menü çizicisi, panelin altındaki menüyü geri getirir.
 ## Proje duyuruları
 
 Petrel, `master` dalındaki herkese açık `announcements.json` dosyasını açılışta
-ve saatte bir kontrol eder. Dosyada sürüm 1 ve bir `announcements` dizisi
+ve beş dakikada bir kontrol eder. Dosyada sürüm 1 ve bir `announcements` dizisi
 kullanılır. Her kayıtta benzersiz bir `id`, bir `title` ve isteğe bağlı `detail`
 alanı bulunur. ID 1–64 karakter uzunluğundadır. ASCII harf, rakam, nokta, alt
 çizgi ve tire kullanılabilir. İlk karakter harf veya rakam olmalıdır. Başlığı

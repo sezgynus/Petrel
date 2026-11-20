@@ -43,7 +43,7 @@ the overlay through the existing view renderer.
 ## Project announcements
 
 Petrel checks the public `announcements.json` file on `master` at startup
-and hourly. The file uses version 1 and an `announcements` array. Each entry
+and every five minutes. The file uses version 1 and an `announcements` array. Each entry
 has a unique `id`, a `title`, and optional `detail`. IDs are 1–64 ASCII
 letters, digits, dots, underscores or hyphens and must start with a letter
 or digit. Keep the title and detail short for the panel.

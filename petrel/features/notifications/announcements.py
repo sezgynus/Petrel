@@ -11,7 +11,7 @@ from petrel.printer.background_reads import ReadWorker
 
 
 FEED_URL = 'https://raw.githubusercontent.com/sezgynus/Petrel/master/announcements.json'
-FEED_INTERVAL = 3600
+FEED_INTERVAL = 5 * 60
 MAX_FEED_BYTES = 32 * 1024
 MAX_ANNOUNCEMENTS = 64
 ANNOUNCEMENT_ID = re.compile(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}')
