@@ -30,6 +30,11 @@ notification. Press it to open Info with **Update** selected. The entry stays
 until Moonraker no longer reports an available Petrel update, including after
 an update installed from another client.
 
+Due care plans also publish a persistent notification for each active service
+cycle. Pressing it opens the specific plan in Maintenance. Recording completed
+service or removing the plan clears its notification. Missing counter samples
+leave an already-due notification in place.
+
 Both panel families use the shared icon library for the bell, badge and row
 glyphs. The badge count uses panel text. Cached rendering updates the
 changed control, rows and scroll gutter. Closing restores the menu underneath

@@ -32,6 +32,11 @@ basınca Info ekranı **Update** seçili olarak açılır. Güncelleme başka bi
 istemciden de kurulsa, Moonraker artık güncelleme olmadığını bildirdiğinde
 kayıt kalkar.
 
+Vadesi dolan bakım planları da her etkin bakım döngüsü için bir kalıcı
+bildirim oluşturur. Bildirime basınca Maintenance altında ilgili plan
+açılır. Bakım tamamlandı olarak kaydedildiğinde veya plan kaldırıldığında
+bildirim silinir. Sayaç verisi geçici olarak eksikse mevcut bildirim kalır.
+
 Her iki panel ailesinde zil, rozet ve satır simgeleri ortak ikon
 kütüphanesinden çizilir. Rozet sayısı panel yazısıdır. Çizim önbelleği
 değişen düğmeyi, satırları ve kaydırma çubuğunu günceller. Paneli
