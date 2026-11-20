@@ -12,13 +12,85 @@ from petrel.ui.theme import show_icon
 
 class NotificationsViewMixin:
     _notification_visible_rows = 4
+    _notification_positions = {
+        'MainMenu': 'select_page',
+        'SelectFile': 'select_file',
+        'Prepare': 'select_prepare',
+        'Control': 'select_control',
+        'AxisMove': 'select_axis',
+        'TemperatureID': 'select_temp',
+        'Motion': 'select_motion',
+        'PLAPreheat': 'select_PLA',
+        'ABSPreheat': 'select_PLA',
+        'CaseLight': 'select_light',
+        'PrintProcess': 'select_print',
+        'Tune': 'select_tune',
+        'Info': '_info_scroll',
+        'DisplayMenu': '_display_selection',
+        'EventSoundsMenu': '_event_sound_selection',
+        'NFCSettingsMenu': '_nfc_selection',
+        'NFCChoiceMenu': '_nfc_choice_selection',
+        'RFIDMenu': '_rfid_selection',
+        'MaintenanceMenu': '_maintenance_selection',
+        'MMUMenu': '_mmu_selection',
+        'BedMeshMenu': '_mesh_menu_selection',
+        'MeshProfiles': '_mesh_profile_selection',
+        'BedMeshScreen': '_mesh_button_selection',
+        'ScrewsTiltMenu': '_screws_selection',
+        'ScrewsTiltResult': None,
+        'ProbeWizardID': '_probe_selection',
+        'FilePreview': '_preview_choice',
+        'PrintErrorDetails': '_focus_error_scroll',
+    }
+
+    def _notification_navigation(self):
+        screen = getattr(self, 'checkkey', None)
+        if screen is None or any(getattr(self, flag, None) for flag in (
+                '_action_feedback', '_pending_start', '_start_error_visible',
+                '_print_error_visible', '_nfc_share_popup')):
+            return None
+        for name, position in self._notification_positions.items():
+            if getattr(self, name, None) == screen:
+                break
+        else:
+            return None
+
+        if name == 'DisplayMenu' and (
+                getattr(self, '_display_edit', False)
+                or getattr(self, '_display_save_future', None) is not None
+                or getattr(self, '_buzzer_save_future', None) is not None):
+            return None
+        if name == 'MMUMenu' and getattr(self, '_mmu_edit', None):
+            return None
+        if name == 'RFIDMenu':
+            mode = getattr(self, '_rfid_mode', 'info')
+            if mode in ('waiting', 'spool_waiting', 'spool_confirm', 'spool_transfer'):
+                return None
+            if mode.startswith('spool_'):
+                position = '_spool_selection'
+        if name == 'MaintenanceMenu':
+            page = getattr(self, '_maintenance_page', 'root')
+            if page in ('service_interval', 'reference_limit', 'pulse', 'storage'):
+                return None
+            if getattr(getattr(self, '_maintenance_last_screen', None), 'kind', None) == 'report':
+                position = '_maintenance_report_position'
+        if name == 'BedMeshScreen' and (getattr(self, '_mesh_confirmation', None)
+                or getattr(self, '_mesh_pending_points', None)
+                or getattr(getattr(self.pd, 'bed_mesh', None), 'pending', False)):
+            return None
+        if name == 'ScrewsTiltResult' and getattr(getattr(self.pd, 'screws_tilt', None), 'pending', False):
+            return None
+        if name == 'ProbeWizardID' and getattr(getattr(self.pd, 'probe_wizard', None), 'pending', False):
+            return None
+        if (name == 'PrintErrorDetails' and getattr(self, '_focus_error_scroll', 0) == 0
+                and getattr(self, '_focus_error_choice', 0) != 1):
+            return screen, 1  # Preserve the existing step onto the Back button.
+        selection = getattr(self, position, 0) if position is not None else 0
+        return screen, getattr(selection, 'now', selection)
 
     def _notification_screen(self):
-        screen = getattr(self, 'checkkey', None)
-        return screen if screen in (
-            self.MainMenu, self.Info, self.Prepare, self.Control, self.AxisMove,
-            self.TemperatureID, self.Motion,
-        ) else None
+        navigation = self._notification_navigation()
+        return navigation[0] if navigation is not None else None
 
     def _notification_entries(self):
         store = getattr(self, 'notifications', None)
@@ -43,10 +115,8 @@ class NotificationsViewMixin:
         if key is None:
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 160, 3, 192, 27)
             self._paint_header_title(clear=True)
-            if previous[0] and screen == self.MainMenu:
-                self._draw_home_page(self.select_page.now)
-            elif previous[0] and screen is not None and getattr(self, '_header_back_render', None):
-                self._draw_header_back()
+            if previous[0] and screen is not None:
+                self._draw_notification_focus_change()
             return True
         if previous is None or previous[0] != selected:
             self.lcd.draw_rectangle(1, 0x19E9 if selected else self.lcd.Color_Bg_Blue,
@@ -63,25 +133,29 @@ class NotificationsViewMixin:
     def _notification_boundary_input(self):
         if self.get_encoder_state() != self.ENCODER_DIFF_CCW or not self._notification_entries():
             return False
-        selections = {
-            self.MainMenu: 'select_page',
-            self.Prepare: 'select_prepare',
-            self.Control: 'select_control',
-            self.AxisMove: 'select_axis',
-            self.TemperatureID: 'select_temp',
-            self.Motion: 'select_motion',
-        }
-        selected = (getattr(self, '_info_scroll', 0) if self.checkkey == self.Info
-                    else getattr(self, selections[self.checkkey]).now)
-        if selected == 0:
+        navigation = self._notification_navigation()
+        if navigation is not None and navigation[1] == 0:
             self._notification_focus = self.checkkey
             self._draw_notification_control()
-            if self.checkkey == self.MainMenu:
-                self._draw_home_page(self.select_page.now)
-            else:
-                self._draw_header_back(False)
+            self._draw_notification_focus_change()
             return True
         return False
+
+    def _draw_notification_focus_change(self):
+        if self.checkkey == self.MainMenu:
+            self._draw_home_page(self.select_page.now)
+        elif self.checkkey == getattr(self, 'FilePreview', None):
+            self._preview_buttons()
+        elif self.checkkey == getattr(self, 'PrintProcess', None):
+            self._focus_draw_buttons()
+        elif self.checkkey == getattr(self, 'PrintErrorDetails', None):
+            self._focus_error_draw(buttons_only=True)
+        elif self.checkkey == getattr(self, 'MaintenanceMenu', None):
+            self.Draw_Maintenance_Menu()
+        elif self.checkkey == getattr(self, 'MMUMenu', None):
+            self.Draw_MMU_Menu()
+        elif getattr(self, '_header_back_render', None):
+            self._draw_header_back(self._notification_focus is None)
 
     def _notification_input(self):
         if getattr(self, 'notifications', None) is None:
@@ -118,10 +192,7 @@ class NotificationsViewMixin:
         elif event == self.ENCODER_DIFF_CW:
             self._notification_focus = None
             self._draw_notification_control()
-            if screen == self.MainMenu:
-                self._draw_home_page(self.select_page.now)
-            else:
-                self._draw_header_back()
+            self._draw_notification_focus_change()
         return True
 
     def _activate_notification(self, items, index):
@@ -159,6 +230,9 @@ class NotificationsViewMixin:
         # menu body using its renderer; the dashboard remains untouched.
         self._list_render = None
         self._info_render_scroll = None
+        self._maintenance_frame = None
+        self._mmu_canvas_page = None
+        self._screws_result_cache = None
         self._notification_restoring = True
         try:
             self._redraw_current_screen()

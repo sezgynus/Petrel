@@ -28,9 +28,9 @@ class HeaderMixin:
                                 4, 3, 27, 26)
         show_theme_icon(self.lcd, self.ICON, self.ICON_Back, 6, 5)
 
-    def Draw_Title(self, title, back=False):
+    def Draw_Title(self, title, back=False, *, clear=False):
         self._header_title = (T5UIC1Display._panel_text(str(title)), back)
-        self._paint_header_title()
+        self._paint_header_title(clear=clear)
         self._draw_header_clock()
 
     def _paint_header_title(self, *, clear=False):

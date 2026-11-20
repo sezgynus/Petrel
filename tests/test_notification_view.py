@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 from petrel.features.notifications.store import Notification, NotificationStore, Retention
@@ -36,6 +37,40 @@ class NotificationViewTest(unittest.TestCase):
     def open_panel(self):
         self.assertTrue(self.view.send(self.view.ENCODER_DIFF_CCW))
         self.assertTrue(self.view.send(self.view.ENCODER_DIFF_ENTER))
+
+    def test_submenus_share_visibility_and_encoder_order(self):
+        for name, position in NotificationDisplay._notification_positions.items():
+            with self.subTest(menu=name):
+                view = NotificationDisplay()
+                view.pd = SimpleNamespace()
+                if not hasattr(view, name):
+                    setattr(view, name, 100)
+                view.checkkey = getattr(view, name)
+                view._draw_notification_focus_change = Mock()
+                if name == 'PrintErrorDetails':
+                    view._focus_error_choice = 1
+                if position is not None:
+                    setattr(view, position, 0)
+                view.notifications.publish(Notification('test', 'due', 'Maintenance due'))
+                self.assertTrue(view._draw_notification_control())
+                self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+                self.assertEqual(view._notification_focus, view.checkkey)
+                self.assertTrue(view.send(view.ENCODER_DIFF_CW))
+                self.assertIsNone(view._notification_focus)
+                self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+                self.assertTrue(view.send(view.ENCODER_DIFF_ENTER))
+                self.assertTrue(view._notifications_cover_screen())
+
+    def test_display_edit_owns_encoder_and_hides_notification_control(self):
+        view = self.view
+        view.DisplayMenu = view.checkkey = 100
+        view._display_edit = True
+        view.notifications.publish(Notification('test', 'due', 'Maintenance due'))
+        self.assertFalse(view._draw_notification_control())
+        self.assertFalse(view.send(view.ENCODER_DIFF_CCW))
+        view._display_edit = False
+        self.assertTrue(view._draw_notification_control())
+        self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
 
     def test_last_dismissal_closes_panel_and_removes_control(self):
         view = self.view

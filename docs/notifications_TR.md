@@ -22,8 +22,8 @@ olursa kayıt listede kalır.
   edilemediyse False döndürün. Kalıcı kaydı, koşul ortadan kalktığında
   bildirimin kaynağı çözümler.
 
-Zil, Home, Info ve ortak Prepare, Control, Move, Temperature ve Motion
-menülerinde encoder sırasının başındadır. İlk öğedeyken bir adım geri
+Zil, ana ekranda ve alt menülerde encoder sırasının başındadır. Değer
+düzenleme ve onay pencereleri encoder odağını korur. İlk öğedeyken bir adım geri
 çevirerek zile odaklanın. Panel mevcut ekranın üstüne açılır, ilk odağı
 Back düğmesine verir ve bilgi satırları dahil tüm kayıtları kaydırır.
 Liste boşaldığında zil gizlenir ve odak sırasından çıkar. Moonraker bir Petrel

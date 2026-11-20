@@ -32,6 +32,8 @@ class ProbeViewMixin:
                            0x03B5, x+(width-len(label)*8)//2, y+(height-16)//2, label)
 
     def Draw_Probe_Wizard(self):
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         wizard = self.pd.probe_wizard
         manual = self.pd.state.status.get('manual_probe', {})
         options = self._probe_options()

@@ -28,6 +28,7 @@ def _text(v,key,value,x,y,cells=30,small=False,color=INK):
 
 
 def _cursor(v,key,y,height,selected):
+    selected = selected and getattr(v, '_notification_focus', None) is None
     if _cached(v,('cursor',key),(y,height,selected)):
         v.lcd.draw_rectangle(1,ACCENT if selected else BG,4,y+5,7,y+height-6)
 

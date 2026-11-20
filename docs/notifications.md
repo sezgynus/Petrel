@@ -20,8 +20,8 @@ persistent record unchanged.
   Return False if a dismissible action could not be accepted. A persistent
   entry is resolved separately by its owner when its condition clears.
 
-The bell precedes the first encoder target on Home, Info and the shared
-Prepare, Control, Move, Temperature and Motion menus. Rotate one step back
+The bell precedes the first encoder target on Home and in submenus.
+Value editors and modal confirmations keep exclusive encoder focus. Rotate one step back
 from the first target to focus it. The popup keeps the originating screen,
 starts with Back selected and scrolls all rows, including read-only ones.
 The bell is hidden and absent from the encoder order whenever the feed is

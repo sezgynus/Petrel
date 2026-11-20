@@ -100,7 +100,9 @@ class FilePreviewMixin:
     def _preview_buttons(self):
         for index, label in enumerate(('Print', 'Cancel')):
             x = 20 + index*126
-            color = self.lcd.Color_Bg_Blue if self._preview_choice == index else self.lcd.Color_Bg_Black
+            selected = (self._preview_choice == index
+                        and getattr(self, '_notification_focus', None) != self.checkkey)
+            color = self.lcd.Color_Bg_Blue if selected else self.lcd.Color_Bg_Black
             self.lcd.draw_rectangle(1, color, x, 314, x+106, 356)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, x, 314, x+106, 356)
             self._draw_menu_text(label, x+(106-len(label)*8)//2, 327)
@@ -167,6 +169,8 @@ class FilePreviewMixin:
         if self.checkkey != self.FilePreview:
             return
         self._poll_preview_validation()
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         if self._preview_epoch != self.pd.state.epoch:
             if self._preview_error != 'Connection changed':
                 self._preview_error = 'Connection changed'

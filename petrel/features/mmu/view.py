@@ -294,6 +294,8 @@ class MMUViewMixin(MMUOverviewMixin, MMUEditingMixin):
 
 
     def Draw_MMU_Menu(self):
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         self._sync_fan_animation(False)
         if not hasattr(self, '_mmu_page'):
             self._mmu_page, self._mmu_selection = 'home', 0
@@ -327,7 +329,7 @@ class MMUViewMixin(MMUOverviewMixin, MMUEditingMixin):
         items = self._mmu_items(m, snapshot=snapshot)
         self._mmu_drawn_keys = tuple(item[0] for item in items)
         self._mmu_selection = min(self._mmu_selection, len(items))
-        back_selected = self._mmu_selection == 0
+        back_selected = self._mmu_selection == 0 and getattr(self, '_notification_focus', None) != self.checkkey
         if self._mmu_render.get('back') != back_selected:
             self._mmu_render['back'] = back_selected
             self.lcd.draw_rectangle(1, 0x19E9 if back_selected else 0x2966,
@@ -336,7 +338,9 @@ class MMUViewMixin(MMUOverviewMixin, MMUEditingMixin):
         title = self.MMU_TITLES[page]
         if page in ('gate', 'filament', 'spool'):
             title += ' / ' + self._mmu_gate_label(self._mmu_gate)
-        self._mmu_text('title', title, 34, 6, 19, bg=0x2966)
+        if self._mmu_render.get('header_title') != title:
+            self._mmu_render['header_title'] = title
+            self.Draw_Title(title, back=True, clear=getattr(self, '_header_title', None) is not None)
         self._draw_header_clock()
         connection = 'OFFLINE' if self.pd.connection_error else 'MMU unavailable' if not m else (
             'MMU DISABLED' if m.enabled is not True else m.action.upper())
