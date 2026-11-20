@@ -153,13 +153,13 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertEqual(image.getpixel((0, 0)), (0, 0, 255))
 
     def test_managed_icon_directory_and_unused_tail(self):
-        for icon in (0, 1, 15, 142, 185):
+        for icon in (0, 1, 15, 142, 189):
             image = self.assets.icon(ICON_LIBRARY_ID, icon)
             self.lcd.show_icon(ICON_LIBRARY_ID, icon, 0, 0, background=True)
             self.lcd.update(); frame, _ = self.model.snapshot()
             self.assertEqual(frame.crop((0, 0, image.width, image.height)).tobytes(), image.tobytes())
         with self.assertRaises(ValueError):
-            self.assets.icon(ICON_LIBRARY_ID, 186)
+            self.assets.icon(ICON_LIBRARY_ID, 190)
 
     def test_move_area_translation_and_wrap_leave_surroundings_unchanged(self):
         for direction, target in ((0, (8, 10)), (1, (12, 10)), (2, (10, 8)), (3, (10, 12))):

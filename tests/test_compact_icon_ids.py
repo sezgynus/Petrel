@@ -32,7 +32,7 @@ class CompactIconIDs(TestCase):
         physical = [v for k, v in migration.items() if k not in record['aliases']]
         self.assertEqual(len(set(physical)), len(physical))
         self.assertLessEqual(set(migration.values()), set(source_ids))
-        self.assertEqual(len(source_ids), 186)
+        self.assertEqual(len(source_ids), 190)
         self.assertEqual(len(record["aliases"]), 12)
         self.assertEqual(len(record["removed_ids"]), 2)
         for index in range(len(source_ids), 256):
