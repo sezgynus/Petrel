@@ -5,6 +5,12 @@
       "id": "online-announcements-introduction",
       "title": "Online announcements",
       "detail": "Info: scan QR for project docs"
+    },
+    {
+      "id": "happy-new-year-2027",
+      "title": "Happy New Year!",
+      "detail": "Happy printing in 2027!",
+      "publish_at": "2027-01-01T00:00:00"
     }
   ]
 }
