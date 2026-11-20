@@ -159,7 +159,11 @@ class NotificationsViewMixin:
         # menu body using its renderer; the dashboard remains untouched.
         self._list_render = None
         self._info_render_scroll = None
-        self._redraw_current_screen()
+        self._notification_restoring = True
+        try:
+            self._redraw_current_screen()
+        finally:
+            self._notification_restoring = False
         self._draw_notification_control()
 
     def _draw_notification_panel(self, *, invalidate=False):

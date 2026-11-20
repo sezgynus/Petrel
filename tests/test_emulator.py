@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from PIL import Image
+from PIL import Image, ImageChops
 from petrel.emulator.assets import PanelAssets, rgb565
 from petrel.emulator.framebuffer import Framebuffer
 from petrel.emulator.runtime import Emulator, ScreenshotServer
@@ -160,6 +160,47 @@ class EmulatorRenderingTests(unittest.TestCase):
             self.assertEqual(frame.crop((0, 0, image.width, image.height)).tobytes(), image.tobytes())
         with self.assertRaises(ValueError):
             self.assets.icon(ICON_LIBRARY_ID, 190)
+
+    def test_notification_overlay_uses_native_icons_and_preserves_dashboard(self):
+        from petrel.artwork.resources import (
+            ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DISMISS, ICON_NOTIFICATION_DOT,
+        )
+        from petrel.features.notifications.store import Notification, NotificationStore
+        from test_capabilities import display, snapshot
+
+        view = display(snapshot())
+        view.lcd = self.lcd
+        view.notifications = NotificationStore()
+        view.checkkey = view.MainMenu
+        self.lcd.show_jpeg(0)
+        view.Goto_MainMenu()
+        view.Draw_Status_Area(False)
+        self.lcd.update()
+        initial, _ = self.model.snapshot()
+        dashboard = (0, view.STATUS_Y + 1, 272, 480)
+
+        view.notifications.publish(Notification('test', 'bed', 'Bed cooled down'))
+        view.get_encoder_state = lambda: view.ENCODER_DIFF_CCW
+        self.assertTrue(view._notification_input())
+        view.get_encoder_state = lambda: view.ENCODER_DIFF_ENTER
+        self.assertTrue(view._notification_input())
+        self.lcd.update()
+        visible, _ = self.model.snapshot()
+        self.assertNotEqual(initial.crop((20, 34, 262, 230)).tobytes(),
+                            visible.crop((20, 34, 262, 230)).tobytes())
+        self.assertEqual(initial.crop(dashboard).tobytes(), visible.crop(dashboard).tobytes())
+        ids = {frame[7] for frame in self.lcd.serial.frames if frame[1] == 0x23}
+        self.assertTrue({ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DOT,
+                         ICON_NOTIFICATION_DISMISS}.issubset(ids))
+        self.assertFalse(self.model.errors)
+
+        view.get_encoder_state = lambda: view.ENCODER_DIFF_CW
+        view._notification_input()
+        view.get_encoder_state = lambda: view.ENCODER_DIFF_ENTER
+        view._notification_input()
+        self.lcd.update()
+        restored, _ = self.model.snapshot()
+        self.assertIsNone(ImageChops.difference(initial, restored).getbbox())
 
     def test_move_area_translation_and_wrap_leave_surroundings_unchanged(self):
         for direction, target in ((0, (8, 10)), (1, (12, 10)), (2, (10, 8)), (3, (10, 12))):

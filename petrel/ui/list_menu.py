@@ -245,7 +245,8 @@ class ListMenuMixin:
         self._display_drawn_message = None
         self._file_drawn_message = None
         self._home_mmu_layout = None
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
+        bottom = self.STATUS_Y - int(bool(getattr(self, '_notification_restoring', False)))
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, bottom)
 
     def Clear_Main_Window(self):
         self._spool_stop_scan_animation()
