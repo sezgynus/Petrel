@@ -44,6 +44,9 @@ class MaintenanceNotificationTests(unittest.TestCase):
         other = ServicePolicy('heating', 'heater_bed', 'calendar_s', 10, 'user')
         pending = Future()
         view.pd.maintenance_ui_records = Mock(return_value=pending)
+        view.pd.maintenance_guided_plan = Mock(return_value=())
+        view.pd.maintenance_read_plan = Mock(return_value=())
+        view.pd.maintenance_service_devices = Mock(return_value=('fan', 'heater_bed'))
         view.Draw_Maintenance_Menu = Mock()
         with patch.dict(view._maintenance_policy_due.__globals__, {'time': lambda: 120.0}):
             view._poll_maintenance_ui()
