@@ -3,7 +3,10 @@ from petrel.ui.theme import show_icon as show_theme_icon, draw_scrollbar
 from petrel.artwork.resources import ICON_INFO_UPDATE_SELECTED, ICON_INFO_UPDATE_NORMAL
 from petrel.ui.numbers import fixed, js_round
 import textwrap
+import logging
+import time
 from petrel.features.software_update.updater import SoftwareUpdate
+from petrel.features.software_update.notification import UPDATE_AVAILABLE
 from petrel.features.info.qr import PROJECT_URL, draw_project_qr, extra_info_rows
 from petrel.features.nfc.share_view import NFCShareViewMixin
 from petrel.artwork.shared import PICTURE_ID as SHARED_PICTURE_ID
@@ -49,10 +52,14 @@ class InfoViewMixin(NFCShareViewMixin):
                 self.lcd.update()
                 return
             self._info_scroll = 0
-            if getattr(self, '_info_origin', self.MainMenu) == self.Control:
+            origin = getattr(self, '_info_origin', self.MainMenu)
+            if origin == self.Control:
                 self.checkkey = self.Control
                 self.select_control.set(self.CONTROL_CASE_INFO)
                 self.Draw_Control_Menu()
+            elif origin != self.MainMenu:
+                self.checkkey = origin
+                self._redraw_current_screen()
             else:
                 self.select_page.set(next(i for i, entry in enumerate(self._home_entries()) if entry[0] == 'INFO'))
                 self.Goto_MainMenu()
@@ -158,9 +165,39 @@ class InfoViewMixin(NFCShareViewMixin):
     def _poll_software_update_status(self):
         updater = self._software_updater()
         updater.poll_automatic_check(lambda: bool(getattr(self, '_pending_start', None)))
-        if updater.poll():
-            return True
-        return updater.observe() is True
+        changed = updater.poll() or updater.observe() is True
+        self._sync_update_notification(updater.update_available)
+        return changed
+
+    def _sync_update_notification(self, available):
+        if available is not True and available is not False:
+            return
+        store = getattr(self, 'notifications', None)
+        if store is None or available is getattr(self, '_notified_update_available', None):
+            return
+        if time.monotonic() < getattr(self, '_update_notification_retry_at', 0):
+            return
+        try:
+            if available:
+                store.publish(UPDATE_AVAILABLE)
+            else:
+                store.resolve(*UPDATE_AVAILABLE.identity)
+        except OSError:
+            logging.exception('Cannot save Petrel update notification')
+            self._update_notification_retry_at = time.monotonic() + 30
+        else:
+            self._notified_update_available = available
+
+    def _open_update_notification(self, _notification):
+        origin = self.checkkey
+        if origin != self.Info:
+            self._info_origin = origin
+        self.checkkey = self.Info
+        self._notification_focus = None
+        self._info_scroll = max(0, len(self._info_items()) + extra_info_rows() - 13)
+        self._info_render_scroll = None
+        if origin != self.Info:
+            self.Draw_Info_Menu()
 
 
     def _info_items(self):

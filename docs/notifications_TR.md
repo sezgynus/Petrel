@@ -26,8 +26,11 @@ Zil, Home, Info ve ortak Prepare, Control, Move, Temperature ve Motion
 menülerinde encoder sırasının başındadır. İlk öğedeyken bir adım geri
 çevirerek zile odaklanın. Panel mevcut ekranın üstüne açılır, ilk odağı
 Back düğmesine verir ve bilgi satırları dahil tüm kayıtları kaydırır.
-Liste boşaldığında zil gizlenir ve odak sırasından çıkar. Bu altyapıyla
-bildirim kaynağı, aksiyon kaydı veya ağ sorgusu eklenmez.
+Liste boşaldığında zil gizlenir ve odak sırasından çıkar. Moonraker bir Petrel
+güncellemesi bildirdiğinde Petrel tek bir kalıcı bildirim oluşturur. Bildirime
+basınca Info ekranı **Update** seçili olarak açılır. Güncelleme başka bir
+istemciden de kurulsa, Moonraker artık güncelleme olmadığını bildirdiğinde
+kayıt kalkar.
 
 Her iki panel ailesinde zil, rozet ve satır simgeleri ortak ikon
 kütüphanesinden çizilir. Rozet sayısı panel yazısıdır. Çizim önbelleği

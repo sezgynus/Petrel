@@ -25,7 +25,10 @@ Prepare, Control, Move, Temperature and Motion menus. Rotate one step back
 from the first target to focus it. The popup keeps the originating screen,
 starts with Back selected and scrolls all rows, including read-only ones.
 The bell is hidden and absent from the encoder order whenever the feed is
-empty. No producers, action registrations or network checks are installed.
+empty. When Moonraker reports a Petrel update, Petrel publishes one persistent
+notification. Press it to open Info with **Update** selected. The entry stays
+until Moonraker no longer reports an available Petrel update, including after
+an update installed from another client.
 
 Both panel families use the shared icon library for the bell, badge and row
 glyphs. The badge count uses panel text. Cached rendering updates the

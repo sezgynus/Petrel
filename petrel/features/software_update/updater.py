@@ -20,6 +20,7 @@ class SoftwareUpdate:
         self.phase = 'idle'
         self.message = ''
         self.name = None
+        self.update_available = None
         self.confirm_epoch = None
         self._observed = None
         self._status_retry = (None, 0.0)
@@ -206,7 +207,7 @@ class SoftwareUpdate:
     def observe(self):
         """Read Moonraker's cached result once per connection and update event."""
         if (self._closed.is_set() or self.future is not None
-                or self.phase in ('confirm_recovery', 'restarting')):
+                or self.phase == 'confirm_recovery'):
             return False
         printer = self.printer
         life = printer.subscription.lifecycle()
@@ -239,7 +240,10 @@ class SoftwareUpdate:
                 or stamp != (latest['epoch'], latest.get('update_revision', 0))):
             return False
         self._observed = stamp
+        self.update_available = bool(available)
         previous = (self.phase, self.message)
+        if self.phase == 'restarting':
+            return False
         if available:
             self.name = name
             self.phase, self.message = 'available', 'Update available'
@@ -253,6 +257,8 @@ class SoftwareUpdate:
         future, self.future = self.future, None
         try:
             self.name, available = future.result()
+            if available is not None:
+                self.update_available = available is True
             if available == 'dirty':
                 self.phase, self.message = 'dirty', 'Repo invalid or modified'
             elif available is None:

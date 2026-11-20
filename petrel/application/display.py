@@ -8,6 +8,7 @@ from petrel.ui.list_menu import ListMenuMixin
 from petrel.ui.dashboard import DashboardMixin
 from petrel.ui.header import HeaderMixin
 from petrel.features.notifications.store import NotificationStore, notification_state_path
+from petrel.features.software_update.notification import UPDATE_AVAILABLE
 from petrel.features.notifications.view import NotificationsViewMixin
 from petrel.features.info.view import InfoViewMixin
 from petrel.features.display_settings.view import DisplaySettingsViewMixin
@@ -303,7 +304,7 @@ class PetrelDisplay(
         self._uart_start_signal = None
         self._uart_probe_failures = 0
         self.notifications = NotificationStore(notification_state_path())
-        self.notification_actions = {}
+        self.notification_actions = {UPDATE_AVAILABLE.action: self._open_update_notification}
         self._boot_active = True
         self._boot_connection_started = None
         self._boot_connection_delayed = False

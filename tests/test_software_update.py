@@ -1,11 +1,72 @@
 import unittest
 from concurrent.futures import Future
 from types import SimpleNamespace
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 from petrel.features.software_update.updater import SoftwareUpdate
 
 
 class UpdateTests(unittest.TestCase):
+    def test_confirmed_availability_owns_one_persistent_notification_until_external_update(self):
+        from petrel.features.notifications.store import NotificationStore, Persistence, Retention
+        from petrel.features.software_update.notification import UPDATE_AVAILABLE
+        from test_capabilities import display, snapshot
+
+        view = display(snapshot())
+        directory = self.enterContext(TemporaryDirectory())
+        path = Path(directory) / 'notifications.json'
+        view.notifications = NotificationStore(path)
+        updater, client, item, _ = self.make()
+        lifecycle = {'state': 'ready', 'epoch': 1, 'update_revision': 1}
+        updater.printer.subscription.lifecycle.return_value = lifecycle
+        updater.printer._read = Mock(return_value=client.get.return_value)
+        view._software_updater = Mock(return_value=updater)
+        view._pending_start = object()  # Keep automatic dispatch out of this observation test.
+        view._poll_software_update_status()
+        view._poll_software_update_status()
+        self.assertEqual(view.notifications.snapshot(), (1, (UPDATE_AVAILABLE,)))
+        self.assertEqual(UPDATE_AVAILABLE.retention, Retention.UNTIL_RESOLVED)
+        self.assertEqual(UPDATE_AVAILABLE.persistence, Persistence.PERSISTENT)
+        self.assertFalse(view.notifications.dismiss(UPDATE_AVAILABLE))
+
+        view.notifications = NotificationStore(path)
+        view._notified_update_available = None
+        updater = SoftwareUpdate(updater.printer)
+        view._software_updater.return_value = updater
+        lifecycle['state'] = 'disconnected'
+        self.assertFalse(view._poll_software_update_status())
+        self.assertEqual(view.notifications.snapshot()[1], (UPDATE_AVAILABLE,))
+        lifecycle.update(state='ready', update_revision=2)
+        item['current_hash'] = item['remote_hash']
+        view._poll_software_update_status()
+        self.assertEqual(view.notifications.snapshot()[1], ())
+        self.assertEqual(NotificationStore(path).snapshot()[1], ())
+
+    def test_notification_opens_info_focused_on_update_without_installing(self):
+        from petrel.features.info.qr import extra_info_rows
+        from petrel.features.notifications.store import NotificationStore
+        from petrel.features.software_update.notification import UPDATE_AVAILABLE
+        from test_capabilities import display, snapshot
+
+        view = display(snapshot())
+        view.checkkey = view.Prepare
+        view.notifications = NotificationStore()
+        view.notifications.publish(UPDATE_AVAILABLE)
+        view.notification_actions = {UPDATE_AVAILABLE.action: view._open_update_notification}
+        view._notification_overlay = view.Prepare
+        view._notification_focus = view.Prepare
+        view._info_items = Mock(return_value=[('row', '', '')] * 17 + [('update', '', '')])
+        view.Draw_Info_Menu = Mock()
+        view._software_updater = Mock()
+        view._activate_notification((UPDATE_AVAILABLE,), 0)
+        self.assertEqual((view.checkkey, view._info_origin), (view.Info, view.Prepare))
+        self.assertEqual(view._info_scroll, 18 + extra_info_rows() - 13)
+        self.assertIsNone(view._notification_focus)
+        self.assertEqual(view.notifications.snapshot()[1], (UPDATE_AVAILABLE,))
+        view.Draw_Info_Menu.assert_called_once()
+        view._software_updater.assert_not_called()
+
     @patch('petrel.features.software_update.updater.MoonrakerClient')
     def test_automatic_check_on_startup_and_configured_interval_only_refreshes_petrel(self, factory):
         original, client, _, _ = self.make('petrel')
