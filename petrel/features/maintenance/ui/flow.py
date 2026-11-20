@@ -251,11 +251,18 @@ class MaintenanceFlowMixin:
         reader=getattr(self.pd,'maintenance_reader',None)
         visible=self.checkkey==self.MaintenanceMenu
         active_page=self._maintenance_page
-        if (visible and active_page in ('root','service','service_task')
-                and self._maintenance_records_ready and not self._maintenance_records_failed
+        epoch, _ = self._maintenance_identity()
+        state = getattr(self.pd, 'state', None)
+        background_due = (getattr(self, 'notifications', None) is not None and epoch is not None
+                          and getattr(state, 'ready', False) is True and epoch == state.epoch)
+        visible_refresh = (visible and active_page in ('root','service','service_task')
+                           and self._maintenance_records_ready and not self._maintenance_records_failed)
+        if ((visible_refresh or background_due)
                 and not getattr(owner,'pending',False) and not getattr(reader,'pending',False)
                 and monotonic()>=self._maintenance_records_refresh_at):
             self._maintenance_prefetch_records()
+        if not visible or active_page != 'service':
+            self._maintenance_notification_target = None
         sensor_future=self._maintenance_sensor_future
         if sensor_future is not None and sensor_future.done():
             self._maintenance_sensor_future=None
@@ -301,6 +308,7 @@ class MaintenanceFlowMixin:
                 self._maintenance_records_identity=self._maintenance_records_request_identity
                 self._maintenance_records_ready=self._maintenance_records_identity==self._maintenance_identity()
                 self._maintenance_records_refresh_at=monotonic()+60.
+                self._maintenance_notification_check_at = 0
                 target=self._maintenance_records_return
             except Exception:
                 target='notice'
@@ -315,7 +323,8 @@ class MaintenanceFlowMixin:
                     policy=self._maintenance_context[0]
                     fresh=next((row for row in self._maintenance_records_data[0] if row[0]==policy),None)
                     if fresh is not None: self._maintenance_context=fresh
-                if visible and active_page in ('root','service','service_task'):
+                opened = visible and active_page == 'service' and self._open_maintenance_notification_target()
+                if visible and active_page in ('root','service','service_task') and not opened:
                     self.Draw_Maintenance_Menu();self.lcd.update()
             elif visible and active_page=='storage':
                 if target!='notice':
@@ -324,6 +333,7 @@ class MaintenanceFlowMixin:
                     # Storage is replaced in place; its saved parent is still
                     # the history menu that Back must return to.
                 self._maintenance_show(target)
+        self._sync_maintenance_notifications()
         if not getattr(self, '_maintenance_advanced_this_tick', False):
             self._advance_maintenance_operations()
         result = getattr(self, '_maintenance_pending_result', None)

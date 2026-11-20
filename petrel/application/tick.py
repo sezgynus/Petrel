@@ -27,6 +27,9 @@ class DisplayTickMixin:
         self._tick_active = True
         self._tick_state_update = None
         try:
+            announcements = getattr(self, '_project_announcements', None)
+            if announcements is not None:
+                announcements.tick(enabled=self._display_network.project_announcements)
             self._ui_tick_body()
         finally:
             self._tick_active = False
@@ -184,6 +187,9 @@ class DisplayTickMixin:
             if self._draw_header_clock():
                 self.lcd.update()
             self.EachMomentUpdate()
+            draw_notifications = getattr(self, '_sync_notification_overlay', None)
+            if draw_notifications and draw_notifications():
+                self.lcd.update()
         except OSError:
             if self.lcd is not None and getattr(self.lcd, '_closed', False):
                 self._uart_failed()
@@ -197,6 +203,7 @@ class DisplayTickMixin:
         self._poll_case_light_state()
         # variable update
         update = self._update_ui_state()
+        info_update = self._poll_software_update_status()
         self._poll_maintenance_ui()
         self._focus_tick_quiet()
         if self.pd.connection_error:
@@ -240,15 +247,12 @@ class DisplayTickMixin:
             self._offline = True
             return
         self.pd.probe_wizard.update()
-        info_update = False
-        if self.checkkey == self.Info:
-            info_update = self._software_updater().poll()
         if self.checkkey == self.Info:
             system_changed = self.pd.refresh_system_info()
             if (system_changed or wifi_changed) and not getattr(self, '_nfc_share_popup', None):
                 self.Draw_Info_Menu()
                 self.lcd.update()
-            elif info_update:
+            elif info_update and not getattr(self, '_nfc_share_popup', None):
                 self._refresh_info_update_button()
         if self._poll_print_start() or getattr(self, '_start_error_visible', False):
             return
@@ -323,7 +327,8 @@ class DisplayTickMixin:
             if self.pd.ishomed():
                 self.CompletedHoming()
 
-        if self.checkkey == self.MainMenu:
+        covered = getattr(self, '_notifications_cover_screen', None)
+        if self.checkkey == self.MainMenu and not (covered and covered()):
             mmu_state = self.pd.mmu
             if (mmu_state is None) != (getattr(self, '_drawn_mmu_state', None) is None):
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)

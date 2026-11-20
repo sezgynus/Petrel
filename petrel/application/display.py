@@ -7,6 +7,11 @@ from petrel.ui.selection import select_t
 from petrel.ui.list_menu import ListMenuMixin
 from petrel.ui.dashboard import DashboardMixin
 from petrel.ui.header import HeaderMixin
+from petrel.features.notifications.announcements import ProjectAnnouncements
+from petrel.features.notifications.store import NotificationStore, notification_state_path
+from petrel.features.software_update.notification import UPDATE_AVAILABLE
+from petrel.features.maintenance.notification import ACTION as MAINTENANCE_NOTIFICATION_ACTION
+from petrel.features.notifications.view import NotificationsViewMixin
 from petrel.features.info.view import InfoViewMixin
 from petrel.features.display_settings.view import DisplaySettingsViewMixin
 from petrel.features.files.browser_view import FileBrowserMixin
@@ -17,6 +22,7 @@ from petrel.ui.home import HomeViewMixin
 from petrel.artwork.resources import ICON_FLOW, ICON_LIGHT, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE
 from petrel.artwork.resources import ICON_LIBRARY_ID
 import petrel.features.display_settings.settings as display_settings
+from petrel.features.display_settings.network import NetworkSettings
 from petrel.features.nfc.share_view import NFCURIShareComponent
 import time
 import logging
@@ -58,6 +64,7 @@ class PetrelDisplay(
     ListMenuMixin,
     DashboardMixin,
     HeaderMixin,
+    NotificationsViewMixin,
     InfoViewMixin,
     DisplaySettingsViewMixin,
     FileBrowserMixin,
@@ -299,6 +306,13 @@ class PetrelDisplay(
         self._uart_fast_until = 0
         self._uart_start_signal = None
         self._uart_probe_failures = 0
+        self._display_network = NetworkSettings.load()
+        self.notifications = NotificationStore(notification_state_path())
+        self._project_announcements = ProjectAnnouncements(self.notifications)
+        self.notification_actions = {
+            UPDATE_AVAILABLE.action: self._open_update_notification,
+            MAINTENANCE_NOTIFICATION_ACTION: self._open_maintenance_notification,
+        }
         self._boot_active = True
         self._boot_connection_started = None
         self._boot_connection_delayed = False
@@ -536,6 +550,7 @@ class PetrelDisplay(
         self.pd.subscription.set_melody_callback(None)
         self._closed = True
         for resource in (getattr(self, '_software_update', None),
+                         getattr(self, '_project_announcements', None),
                          getattr(self, '_remote_display', None),
                          getattr(self, '_nfc_spool_router', None),
                          getattr(self, '_buzzer_player', None),

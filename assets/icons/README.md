@@ -6,13 +6,13 @@
 
 Icon IDs and JPEG/SVG sources are shared. ICO, 32 KiB blocks, PETICO06 and native animations below describe **DWIN**. DACAI uses `petrel/artwork/sprites.py`: currently eight 272×480 sheets at pictures 16+, with NFC frames stored as the closest earlier frame plus the changed rectangle. Each NFC animation stays on one sheet; host timers advance its frames. Checkpoints use Data Flash `0x0600`–`0x083F`. Never upload the DWIN ICO to DACAI. Validate both packages and physical panels after source changes; DWIN package size alone does not validate DACAI storage. [DACAI details](../../docs/dacai.md).
 
-The library contains **186 icons, IDs 0–185**. **186–255 are free**; use **186** for the next icon and continue sequentially. Filenames are zero-padded (`186.jpg`, `assets/icon-source/186.svg`). Bind UI and generator code through `petrel/artwork/resources.py`. The [original ID migration map](id-migration.json) records the first migration. The subsequent [axis deduplication map](id-deduplication.json) maps the 212-ID directory to the intermediate 209-ID directory, including aliases 42→31, 43→32 and 44→33. The [native-confirm migration](id-native-confirm.json) then removes the old text-bearing button at ID 49 and the eight unused legacy Print icons at IDs 16–23, closing all nine gaps in one final map. These are review records, not runtime translations.
+The library contains **190 icons, IDs 0–189**. **190–255 are free**; use **190** for the next icon and continue sequentially. Filenames are zero-padded (`190.jpg`, `assets/icon-source/190.svg`). Bind UI and generator code through `petrel/artwork/resources.py`. The [original ID migration map](id-migration.json) records the first migration. The subsequent [axis deduplication map](id-deduplication.json) maps the 212-ID directory to the intermediate 209-ID directory, including aliases 42→31, 43→32 and 44→33. The [native-confirm migration](id-native-confirm.json) then removes the old text-bearing button at ID 49 and the eight unused legacy Print icons at IDs 16–23, closing all nine gaps in one final map. These are review records, not runtime translations.
 
 Second audit: removed unused boot bar (16), old ABS preheat (21), and 12 byte-identical JPEG/SVG copies, including seven spool flanges. **14 IDs and 12,868 JPEG bytes** reclaimed. See [migration map](id-redundancy-cleanup.json).
 
 The original cleanup removed **40 unused icons** (44,535 JPEG bytes). Bed Mesh's former ID 203 was found to be active and is retained as `ICON_BED_MESH` (153). All surviving JPEGs and editable SVGs moved without changing their bytes, dimensions, colors or quality. IDs are dense; physical placement is independent of ID order.
 
-The dashboard and Move menu now share X/Y/Z IDs **21/22/23**. Three byte-identical copies were removed, saving **2,868 bytes** and three IDs. There are **70 free IDs**, starting at **186**.
+The dashboard and Move menu now share X/Y/Z IDs **21/22/23**. Three byte-identical copies were removed, saving **2,868 bytes** and three IDs. There are **66 free IDs**, starting at **190**.
 
 ## Sources and packing
 

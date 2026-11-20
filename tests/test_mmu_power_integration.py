@@ -41,8 +41,10 @@ class MMUPowerIntegrationTests(unittest.TestCase):
                                     for c in v.lcd.show_icon.call_args_list))
                 self.assertTrue(any(c.args[2:] == (259, 10, 266, 17)
                                     for c in v.lcd.draw_rectangle.call_args_list))
-                title = v._mmu_render['title']
-                self.assertLessEqual(title[1] + title[3] * 8, 193)
+                titles = [c.args[7] for c in v.lcd.draw_text.call_args_list
+                          if c.args[5:7] == (34, 6)]
+                self.assertEqual(len(titles), 1)
+                self.assertLessEqual(34 + len(titles[0]) * 8, 193)
                 v.lcd.reset_mock()
                 v.Draw_MMU_Menu()
                 v.lcd.show_icon.assert_not_called()

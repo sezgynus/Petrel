@@ -154,6 +154,8 @@ class MMUOverviewMixin:
             self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 132, 8, small=True)
 
     def _mmu_animation_tick(self):
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         view = getattr(self, '_mmu_filament_view', None)
         state = getattr(self, '_mmu_animation_state', None)
         if view is not None and state is not None:

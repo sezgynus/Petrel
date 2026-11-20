@@ -11,6 +11,9 @@ def load_application():
     # Only import-time dependencies are replaced. Application methods stay real.
     importlib.import_module('petrel.ui.events')
     importlib.import_module('petrel.printer.state')
+    # Keep notification records and retention enum shared with the UI after
+    # the hardware import patch restores sys.modules.
+    importlib.import_module('petrel.features.notifications.store')
     dependencies = {}
     for name in ('requests', 'requests.exceptions', 'multitimer', 'petrel.hardware.encoder',
                  'gpiozero', 'gpiozero.pins', 'gpiozero.pins.lgpio', 'serial'):

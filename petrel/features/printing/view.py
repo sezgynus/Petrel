@@ -105,7 +105,8 @@ class PrintFocusMixin:
             self._focus_button_shape = shape
         for i, (label, normal) in enumerate(buttons):
             disabled = label == 'Stopping'
-            selected = self.select_print.now == i and not disabled
+            selected = (self.select_print.now == i and not disabled
+                        and getattr(self, '_notification_focus', None) != self.PrintProcess)
             color = (0x7BEF if disabled else 0xFBCB if label == 'Stop'
                      and not selected else self.lcd.Color_White)
             start = getattr(self, '_quiet_blinks', {}).get('pause')
@@ -151,6 +152,8 @@ class PrintFocusMixin:
 
     def _focus_print_tick(self, force=False):
         self._focus_tick_quiet()
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         if not hasattr(self, '_focus_render'): self._focus_render = {}
         name = str(self.pd.file_name or '').rsplit('/',1)[-1]
         self._focus_field('name',name,14,42,244,16,lambda:self._focus_text(name[:30],14,42))
@@ -346,6 +349,8 @@ class PrintFocusMixin:
 
     def _focus_tune_tick(self):
         self._focus_tick_quiet()
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         rows=self._focus_tune_rows()
         shape=tuple((s.key if s else '',y) for s,y in rows)
         if shape!=getattr(self,'_focus_tune_shape',None):
@@ -468,11 +473,13 @@ class PrintFocusMixin:
             self._draw_header_back(bool(self._focus_error_choice))
             for i, label in enumerate(('MMU recovery',)):
                 y = 410 + i * 34
-                icon = ICON_MMU_ERROR_SELECTED if self._focus_error_choice == i else ICON_MMU_ERROR_NORMAL
+                selected = (self._focus_error_choice == i
+                            and getattr(self, '_notification_focus', None) != self.PrintErrorDetails)
+                icon = ICON_MMU_ERROR_SELECTED if selected else ICON_MMU_ERROR_NORMAL
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 14, y, 257, y+29)
                 show_icon(self.lcd, self.ICON, icon, 14, y)
                 self._focus_text(label, (272 - len(label) * 8) // 2,
-                                 y + 7, color=0x10C4 if self._focus_error_choice == i else 0xFFFF)
+                                 y + 7, color=0x10C4 if selected else 0xFFFF)
 
     def _focus_error_input(self):
         identity = getattr(self, '_error_job_identity', None)

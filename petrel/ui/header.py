@@ -6,15 +6,24 @@ import time
 from petrel.hardware.dwin.driver import T5UIC1Display
 
 
+NOTIFICATION_LEFT = 168
+NOTIFICATION_RIGHT = 192
+
+
 class HeaderMixin:
     def _invalidate_header(self):
         self._header_back_render = None
         self._header_clock_drawn = None
         self._header_wifi_drawn = None
         self._header_klipper_drawn = None
+        self._header_title = None
+        self._notification_control_render = None
+        self._notification_rows_render = None
 
     def _draw_header_back(self, selected=True):
         """Fixed return control, independent of the scrolling body."""
+        if getattr(self, '_notification_focus', None) is not None and self._notification_focus == self.checkkey:
+            selected = False
         state = (id(self.lcd), bool(selected))
         if getattr(self, '_header_back_render', None) == state:
             return
@@ -23,16 +32,27 @@ class HeaderMixin:
                                 4, 3, 27, 26)
         show_theme_icon(self.lcd, self.ICON, self.ICON_Back, 6, 5)
 
-    def Draw_Title(self, title, back=False):
-        # Wi-Fi begins at x=193; the clock shifts left for the 8x8 state cap.
-        # Wi-Fi begins at x=193; an 8x16 title gets at most 22 cells,
-        # leaving a three-pixel gap before the status cluster.
-        title = T5UIC1Display._panel_text(str(title))
-        cells = 19 if back else 22
+    def Draw_Title(self, title, back=False, *, clear=False):
+        self._header_title = (T5UIC1Display._panel_text(str(title)), back)
+        self._paint_header_title(clear=clear)
+        self._draw_header_clock()
+
+    def _paint_header_title(self, *, clear=False):
+        header = getattr(self, '_header_title', None)
+        if header is None:
+            return
+        title, back = header
+        entries = getattr(self, '_notification_entries', None)
+        has_notifications = bool(entries and entries())
+        x = 34 if back else 14
+        right = NOTIFICATION_LEFT - 1 if has_notifications else NOTIFICATION_RIGHT
+        cells = (right + 1 - x) // 8
         if len(title)>cells:
             title = title[:cells-3]+'...'
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 34 if back else 14, 6, title)
-        self._draw_header_clock()
+        if clear:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, x, 6, right, 21)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Blue, x, 6, title)
 
     def _draw_wifi_signal(self):
         # Native JPEG backgrounds are black; Graphite's enhanced filter makes
@@ -85,4 +105,6 @@ class HeaderMixin:
             self._header_clock_drawn = key
         wifi_changed = self._draw_wifi_signal()
         klipper_changed = self._draw_klipper_state()
-        return clock_changed or wifi_changed or klipper_changed
+        draw_notifications = getattr(self, '_draw_notification_control', None)
+        notifications_changed = bool(draw_notifications and draw_notifications())
+        return clock_changed or wifi_changed or klipper_changed or notifications_changed

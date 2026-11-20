@@ -1,11 +1,176 @@
 import unittest
 from concurrent.futures import Future
 from types import SimpleNamespace
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 from petrel.features.software_update.updater import SoftwareUpdate
 
 
 class UpdateTests(unittest.TestCase):
+    def test_confirmed_availability_owns_one_persistent_notification_until_external_update(self):
+        from petrel.features.notifications.store import NotificationStore, Persistence, Retention
+        from petrel.features.software_update.notification import UPDATE_AVAILABLE
+        from test_capabilities import display, snapshot
+
+        view = display(snapshot())
+        directory = self.enterContext(TemporaryDirectory())
+        path = Path(directory) / 'notifications.json'
+        view.notifications = NotificationStore(path)
+        updater, client, item, _ = self.make()
+        lifecycle = {'state': 'ready', 'epoch': 1, 'update_revision': 1}
+        updater.printer.subscription.lifecycle.return_value = lifecycle
+        updater.printer._read = Mock(return_value=client.get.return_value)
+        view._software_updater = Mock(return_value=updater)
+        view._pending_start = object()  # Keep automatic dispatch out of this observation test.
+        view._poll_software_update_status()
+        view._poll_software_update_status()
+        self.assertEqual(view.notifications.snapshot(), (1, (UPDATE_AVAILABLE,)))
+        self.assertEqual(UPDATE_AVAILABLE.retention, Retention.UNTIL_RESOLVED)
+        self.assertEqual(UPDATE_AVAILABLE.persistence, Persistence.PERSISTENT)
+        self.assertFalse(view.notifications.dismiss(UPDATE_AVAILABLE))
+
+        view.notifications = NotificationStore(path)
+        view._notified_update_available = None
+        updater = SoftwareUpdate(updater.printer)
+        view._software_updater.return_value = updater
+        lifecycle['state'] = 'disconnected'
+        self.assertFalse(view._poll_software_update_status())
+        self.assertEqual(view.notifications.snapshot()[1], (UPDATE_AVAILABLE,))
+        lifecycle.update(state='ready', update_revision=2)
+        item['current_hash'] = item['remote_hash']
+        view._poll_software_update_status()
+        self.assertEqual(view.notifications.snapshot()[1], ())
+        self.assertEqual(NotificationStore(path).snapshot()[1], ())
+
+    def test_notification_opens_info_focused_on_update_without_installing(self):
+        from petrel.features.info.qr import extra_info_rows
+        from petrel.features.notifications.store import NotificationStore
+        from petrel.features.software_update.notification import UPDATE_AVAILABLE
+        from test_capabilities import display, snapshot
+
+        view = display(snapshot())
+        view.checkkey = view.Prepare
+        view.notifications = NotificationStore()
+        view.notifications.publish(UPDATE_AVAILABLE)
+        view.notification_actions = {UPDATE_AVAILABLE.action: view._open_update_notification}
+        view._notification_overlay = view.Prepare
+        view._notification_focus = view.Prepare
+        view._info_items = Mock(return_value=[('row', '', '')] * 17 + [('update', '', '')])
+        view.Draw_Info_Menu = Mock()
+        view._software_updater = Mock()
+        view._activate_notification((UPDATE_AVAILABLE,), 0)
+        self.assertEqual((view.checkkey, view._info_origin), (view.Info, view.Prepare))
+        self.assertEqual(view._info_scroll, 18 + extra_info_rows() - 13)
+        self.assertIsNone(view._notification_focus)
+        self.assertEqual(view.notifications.snapshot()[1], (UPDATE_AVAILABLE,))
+        view.Draw_Info_Menu.assert_called_once()
+        view._software_updater.assert_not_called()
+
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_automatic_check_on_startup_and_configured_interval_only_refreshes_petrel(self, factory):
+        original, client, _, _ = self.make('petrel')
+        factory.return_value = client
+        updater = SoftwareUpdate(original.printer, worker=original._worker, check_interval=90)
+        updater.phase = 'available'
+        with patch('petrel.features.software_update.updater.time.monotonic', return_value=10) as clock:
+            updater.poll_automatic_check(lambda: False)
+            updater.poll_automatic_check(lambda: False)
+            clock.return_value = 99
+            updater.poll_automatic_check(lambda: False)
+            client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'petrel'})
+            clock.return_value = 100
+            updater.poll_automatic_check(lambda: False)
+            self.assertEqual(client.request.call_count, 2)
+        self.assertEqual(updater.label, 'Update')
+        self.assertTrue(all(call.args[1] == '/machine/update/refresh'
+                            for call in client.request.call_args_list))
+
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_due_automatic_check_stays_pending_until_printer_is_idle(self, factory):
+        updater, client, _, snapshot = self.make()
+        factory.return_value = client
+        stats = snapshot['status']['print_stats']
+        for state in ('printing', 'paused', 'pausing', 'resuming', 'unknown'):
+            stats['state'] = state
+            updater.poll_automatic_check(lambda: False)
+        stats['state'] = 'standby'
+        snapshot['status']['virtual_sdcard'] = {'is_active': True}
+        updater.poll_automatic_check(lambda: False)
+        snapshot['status']['virtual_sdcard']['is_active'] = False
+        snapshot['status']['pause_resume'] = {'is_paused': True}
+        updater.poll_automatic_check(lambda: False)
+        snapshot['status']['pause_resume']['is_paused'] = False
+        updater.poll_automatic_check(lambda: True)
+        factory.assert_not_called()
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'Petrel'})
+
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_automatic_check_revalidates_after_status_read_and_defers_when_print_starts(self, factory):
+        updater, client, _, snapshot = self.make()
+        factory.return_value = client
+        stats = snapshot['status']['print_stats']
+
+        def print_starts_during_read(path):
+            stats['state'] = 'printing'
+            return client.get.return_value
+
+        client.get.side_effect = print_starts_during_read
+        updater.poll_automatic_check(lambda: False)
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_not_called()
+        stats['state'] = 'complete'
+        client.get.side_effect = None
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'Petrel'})
+
+    def test_passive_status_sync_on_startup_refresh_and_reconnect(self):
+        from petrel.moonraker.subscription import MoonrakerSubscription
+
+        subscription = MoonrakerSubscription('http://localhost:7125', '', 5, autostart=False)
+        subscription._state = 'ready'
+        printer = SimpleNamespace(subscription=subscription, client=Mock())
+        printer._read = Mock(side_effect=lambda key, work, stamp: work())
+        updater = SoftwareUpdate(printer)
+        petrel = {'is_valid': True, 'is_dirty': False, 'current_hash': 'a', 'remote_hash': 'a'}
+        printer.client.get.return_value = {'result': {'version_info': {'Petrel': petrel}}}
+        self.assertFalse(updater.observe())
+        self.assertEqual(updater.label, 'Check for updates')
+        petrel['remote_hash'] = 'b'
+        self.assertFalse(updater.observe())
+        self.assertEqual(printer.client.get.call_count, 1)
+
+        subscription._notification({'method': 'notify_update_refreshed', 'params': [{}]})
+        self.assertTrue(updater.observe())
+        self.assertEqual((updater.label, updater.name), ('Update', 'Petrel'))
+        restarted = SoftwareUpdate(printer)
+        self.assertTrue(restarted.observe())
+        self.assertEqual(restarted.message, 'Update available')
+
+        petrel['current_hash'] = 'b'
+        subscription._notification({'method': 'notify_update_response', 'params': [{'complete': False}]})
+        self.assertFalse(restarted.observe())
+        subscription._notification({'method': 'notify_update_response', 'params': [{'complete': True}]})
+        self.assertTrue(restarted.observe())
+        self.assertEqual(restarted.label, 'Check for updates')
+        subscription._epoch += 1
+        petrel['remote_hash'] = 'c'
+        self.assertTrue(restarted.observe())
+        printer.client.request.assert_not_called()
+        self.assertTrue(all(call.args == ('/machine/update/status',)
+                            for call in printer.client.get.call_args_list))
+
+    def test_passive_read_cannot_overwrite_confirmation_or_pending_operation(self):
+        updater, _, _, _ = self.make()
+        updater.printer._read = Mock()
+        updater.phase = 'confirm_recovery'
+        self.assertFalse(updater.observe())
+        updater.phase = 'checking'
+        updater.future = Future()
+        self.assertFalse(updater.observe())
+        updater.printer._read.assert_not_called()
+
     def test_update_lane_is_separate_from_normal_reads(self):
         from test_capabilities import printer as make_printer, snapshot
         backend = make_printer(snapshot())

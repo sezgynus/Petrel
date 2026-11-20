@@ -406,6 +406,10 @@ class PowerShortcutMixin:
         self._redraw_current_screen()
 
     def _redraw_current_screen(self):
+        if self.checkkey in (self.PLAPreheat, self.ABSPreheat):
+            profile = 1 if self.checkkey == self.ABSPreheat else getattr(self, '_active_preset', 0)
+            self._draw_capability_menu('preheat', self.select_PLA, profile=profile)
+            return
         redraw = {
             self.MainMenu: self.Goto_MainMenu,
             self.SelectFile: self.Draw_Print_File_Menu,

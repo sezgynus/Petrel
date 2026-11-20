@@ -62,6 +62,8 @@ class ScrewsTiltMixin:
                               font=self.lcd.font10x20, width=10)
 
     def Draw_Screws_Result(self):
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         session = self.pd.screws_tilt
         frame = (id(self.lcd), id(session), session.epoch, tuple(session.corners))
         cache = getattr(self, '_screws_result_cache', None)

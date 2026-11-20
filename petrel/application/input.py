@@ -350,6 +350,16 @@ class DisplayInputMixin:
             return
         if self._handle_power_navigation():
             return
+        notifications = getattr(self, '_notification_input', None)
+        if notifications and notifications():
+            return
+        position = getattr(self, '_notification_menu_position', None)
+        previous = position() if position is not None else None
+        self._dispatch_menu_input()
+        if previous is not None:
+            self._notification_return_from_menu(previous)
+
+    def _dispatch_menu_input(self):
         if self.checkkey == self.MainMenu:
             self.HMI_MainMenu()
         elif self.checkkey == self.SelectFile:

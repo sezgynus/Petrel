@@ -37,6 +37,9 @@ class ListMenuMixin:
         return draw
 
     def _draw_list_menu(self, title, entries, selection, start=None):
+        covered = getattr(self, '_notifications_cover_screen', None)
+        if covered and covered():
+            return
         # Keep logical return index 0 for controllers; render it in the header.
         header_back = bool(entries and entries[0][0] == 'Back')
         first = 1 if header_back else 0
@@ -242,7 +245,8 @@ class ListMenuMixin:
         self._display_drawn_message = None
         self._file_drawn_message = None
         self._home_mmu_layout = None
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
+        bottom = self.STATUS_Y - int(bool(getattr(self, '_notification_restoring', False)))
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, bottom)
 
     def Clear_Main_Window(self):
         self._spool_stop_scan_animation()

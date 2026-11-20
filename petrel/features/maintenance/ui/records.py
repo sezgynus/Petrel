@@ -1,5 +1,8 @@
 """Maintenance care, service/history presentation and record I/O requests."""
+import logging
 from time import monotonic, strftime, localtime, time
+from petrel.features.maintenance.discovery.session import idle
+from petrel.features.maintenance.notification import care_notification_key, reconcile_care_notifications
 from petrel.features.maintenance.ui.experience import Choice, Screen, device_name
 from petrel.features.maintenance.ui.care import care_items
 from petrel.features.maintenance.records.care import tasks as care_tasks, task_label
@@ -22,7 +25,62 @@ class MaintenanceRecordsMixin:
             self._maintenance_records_failed=False
         except Exception:
             self._maintenance_records_failed=True
-        self.Draw_Maintenance_Menu();self.lcd.update()
+        if self.checkkey == self.MaintenanceMenu and self._maintenance_page in ('root', 'service', 'service_task'):
+            self.Draw_Maintenance_Menu()
+            self.lcd.update()
+
+    def _sync_maintenance_notifications(self):
+        store = getattr(self, 'notifications', None)
+        identity = self._maintenance_identity()
+        state = getattr(self.pd, 'state', None)
+        if (store is None or not self._maintenance_records_ready or self._maintenance_records_failed
+                or self._maintenance_records_identity != identity
+                or getattr(state, 'ready', False) is not True or identity[0] != state.epoch):
+            return
+        now = monotonic()
+        if now < getattr(self, '_maintenance_notification_check_at', 0):
+            return
+        self._maintenance_notification_check_at = now + 2
+        try:
+            reconcile_care_notifications(store, self._maintenance_records_data[0],
+                                         self._maintenance_policy_due)
+        except OSError:
+            logging.exception('Cannot save maintenance notification state')
+            self._maintenance_notification_check_at = now + 30
+
+    def _open_maintenance_notification(self, notification):
+        if not idle(self.pd.state):
+            return False
+        self._maintenance_init()
+        self.checkkey = self.MaintenanceMenu
+        self._notification_focus = None
+        self._maintenance_history = [('root', 1, None)]
+        self._maintenance_context = None
+        self._maintenance_frame = None
+        self._maintenance_regions = {}
+        self._maintenance_notification_target = notification.key
+        self._maintenance_page = 'service'
+        self._maintenance_selection = 0
+        if self._open_maintenance_notification_target():
+            return True
+        self._maintenance_show('service')
+        if not self._maintenance_records_ready or self._maintenance_records_identity != self._maintenance_identity():
+            self._maintenance_records_refresh_at = 0.
+            self._maintenance_prefetch_records()
+        return True
+
+    def _open_maintenance_notification_target(self):
+        key = getattr(self, '_maintenance_notification_target', None)
+        if (key is None or not self._maintenance_records_ready or self._maintenance_records_failed
+                or self._maintenance_records_identity != self._maintenance_identity()):
+            return False
+        self._maintenance_notification_target = None
+        for index, item in enumerate(self._maintenance_care(), 1):
+            if care_notification_key(item.policy, item.last) == key:
+                self._maintenance_selection = index
+                self._maintenance_open('service_task', (item.policy, item.last, item.state))
+                return True
+        return False
 
     def _maintenance_care(self):
         if not self._maintenance_records_ready or self._maintenance_records_identity!=self._maintenance_identity():

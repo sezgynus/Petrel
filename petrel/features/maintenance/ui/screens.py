@@ -344,6 +344,8 @@ class MaintenanceScreensMixin:
         self.lcd.draw_text(False,False,self.lcd.font6x12 if small else self.lcd.font8x16,color,bg,x,y,value)
 
     def Draw_Maintenance_Menu(self,screen=None):
+        if getattr(self, '_notifications_cover_screen', lambda: False)():
+            return
         self._maintenance_init()
         if screen is None: screen=self._maintenance_screen()
         self._maintenance_last_screen=screen

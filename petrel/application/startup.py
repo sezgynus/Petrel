@@ -387,6 +387,7 @@ class PanelStartupMixin:
                 or not self.pd.state.ready or self.pd.state.epoch != snapshot['epoch']):
             self._draw_boot_progress(80, message='Waiting for printer data')
             return
+        self._poll_software_update_status()
         self.pd.prefetch_files()
         epoch, started = getattr(self, '_boot_files_started', (None, 0))
         if epoch != snapshot['epoch']:
