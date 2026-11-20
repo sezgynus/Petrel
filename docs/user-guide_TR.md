@@ -515,6 +515,10 @@ Info, açılışta ve başka bir istemci kontrol yaptığında Moonraker'ın mev
 güncelleme durumunu okur. Güncelleme zaten bulunmuşsa Info açıldığında
 **Update** düğmesi görünür.
 
+Petrel, açılışta ve her on dakikada bir, yazıcı boştaysa Moonraker'dan
+Petrel güncellemelerini kontrol etmesini ister. Duraklatılmış baskı dahil
+aktif bir baskı varsa sıradaki kontrol baskı sona erene kadar bekler.
+
 LCD'den güncellemek için:
 
 1. Yazıcıyı boşta bırakın ve güncelleme düğmesine kaydırın. **Check for updates** görünüyorsa kontrol etmek için encodere basın.

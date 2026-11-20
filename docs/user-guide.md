@@ -513,6 +513,10 @@ Info reads the update status Moonraker already knows at startup and after a
 refresh from another client. If an update is already available, Info shows
 **Update** when opened.
 
+Petrel also asks Moonraker to check Petrel at startup and every ten minutes
+while the printer is idle. A due check waits until the print has finished,
+including while the print is paused.
+
 To update from the LCD:
 
 1. Leave the printer idle and scroll to the update button. If it shows **Check for updates**, press the encoder to refresh.

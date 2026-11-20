@@ -6,6 +6,64 @@ from petrel.features.software_update.updater import SoftwareUpdate
 
 
 class UpdateTests(unittest.TestCase):
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_automatic_check_on_startup_and_configured_interval_only_refreshes_petrel(self, factory):
+        original, client, _, _ = self.make('petrel')
+        factory.return_value = client
+        updater = SoftwareUpdate(original.printer, worker=original._worker, check_interval=90)
+        updater.phase = 'available'
+        with patch('petrel.features.software_update.updater.time.monotonic', return_value=10) as clock:
+            updater.poll_automatic_check(lambda: False)
+            updater.poll_automatic_check(lambda: False)
+            clock.return_value = 99
+            updater.poll_automatic_check(lambda: False)
+            client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'petrel'})
+            clock.return_value = 100
+            updater.poll_automatic_check(lambda: False)
+            self.assertEqual(client.request.call_count, 2)
+        self.assertEqual(updater.label, 'Update')
+        self.assertTrue(all(call.args[1] == '/machine/update/refresh'
+                            for call in client.request.call_args_list))
+
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_due_automatic_check_stays_pending_until_printer_is_idle(self, factory):
+        updater, client, _, snapshot = self.make()
+        factory.return_value = client
+        stats = snapshot['status']['print_stats']
+        for state in ('printing', 'paused', 'pausing', 'resuming', 'unknown'):
+            stats['state'] = state
+            updater.poll_automatic_check(lambda: False)
+        stats['state'] = 'standby'
+        snapshot['status']['virtual_sdcard'] = {'is_active': True}
+        updater.poll_automatic_check(lambda: False)
+        snapshot['status']['virtual_sdcard']['is_active'] = False
+        snapshot['status']['pause_resume'] = {'is_paused': True}
+        updater.poll_automatic_check(lambda: False)
+        snapshot['status']['pause_resume']['is_paused'] = False
+        updater.poll_automatic_check(lambda: True)
+        factory.assert_not_called()
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'Petrel'})
+
+    @patch('petrel.features.software_update.updater.MoonrakerClient')
+    def test_automatic_check_revalidates_after_status_read_and_defers_when_print_starts(self, factory):
+        updater, client, _, snapshot = self.make()
+        factory.return_value = client
+        stats = snapshot['status']['print_stats']
+
+        def print_starts_during_read(path):
+            stats['state'] = 'printing'
+            return client.get.return_value
+
+        client.get.side_effect = print_starts_during_read
+        updater.poll_automatic_check(lambda: False)
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_not_called()
+        stats['state'] = 'complete'
+        client.get.side_effect = None
+        updater.poll_automatic_check(lambda: False)
+        client.request.assert_called_once_with('POST', '/machine/update/refresh', {'name': 'Petrel'})
+
     def test_passive_status_sync_on_startup_refresh_and_reconnect(self):
         from petrel.moonraker.subscription import MoonrakerSubscription
 

@@ -1,5 +1,6 @@
 """Cached update observation and explicit update actions for Petrel."""
 import logging
+import math
 import time
 from collections.abc import Mapping
 from concurrent.futures import CancelledError
@@ -9,7 +10,9 @@ from petrel.printer.background_reads import ReadPending, ReadWorker
 
 
 class SoftwareUpdate:
-    def __init__(self, printer, worker=None):
+    def __init__(self, printer, worker=None, *, check_interval=600.0):
+        if not math.isfinite(check_interval) or check_interval <= 0:
+            raise ValueError('Automatic update check interval must be positive')
         self.printer = printer
         self._worker = worker
         self._closed = Event()
@@ -21,6 +24,9 @@ class SoftwareUpdate:
         self._observed = None
         self._status_retry = (None, 0.0)
         self._action_generation = 0
+        self._check_interval = check_interval
+        self._next_automatic_check = 0.0
+        self._automatic_check = None
 
     @property
     def label(self):
@@ -31,7 +37,8 @@ class SoftwareUpdate:
                     self.phase, 'Check for updates')
 
     def start(self):
-        if self._closed.is_set() or self.future is not None or self.phase == 'restarting':
+        if (self._closed.is_set() or self.future is not None or self._automatic_check is not None
+                or self.phase == 'restarting'):
             return
         printer = self.printer
         snapshot = printer.subscription.snapshot()
@@ -91,7 +98,7 @@ class SoftwareUpdate:
                     request('POST', '/machine/update/client', {'name': name})
                     return name, None
                 versions = get('/machine/update/status')['result']['version_info']
-                name_found = next((key for key in versions if key.casefold() == 'petrel'), None)
+                name_found = self._petrel_name(versions)
                 if name_found is None:
                     raise ValueError('Updater not configured')
                 refreshed = request('POST', '/machine/update/refresh', {'name': name_found})
@@ -105,9 +112,85 @@ class SoftwareUpdate:
         self.phase = 'recovering' if recover else ('updating' if upgrade else 'checking')
         self._action_generation += 1
         self.message = 'Please wait...'
+        self.future = self._submit(work)
+
+    def _submit(self, work):
         if self._worker is None:
             self._worker = ReadWorker(timeout=1, capacity=1, queue_timeout=5)
-        self.future = self._worker.submit(work)
+        return self._worker.submit(work)
+
+    @staticmethod
+    def _petrel_name(versions):
+        return next((key for key in versions if key.casefold() == 'petrel'), None)
+
+    @staticmethod
+    def _automatic_idle(snapshot):
+        status = snapshot.get('status', {})
+        return (snapshot.get('state') == 'ready'
+                and status.get('print_stats', {}).get('state') in ('standby', 'complete', 'cancelled', 'error')
+                and status.get('virtual_sdcard', {}).get('is_active') is not True
+                and status.get('pause_resume', {}).get('is_paused') is not True
+                and status.get('webhooks', {}).get('state', 'ready') == 'ready')
+
+    def poll_automatic_check(self, print_start_pending):
+        """Run a due refresh without changing the manual update button phase."""
+        if self._closed.is_set():
+            return
+        now = time.monotonic()
+        pending = self._automatic_check
+        if pending is not None:
+            if not pending.done():
+                return
+            self._automatic_check = None
+            try:
+                checked = pending.result()
+                if checked is None:
+                    self._next_automatic_check = now + min(15.0, self._check_interval)
+                elif checked:
+                    self._next_automatic_check = now + self._check_interval
+            except Exception as error:
+                # Moonraker can still be initializing or reject a print that
+                # began between our last snapshot and the server admission.
+                delay = self._check_interval
+                if str(error) == 'Moonraker HTTP status 503':
+                    delay = min(15.0, delay)
+                self._next_automatic_check = now + delay
+                logging.debug('Automatic Petrel update check failed: %s', error)
+            return
+        if (now < self._next_automatic_check or self.future is not None
+                or self.phase in ('confirm_recovery', 'restarting') or print_start_pending()):
+            return
+        printer = self.printer
+        snapshot = printer.subscription.snapshot(include_settings=False)
+        if not self._automatic_idle(snapshot):
+            return
+        epoch = snapshot['epoch']
+
+        def eligible():
+            latest = printer.subscription.snapshot(include_settings=False)
+            return (not self._closed.is_set() and not print_start_pending()
+                    and latest.get('epoch') == epoch and self._automatic_idle(latest))
+
+        def refresh():
+            if not eligible():
+                return False
+            client = MoonrakerClient(printer.client.url,
+                                     printer.client.headers.get('X-Api-Key', ''), timeout=120)
+            try:
+                result = client.get('/machine/update/status')['result']
+                if result.get('busy'):
+                    return None
+                name = self._petrel_name(result['version_info'])
+                if name is None:
+                    return True
+                if not eligible():
+                    return False
+                client.request('POST', '/machine/update/refresh', {'name': name})
+                return True
+            finally:
+                client.close()
+
+        self._automatic_check = self._submit(refresh)
 
     def cancel_confirmation(self):
         if self.phase == 'confirm_recovery':
@@ -142,7 +225,7 @@ class SoftwareUpdate:
                 self._status_retry = (stamp, time.monotonic() + 5.0)
                 return False
             versions = result['version_info']
-            name = next((key for key in versions if key.casefold() == 'petrel'), None)
+            name = self._petrel_name(versions)
             item = versions.get(name, {})
             available = self.available(item)
         except ReadPending:
@@ -191,5 +274,7 @@ class SoftwareUpdate:
         self._closed.set()
         if self.future is not None:
             self.future.cancel()
+        if self._automatic_check is not None:
+            self._automatic_check.cancel()
         if self._worker is not None:
             self._worker.close()
