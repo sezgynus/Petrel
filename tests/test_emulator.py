@@ -190,8 +190,8 @@ class EmulatorRenderingTests(unittest.TestCase):
                             visible.crop((20, 34, 262, 230)).tobytes())
         self.assertEqual(initial.crop(dashboard).tobytes(), visible.crop(dashboard).tobytes())
         ids = {frame[7] for frame in self.lcd.serial.frames if frame[1] == 0x23}
-        self.assertTrue({ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DOT,
-                         ICON_NOTIFICATION_DISMISS}.issubset(ids))
+        self.assertEqual({ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DOT,
+                          ICON_NOTIFICATION_DISMISS} - ids, set(), f'Icon packets: {sorted(ids)}')
         self.assertFalse(self.model.errors)
 
         view.get_encoder_state = lambda: view.ENCODER_DIFF_CW
