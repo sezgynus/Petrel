@@ -13,9 +13,14 @@ from petrel.artwork.icon_library import SOURCE_DIRECTORY
 from petrel.artwork.resources import (
     ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_NFC_CARD_FIRST, ICON_NFC_CARD_LAST,
     ICON_NFC_SHARE_FIRST, ICON_NFC_SHARE_LAST, ICON_NFC_SPOOL_FIRST, ICON_NFC_SPOOL_LAST)
+from petrel.artwork.resources import (
+    ICON_NOTIFICATION_ACTION, ICON_NOTIFICATION_BELL, ICON_NOTIFICATION_DISMISS,
+    ICON_NOTIFICATION_DOT)
+from petrel.features.notifications.store import Notification, Retention
 from petrel.hardware.dwin import dacai, protocol
 from petrel.hardware.dwin.dacai import DacaiDriver, UnsupportedPanelFeature
 from petrel.hardware.dwin.driver import T5UIC1Display
+from test_notification_view import NotificationDisplay
 from test_t5uic1_driver import driver
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -407,6 +412,45 @@ class SpriteBuildTests(unittest.TestCase):
         for first, last in NFC_RANGES:
             for icon in range(first, last + 1):
                 self.assertIn(icon, self.set.index)
+
+    def test_notification_ui_uses_transparent_dacai_copies_and_text(self):
+        view = NotificationDisplay()
+        view.ICON = ICON_LIBRARY_ID
+        lcd = view.lcd = dacai_driver()
+        lcd._sprites = self.set.index
+        view.notifications.publish(Notification('test', 'notice', 'Project notice'))
+        view.notifications.publish(Notification(
+            'test', 'update', 'Update available', action='open_update', retention=Retention.UNTIL_RESOLVED))
+
+        self.assertTrue(view._draw_notification_control())
+        self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+        self.assertTrue(view.send(view.ENCODER_DIFF_ENTER))
+
+        commands = sent(lcd)
+        self.assertNotIn(0x23, [opcode for opcode, _ in commands])
+        self.assertIn(0x25, [opcode for opcode, _ in commands])
+        copies = [payload for opcode, payload in commands if opcode == 0x27]
+        self.assertTrue(all(payload[0] & 0x80 for payload in copies))
+
+        def copy_sources(icon):
+            return {lcd._words(x, y, x + width - 1, y + height - 2)
+                    for _, x, y, width, height, _, _ in self.set.index[icon]}
+
+        self.assertTrue(copy_sources(ICON_NOTIFICATION_BELL) <= {
+            payload[1:9] for payload in copies if payload[9:] == lcd._words(168, 8)})
+        self.assertTrue(copy_sources(ICON_NOTIFICATION_DOT) <= {
+            payload[1:9] for payload in copies if payload[9:] == lcd._words(179, 2)})
+        for icon in (ICON_NOTIFICATION_ACTION, ICON_NOTIFICATION_DISMISS):
+            self.assertTrue(copy_sources(icon) <= {
+                payload[1:9] for payload in copies if payload[9:11] == lcd._word(236, 'x')})
+        strings = [payload[9:] for opcode, payload in commands if opcode == 0x11]
+        for value in (b'2', b'Notifications', b'Project notice', b'Update available'):
+            self.assertIn(value, strings)
+
+        lcd.serial.frames.clear()
+        self.assertFalse(view._draw_notification_control())
+        self.assertFalse(view._sync_notification_overlay())
+        self.assertEqual(sent(lcd), [])
 
     def test_library_fits_on_eight_sheets(self):
         # A stock Max Neo panel has room for about 8 more 32 KB pictures next to
