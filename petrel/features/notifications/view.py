@@ -131,15 +131,37 @@ class NotificationsViewMixin:
         return True
 
     def _notification_boundary_input(self):
-        if self.get_encoder_state() != self.ENCODER_DIFF_CCW or not self._notification_entries():
+        direction = self.ENCODER_DIFF_CW if self._notification_follows_back() else self.ENCODER_DIFF_CCW
+        if self.get_encoder_state() != direction or not self._notification_entries():
             return False
         navigation = self._notification_navigation()
         if navigation is not None and navigation[1] == 0:
-            self._notification_focus = self.checkkey
-            self._draw_notification_control()
-            self._draw_notification_focus_change()
+            self._focus_notification_control()
             return True
         return False
+
+    def _notification_follows_back(self):
+        return (self.checkkey != self.MainMenu and
+                (self.checkkey == getattr(self, 'MMUMenu', None)
+                 or getattr(self, '_header_back_render', None) is not None))
+
+    def _focus_notification_control(self):
+        self._notification_focus = self.checkkey
+        self._draw_notification_control()
+        self._draw_notification_focus_change()
+
+    def _notification_menu_position(self):
+        if (getattr(self, 'notifications', None) is not None
+                and self.get_encoder_state() == self.ENCODER_DIFF_CCW
+                and self._notification_follows_back() and self._notification_entries()):
+            return self._notification_navigation()
+        return None
+
+    def _notification_return_from_menu(self, previous):
+        if (previous is not None and previous[1] > 0
+                and self._notification_navigation() == (previous[0], 0)
+                and self._notification_follows_back() and self._notification_entries()):
+            self._focus_notification_control()
 
     def _draw_notification_focus_change(self):
         if self.checkkey == self.MainMenu:
@@ -189,10 +211,15 @@ class NotificationsViewMixin:
             self._notification_start = 0
             self._notification_rows_render = None
             self._draw_notification_panel()
-        elif event == self.ENCODER_DIFF_CW:
-            self._notification_focus = None
-            self._draw_notification_control()
-            self._draw_notification_focus_change()
+        elif event in (self.ENCODER_DIFF_CCW, self.ENCODER_DIFF_CW):
+            follows_back = self._notification_follows_back()
+            leave = self.ENCODER_DIFF_CCW if follows_back else self.ENCODER_DIFF_CW
+            if event == leave or follows_back:
+                self._notification_focus = None
+                self._draw_notification_control()
+                self._draw_notification_focus_change()
+                if follows_back and event == self.ENCODER_DIFF_CW:
+                    return False  # The menu advances from Back to its first item.
         return True
 
     def _activate_notification(self, items, index):

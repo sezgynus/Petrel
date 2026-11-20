@@ -22,9 +22,9 @@ olursa kayıt listede kalır.
   edilemediyse False döndürün. Kalıcı kaydı, koşul ortadan kalktığında
   bildirimin kaynağı çözümler.
 
-Zil, ana ekranda ve alt menülerde encoder sırasının başındadır. Değer
-düzenleme ve onay pencereleri encoder odağını korur. İlk öğedeyken bir adım geri
-çevirerek zile odaklanın. Panel mevcut ekranın üstüne açılır, ilk odağı
+Geri düğmesi olan alt menülerde encoder sırası Geri, zil ve menü içeriğidir.
+Ana ekranda ve Geri düğmesi olmayan ekranlarda zil ilk öğeden önce gelir.
+Değer düzenleme ve onay pencereleri encoder odağını korur. Panel mevcut ekranın üstüne açılır, ilk odağı
 Back düğmesine verir ve bilgi satırları dahil tüm kayıtları kaydırır.
 Liste boşaldığında zil gizlenir ve odak sırasından çıkar. Moonraker bir Petrel
 güncellemesi bildirdiğinde Petrel tek bir kalıcı bildirim oluşturur. Bildirime

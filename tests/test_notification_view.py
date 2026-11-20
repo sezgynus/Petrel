@@ -53,13 +53,39 @@ class NotificationViewTest(unittest.TestCase):
                     setattr(view, position, 0)
                 view.notifications.publish(Notification('test', 'due', 'Maintenance due'))
                 self.assertTrue(view._draw_notification_control())
-                self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+                follows_back = view._notification_follows_back()
+                into_bell = view.ENCODER_DIFF_CW if follows_back else view.ENCODER_DIFF_CCW
+                back = view.ENCODER_DIFF_CCW if follows_back else view.ENCODER_DIFF_CW
+                self.assertTrue(view.send(into_bell))
                 self.assertEqual(view._notification_focus, view.checkkey)
-                self.assertTrue(view.send(view.ENCODER_DIFF_CW))
+                self.assertTrue(view.send(back))
                 self.assertIsNone(view._notification_focus)
-                self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+                self.assertTrue(view.send(into_bell))
                 self.assertTrue(view.send(view.ENCODER_DIFF_ENTER))
                 self.assertTrue(view._notifications_cover_screen())
+
+    def test_bell_is_between_back_and_the_first_menu_item_in_both_directions(self):
+        view = self.view
+        view.checkkey = view.Prepare
+        view.select_prepare = SimpleNamespace(now=0)
+        view._header_back_render = (id(view.lcd), True)
+        view._draw_header_back = Mock()
+        view.notifications.publish(Notification('test', 'due', 'Maintenance due'))
+
+        self.assertFalse(view.send(view.ENCODER_DIFF_CCW))
+        self.assertTrue(view.send(view.ENCODER_DIFF_CW))
+        self.assertEqual(view._notification_focus, view.Prepare)
+        self.assertFalse(view.send(view.ENCODER_DIFF_CW))
+        self.assertIsNone(view._notification_focus)
+
+        view.select_prepare.now = 1
+        view.event = view.ENCODER_DIFF_CCW
+        previous = view._notification_menu_position()
+        view.select_prepare.now = 0
+        view._notification_return_from_menu(previous)
+        self.assertEqual(view._notification_focus, view.Prepare)
+        self.assertTrue(view.send(view.ENCODER_DIFF_CCW))
+        self.assertIsNone(view._notification_focus)
 
     def test_display_edit_owns_encoder_and_hides_notification_control(self):
         view = self.view

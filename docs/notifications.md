@@ -20,9 +20,9 @@ persistent record unchanged.
   Return False if a dismissible action could not be accepted. A persistent
   entry is resolved separately by its owner when its condition clears.
 
-The bell precedes the first encoder target on Home and in submenus.
-Value editors and modal confirmations keep exclusive encoder focus. Rotate one step back
-from the first target to focus it. The popup keeps the originating screen,
+In submenus with a Back button, the encoder order is Back, bell, then menu content.
+On Home and screens without Back, the bell precedes the first target.
+Value editors and modal confirmations keep exclusive encoder focus. The popup keeps the originating screen,
 starts with Back selected and scrolls all rows, including read-only ones.
 The bell is hidden and absent from the encoder order whenever the feed is
 empty. When Moonraker reports a Petrel update, Petrel publishes one persistent
