@@ -83,9 +83,9 @@ class NotificationStore:
                 return True
             return self._remove(notification.identity)
 
-    def sync_announcements(self, announcements):
+    def sync_announcements(self, announcements, *, scheduled_keys=()):
         """Reconcile one complete, validated feed, preserving unread removals."""
-        active = {item.key for item in announcements}
+        active = {item.key for item in announcements}.union(scheduled_keys)
         with self._lock:
             read_ids = self._read_announcements & active
             entries = dict(self._entries)

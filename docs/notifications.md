@@ -53,3 +53,11 @@ survive restarts and stay in the panel even if removed from the feed. A valid
 feed removes the read markers for IDs it no longer includes. Failed fetches
 and invalid feeds leave the saved state intact. Use a new ID for each new
 announcement and avoid reusing retired IDs.
+
+A scheduled entry can include `"publish_at": "2027-01-01T12:00"`. Use an ISO
+local date and time with no timezone suffix. Each host uses its own local
+clock and releases an already-fetched entry on the first UI tick at or after
+that time, without waiting for the next download. If first fetched after the
+scheduled time, it appears immediately. Entries without `publish_at` appear
+on the first successful fetch. Pending schedules are fetched again after a
+service restart.

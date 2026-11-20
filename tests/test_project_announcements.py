@@ -2,8 +2,9 @@ import json
 import tempfile
 import unittest
 from concurrent.futures import Future
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from petrel.features.notifications.announcements import ProjectAnnouncements, parse_feed
 from petrel.features.notifications.store import NotificationStore
@@ -11,7 +12,7 @@ from petrel.features.notifications.store import NotificationStore
 
 def feed(*ids):
     raw = {'version': 1, 'announcements': [{'id': key, 'title': key} for key in ids]}
-    return parse_feed(json.dumps(raw).encode())
+    return tuple(item.notification for item in parse_feed(json.dumps(raw).encode()))
 
 
 class ProjectAnnouncementTests(unittest.TestCase):
@@ -46,6 +47,52 @@ class ProjectAnnouncementTests(unittest.TestCase):
         poller.tick()
         poller._worker.submit.assert_called_once()
         self.assertEqual(json.loads(self.path.read_text())['read_announcements'], ['first'])
+
+    def test_scheduled_announcement_appears_at_local_time_without_refetching(self):
+        raw = (b'{"version":1,"announcements":['
+               b'{"id":"new-year","title":"New year","publish_at":"2027-01-01T12:00"},'
+               b'{"id":"now","title":"Now"}]}')
+        poller = ProjectAnnouncements(self.store)
+        poller._worker = Mock()
+        pending = Future()
+        pending.set_result(parse_feed(raw))
+        poller._worker.submit.return_value = pending
+        with patch('petrel.features.notifications.announcements.datetime') as clock:
+            clock.now.return_value = datetime(2027, 1, 1, 11, 59, 59)
+            poller.tick()
+            poller.tick()
+            self.assertEqual(tuple(n.key for n in self.store.snapshot()[1]), ('now',))
+            clock.now.return_value = datetime(2027, 1, 1, 12)
+            poller.tick()
+        poller._worker.submit.assert_called_once()
+        self.assertEqual(tuple(n.key for n in self.store.snapshot()[1]), ('new-year', 'now'))
+
+    def test_initial_fetch_after_release_publishes_immediately(self):
+        raw = (b'{"version":1,"announcements":['
+               b'{"id":"ready","title":"Ready","publish_at":"2027-01-01T12:00:00"}]}')
+        poller = ProjectAnnouncements(self.store)
+        poller._pending = Future()
+        poller._pending.set_result(parse_feed(raw))
+        with patch('petrel.features.notifications.announcements.datetime') as clock:
+            clock.now.return_value = datetime(2027, 1, 2)
+            poller.tick()
+        self.assertEqual(tuple(n.key for n in self.store.snapshot()[1]), ('ready',))
+
+    def test_scheduled_ids_do_not_prune_existing_read_markers(self):
+        self.store.sync_announcements(feed('same'))
+        self.store.dismiss(self.store.snapshot()[1][0])
+        self.store.sync_announcements((), scheduled_keys={'same'})
+        self.store.sync_announcements(feed('same'))
+        self.assertEqual(self.store.snapshot()[1], ())
+
+    def test_invalid_local_schedule_rejects_entire_feed(self):
+        for value in ('2027-01-01T12:00Z', '2027-01-01T12:00+03:00',
+                      '2027-02-30T12:00', '2027-01-01', None):
+            raw = {'version': 1, 'announcements': [
+                {'id': 'bad', 'title': 'Bad time', 'publish_at': value},
+            ]}
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                parse_feed(json.dumps(raw).encode())
 
     def test_invalid_or_duplicate_entries_reject_entire_feed(self):
         with self.assertRaises(ValueError):
