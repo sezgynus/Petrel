@@ -9,6 +9,9 @@ from tempfile import NamedTemporaryFile
 from threading import Lock
 
 
+ANNOUNCEMENT_SOURCE = 'project_announcement'
+
+
 class Retention(Enum):
     DISMISSIBLE = 'dismissible'
     UNTIL_RESOLVED = 'until_resolved'
@@ -46,6 +49,8 @@ class NotificationStore:
         self._lock = Lock()
         self._path = Path(path) if path is not None else None
         self._read_error = None
+        self._read_announcements = set()
+        self._active_announcements = None
         self._entries = self._load()
         self._revision = 0
 
@@ -68,7 +73,28 @@ class NotificationStore:
             current = self._entries.get(notification.identity)
             if current != notification or current.retention is not Retention.DISMISSIBLE:
                 return False
+            if current.source == ANNOUNCEMENT_SOURCE:
+                entries = dict(self._entries)
+                del entries[current.identity]
+                read_ids = self._read_announcements
+                if self._active_announcements is None or current.key in self._active_announcements:
+                    read_ids = read_ids | {current.key}
+                self._commit(entries, True, read_ids)
+                return True
             return self._remove(notification.identity)
+
+    def sync_announcements(self, announcements):
+        """Reconcile one complete, validated feed, preserving unread removals."""
+        active = {item.key for item in announcements}
+        with self._lock:
+            read_ids = self._read_announcements & active
+            entries = dict(self._entries)
+            for item in announcements:
+                if item.key not in read_ids:
+                    entries[item.identity] = item
+            if entries != self._entries or read_ids != self._read_announcements:
+                self._commit(entries, True, read_ids)
+            self._active_announcements = active
 
     def resolve(self, source, key):
         with self._lock:
@@ -86,11 +112,14 @@ class NotificationStore:
     def _persistent(notification):
         return notification is not None and notification.persistence is Persistence.PERSISTENT
 
-    def _commit(self, entries, persist):
+    def _commit(self, entries, persist, read_ids=None):
+        if read_ids is None:
+            read_ids = self._read_announcements
         if persist and self._path is not None:
             if self._read_error is not None:
                 raise OSError(f'Cannot update unreadable notification state: {self._path}') from self._read_error
-            self._save(entries)
+            self._save(entries, read_ids)
+        self._read_announcements = read_ids
         self._entries = entries
         self._revision += 1
 
@@ -103,6 +132,9 @@ class NotificationStore:
                 raise ValueError('Unsupported notification state version')
             if not isinstance(data.get('entries'), list):
                 raise ValueError('Invalid notification state entries')
+            read_ids = data.get('read_announcements', [])
+            if not isinstance(read_ids, list) or not all(isinstance(key, str) for key in read_ids):
+                raise ValueError('Invalid read announcement IDs')
             entries = {}
             for item in data['entries']:
                 record = Notification(
@@ -115,6 +147,7 @@ class NotificationStore:
                         or (record.action is not None and not isinstance(record.action, str))):
                     raise ValueError('Invalid notification field')
                 entries[record.identity] = record
+            self._read_announcements = set(read_ids)
             return entries
         except FileNotFoundError:
             return {}
@@ -123,7 +156,7 @@ class NotificationStore:
             logging.warning('Cannot load notification state %s: %s', self._path, error)
             return {}
 
-    def _save(self, entries):
+    def _save(self, entries, read_ids):
         records = []
         for item in entries.values():
             if self._persistent(item):
@@ -141,7 +174,10 @@ class NotificationStore:
             with NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
                                     prefix=f'.{path.name}.', delete=False) as stream:
                 temporary = Path(stream.name)
-                json.dump({'version': 1, 'entries': records}, stream, ensure_ascii=False)
+                data = {'version': 1, 'entries': records}
+                if read_ids:
+                    data['read_announcements'] = sorted(read_ids)
+                json.dump(data, stream, ensure_ascii=False)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)

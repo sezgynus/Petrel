@@ -27,6 +27,9 @@ class DisplayTickMixin:
         self._tick_active = True
         self._tick_state_update = None
         try:
+            announcements = getattr(self, '_project_announcements', None)
+            if announcements is not None:
+                announcements.tick()
             self._ui_tick_body()
         finally:
             self._tick_active = False

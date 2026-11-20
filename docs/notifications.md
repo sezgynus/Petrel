@@ -39,3 +39,17 @@ Both panel families use the shared icon library for the bell, badge and row
 glyphs. The badge count uses panel text. Cached rendering updates the
 changed control, rows and scroll gutter. Closing restores the menu underneath
 the overlay through the existing view renderer.
+
+## Project announcements
+
+Petrel checks the public `announcements.json` file on `master` at startup
+and hourly. The file uses version 1 and an `announcements` array. Each entry
+has a unique `id`, a `title`, and optional `detail`. IDs are 1–64 ASCII
+letters, digits, dots, underscores or hyphens and must start with a letter
+or digit. Keep the title and detail short for the panel.
+
+Press an announcement to mark it read on that installation. Unread entries
+survive restarts and stay in the panel even if removed from the feed. A valid
+feed removes the read markers for IDs it no longer includes. Failed fetches
+and invalid feeds leave the saved state intact. Use a new ID for each new
+announcement and avoid reusing retired IDs.

@@ -41,3 +41,18 @@ Her iki panel ailesinde zil, rozet ve satır simgeleri ortak ikon
 kütüphanesinden çizilir. Rozet sayısı panel yazısıdır. Çizim önbelleği
 değişen düğmeyi, satırları ve kaydırma çubuğunu günceller. Paneli
 kapatırken mevcut menü çizicisi, panelin altındaki menüyü geri getirir.
+
+## Proje duyuruları
+
+Petrel, `master` dalındaki herkese açık `announcements.json` dosyasını açılışta
+ve saatte bir kontrol eder. Dosyada sürüm 1 ve bir `announcements` dizisi
+kullanılır. Her kayıtta benzersiz bir `id`, bir `title` ve isteğe bağlı `detail`
+alanı bulunur. ID 1–64 karakter uzunluğundadır. ASCII harf, rakam, nokta, alt
+çizgi ve tire kullanılabilir. İlk karakter harf veya rakam olmalıdır. Başlığı
+ve açıklamayı panele sığacak kadar kısa tutun.
+
+Duyuruya basmak onu o kurulumda okundu olarak işaretler. Okunmamış duyurular
+servis yeniden başladığında ve dosyadan kaldırıldığında listede kalır. Geçerli
+bir dosya alındığında artık listede bulunmayan ID'lerin okundu kayıtları silinir.
+Dosya alınamazsa veya geçersizse yerel kayıtlar korunur. Her yeni duyuruya yeni
+bir ID verin ve kaldırılan ID'leri tekrar kullanmayın.

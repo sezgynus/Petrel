@@ -1,4 +1,5 @@
 """Encoder-operated notification overlay for the shared LCD UI."""
+import logging
 from petrel.artwork.resources import (
     ICON_NOTIFICATION_ACTION,
     ICON_NOTIFICATION_BELL,
@@ -235,7 +236,14 @@ class NotificationsViewMixin:
                 if self.checkkey == origin:
                     self._restore_notification_underlay()
             return
-        if item.retention is Retention.DISMISSIBLE and self.notifications.dismiss(item):
+        if item.retention is not Retention.DISMISSIBLE:
+            return
+        try:
+            dismissed = self.notifications.dismiss(item)
+        except OSError:
+            logging.warning('Could not persist notification dismissal', exc_info=True)
+            return
+        if dismissed:
             remaining = self._notification_entries()
             if not remaining:
                 self._close_notifications(redraw=True)

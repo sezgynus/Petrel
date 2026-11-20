@@ -7,6 +7,7 @@ from petrel.ui.selection import select_t
 from petrel.ui.list_menu import ListMenuMixin
 from petrel.ui.dashboard import DashboardMixin
 from petrel.ui.header import HeaderMixin
+from petrel.features.notifications.announcements import ProjectAnnouncements
 from petrel.features.notifications.store import NotificationStore, notification_state_path
 from petrel.features.software_update.notification import UPDATE_AVAILABLE
 from petrel.features.maintenance.notification import ACTION as MAINTENANCE_NOTIFICATION_ACTION
@@ -305,6 +306,7 @@ class PetrelDisplay(
         self._uart_start_signal = None
         self._uart_probe_failures = 0
         self.notifications = NotificationStore(notification_state_path())
+        self._project_announcements = ProjectAnnouncements(self.notifications)
         self.notification_actions = {
             UPDATE_AVAILABLE.action: self._open_update_notification,
             MAINTENANCE_NOTIFICATION_ACTION: self._open_maintenance_notification,
@@ -546,6 +548,7 @@ class PetrelDisplay(
         self.pd.subscription.set_melody_callback(None)
         self._closed = True
         for resource in (getattr(self, '_software_update', None),
+                         getattr(self, '_project_announcements', None),
                          getattr(self, '_remote_display', None),
                          getattr(self, '_nfc_spool_router', None),
                          getattr(self, '_buzzer_player', None),
