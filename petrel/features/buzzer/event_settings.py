@@ -27,6 +27,7 @@ EVENTS = (
     ('NFC_SHARE_DONE', 'NFC share completed'),
     ('EMERGENCY', 'Emergency card alarm'),
     ('POWER_HOLD', 'Power button hold'),
+    ('NEW_NOTIFICATION', 'New notification'),
 )
 CUE_EVENTS = {name: 'POWER_HOLD' for name in (
     'POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_READY', 'POWER_HOLD_CANCEL')}

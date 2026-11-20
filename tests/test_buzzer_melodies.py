@@ -12,9 +12,9 @@ class MelodyTests(unittest.TestCase):
         names = ('PRINT_DONE', 'HEATING_DONE', 'COOLING_DONE', 'ERROR',
                  'FILAMENT_OUT', 'BOOT', 'SHUTDOWN', 'PAUSE', 'RESUME',
                  'LAYER_CHANGE', 'HOMING', 'PROBE_SUCCESS', 'PROBE_FAIL',
-                 'WARNING', 'CUSTOM_EVENT')
+                 'WARNING', 'CUSTOM_EVENT', 'NEW_NOTIFICATION')
         scores = [get_melody(name) for name in names]
-        self.assertEqual(len(set(scores)), 15)
+        self.assertEqual(len(set(scores)), len(names))
         for name, score in zip(names, scores):
             with self.subTest(name=name):
                 self.assertGreater(sum(duration for _, duration in score), 0)
@@ -23,6 +23,7 @@ class MelodyTests(unittest.TestCase):
                 self.assertTrue(all(0 <= frequency <= 4186 and 0 < duration <= .3
                                     for frequency, duration in score))
         self.assertLess(sum(duration for _, duration in get_melody('LAYER_CHANGE')), .2)
+        self.assertLess(sum(duration for _, duration in get_melody('NEW_NOTIFICATION')), .3)
         with self.assertRaises(TypeError):
             MELODIES['BOOT'] = ()
 

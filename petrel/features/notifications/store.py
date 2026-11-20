@@ -53,10 +53,18 @@ class NotificationStore:
         self._active_announcements = None
         self._entries = self._load()
         self._revision = 0
+        self._new_notification_pending = False
 
     def snapshot(self):
         with self._lock:
             return self._revision, tuple(reversed(self._entries.values()))
+
+    def take_new_notification_signal(self):
+        """Consume one signal for all notifications added since the last poll."""
+        with self._lock:
+            pending = self._new_notification_pending
+            self._new_notification_pending = False
+            return pending
 
     def publish(self, notification):
         with self._lock:
@@ -119,6 +127,8 @@ class NotificationStore:
             if self._read_error is not None:
                 raise OSError(f'Cannot update unreadable notification state: {self._path}') from self._read_error
             self._save(entries, read_ids)
+        if not self._new_notification_pending and entries.keys() - self._entries.keys():
+            self._new_notification_pending = True
         self._read_announcements = read_ids
         self._entries = entries
         self._revision += 1

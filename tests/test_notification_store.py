@@ -3,7 +3,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from petrel.features.notifications.store import Notification, NotificationStore, Persistence, Retention
+from petrel.features.notifications.store import (
+    ANNOUNCEMENT_SOURCE, Notification, NotificationStore, Persistence, Retention,
+)
 
 
 class NotificationStoreTest(unittest.TestCase):
@@ -19,6 +21,36 @@ class NotificationStoreTest(unittest.TestCase):
         self.assertFalse(store.publish(print_done))
         self.assertTrue(store.publish(service_done))
         self.assertEqual(store.snapshot(), (2, (service_done, print_done)))
+
+    def test_new_notification_signal_skips_updates_and_restored_entries(self):
+        store = NotificationStore(self.path)
+        alert = Notification('software', 'update', 'Update available')
+        store.publish(alert)
+        self.assertTrue(store.take_new_notification_signal())
+        self.assertFalse(store.take_new_notification_signal())
+        store.publish(alert)
+        store.publish(Notification('software', 'update', 'Update available', 'New details'))
+        self.assertFalse(store.take_new_notification_signal())
+
+        restarted = NotificationStore(self.path)
+        self.assertFalse(restarted.take_new_notification_signal())
+        self.assertTrue(restarted.resolve('software', 'update'))
+        self.assertFalse(restarted.take_new_notification_signal())
+        restarted.publish(alert)
+        self.assertTrue(restarted.take_new_notification_signal())
+
+    def test_announcement_signal_only_fires_for_newly_visible_entries(self):
+        store = NotificationStore(self.path)
+        notice = Notification(ANNOUNCEMENT_SOURCE, 'future', 'Project notice')
+        store.sync_announcements([], scheduled_keys={notice.key})
+        self.assertFalse(store.take_new_notification_signal())
+        store.sync_announcements([notice])
+        self.assertTrue(store.take_new_notification_signal())
+        store.sync_announcements([notice])
+        self.assertFalse(store.take_new_notification_signal())
+        self.assertTrue(store.dismiss(notice))
+        store.sync_announcements([notice])
+        self.assertFalse(store.take_new_notification_signal())
 
     def test_retention_and_stale_dismissal(self):
         store = NotificationStore()

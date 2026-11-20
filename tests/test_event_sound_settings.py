@@ -11,7 +11,7 @@ from test_capabilities import display, snapshot
 class EventSoundRecordTests(TestCase):
     def test_all_enabled_default_independent_bits_and_crc_roundtrip(self):
         values = EventSounds()
-        self.assertEqual(len(EVENTS),18)
+        self.assertEqual(len(EVENTS),19)
         self.assertTrue(all(values.enabled(name) for name,_ in EVENTS))
         for name,_ in EVENTS:
             one = values.toggled(name)
@@ -35,6 +35,8 @@ class EventSoundRecordTests(TestCase):
         self.assertTrue(restored.enabled('POWER_HOLD'))
         self.assertEqual(BITS['EMERGENCY'], 1 << 16)
         self.assertEqual(BITS['POWER_HOLD'], 1 << 17)
+        self.assertEqual(BITS['NEW_NOTIFICATION'], 1 << 18)
+        self.assertTrue(restored.enabled('NEW_NOTIFICATION'))
         muted = restored.toggled('POWER_HOLD')
         for cue in ('POWER_HOLD_START', 'POWER_HOLD_STEP', 'POWER_HOLD_READY', 'POWER_HOLD_CANCEL'):
             self.assertFalse(muted.enabled(cue))
@@ -78,7 +80,7 @@ class EventSoundUITests(TestCase):
         self.assertEqual(view.checkkey,view.EventSoundsMenu)
         self.assertEqual(view._event_sound_selection,0)
         rows=view._draw_list_menu.call_args.args[1]
-        self.assertEqual(len(rows),19)
+        self.assertEqual(len(rows),20)
         self.assertEqual(rows[0][0],'Back')
         self.assertTrue(all(r[2] and getattr(r[3],'checkbox',False) for r in rows[1:]))
         view.HMI_Event_Sounds_Menu()

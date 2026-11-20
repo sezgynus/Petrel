@@ -31,6 +31,10 @@ class DisplayTickMixin:
             if announcements is not None:
                 announcements.tick(enabled=self._display_network.project_announcements)
             self._ui_tick_body()
+            notifications = getattr(self, 'notifications', None)
+            if (getattr(self, '_event_buzzer_ready', False) and notifications is not None
+                    and notifications.take_new_notification_signal()):
+                self._event_buzzer_melody('NEW_NOTIFICATION')
         finally:
             self._tick_active = False
             self._poll_host_animations()
