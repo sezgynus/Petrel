@@ -25,6 +25,8 @@ from petrel.version import client_version
 from petrel.printer.state import PrinterState, freeze
 
 
+TIMELAPSE_MACRO = 'gcode_macro TIMELAPSE_TAKE_FRAME'
+
 OBJECTS = ('webhooks', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard',
            'pause_resume', 'extruder', 'heater_bed', 'fan', 'motion_report', 'manual_probe', 'configfile', 'screws_tilt_adjust', 'bed_mesh', 'stepper_enable', 'save_variables', 'firmware_retraction') + JOB_OBJECTS
 
@@ -75,6 +77,7 @@ class MoonrakerSubscription:
         self._case_light_tracking = False
         self._case_light_callback = None
         self._melody_callback = None
+        self._timelapse_pause_job = None
         self._heater_events = HeaterEvents()
         self._melody_error_latched = False
         self._case_light_generation = 0
@@ -355,6 +358,7 @@ class MoonrakerSubscription:
             self._heater_events.reset()
             self._usage_fields = {}
             self._thermal_generation += 1
+            self._timelapse_pause_job = None
             self._state = 'disconnected'
             self._error = error
             self._status = {}
@@ -391,6 +395,7 @@ class MoonrakerSubscription:
                     self._status.setdefault(name, {}).update(copy.deepcopy(fields))
                     self._frozen_status.pop(name, None)
             if replace:
+                self._timelapse_pause_job = None
                 self._heater_events.reset()
             for name in status:
                 if heater_name(name):
@@ -416,9 +421,17 @@ class MoonrakerSubscription:
             self._eventtime = eventtime
             self._revision += 1
             if self._state == 'ready' and not replace and not self._subscribing:
+                current_print = self._status.get('print_stats', {}).get('state')
                 melody = self._melody_transition(
-                    previous_print, self._status.get('print_stats', {}).get('state'),
-                    status.get('webhooks', {}).get('state'))
+                    previous_print, current_print, status.get('webhooks', {}).get('state'))
+                if melody == 'PAUSE':
+                    if self._status.get(TIMELAPSE_MACRO, {}).get('is_paused') is True:
+                        self._timelapse_pause_job = self._print_job_generation
+                        melody = None
+                elif melody == 'RESUME' and self._timelapse_pause_job == self._print_job_generation:
+                    melody = None
+                if current_print != 'paused' or melody == 'ERROR':
+                    self._timelapse_pause_job = None
                 layer_changed = self._layer_changed(
                     previous_stats, self._status.get('print_stats', {}), status)
                 mmu = self._status.get('mmu', {})
@@ -844,7 +857,7 @@ class MoonrakerSubscription:
         names = objects['objects']
         if not all(isinstance(name, str) for name in names) or 'configfile' not in names:
             raise MoonrakerError('Configuration object is unavailable')
-        available = [name for name in names if name in OBJECTS or name in ('mmu', 'mmu_machine', 'mcu') or
+        available = [name for name in names if name in OBJECTS or name in ('mmu', 'mmu_machine', 'mcu', TIMELAPSE_MACRO) or
                      name.startswith('mcu ') or name.startswith('temperature_sensor ') or
                      name.startswith('temperature_fan ') or
                      name.startswith('heater_generic ') or
@@ -864,6 +877,8 @@ class MoonrakerSubscription:
         with self._lock:
             self._base_subscription = {name: (['save_config_pending', 'save_config_pending_items']
                                                if name == 'configfile' else None) for name in available}
+            if TIMELAPSE_MACRO in available:
+                self._base_subscription[TIMELAPSE_MACRO] = ['is_paused']
             for name in available:
                 if name.startswith('heater_generic '):
                     self._base_subscription[name] = ['temperature', 'target']
